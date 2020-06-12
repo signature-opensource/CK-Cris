@@ -18,6 +18,15 @@ namespace CK.Cris
         /// </summary>
         public class Frame
         {
+            internal Frame( string commandId, string callerId, string correlationId, CommandResult? previousResult )
+            {
+                CommandId = commandId;
+                CallerId = callerId;
+                CorrelationId = correlationId;
+                CreateTime = DateTime.UtcNow;
+                PreviousResult = previousResult;
+            }
+
             /// <summary>
             /// The command identifier that is assigned by the End Point.
             /// </summary>
@@ -31,12 +40,23 @@ namespace CK.Cris
             /// <summary>
             /// The optional correlation identifier.
             /// </summary>
-            public string CorrelationId { get; }
+            public string? CorrelationId { get; }
 
             /// <summary>
             /// The creation time in UTC of this frame.
             /// </summary>
             public DateTime CreateTime { get; }
+
+            /// <summary>
+            /// Gets whether this is an asynchrounous frame: the result is not
+            /// awaited and will be received later.
+            /// </summary>
+            public bool AsynchronousFrame { get; }
+
+            /// <summary>
+            /// Gets any the result of the previously executed command if any.
+            /// </summary>
+            public CommandResult? PreviousResult { get; }
 
             /// <summary>
             /// Overridden to display all fields.

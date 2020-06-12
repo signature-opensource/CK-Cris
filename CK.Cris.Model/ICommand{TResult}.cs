@@ -8,7 +8,7 @@ namespace CK.Cris
     /// </summary>
     /// <typeparam name="TResult">Type of the expected result.</typeparam>
     [CKTypeDefiner]
-    public interface ICommand<TResult> : ICommand
+    public interface ICommand<out TResult> : ICommand
     {
     }
 

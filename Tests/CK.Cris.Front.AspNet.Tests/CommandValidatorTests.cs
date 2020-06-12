@@ -1,0 +1,159 @@
+using CK.Auth;
+using CK.Core;
+using FluentAssertions;
+using FluentAssertions.Common;
+using Microsoft.Extensions.DependencyInjection;
+using NUnit.Framework;
+using System;
+using System.Collections.Generic;
+using System.Security.Policy;
+using System.Text;
+using System.Threading.Tasks;
+using static CK.Testing.StObjEngineTestHelper;
+
+namespace CK.Cris.Front.AspNet.Tests
+{
+    [TestFixture]
+    public class CommandValidatorTests
+    {
+        [CommandName("Test")]
+        public interface ICmdTest : ICommand
+        {
+            int Value { get; set; }
+        }
+
+        [Test]
+        public async Task when_there_is_no_validation_methods_the_validation_succeeds()
+        {
+            var c = TestHelper.CreateStObjCollector( typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ICmdTest ) );
+            var services = TestHelper.GetAutomaticServices( c ).Services;
+
+            var directory = services.GetRequiredService<CommandDirectory>();
+            var cmd = directory.FindModel( "Test" ).CreateInstance();
+
+            var validator = services.GetRequiredService<CommandValidator>();
+            var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+            result.Success.Should().BeTrue();
+        }
+
+        public class SimplestValidatorEverSingleton : IAutoService
+        {
+            public void ValidateCommand( IActivityMonitor m, ICmdTest cmd )
+            {
+                if( cmd.Value < 0 ) m.Error( "[Singleton]Value should be greater than 0." );
+                else if( cmd.Value == 0 ) m.Warn( "[Singleton]A positive Value would be better." );
+            }
+        }
+
+        public class SimplestValidatorEverScoped : IScopedAutoService
+        {
+            public void ValidateCommand( IActivityMonitor m, ICmdTest cmd )
+            {
+                if( cmd.Value < 0 ) m.Error( "[Scoped]Value should be greater than 0." );
+                else if( cmd.Value == 0 ) m.Warn( "[Scoped]A positive Value would be better." );
+            }
+        }
+
+        [TestCase( true, false )]
+        [TestCase( false, true )]
+        [TestCase( true, true )]
+        public async Task the_simplest_validation_is_held_by_a_dependency_free_service_and_is_synchronous( bool scopedService, bool singletonService )
+        {
+            var c = TestHelper.CreateStObjCollector( typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ICmdTest ) );
+            if( singletonService ) c.RegisterType( typeof( SimplestValidatorEverSingleton ) );
+            if( scopedService ) c.RegisterType( typeof( SimplestValidatorEverScoped ) );
+
+            var appServices = TestHelper.GetAutomaticServices( c ).Services;
+
+            using( var scope = appServices.CreateScope() )
+            {
+                var services = scope.ServiceProvider; 
+
+                var directory = services.GetRequiredService<CommandDirectory>();
+                var validator = services.GetRequiredService<CommandValidator>();
+
+                var cmd = services.GetRequiredService<IPocoFactory<ICmdTest>>().Create( c => c.Value = -1 );
+                var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+                result.Success.Should().BeFalse();
+                if( scopedService )
+                {
+                    result.Errors.Should().Contain( "[Scoped]Value should be greater than 0." );
+                }
+                if( singletonService )
+                {
+                    result.Errors.Should().Contain( "[Singleton]Value should be greater than 0." );
+                }
+
+                cmd.Value = 0;
+                result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+                result.Success.Should().BeTrue();
+                result.HasWarnings.Should().BeTrue();
+                if( scopedService )
+                {
+                    result.Warnings.Should().Contain( "[Scoped]A positive Value would be better." );
+                }
+                if( singletonService )
+                {
+                    result.Warnings.Should().Contain( "[Singleton]A positive Value would be better." );
+                }
+                result.Errors.Should().BeEmpty();
+            }
+        }
+
+        public interface IAuthenticatedCommandPart : ICommandPart
+        {
+            int ActorId { get; set; }
+        }
+
+        public interface ICmdTestSecure : ICmdTest, IAuthenticatedCommandPart
+        {
+        }
+
+        public class AuthenticationValidator : IAutoService
+        {
+            public void ValidateCommand( IActivityMonitor m, IAuthenticatedCommandPart cmd, IAuthenticationInfo info )
+            {
+                if( cmd.ActorId != info.User.UserId ) m.Error( "Security error." );
+            }
+        }
+
+        [Test]
+        public async Task part_with_parameter_injection()
+        {
+            var c = TestHelper.CreateStObjCollector( typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ICmdTestSecure ), typeof(AuthenticationValidator), typeof( SimplestValidatorEverScoped ) );
+
+            var authTypeSystem = new StdAuthenticationTypeSystem();
+            var authInfo = authTypeSystem.AuthenticationInfo.Create( authTypeSystem.UserInfo.Create( 3712, "John" ), DateTime.UtcNow.AddDays( 1 ) );
+
+            var map = TestHelper.CompileAndLoadStObjMap( c ).Map;
+            var reg = new StObjContextRoot.ServiceRegister( TestHelper.Monitor, new ServiceCollection() );
+            reg.Register<IAuthenticationInfo>( s => authInfo, true, false );
+            reg.AddStObjMap( map ).Should().BeTrue( "Service configuration succeed." );
+
+            var appServices = reg.Services.BuildServiceProvider();
+
+            using( var scope = appServices.CreateScope() )
+            {
+                var services = scope.ServiceProvider;
+
+                var directory = services.GetRequiredService<CommandDirectory>();
+                var validator = services.GetRequiredService<CommandValidator>();
+
+                var cmd = services.GetRequiredService<IPocoFactory<ICmdTestSecure>>().Create( c => c.Value = 1 );
+                var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+                result.Success.Should().BeFalse();
+                result.Errors.Should().BeEquivalentTo( "Security error." );
+
+                cmd.ActorId = 3712;
+                result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+                result.Success.Should().BeTrue();
+                result.HasWarnings.Should().BeFalse();
+
+                cmd.Value = 0;
+                result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+                result.Success.Should().BeTrue();
+                result.HasWarnings.Should().BeTrue();
+            }
+        }
+    }
+}

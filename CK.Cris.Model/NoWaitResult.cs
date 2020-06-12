@@ -7,6 +7,11 @@ namespace CK.Cris
     /// <summary>
     /// Type marker for result of a fire & forget command.
     /// </summary>
-    public sealed class NoWaitResult { }
+    public sealed class NoWaitResult
+    {
+        public NoWaitResult Instance = new NoWaitResult();
+
+        NoWaitResult() {}
+    }
 
 }

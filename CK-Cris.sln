@@ -7,6 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
 		appveyor.yml = appveyor.yml
+		Common\CentralPackages.props = Common\CentralPackages.props
 		Cris.docx = Cris.docx
 		NuGet.config = NuGet.config
 		RepositoryInfo.xml = RepositoryInfo.xml
@@ -21,9 +22,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{4D3EF9AD
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CodeCakeBuilder", "CodeCakeBuilder\CodeCakeBuilder.csproj", "{FD4817B6-3CD7-4E74-AA10-7CA95FDFCF2D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris", "CK.Cris\CK.Cris.csproj", "{ED69623C-740C-4ADB-BD4C-EC92F70810A8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.Front.AspNet.Tests", "Tests\CK.Cris.Front.AspNet.Tests\CK.Cris.Front.AspNet.Tests.csproj", "{8584D153-3428-4B14-AFD1-0457885AD903}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.Tests", "Tests\CK.Cris.Tests\CK.Cris.Tests.csproj", "{8584D153-3428-4B14-AFD1-0457885AD903}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.Model", "CK.Cris.Model\CK.Cris.Model.csproj", "{717D81DF-C488-49EB-8423-C838D259E53C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.Front.AspNet", "CK.Cris.Front.AspNet\CK.Cris.Front.AspNet.csproj", "{0B49489B-F192-448C-873F-38A7AECB8D61}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.Front.AspNet.Runtime", "CK.Cris.Front.AspNet.Runtime\CK.Cris.Front.AspNet.Runtime.csproj", "{203109C7-0DAB-47C7-AD4E-E4FD0D5F5135}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.Runtime", "CK.Cris.Runtime\CK.Cris.Runtime.csproj", "{69B062B9-2C52-479F-BFBF-1708C74A82CD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.Runtime.Tests", "Tests\CK.Cris.Runtime.Tests\CK.Cris.Runtime.Tests.csproj", "{79A461A3-5F21-4D9C-ADDD-3A46A1C60B90}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,20 +44,37 @@ Global
 		{FD4817B6-3CD7-4E74-AA10-7CA95FDFCF2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FD4817B6-3CD7-4E74-AA10-7CA95FDFCF2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FD4817B6-3CD7-4E74-AA10-7CA95FDFCF2D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{ED69623C-740C-4ADB-BD4C-EC92F70810A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{ED69623C-740C-4ADB-BD4C-EC92F70810A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{ED69623C-740C-4ADB-BD4C-EC92F70810A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{ED69623C-740C-4ADB-BD4C-EC92F70810A8}.Release|Any CPU.Build.0 = Release|Any CPU
 		{8584D153-3428-4B14-AFD1-0457885AD903}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{8584D153-3428-4B14-AFD1-0457885AD903}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8584D153-3428-4B14-AFD1-0457885AD903}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8584D153-3428-4B14-AFD1-0457885AD903}.Release|Any CPU.Build.0 = Release|Any CPU
+		{717D81DF-C488-49EB-8423-C838D259E53C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{717D81DF-C488-49EB-8423-C838D259E53C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{717D81DF-C488-49EB-8423-C838D259E53C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{717D81DF-C488-49EB-8423-C838D259E53C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0B49489B-F192-448C-873F-38A7AECB8D61}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0B49489B-F192-448C-873F-38A7AECB8D61}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0B49489B-F192-448C-873F-38A7AECB8D61}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0B49489B-F192-448C-873F-38A7AECB8D61}.Release|Any CPU.Build.0 = Release|Any CPU
+		{203109C7-0DAB-47C7-AD4E-E4FD0D5F5135}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{203109C7-0DAB-47C7-AD4E-E4FD0D5F5135}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{203109C7-0DAB-47C7-AD4E-E4FD0D5F5135}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{203109C7-0DAB-47C7-AD4E-E4FD0D5F5135}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69B062B9-2C52-479F-BFBF-1708C74A82CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69B062B9-2C52-479F-BFBF-1708C74A82CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69B062B9-2C52-479F-BFBF-1708C74A82CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69B062B9-2C52-479F-BFBF-1708C74A82CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{79A461A3-5F21-4D9C-ADDD-3A46A1C60B90}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79A461A3-5F21-4D9C-ADDD-3A46A1C60B90}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79A461A3-5F21-4D9C-ADDD-3A46A1C60B90}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79A461A3-5F21-4D9C-ADDD-3A46A1C60B90}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{8584D153-3428-4B14-AFD1-0457885AD903} = {4D3EF9AD-5153-461D-8538-F321B6EF7121}
+		{79A461A3-5F21-4D9C-ADDD-3A46A1C60B90} = {4D3EF9AD-5153-461D-8538-F321B6EF7121}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {228BD9A5-6AA5-4F89-A2AE-FCE153B1FC03}
