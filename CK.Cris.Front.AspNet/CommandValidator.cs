@@ -27,9 +27,9 @@ namespace CK.Cris
         /// of the command (<see cref="ICommand"/> and <see cref="ICommandPart"/>).
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
-        /// <param name="services">The service context from which any required dependencies must be resolved..</param>
+        /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to validate.</param>
-        /// <returns>The vamidation result.</returns>
+        /// <returns>The validation result.</returns>
         public Task<ValidationResult> ValidateCommandAsync( IActivityMonitor monitor, IServiceProvider services, ICommand command )
         {
             return ValidateCommandAsync( monitor, services, Directory.Find( command ) );
@@ -40,9 +40,9 @@ namespace CK.Cris
         /// of the command (<see cref="ICommand"/> and <see cref="ICommandPart"/>).
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
-        /// <param name="services">The service context from which any required dependencies must be resolved..</param>
+        /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to validate.</param>
-        /// <returns>The vamidation result.</returns>
+        /// <returns>The validation result.</returns>
         public abstract Task<ValidationResult> ValidateCommandAsync( IActivityMonitor monitor, IServiceProvider services, KnownCommand command );
     }
 }
