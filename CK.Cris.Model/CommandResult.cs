@@ -9,52 +9,82 @@ namespace CK.Cris
     /// </summary>
     public class CommandResult
     {
-        CommandResult( CommandCallStack.Frame f )
+        CommandResult( VISAMCode code, object? result, CommandCallerInfo? caller, DateTime startExecutionTime, DateTime? endExecutionTime )
         {
-            CommandId = f.CommandId;
-            CallerId = f.CallerId;
-            CorrelationId = f.CorrelationId;
-            StartExecutionTime = f.CreateTime;
-            EndExecutionTime = DateTime.UtcNow;
-        }
-
-        /// <summary>
-        /// Initializes result that can be null (either because the command doesn't expect any result or the expected result is
-        /// a null reference or value type).
-        /// </summary>
-        /// <param name="f">The command frame.</param>
-        /// <param name="result">The result from the handler. Can be null.</param>
-        public CommandResult( CommandCallStack.Frame f, object? result )
-            : this( f )
-        {
-            Code = f.AsynchronousFrame ? VISAMCode.Asynchronous : VISAMCode.Synchronous;
+            Code = code;
             Result = result;
-        }
-
-        /// <summary>
-        /// Initializes a result object that is a <see cref="CKExceptionData"/>.
-        /// </summary>
-        /// <param name="f">The command frame.</param>
-        /// <param name="error">The error data. Must not be null.</param>
-        public CommandResult( CommandCallStack.Frame f, CKExceptionData error )
-            : this( f )
-        {
-            if( error == null ) throw new ArgumentNullException( nameof( error ) );
-            Code = VISAMCode.InternalError;
-            Result = error;
+            Caller = caller;
+            StartExecutionTime = startExecutionTime;
+            EndExecutionTime = endExecutionTime;
         }
 
         /// <summary>
         /// Initializes a <see cref="VISAMCode.ValidationError"/> response.
+        /// The <see cref="Code"/> is <see cref="VISAMCode.ValidationError"/>.
         /// </summary>
+        /// <param name="startValidationTime">The datetime (must be UTC) at which the validation started.</param>
         /// <param name="error">The error data. Must not be null.</param>
-        public CommandResult( object validationError )
+        /// <param name="caller">Optional caller information.</param>
+        public static CommandResult ValidationError( DateTime startValidationTime, object validationError, CommandCallerInfo? caller = null )
         {
             if( validationError == null ) throw new ArgumentNullException( nameof( validationError ) );
-            Code = VISAMCode.ValidationError;
-            Result = validationError;
-            StartExecutionTime = EndExecutionTime = DateTime.UtcNow;
+            return new CommandResult( VISAMCode.ValidationError, validationError, caller, startValidationTime, DateTime.UtcNow );
         }
+
+        /// <summary>
+        /// Initializes a result object that is a <see cref="CKExceptionData"/>.
+        /// The <see cref="Code"/> is <see cref="VISAMCode.InternalError"/>.
+        /// </summary>
+        /// <param name="startExecutionTime">The datetime (must be UTC) at which the execution started.</param>
+        /// <param name="error">The error data. Must not be null.</param>
+        /// <param name="caller">Optional caller information.</param>
+        public static CommandResult InternalError( DateTime startExecutionTime, CKExceptionData error, CommandCallerInfo? caller = null )
+        {
+            if( error == null ) throw new ArgumentNullException( nameof( error ) );
+            return new CommandResult( VISAMCode.InternalError, error, caller, startExecutionTime, DateTime.UtcNow );
+        }
+
+        /// <summary>
+        /// Initializes a successful command execution outcome.
+        /// The <paramref name="result"/> can be null (either because the command doesn't expect any result or the expected result is
+        /// a null reference or value type).
+        /// The <see cref="Code"/> is <see cref="VISAMCode.Synchronous"/>.
+        /// </summary>
+        /// <param name="startExecutionTime">The datetime (must be UTC) at which the execution started.</param>
+        /// <param name="result">The result from the handler. Can be null.</param>
+        /// <param name="caller">Optional caller information.</param>
+        public static CommandResult SynchronousResult( DateTime startExecutionTime, object? result, CommandCallerInfo? caller = null )
+        {
+            return new CommandResult( VISAMCode.Synchronous, result, caller, startExecutionTime, DateTime.UtcNow );
+        }
+
+        /// <summary>
+        /// Initializes an asynchrous command execution start: the caller information is required and its
+        /// <see cref="CommandCallerInfo.CommandId"/> must be set (ie. not null) since the eventual result will
+        /// have to be sent to the <see cref="CommandCallerInfo.CallerId"/> later.
+        /// The <see cref="Code"/> is <see cref="VISAMCode.Asynchronous"/>.
+        /// </summary>
+        /// <param name="startExecutionTime">The datetime (must be UTC) at which the command has been handled.</param>
+        /// <param name="caller">The required caller information.</param>
+        public static CommandResult AsynchronousExecution( DateTime startExecutionTime, CommandCallerInfo caller )
+        {
+            if( caller == null ) throw new ArgumentNullException( nameof( caller ) );
+            if( caller.CommandId == null ) throw new ArgumentException( "A command identifier must be assigned.",  nameof( caller ) );
+            return new CommandResult( VISAMCode.Asynchronous, null, caller, startExecutionTime, null );
+        }
+
+        /// <summary>
+        /// Initializes a meta information result.
+        /// The <see cref="Code"/> is <see cref="VISAMCode.Meta"/>.
+        /// </summary>
+        /// <param name="startExecutionTime">The datetime (must be UTC) at which the meta request has been handled.</param>
+        /// <param name="caller">Optional caller information.</param>
+        public static CommandResult MetaInformation( DateTime startExecutionTime, object meta, CommandCallerInfo? caller = null )
+        {
+            if( meta == null ) throw new ArgumentNullException( nameof( meta ) );
+            return new CommandResult( VISAMCode.Meta, meta, caller, startExecutionTime, DateTime.UtcNow );
+        }
+
 
         /// <summary>
         /// Gets the <see cref="VISAMCode"/>.
@@ -63,26 +93,9 @@ namespace CK.Cris
 
         /// <summary>
         /// Gets the error or result object (if any).
-        /// Null when the command doesn't expect any result.
+        /// Null when the command doesn't expect any result or if the <see cref="Code"/> is <see cref="VISAMCode.Asynchronous"/>.
         /// </summary>
         public object? Result { get; }
-
-        /// <summary>
-        /// Gets the command identifier that has been assigned by the End Point.
-        /// Note that this may be null for <see cref="VISAMCode.ValidationError"/> or an early <see cref="VISAMCode.InternalError"/>,
-        /// and it is always null for <see cref="VISAMCode.Meta"/>.
-        /// </summary>
-        public string? CommandId { get; }
-
-        /// <summary>
-        /// Gets the caller identifier.
-        /// </summary>
-        public string? CallerId { get; }
-
-        /// <summary>
-        /// Gets the optional correlation identifier.
-        /// </summary>
-        public string? CorrelationId { get; }
 
         /// <summary>
         /// The start time in UTC of the command execution.
@@ -91,18 +104,13 @@ namespace CK.Cris
 
         /// <summary>
         /// The end time in UTC of the command execution.
+        /// This is null when <see cref="Code"/> is <see cref="VISAMCode.Asynchronous"/>.
         /// </summary>
-        public DateTime EndExecutionTime { get; }
+        public DateTime? EndExecutionTime { get; }
 
         /// <summary>
-        /// Gets the previous command result if a command has been executed before this one.
+        /// Gets the <see cref="CommandCallerInfo"/> if one has been specified.
         /// </summary>
-        public CommandResult? PreviousResult { get; }
-
-        /// <summary>
-        /// Gets the last subordinated command result if any.
-        /// </summary>
-        public CommandResult? LastSubordinatedResult { get; }
-
+        public CommandCallerInfo? Caller { get; }
     }
 }
