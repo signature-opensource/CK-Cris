@@ -25,7 +25,7 @@ namespace CK.Cris
         Synchronous = 'S',
 
         /// <summary>
-        /// The execution of the command has been deferred by the pipeline.
+        /// The execution of the command has been deferred.
         /// </summary>
         Asynchronous = 'A',
 

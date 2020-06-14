@@ -31,6 +31,8 @@ namespace CK.Setup.Cris
                 CommandParameter = commandParameter;
                 (UnwrappedReturnType, IsRefAsync, IsValAsync) = GetReturnParameterInfo( method );
             }
+            public override string ToString() => $"{Owner.ClassType.FullName}.{Method.Name}";
+
         }
 
     }

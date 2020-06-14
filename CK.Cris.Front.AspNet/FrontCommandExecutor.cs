@@ -31,10 +31,11 @@ namespace CK.Cris
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to execute.</param>
+        /// <param name="caller">Optional caller information.</param>
         /// <returns>The <see cref="CommandResult"/>.</returns>
-        public Task<CommandResult> ExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, ICommand command )
+        public Task<CommandResult> ExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, ICommand command, CommandCallerInfo? caller = null )
         {
-            return ExecuteCommandAsync( monitor, services, Directory.Find( command ) );
+            return ExecuteCommandAsync( monitor, services, Directory.Find( command ), caller );
         }
 
         /// <summary>
@@ -44,7 +45,22 @@ namespace CK.Cris
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to execute.</param>
+        /// <param name="caller">Optional caller information.</param>
         /// <returns>The <see cref="CommandResult"/>.</returns>
-        public abstract Task<CommandResult> ExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, KnownCommand command );
+        public async Task<CommandResult> ExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, KnownCommand command, CommandCallerInfo? caller = null )
+        {
+            DateTime execTime = DateTime.UtcNow;
+            try
+            {
+                var o = await DoExecuteCommandAsync( monitor, services, command, caller );
+                return CommandResult.SynchronousResult( execTime, o, caller );
+            }
+            catch( Exception ex )
+            {
+                return CommandResult.InternalError( execTime, CKExceptionData.CreateFrom( ex ), caller );
+            }
+        }
+
+        protected abstract Task<object> DoExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, KnownCommand command, CommandCallerInfo? caller );
     }
 }

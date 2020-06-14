@@ -26,7 +26,7 @@ namespace CK.Setup.Cris
             var commands = CommandRegistry.FindOrCreate( monitor, c );
             if( commands == null ) return false;
 
-            var mValidate = scope.CreateSealedOverride( classType.GetMethod( "ValidateCommandAsync", new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( KnownCommand ) } ) );
+            var mValidate = scope.CreateSealedOverride( classType.GetMethod( nameof(CommandValidator.ValidateCommandAsync), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( KnownCommand ) } ) );
             if( commands.Commands.Any( e => e.Validators.Count > 0 ) )
             {
                 const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.KnownCommand, Task<CK.Cris.ValidationResult>>";

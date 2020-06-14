@@ -34,6 +34,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.Runtime", "CK.Cris.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.Runtime.Tests", "Tests\CK.Cris.Runtime.Tests\CK.Cris.Runtime.Tests.csproj", "{79A461A3-5F21-4D9C-ADDD-3A46A1C60B90}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CK.Cris.AmbientValues", "CK.Cris.AmbientValues\CK.Cris.AmbientValues.csproj", "{554F49EE-19EB-4080-BABD-EDD9707B6054}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -68,6 +70,10 @@ Global
 		{79A461A3-5F21-4D9C-ADDD-3A46A1C60B90}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{79A461A3-5F21-4D9C-ADDD-3A46A1C60B90}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{79A461A3-5F21-4D9C-ADDD-3A46A1C60B90}.Release|Any CPU.Build.0 = Release|Any CPU
+		{554F49EE-19EB-4080-BABD-EDD9707B6054}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{554F49EE-19EB-4080-BABD-EDD9707B6054}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{554F49EE-19EB-4080-BABD-EDD9707B6054}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{554F49EE-19EB-4080-BABD-EDD9707B6054}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

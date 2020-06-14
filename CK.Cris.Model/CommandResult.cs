@@ -32,7 +32,7 @@ namespace CK.Cris
         }
 
         /// <summary>
-        /// Initializes a result object that is a <see cref="CKExceptionData"/>.
+        /// Initializes an error command result: the result is a <see cref="CKExceptionData"/>.
         /// The <see cref="Code"/> is <see cref="VISAMCode.InternalError"/>.
         /// </summary>
         /// <param name="startExecutionTime">The datetime (must be UTC) at which the execution started.</param>
@@ -42,6 +42,19 @@ namespace CK.Cris
         {
             if( error == null ) throw new ArgumentNullException( nameof( error ) );
             return new CommandResult( VISAMCode.InternalError, error, caller, startExecutionTime, DateTime.UtcNow );
+        }
+
+        /// <summary>
+        /// Initializes an error command result: the result is an error message.
+        /// The <see cref="Code"/> is <see cref="VISAMCode.InternalError"/>.
+        /// </summary>
+        /// <param name="startExecutionTime">The datetime (must be UTC) at which the execution started.</param>
+        /// <param name="errorMessage">The error message. Must not be <see cref="String.IsNullOrWhiteSpace(string)"/>.</param>
+        /// <param name="caller">Optional caller information.</param>
+        public static CommandResult InternalError( DateTime startExecutionTime, string errorMessage, CommandCallerInfo? caller = null )
+        {
+            if( String.IsNullOrWhiteSpace( errorMessage ) ) throw new ArgumentNullException( nameof( errorMessage ) );
+            return new CommandResult( VISAMCode.InternalError, errorMessage, caller, startExecutionTime, DateTime.UtcNow );
         }
 
         /// <summary>
@@ -112,5 +125,18 @@ namespace CK.Cris
         /// Gets the <see cref="CommandCallerInfo"/> if one has been specified.
         /// </summary>
         public CommandCallerInfo? Caller { get; }
+
+        /// <summary>
+        /// Sets the <see cref="Caller"/> information if it is currently null (this throws a <see cref="InvalidOperationException"/>
+        /// if it is already set to another caller information).
+        /// </summary>
+        /// <param name="caller">The caller information to set.</param>
+        /// <returns>This command result or an updated one.</returns>
+        public CommandResult InitializeCaller( CommandCallerInfo? caller )
+        {
+            if( Caller == caller ) return this;
+            if( Caller != null ) throw new InvalidOperationException( "Command result has already a different Caller defined." );
+            return new CommandResult( Code, Result, caller, StartExecutionTime, EndExecutionTime );
+        }
     }
 }
