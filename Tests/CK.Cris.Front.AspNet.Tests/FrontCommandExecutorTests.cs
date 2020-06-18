@@ -1,3 +1,4 @@
+using CK.Auth;
 using CK.Core;
 using CK.Testing;
 using FluentAssertions;
@@ -5,9 +6,12 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
+
+#nullable enable
 
 namespace CK.Cris.Front.AspNet.Tests
 {
@@ -103,7 +107,7 @@ namespace CK.Cris.Front.AspNet.Tests
             public Task<int> HandleCommandAsync( ICmdIntTest cmd )
             {
                 CmdIntSyncHandler.Called = true;
-                return Task.FromResult(3712);
+                return Task.FromResult( 3712 );
             }
         }
 
@@ -156,6 +160,123 @@ namespace CK.Cris.Front.AspNet.Tests
             TestHelper.GenerateCode( c ).CodeGenResult.Success.Should().BeFalse();
         }
 
+
+        public class CmdIntSyncHandlerWithBadReturnType1 : IAutoService
+        {
+            [CommandHandler]
+            public string HandleCommand( ICmdIntTest cmd )
+            {
+                return "Won't compile.";
+            }
+        }
+
+        public class CmdIntSyncHandlerWithBadReturnType2 : IAutoService
+        {
+            [CommandHandler]
+            public void HandleCommand( ICmdIntTest cmd )
+            {
+                // Won't compile
+            }
+        }
+
+        public class CmdIntSyncHandlerWithBadReturnType3 : IAutoService
+        {
+            [CommandHandler]
+            public object HandleCommand( ICmdIntTest cmd )
+            {
+                return "Won't compile, even if object generalize int: the EXACT result type must be returned.";
+            }
+        }
+
+        [Test]
+        public void return_type_mismatch_detection()
+        {
+            {
+                var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType1 ) );
+                CheckUniqueCommandHasNoHandler( c );
+            }
+            {
+                var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType2 ) );
+                CheckUniqueCommandHasNoHandler( c );
+            }
+            {
+                var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType3 ) );
+                CheckUniqueCommandHasNoHandler( c );
+            }
+
+            static void CheckUniqueCommandHasNoHandler( Setup.StObjCollector c )
+            {
+                var appServices = TestHelper.GetAutomaticServices( c ).Services;
+                using( var scope = appServices.CreateScope() )
+                {
+                    var directory = scope.ServiceProvider.GetRequiredService<CommandDirectory>();
+                    directory.Commands[0].HasHandler.Should().BeFalse();
+                }
+            }
+        }
+
+        #region CollectAmbientValues Handler & PostHandler.
+        public interface ICollectAmbientValuesCmd : ICommand<Dictionary<string, object?>>
+        {
+        }
+
+        public class AmbientValuesService : IAutoService
+        {
+            [CommandHandler]
+            public Dictionary<string, object?> GetValues( ICollectAmbientValuesCmd cmd )
+            {
+                return new Dictionary<string, object?>();
+            }
+        }
+
+        public class AuthService : IAutoService
+        {
+            [CommandPostHandler]
+            public void GetValues( ICollectAmbientValuesCmd cmd, IAuthenticationInfo info, Dictionary<string, object?> values )
+            {
+                values.Add( "ActorId", info.User.UserId );
+                values.Add( "ActualActorId", info.ActualUser.UserId );
+            }
+        }
+
+        public class SecurityService : IAutoService
+        {
+            [CommandPostHandler]
+            public async Task GetValuesAsync( ICollectAmbientValuesCmd cmd, IActivityMonitor monitor, IAuthenticationInfo info, Dictionary<string, object?> values )
+            {
+                await Task.Delay( 25 );
+                monitor.Info( $"User {info.User.UserName} roles have been read from the database." );
+                values.Add( "Roles", new[] { "Admin", "Tester", "Approver" } );
+            }
+        }
+
+        [Test]
+        public async Task calling_PostHandlers()
+        {
+            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICollectAmbientValuesCmd ), typeof( AmbientValuesService ), typeof( AuthService ), typeof( SecurityService ) );
+
+            var authTypeSystem = new StdAuthenticationTypeSystem();
+            var authInfo = authTypeSystem.AuthenticationInfo.Create( authTypeSystem.UserInfo.Create( 3712, "John" ), DateTime.UtcNow.AddDays( 1 ) );
+            var map = TestHelper.CompileAndLoadStObjMap( c ).Map;
+            var reg = new StObjContextRoot.ServiceRegister( TestHelper.Monitor, new ServiceCollection() );
+            reg.Register<IAuthenticationInfo>( s => authInfo, true, false );
+            reg.AddStObjMap( map ).Should().BeTrue( "Service configuration succeed." );
+
+            var appServices = reg.Services.BuildServiceProvider();
+
+            using( var scope = appServices.CreateScope() )
+            {
+                var services = scope.ServiceProvider;
+                var executor = services.GetRequiredService<FrontCommandExecutor>();
+                var cmd = services.GetRequiredService<IPocoFactory<ICollectAmbientValuesCmd>>().Create();
+
+                var r = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                r.Code.Should().Be( VISAMCode.Synchronous );
+                var ambientValues = (Dictionary<string, object?>)r.Result!;
+                ambientValues.Should().HaveCount( 3 );
+            }
+        }
+        #endregion
 
     }
 }

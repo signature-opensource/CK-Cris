@@ -21,13 +21,14 @@ namespace CK.Setup.Cris
         {
             readonly Func<CK.Cris.ICommand> _f;
 
-            public CommandModel( Type t, int i, string n, string[] p, Type r, Func<CK.Cris.ICommand> f )
+            public CommandModel( Type t, int i, string n, string[] p, Type r, Func<CK.Cris.ICommand> f, bool h )
             {
                 CommandType = t;
                 CommandIdx = i;
                 CommandName = n;
                 PreviousNames = p;
                 ResultType = r;
+                HasHandler = h;
                 _f = f;
             }
 
@@ -40,6 +41,8 @@ namespace CK.Setup.Cris
             public IReadOnlyList<string> PreviousNames { get; }
 
             public Type ResultType { get; }
+
+            public bool HasHandler { get; }
 
             public CK.Cris.ICommand CreateInstance() => _f();
         }";
@@ -68,7 +71,8 @@ namespace CK.Setup.Cris
                                                                                 .AppendSourceString( e.CommandName ).Append(", ")
                                                                                 .AppendArray( e.PreviousNames ).Append( ", " )
                                                                                 .AppendTypeOf( e.ResultType ).Append( ", " )
-                                                                                .Append( "() => new " ).Append( e.Command.PocoClass.FullName ).Append( "()" )
+                                                                                .Append( "() => new " ).Append( e.Command.PocoClass.FullName ).Append( "()," )
+                                                                                .Append( e.Handler != null )
                                                                                 .Append(" );" )
                                                                                 .NewLine();
                 foreach( var n in e.PreviousNames.Append( e.CommandName ) )

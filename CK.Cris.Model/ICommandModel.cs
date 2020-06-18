@@ -38,8 +38,15 @@ namespace CK.Cris
 
         /// <summary>
         /// Gets the final (most specialized) result type.
+        /// This is typeof(void) when no <see cref="ICommand{TResult}"/> exists.
         /// </summary>
-        Type? ResultType { get; }
+        Type ResultType { get; }
+
+        /// <summary>
+        /// Gets whether this command has an associated handler.
+        /// When false, no handler has been found and the command cannot be executed in this process.
+        /// </summary>
+        bool HasHandler { get; }
 
     }
 }

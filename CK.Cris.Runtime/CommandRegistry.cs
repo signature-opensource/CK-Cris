@@ -72,7 +72,7 @@ namespace CK.Setup.Cris
 
         bool RegisterValidatorOrPostHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, bool validator )
         {
-            (ParameterInfo[]? parameters, ParameterInfo? p, IReadOnlyList<IPocoRootInfo>? commands) = GetImpactedCommands( monitor, impl, m );
+            (ParameterInfo[]? parameters, ParameterInfo? p, IReadOnlyList<IPocoRootInfo>? commands) = GetImpactedCommands( monitor, impl, m, validator );
             if( p != null )
             {
                 Debug.Assert( parameters != null );
@@ -91,7 +91,7 @@ namespace CK.Setup.Cris
             return false;
         }
 
-        (ParameterInfo[]? Parameters, ParameterInfo? Param, IReadOnlyList<IPocoRootInfo>? Commands) GetImpactedCommands( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m )
+        (ParameterInfo[]? Parameters, ParameterInfo? Param, IReadOnlyList<IPocoRootInfo>? Commands) GetImpactedCommands( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, bool withParts )
         {
             (ParameterInfo[]? parameters, ParameterInfo? p, IPocoInterfaceInfo? commandInterface) = GetCommandCandidates( monitor, m );
             if( parameters == null ) return (null, null, null);
@@ -100,12 +100,15 @@ namespace CK.Setup.Cris
                 Debug.Assert( commandInterface != null, "Since we have a ICommand parameter." );
                 return (parameters, p, new IPocoRootInfo[] { commandInterface.Root });
             }
-            // Looking for command parts.
-            var (param, commands) = GetCommandsFromPart( monitor, m, parameters );
-            if( param != null )
+            if( withParts )
             {
-                Debug.Assert( commands != null, "param == null <==> commands == null" );
-                return (parameters, param, commands);
+                // Looking for command parts.
+                var (param, commands) = GetCommandsFromPart( monitor, m, parameters );
+                if( param != null )
+                {
+                    Debug.Assert( commands != null, "param == null <==> commands == null" );
+                    return (parameters, param, commands);
+                }
             }
             return (parameters, null, null);
         }

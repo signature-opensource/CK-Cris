@@ -58,12 +58,13 @@ namespace CK.Setup.Cris
 
             /// <summary>
             /// Gets the final (most specialized) result type.
+            /// This is typeof(void) when no <see cref="ICommand{TResult}"/> exists.
             /// </summary>
-            public Type? ResultType { get; }
+            public Type ResultType { get; }
 
             /// <summary>
             /// Gets the <see cref="ResultType"/> as the <see cref="IPocoInterfaceInfo"/> if it is a IPoco:
-            /// if not null, then the <see cref="IPocoRootInfo.ClosureInterface"/> is neceessarily the <see cref="ResultType"/>.
+            /// if not null, then the <see cref="IPocoRootInfo.ClosureInterface"/> is necessarily the <see cref="ResultType"/>.
             /// </summary>
             public IPocoInterfaceInfo? PocoResultType { get; }
 
@@ -73,7 +74,7 @@ namespace CK.Setup.Cris
             /// <returns>The name of this command.</returns>
             public override string ToString() => CommandName;
 
-            Entry( IPocoRootInfo command, string name, string[] previousNames, int commandIdx, Type? resultType, IPocoInterfaceInfo? pocoResultType )
+            Entry( IPocoRootInfo command, string name, string[] previousNames, int commandIdx, Type resultType, IPocoInterfaceInfo? pocoResultType )
             {
                 Command = command;
                 _validators = new List<ValidatorMethod>();
@@ -130,7 +131,7 @@ namespace CK.Setup.Cris
                 }
                 #endregion
 
-                Type? resultType;
+                Type resultType;
                 IPocoInterfaceInfo? pocoResultType;
 
                 #region Handling TResult
@@ -175,7 +176,7 @@ namespace CK.Setup.Cris
                 }
                 else
                 {
-                    resultType = null;
+                    resultType = typeof(void);
                     pocoResultType = null;
                 } 
                 #endregion
@@ -190,34 +191,70 @@ namespace CK.Setup.Cris
 
             internal bool AddHandler( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, ParameterInfo parameter )
             {
+                var (unwrappedReturnType, isRefAsync, isValAsync) = GetReturnParameterInfo( method );
+
+                var expected = ResultType;
+                if( expected == typeof( NoWaitResult ) ) expected = typeof( void );
+
+                if( unwrappedReturnType != expected )
+                {
+                    using( monitor.TemporarilySetMinimalFilter( LogFilter.Trace ) )
+                    {
+                        if( expected == typeof( void ) )
+                        {
+                            monitor.Warn( $"Handler method '{MethodName( method, parameters )}' must not return any value, not '{unwrappedReturnType.Name}'. This handler is skipped." );
+                        }
+                        else
+                        {
+                            monitor.Warn( $"Handler method '{MethodName( method, parameters )}': expected return type is '{expected.Name}', not '{unwrappedReturnType.Name}'. This handler is skipped." );
+                        }
+                    }
+                    return true;
+                }
+
                 if( Handler != null )
                 {
                     monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{Handler}' handle '{CommandName}' command." );
                     return false;
                 }
-                Handler = new HandlerMethod( this, owner, method, parameters, parameter );
+                Handler = new HandlerMethod( this, owner, method, parameters, parameter, unwrappedReturnType, isRefAsync, isValAsync );
                 CheckSyncAsyncMethodName( monitor, method, parameters, Handler.IsRefAsync || Handler.IsValAsync );
                 return true;
             }
 
             internal bool AddValidator( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, ParameterInfo commandParameter )
             {
-                var (unwrappedReturnType, isRefAsync, isValAsync) = GetReturnParameterInfo( method );
-                if( unwrappedReturnType != typeof(void) )
-                {
-                    monitor.Error( $"Validate method '{MethodName( method, parameters )}' must not return any value (void, Task or ValueTask). Its returned type is '{unwrappedReturnType.Name}'." );
-                    return false;
-                }
-                CheckSyncAsyncMethodName( monitor, method, parameters, isRefAsync || isValAsync );
+                if( !CheckVoidReturn( monitor, "Validator", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
                 _validators.Add( new ValidatorMethod( this, owner, method, parameters, commandParameter, isRefAsync, isValAsync ) );
                 return true;
             }
 
             internal bool AddPostHandler( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, ParameterInfo commandParameter )
             {
+                if( !CheckVoidReturn( monitor, "Validator", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
+
+                ParameterInfo? resultParameter = ResultType != typeof( void ) ? parameters.FirstOrDefault( p => p.ParameterType.IsAssignableFrom( ResultType ) ) : null;
+                if( resultParameter != null )
+                {
+                    monitor.Trace( $"PostHandler method '{MethodName( method, parameters )}': parameter '{resultParameter.Name}' will receive the Command's result." );
+                }
+                _postHandlers.Add( new PostHandlerMethod( this, owner, method, parameters, commandParameter, resultParameter, isRefAsync, isValAsync ) );
                 return true;
             }
         }
+
+            static bool CheckVoidReturn( IActivityMonitor monitor, string kind, MethodInfo method, ParameterInfo[] parameters, out bool isRefAsync, out bool isValAsync )
+            {
+                Type unwrappedReturnType;
+                (unwrappedReturnType, isRefAsync, isValAsync) = GetReturnParameterInfo( method );
+                if( unwrappedReturnType != typeof( void ) )
+                {
+                    monitor.Error( $"{kind} method '{MethodName( method, parameters )}' must not return any value. Its returned type is '{unwrappedReturnType.Name}'." );
+                    return false;
+                }
+                CheckSyncAsyncMethodName( monitor, method, parameters, isRefAsync || isValAsync );
+                return true;
+            }
 
     }
 
