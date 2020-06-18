@@ -35,5 +35,11 @@ namespace CK.Cris
         /// Gets the command previous names if any.
         /// </summary>
         IReadOnlyList<string> PreviousNames { get; }
+
+        /// <summary>
+        /// Gets the final (most specialized) result type.
+        /// </summary>
+        Type? ResultType { get; }
+
     }
 }

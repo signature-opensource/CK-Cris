@@ -173,7 +173,7 @@ namespace CK.Setup.Cris
                 foreach( var poco in commandPocos )
                 {
                     Debug.Assert( poco.IsClosedPoco && typeof( ICommand ).IsAssignableFrom( poco.ClosureInterface ) );
-                    var entry = Entry.Create( monitor, poco, commands.Count );
+                    var entry = Entry.Create( monitor, pocoResult, poco, commands.Count );
                     if( entry == null ) success = false;
                     else
                     {

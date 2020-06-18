@@ -5,22 +5,24 @@ namespace CK.Setup.Cris
 {
     public partial class CommandRegistry
     {
-        public class ValidatorMethod
+        public class PostHandlerMethod
         {
             public readonly Entry Command;
             public readonly IStObjFinalClass Owner;
             public readonly MethodInfo Method;
             public readonly ParameterInfo[] Parameters;
             public readonly ParameterInfo CmdOrPartParameter;
+            public readonly ParameterInfo? ResultParameter;
             public readonly bool IsRefAsync;
             public readonly bool IsValAsync;
 
-            internal ValidatorMethod(
+            internal PostHandlerMethod(
                         Entry command,
                         IStObjFinalClass owner,
                         MethodInfo method,
                         ParameterInfo[] parameters,
                         ParameterInfo cmdOrPartParameter,
+                        ParameterInfo? resultParameter,
                         bool isRefAsync,
                         bool isValAsync )
             {
@@ -29,6 +31,7 @@ namespace CK.Setup.Cris
                 Method = method;
                 Parameters = parameters;
                 CmdOrPartParameter = cmdOrPartParameter;
+                ResultParameter = resultParameter;
                 IsRefAsync = isRefAsync;
                 IsValAsync = isValAsync;
             }

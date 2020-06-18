@@ -58,9 +58,9 @@ namespace CK.Setup.Cris
                                 {
                                     if( p.Position > 0 ) scope.Append( ", " );
                                     if( typeof( IActivityMonitor ).IsAssignableFrom( p.ParameterType ) ) scope.Append( "m" );
-                                    else if( p == validator.CommandParameter )
+                                    else if( p == validator.CmdOrPartParameter )
                                     {
-                                        scope.Append( "(" ).AppendCSharpName( validator.CommandParameter.ParameterType ).Append( ")c.Command" );
+                                        scope.Append( "(" ).AppendCSharpName( validator.CmdOrPartParameter.ParameterType ).Append( ")c.Command" );
                                     }
                                     else
                                     {

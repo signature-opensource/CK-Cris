@@ -9,6 +9,9 @@ namespace CK.Cris
     /// </summary>
     public sealed class NoWaitResult
     {
+        /// <summary>
+        /// Gets a singleton instance of this marker type.
+        /// </summary>
         public NoWaitResult Instance = new NoWaitResult();
 
         NoWaitResult() {}
