@@ -41,11 +41,11 @@ namespace CK.Setup.Cris
             public CK.Cris.ICommand CreateInstance() => _f();
         }";
 
-        public override bool Implement( IActivityMonitor monitor, Type classType, ICodeGenerationContext c, ITypeScope scope )
+        public override AutoImplementationResult Implement( IActivityMonitor monitor, Type classType, ICodeGenerationContext c, ITypeScope scope )
         {
             if( classType != typeof( CommandDirectory ) ) throw new InvalidOperationException( "Applies only to the CommandDirectory class." );
             var commands = CommandRegistry.FindOrCreate( monitor, c );
-            if( commands == null ) return false;
+            if( commands == null ) return AutoImplementationResult.Failed;
 
             CodeWriterExtensions.Append( scope, CommandModel ).NewLine();
             CodeWriterExtensions.Append( scope, "public " ).Append( scope.Name ).Append( "() : base( CreateData() ) {}" ).NewLine();
@@ -76,7 +76,7 @@ namespace CK.Setup.Cris
             scope.Append( "return (list,map);" ).NewLine();
             scope.Append( "}" ).NewLine();
 
-            return true;
+            return AutoImplementationResult.Success;
         }
     }
 }

@@ -21,11 +21,11 @@ namespace CK.Setup.Cris
     public partial class FrontCommandExecutorImpl : AutoImplementorType
     {
 
-        public override bool Implement( IActivityMonitor monitor, Type classType, ICodeGenerationContext c, ITypeScope scope )
+        public override AutoImplementationResult Implement( IActivityMonitor monitor, Type classType, ICodeGenerationContext c, ITypeScope scope )
         {
             if( classType != typeof( FrontCommandExecutor ) ) throw new InvalidOperationException( "Applies only to the FrontCommandReceiver class." );
             var commands = CommandRegistry.FindOrCreate( monitor, c );
-            if( commands == null ) return false;
+            if( commands == null ) return AutoImplementationResult.Failed;
 
             Debug.Assert( nameof( FrontCommandExecutor.ExecuteCommandAsync ) == "ExecuteCommandAsync" );
             Debug.Assert( classType.GetMethod( nameof( FrontCommandExecutor.ExecuteCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( KnownCommand ), typeof( CommandCallerInfo ) } ) != null );
@@ -119,7 +119,7 @@ namespace CK.Setup.Cris
             scope.Append( "};" )
                  .NewLine();
 
-            return true;
+            return AutoImplementationResult.Success;
         }
 
     }

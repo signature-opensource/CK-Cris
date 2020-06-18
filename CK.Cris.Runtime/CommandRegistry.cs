@@ -21,6 +21,8 @@ namespace CK.Setup.Cris
     /// </summary>
     public partial class CommandRegistry
     {
+        readonly IPocoSupportResult _pocoResult;
+
         /// <summary>
         /// Gets the discovered commands indexed by their <see cref="Entry.CommandName"/>, <see cref="Entry.PreviousNames"/> and
         /// the <see cref="IPocoRootInfo"/>.
@@ -32,6 +34,104 @@ namespace CK.Setup.Cris
         /// </summary>
         public IReadOnlyList<Entry> Commands { get; }
 
+
+        internal bool RegisterHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m )
+        {
+            (ParameterInfo[]? parameters, ParameterInfo? p, IPocoInterfaceInfo? commandInterface) = GetCommandCandidates( monitor, m );
+            bool success = parameters != null;
+            if( success )
+            {
+                if( p == null )
+                {
+                    monitor.Error( $"Method {MethodName( m, parameters )} skipped. No ICommand parameter detected." );
+                    success = false;
+                }
+                else
+                {
+                    Debug.Assert( commandInterface != null, "Since we have a parameter." );
+                    Debug.Assert( parameters != null );
+                    Debug.Assert( commandInterface.Root.ClosureInterface != null, "Since this a ICommand : IClosedPoco." );
+                    Debug.Assert( IndexedCommands.ContainsKey( commandInterface.Root ), "Since parameters are filtered by registered Poco." );
+                    Entry cmd = IndexedCommands[commandInterface.Root];
+                    if( commandInterface.PocoInterface != commandInterface.Root.ClosureInterface )
+                    {
+                        cmd.AddUnclosedHandler( monitor, m, parameters, p, commandInterface );
+                    }
+                    else
+                    {
+                        success &= cmd.AddHandler( monitor, impl, m, parameters, p );
+                    }
+                }
+            }
+            return success;
+        }
+
+        internal bool RegisterValidator( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m ) => RegisterValidatorOrPostHandler( monitor, impl, m, true );
+
+        internal bool RegisterPostHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m ) => RegisterValidatorOrPostHandler( monitor, impl, m, false );
+
+        bool RegisterValidatorOrPostHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, bool validator )
+        {
+            (ParameterInfo[]? parameters, ParameterInfo? p, IReadOnlyList<IPocoRootInfo>? commands) = GetImpactedCommands( monitor, impl, m );
+            if( p != null )
+            {
+                Debug.Assert( parameters != null );
+                bool success = true;
+                Debug.Assert( commands != null, "p == null <==> commands == null" );
+                foreach( var command in commands )
+                {
+                    Debug.Assert( IndexedCommands.ContainsKey( command ), "Since parameters are filtered by registered Poco." );
+                    var e = IndexedCommands[command];
+                    success &= validator
+                                ? e.AddValidator( monitor, impl, m, parameters, p )
+                                : e.AddPostHandler( monitor, impl, m, parameters, p );
+                }
+                return success;
+            }
+            return false;
+        }
+
+        (ParameterInfo[]? Parameters, ParameterInfo? Param, IReadOnlyList<IPocoRootInfo>? Commands) GetImpactedCommands( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m )
+        {
+            (ParameterInfo[]? parameters, ParameterInfo? p, IPocoInterfaceInfo? commandInterface) = GetCommandCandidates( monitor, m );
+            if( parameters == null ) return (null, null, null);
+            if( p != null )
+            {
+                Debug.Assert( commandInterface != null, "Since we have a ICommand parameter." );
+                return (parameters, p, new IPocoRootInfo[] { commandInterface.Root });
+            }
+            // Looking for command parts.
+            var (param, commands) = GetCommandsFromPart( monitor, m, parameters );
+            if( param != null )
+            {
+                Debug.Assert( commands != null, "param == null <==> commands == null" );
+                return (parameters, param, commands);
+            }
+            return (parameters, null, null);
+        }
+
+        (ParameterInfo? Parameter, IReadOnlyList<IPocoRootInfo>? Commands) GetCommandsFromPart( IActivityMonitor monitor, MethodInfo m, ParameterInfo[] parameters )
+        {
+            var candidates = parameters.Where( param => typeof( ICommandPart ).IsAssignableFrom( param.ParameterType ) )
+                                        .Select( param => (param, commandPartsList: _pocoResult.OtherInterfaces.GetValueOrDefault( param.ParameterType )) )
+                                        .Where( x => x.commandPartsList != null )
+                                        .ToArray();
+            if( candidates.Length > 1 )
+            {
+                monitor.Error( $"Method {MethodName( m, parameters )} cannot have more than one ICommand or ICommandPart parameter." );
+            }
+            else if( candidates.Length == 0 )
+            {
+                monitor.Error( $"Method {MethodName( m, parameters )}: no ICommand nor ICommandPart parameter detected." );
+            }
+            else
+            {
+                Debug.Assert( candidates[0].commandPartsList != null, "Nulls have been filtered out." );
+                return (candidates[0].param, candidates[0].commandPartsList);
+            }
+            return (null, null);
+        }
+
         /// <summary>
         /// Gets or builds a <see cref="CommandRegistry"/> for a <see cref="ICodeGenerationContext"/>.
         /// </summary>
@@ -42,123 +142,13 @@ namespace CK.Setup.Cris
         {
             if( !c.Assembly.Memory.TryGetCachedInstance<CommandRegistry>( out var result ) )
             {
-                IStObjServiceEngineMap services = c.CurrentRun.EngineMap.Services;
                 IPocoSupportResult pocoResult = c.Assembly.GetPocoSupportResult();
-
                 var (index,commands) = CreateCommandMap( monitor, pocoResult );
                 if( commands != null )
                 {
                     Debug.Assert( index != null, "Since commands is not null." );
-                    bool success = true;
-                    if( commands.Count > 0 )
-                    {
-                        Debug.Assert( typeof( CommandDirectory ).Namespace == "CK.Cris" );
-
-                        using( monitor.OpenInfo( $"Registering {commands.Count} commands." ) )
-                        {
-                            foreach( IStObjFinalClass impl in services.GetAllMappings() )
-                            {
-                                if( impl.ClassType.Namespace == "CK.Cris" ) continue;
-                                foreach( var m in impl.ClassType.GetMethods() )
-                                {
-                                    bool handleAsync = false;
-                                    bool validateAsync = false;
-                                    if( m.Name == "HandleCommand" || (handleAsync = (m.Name == "HandleCommandAsync")) )
-                                    {
-                                        (ParameterInfo[]? parameters, ParameterInfo? p, IPocoInterfaceInfo? commandInterface) = GetCommonCandidates( monitor, pocoResult, m );
-                                        if( parameters == null )
-                                        {
-                                            success = false;
-                                        }
-                                        else
-                                        {
-                                            if( p == null )
-                                            {
-                                                monitor.Debug( $"Method {MethodName( m, parameters )} skipped. No ICommand parameter detected." );
-                                            }
-                                            else
-                                            {
-                                                Debug.Assert( commandInterface != null, "Since we have a parameter." );
-                                                Debug.Assert( commandInterface.Root.ClosureInterface != null, "Since this a ICommand : IClosedPoco." );
-                                                Debug.Assert( index.ContainsKey( commandInterface.Root ), "Since parameters are filtered by registered Poco." );
-                                                Entry cmd = index[commandInterface.Root];
-                                                if( commandInterface.PocoInterface != commandInterface.Root.ClosureInterface )
-                                                {
-                                                    cmd.AddUnclosedHandler( monitor, m, parameters, p, commandInterface );
-                                                }
-                                                else
-                                                {
-                                                    success &= cmd.AddHandler( monitor, impl, m, handleAsync, parameters, p );
-                                                }
-                                            }
-                                        }
-                                    }
-                                    else if( m.Name == "ValidateCommand" || (validateAsync = (m.Name == "ValidateCommandAsync")) )
-                                    {
-                                        (ParameterInfo[]? parameters, ParameterInfo? p, IPocoInterfaceInfo? commandInterface) = GetCommonCandidates( monitor, pocoResult, m );
-                                        if( parameters == null )
-                                        {
-                                            success = false;
-                                        }
-                                        else
-                                        {
-                                            IReadOnlyList<IPocoRootInfo>? toValidate = null;
-                                            if( p != null )
-                                            {
-                                                Debug.Assert( commandInterface != null, "Since we have a ICommand parameter." );
-                                                toValidate = new IPocoRootInfo[] { commandInterface.Root };
-                                            }
-                                            else
-                                            {
-                                                // Looking for command parts.
-                                                var candidates = parameters.Where( param => typeof( ICommandPart ).IsAssignableFrom( param.ParameterType ) )
-                                                                            .Select( param => (param, commandPartsList: pocoResult.OtherInterfaces.GetValueOrDefault( param.ParameterType )) )
-                                                                            .Where( x => x.Item2 != null )
-                                                                            .ToArray();
-                                                if( candidates.Length > 1 )
-                                                {
-                                                    monitor.Error( $"Method {MethodName( m, parameters )} cannot have more than one ICommand or ICommandPart parameter." );
-                                                    success = false;
-                                                }
-                                                else if( candidates.Length == 0 )
-                                                {
-                                                    monitor.Debug( $"Method {MethodName( m, parameters )} skipped. No ICommand nor ICommandPart parameter detected." );
-                                                }
-                                                else
-                                                {
-                                                    Debug.Assert( candidates[0].commandPartsList != null, "Nulls have been filtered out." );
-                                                    p = candidates[0].param;
-                                                    toValidate = candidates[0].commandPartsList;
-                                                }
-                                            }
-                                            if( p != null )
-                                            {
-                                                Debug.Assert( toValidate != null, "p == null <==> commands == null" );
-                                                foreach( var command in toValidate )
-                                                {
-                                                    Debug.Assert( index.ContainsKey( command ), "Since parameters are filtered by registered Poco." );
-                                                    success &= index[command].AddValidator( monitor, impl, m, validateAsync, parameters, p );
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            if( !success )
-                            {
-                                monitor.CloseGroup( "Failed to create CommandRegistrar." );
-                            }
-                            else
-                            {
-                                result = new CommandRegistry( index, commands );
-                            }
-                        }
-                    }
-                    else
-                    {
-                        monitor.Info( "No Command detected." );
-                        result = new CommandRegistry( ImmutableDictionary<object, Entry>.Empty, Array.Empty<Entry>() );
-                    }
+                    monitor.Info( commands.Count > 0 ? $"{commands.Count} commands detected." : "No Command detected." );
+                    result = new CommandRegistry( index, commands, pocoResult );
                 }
                 c.Assembly.Memory.AddCachedInstance( result );
             }
@@ -166,10 +156,11 @@ namespace CK.Setup.Cris
         }
 
 
-        CommandRegistry( IReadOnlyDictionary<object, Entry> index, IReadOnlyList<Entry> commands )
+        CommandRegistry( IReadOnlyDictionary<object, Entry> index, IReadOnlyList<Entry> commands, IPocoSupportResult poco )
         {
             IndexedCommands = index;
             Commands = commands;
+            _pocoResult = poco;
         }
 
         static (Dictionary<object, Entry>?,IReadOnlyList<Entry>?) CreateCommandMap( IActivityMonitor monitor, IPocoSupportResult pocoResult )
@@ -235,14 +226,14 @@ namespace CK.Setup.Cris
             return (t, isRefAsync, isValAsync);
         }
 
-        static (ParameterInfo[]? Parameters, ParameterInfo? Param, IPocoInterfaceInfo? CommandInterface) GetCommonCandidates( IActivityMonitor monitor, IPocoSupportResult poco, MethodInfo m )
+        (ParameterInfo[]? Parameters, ParameterInfo? Param, IPocoInterfaceInfo? CommandInterface) GetCommandCandidates( IActivityMonitor monitor, MethodInfo m )
         {
             var parameters = m.GetParameters();
-            var candidates = parameters.Select( p => (p, poco.AllInterfaces.GetValueOrDefault( p.ParameterType )) )
-                                                                   .Where( x => x.Item2 != null
+            var candidates = parameters.Select( p => (p, _pocoResult.AllInterfaces.GetValueOrDefault( p.ParameterType )) )
+                                                                    .Where( x => x.Item2 != null
                                                                                 && x.Item2.Root.IsClosedPoco
                                                                                 && typeof( ICommand ).IsAssignableFrom( x.Item2.PocoInterface ) )
-                                                                   .ToArray();
+                                                                    .ToArray();
             if( candidates.Length > 1 )
             {
                 monitor.Error( $"Method {MethodName( m, parameters )} cannot have more than one ICommand parameter." );
@@ -255,8 +246,9 @@ namespace CK.Setup.Cris
             return (parameters, candidates[0].p, candidates[0].Item2);
         }
 
-        static void CheckSyncAsyncMethodName( IActivityMonitor monitor, MethodInfo method, ParameterInfo[] parameters, bool isAsyncName, bool isAsyncRet )
+        static void CheckSyncAsyncMethodName( IActivityMonitor monitor, MethodInfo method, ParameterInfo[] parameters, bool isAsyncRet )
         {
+            bool isAsyncName = method.Name.EndsWith( "Async", StringComparison.OrdinalIgnoreCase );
             if( isAsyncName && !isAsyncRet )
             {
                 monitor.Warn( $"Method name ends with Async but returned type is not a Task or a ValueTask. Method: {MethodName( method, parameters )}." );

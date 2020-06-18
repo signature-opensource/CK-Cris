@@ -38,6 +38,7 @@ namespace CK.Cris.Front.AspNet.Tests
 
         public class SimplestValidatorEverSingleton : IAutoService
         {
+            [CommandValidator]
             public void ValidateCommand( IActivityMonitor m, ICmdTest cmd )
             {
                 if( cmd.Value < 0 ) m.Error( "[Singleton]Value should be greater than 0." );
@@ -47,6 +48,7 @@ namespace CK.Cris.Front.AspNet.Tests
 
         public class SimplestValidatorEverScoped : IScopedAutoService
         {
+            [CommandValidator]
             public void ValidateCommand( IActivityMonitor m, ICmdTest cmd )
             {
                 if( cmd.Value < 0 ) m.Error( "[Scoped]Value should be greater than 0." );
@@ -111,6 +113,7 @@ namespace CK.Cris.Front.AspNet.Tests
 
         public class AuthenticationValidator : IAutoService
         {
+            [CommandValidator]
             public void ValidateCommand( IActivityMonitor m, IAuthenticatedCommandPart cmd, IAuthenticationInfo info )
             {
                 if( cmd.ActorId != info.User.UserId ) m.Error( "Security error." );

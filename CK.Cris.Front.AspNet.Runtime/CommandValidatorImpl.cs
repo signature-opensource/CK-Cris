@@ -20,11 +20,11 @@ namespace CK.Setup.Cris
 {
     public class CommandValidatorImpl : AutoImplementorType
     {
-        public override bool Implement( IActivityMonitor monitor, Type classType, ICodeGenerationContext c, ITypeScope scope )
+        public override AutoImplementationResult Implement( IActivityMonitor monitor, Type classType, ICodeGenerationContext c, ITypeScope scope )
         {
             if( classType != typeof( CommandValidator ) ) throw new InvalidOperationException( "Applies only to the CommandValidator class." );
             var commands = CommandRegistry.FindOrCreate( monitor, c );
-            if( commands == null ) return false;
+            if( commands == null ) return AutoImplementationResult.Failed;
 
             var mValidate = scope.CreateSealedOverride( classType.GetMethod( nameof(CommandValidator.ValidateCommandAsync), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( KnownCommand ) } ) );
             if( commands.Commands.Any( e => e.Validators.Count > 0 ) )
@@ -100,7 +100,7 @@ namespace CK.Setup.Cris
             {
                 mValidate.Append( "return Task.FromResult<CK.Cris.ValidationResult>( new CK.Cris.ValidationResult( command ) );" );
             }
-            return true;
+            return AutoImplementationResult.Success;
         }
     }
 

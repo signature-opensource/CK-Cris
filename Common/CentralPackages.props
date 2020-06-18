@@ -1,13 +1,13 @@
 <Project>
   <ItemGroup>
-    <PackageReference Update="CK.StObj.Model" Version="14.0.2--0030-develop" />
-    <PackageReference Update="CK.StObj.Runtime" Version="14.0.2--0030-develop" />
-    <PackageReference Update="CK.Testing.StObjEngine" Version="14.0.2--0030-develop" />
+    <PackageReference Update="CK.StObj.Model" Version="14.0.2--0035-develop" />
+    <PackageReference Update="CK.StObj.Runtime" Version="14.0.2--0035-develop" />
+    <PackageReference Update="CK.Testing.StObjEngine" Version="14.0.2--0035-develop" />
     <PackageReference Update="CK.AspNet" Version="5.3.1" />
     <PackageReference Update="CK.Auth.Abstractions" Version="0.10.0" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Update="CK.Testing.StObjEngine" Version="14.0.2--0030-develop" />
+    <PackageReference Update="CK.Testing.StObjEngine" Version="14.0.2--0035-develop" />
     <PackageReference Update="Microsoft.NET.Test.Sdk" Version="16.6.1" />
     <PackageReference Update="NUnit" Version="3.12.0" />
     <PackageReference Update="NUnit3TestAdapter" Version="3.16.1" />

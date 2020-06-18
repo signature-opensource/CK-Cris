@@ -113,7 +113,7 @@ namespace CK.Setup.Cris
                 monitor.Info( $"Method {MethodName( method, parameters )} cannot handle '{CommandName}' command because type {iCommand.PocoInterface.Name} doesn't represent the whole command." );
             }
 
-            internal bool AddHandler( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, bool isAsyncName, ParameterInfo[] parameters, ParameterInfo parameter )
+            internal bool AddHandler( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, ParameterInfo parameter )
             {
                 if( Handler != null )
                 {
@@ -121,20 +121,25 @@ namespace CK.Setup.Cris
                     return false;
                 }
                 Handler = new HandlerMethod( this, owner, method, parameters, parameter );
-                CheckSyncAsyncMethodName( monitor, method, parameters, isAsyncName, Handler.IsRefAsync || Handler.IsValAsync );
+                CheckSyncAsyncMethodName( monitor, method, parameters, Handler.IsRefAsync || Handler.IsValAsync );
                 return true;
             }
 
-            internal bool AddValidator( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, bool isAsyncName, ParameterInfo[] parameters, ParameterInfo commandParameter )
+            internal bool AddValidator( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, ParameterInfo commandParameter )
             {
                 var (unwrappedReturnType, isRefAsync, isValAsync) = GetReturnParameterInfo( method );
                 if( unwrappedReturnType != typeof(void) )
                 {
-                    monitor.Error( $"Invalid return type for Validate method: {MethodName( method, parameters )}. Return type: {unwrappedReturnType.Name}." );
+                    monitor.Error( $"Validate method '{MethodName( method, parameters )}' must not return any value (void, Task or ValueTask). Its returned type is '{unwrappedReturnType.Name}'." );
                     return false;
                 }
-                CheckSyncAsyncMethodName( monitor, method, parameters, isAsyncName, isRefAsync || isValAsync );
+                CheckSyncAsyncMethodName( monitor, method, parameters, isRefAsync || isValAsync );
                 _validators.Add( new ValidatorMethod( this, owner, method, parameters, commandParameter, isRefAsync, isValAsync ) );
+                return true;
+            }
+
+            internal bool AddPostHandler( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, ParameterInfo commandParameter )
+            {
                 return true;
             }
         }
