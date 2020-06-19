@@ -37,42 +37,28 @@ namespace CK.Setup.Cris
 
         internal bool RegisterHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m )
         {
-            (ParameterInfo[]? parameters, ParameterInfo? p, IPocoInterfaceInfo? commandInterface) = GetCommandCandidates( monitor, m );
-            bool success = parameters != null;
-            if( success )
+            (Entry? e, ParameterInfo[]? parameters, ParameterInfo? p) = GetCommandEntry( monitor, "Handler", m );
+            if( e == null ) return false;
+            Debug.Assert( parameters != null && p != null );
+            if( p.ParameterType == e.Command.ClosureInterface )
             {
-                if( p == null )
-                {
-                    monitor.Error( $"Method {MethodName( m, parameters )} skipped. No ICommand parameter detected." );
-                    success = false;
-                }
-                else
-                {
-                    Debug.Assert( commandInterface != null, "Since we have a parameter." );
-                    Debug.Assert( parameters != null );
-                    Debug.Assert( commandInterface.Root.ClosureInterface != null, "Since this a ICommand : IClosedPoco." );
-                    Debug.Assert( IndexedCommands.ContainsKey( commandInterface.Root ), "Since parameters are filtered by registered Poco." );
-                    Entry cmd = IndexedCommands[commandInterface.Root];
-                    if( commandInterface.PocoInterface != commandInterface.Root.ClosureInterface )
-                    {
-                        cmd.AddUnclosedHandler( monitor, m, parameters, p, commandInterface );
-                    }
-                    else
-                    {
-                        success &= cmd.AddHandler( monitor, impl, m, parameters, p );
-                    }
-                }
+                return e.AddHandler( monitor, impl, m, parameters, p );
             }
-            return success;
+            e.AddUnclosedHandler( monitor, m, parameters, p );
+            return true;
         }
 
-        internal bool RegisterValidator( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m ) => RegisterValidatorOrPostHandler( monitor, impl, m, true );
-
-        internal bool RegisterPostHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m ) => RegisterValidatorOrPostHandler( monitor, impl, m, false );
-
-        bool RegisterValidatorOrPostHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, bool validator )
+        internal bool RegisterPostHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m )
         {
-            (ParameterInfo[]? parameters, ParameterInfo? p, IReadOnlyList<IPocoRootInfo>? commands) = GetImpactedCommands( monitor, impl, m, validator );
+            (Entry? e, ParameterInfo[]? parameters, ParameterInfo? p) = GetCommandEntry( monitor, "PostHandler", m );
+            if( e == null ) return false;
+            Debug.Assert( parameters != null && p != null );
+            return e.AddPostHandler( monitor, impl, m, parameters, p );
+        }
+
+        internal bool RegisterValidator( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m )
+        {
+            (ParameterInfo[]? parameters, ParameterInfo? p, IReadOnlyList<IPocoRootInfo>? commands) = GetImpactedCommands( monitor, impl, m );
             if( p != null )
             {
                 Debug.Assert( parameters != null );
@@ -82,33 +68,29 @@ namespace CK.Setup.Cris
                 {
                     Debug.Assert( IndexedCommands.ContainsKey( command ), "Since parameters are filtered by registered Poco." );
                     var e = IndexedCommands[command];
-                    success &= validator
-                                ? e.AddValidator( monitor, impl, m, parameters, p )
-                                : e.AddPostHandler( monitor, impl, m, parameters, p );
+                    success &= e.AddValidator( monitor, impl, m, parameters, p );
                 }
                 return success;
             }
             return false;
         }
 
-        (ParameterInfo[]? Parameters, ParameterInfo? Param, IReadOnlyList<IPocoRootInfo>? Commands) GetImpactedCommands( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, bool withParts )
+
+        (ParameterInfo[]? Parameters, ParameterInfo? Param, IReadOnlyList<IPocoRootInfo>? Commands) GetImpactedCommands( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m )
         {
-            (ParameterInfo[]? parameters, ParameterInfo? p, IPocoInterfaceInfo? commandInterface) = GetCommandCandidates( monitor, m );
+            (ParameterInfo[]? parameters, ParameterInfo? p, IPocoInterfaceInfo? commandInterface) = GetCommandCandidate( monitor, m );
             if( parameters == null ) return (null, null, null);
             if( p != null )
             {
                 Debug.Assert( commandInterface != null, "Since we have a ICommand parameter." );
                 return (parameters, p, new IPocoRootInfo[] { commandInterface.Root });
             }
-            if( withParts )
+            // Looking for command parts.
+            var (param, commands) = GetCommandsFromPart( monitor, m, parameters );
+            if( param != null )
             {
-                // Looking for command parts.
-                var (param, commands) = GetCommandsFromPart( monitor, m, parameters );
-                if( param != null )
-                {
-                    Debug.Assert( commands != null, "param == null <==> commands == null" );
-                    return (parameters, param, commands);
-                }
+                Debug.Assert( commands != null, "param == null <==> commands == null" );
+                return (parameters, param, commands);
             }
             return (parameters, null, null);
         }
@@ -229,7 +211,29 @@ namespace CK.Setup.Cris
             return (t, isRefAsync, isValAsync);
         }
 
-        (ParameterInfo[]? Parameters, ParameterInfo? Param, IPocoInterfaceInfo? CommandInterface) GetCommandCandidates( IActivityMonitor monitor, MethodInfo m )
+
+        (Entry? e, ParameterInfo[]? parameters, ParameterInfo? p) GetCommandEntry( IActivityMonitor monitor, string kind, MethodInfo m )
+        {
+            (ParameterInfo[]? parameters, ParameterInfo? p, IPocoInterfaceInfo? commandInterface) = GetCommandCandidate( monitor, m );
+            if( parameters != null )
+            {
+                if( p == null )
+                {
+                    monitor.Error( $"Invalid {kind} method {MethodName( m, parameters )} skipped. No ICommand parameter detected." );
+                }
+                else
+                {
+                    Debug.Assert( commandInterface != null, "Since we have a parameter." );
+                    Debug.Assert( parameters != null );
+                    Debug.Assert( commandInterface.Root.ClosureInterface != null, "Since this a ICommand : IClosedPoco." );
+                    Debug.Assert( IndexedCommands.ContainsKey( commandInterface.Root ), "Since parameters are filtered by registered Poco." );
+                    return (IndexedCommands[commandInterface.Root], parameters, p);
+                }
+            }
+            return (null, null, null);
+        }
+
+        (ParameterInfo[]? Parameters, ParameterInfo? Param, IPocoInterfaceInfo? ParamInterface) GetCommandCandidate( IActivityMonitor monitor, MethodInfo m )
         {
             var parameters = m.GetParameters();
             var candidates = parameters.Select( p => (p, _pocoResult.AllInterfaces.GetValueOrDefault( p.ParameterType )) )
@@ -246,6 +250,7 @@ namespace CK.Setup.Cris
             {
                 return (parameters, null, null);
             }
+            Debug.Assert( candidates[0].Item2 != null && candidates[0].p.ParameterType == candidates[0].Item2!.PocoInterface );
             return (parameters, candidates[0].p, candidates[0].Item2);
         }
 

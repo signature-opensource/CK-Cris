@@ -1,11 +1,13 @@
 using CK.Core;
 using FluentAssertions;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
 
 namespace CK.Cris.Tests
@@ -27,10 +29,11 @@ namespace CK.Cris.Tests
             var m = d.FindModel( "Test" );
             m.Should().NotBeNull();
             d.Commands[0].Should().BeSameAs( m );
+            m.HasHandler.Should().Be( false );
             m.CommandIdx.Should().Be( 0 );
             m.CommandName.Should().Be( "Test" );
             m.PreviousNames.Should().BeEquivalentTo( "PreviousTest1", "PreviousTest2" );
-            m.CommandType.Should().Be( typeof(ICmdTest) );
+            m.CommandType.Should().Be( typeof( ICmdTest ) );
             m.Should().BeSameAs( d.FindModel( "PreviousTest1" ) ).And.BeSameAs( d.FindModel( "PreviousTest2" ) );
             var cmd = m.CreateInstance();
             d.FindModel( cmd ).Should().BeSameAs( m );

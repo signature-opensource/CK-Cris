@@ -223,10 +223,7 @@ namespace CK.Cris.Front.AspNet.Tests
         public class AmbientValuesService : IAutoService
         {
             [CommandHandler]
-            public Dictionary<string, object?> GetValues( ICollectAmbientValuesCmd cmd )
-            {
-                return new Dictionary<string, object?>();
-            }
+            public Dictionary<string, object?> GetValues( ICollectAmbientValuesCmd cmd ) => new Dictionary<string, object?>();
         }
 
         public class AuthService : IAutoService
@@ -271,12 +268,94 @@ namespace CK.Cris.Front.AspNet.Tests
                 var cmd = services.GetRequiredService<IPocoFactory<ICollectAmbientValuesCmd>>().Create();
 
                 var r = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                if( r.Code != VISAMCode.Synchronous ) TestHelper.Monitor.Info( r.Result.ToString() );
                 r.Code.Should().Be( VISAMCode.Synchronous );
                 var ambientValues = (Dictionary<string, object?>)r.Result!;
                 ambientValues.Should().HaveCount( 3 );
             }
         }
         #endregion
+
+
+        #region [CommandHandler] on IAutoService publicly implemented.
+
+        public interface ICommandHandler : IAutoService
+        {
+            [CommandHandler]
+            void Handle( IActivityMonitor m, ICmdTest c );
+        }
+
+        public class CommandHandlerImpl : ICommandHandler
+        {
+            public static bool Called;
+
+            public void Handle( IActivityMonitor m, ICmdTest c )
+            {
+                Called = true;
+                m.Info( "Hop!" );
+            }
+        }
+
+        [Test]
+        public async Task calling_public_AutoService_implementation()
+        {
+            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdTest ), typeof( CommandHandlerImpl ) );
+            var appServices = TestHelper.GetAutomaticServices( c ).Services;
+            using( var scope = appServices.CreateScope() )
+            {
+                var services = scope.ServiceProvider;
+                var executor = services.GetRequiredService<FrontCommandExecutor>();
+                var cmd = services.GetRequiredService<IPocoFactory<ICmdTest>>().Create();
+
+                CommandHandlerImpl.Called = false;
+
+                CommandResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                result.Result.Should().BeNull();
+                result.Code.Should().Be( VISAMCode.Synchronous );
+
+                CommandHandlerImpl.Called.Should().BeTrue();
+            }
+        }
+
+        #endregion
+
+
+        #region [CommandHandler] on IAutoService explicitly implemented.
+
+        public class CommandHandlerExplicitImpl : ICommandHandler
+        {
+            public static bool Called;
+
+            void ICommandHandler.Handle( IActivityMonitor m, ICmdTest c )
+            {
+                Called = true;
+                m.Info( "Explicit Hop!" );
+            }
+        }
+
+        [Test]
+        public async Task calling_explicit_AutoService_implementation()
+        {
+            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdTest ), typeof( CommandHandlerExplicitImpl ) );
+            var appServices = TestHelper.GetAutomaticServices( c ).Services;
+            using( var scope = appServices.CreateScope() )
+            {
+                var services = scope.ServiceProvider;
+                var executor = services.GetRequiredService<FrontCommandExecutor>();
+                var cmd = services.GetRequiredService<IPocoFactory<ICmdTest>>().Create();
+
+                CommandHandlerExplicitImpl.Called = false;
+
+                CommandResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                result.Result.Should().BeNull();
+                result.Code.Should().Be( VISAMCode.Synchronous );
+
+                CommandHandlerExplicitImpl.Called.Should().BeTrue();
+            }
+        }
+
+        #endregion
+
 
     }
 }

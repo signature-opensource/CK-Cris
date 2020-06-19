@@ -23,17 +23,17 @@ namespace CK.Setup.Cris
         public override AutoImplementationResult Implement( IActivityMonitor monitor, Type classType, ICodeGenerationContext c, ITypeScope scope )
         {
             if( classType != typeof( CommandValidator ) ) throw new InvalidOperationException( "Applies only to the CommandValidator class." );
-            var commands = CommandRegistry.FindOrCreate( monitor, c );
-            if( commands == null ) return AutoImplementationResult.Failed;
+            var registry = CommandRegistry.FindOrCreate( monitor, c );
+            if( registry == null ) return AutoImplementationResult.Failed;
 
             var mValidate = scope.CreateSealedOverride( classType.GetMethod( nameof(CommandValidator.ValidateCommandAsync), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( KnownCommand ) } ) );
-            if( commands.Commands.Any( e => e.Validators.Count > 0 ) )
+            if( registry.Commands.Any( e => e.Validators.Count > 0 ) )
             {
                 const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.KnownCommand, Task<CK.Cris.ValidationResult>>";
                 scope.Append( "static readonly " ).Append( funcSignature ).Append( " Success = ( m, s, c ) => Task.FromResult( new CK.Cris.ValidationResult( c ) );" )
                      .NewLine();
 
-                foreach( var e in commands.Commands )
+                foreach( var e in registry.Commands )
                 {
                     if( e.Validators.Count > 0 )
                     {
@@ -52,7 +52,12 @@ namespace CK.Setup.Cris
                             foreach( var validator in service )
                             {
                                 if( validator.IsRefAsync || validator.IsValAsync ) scope.Append( "await " );
-                                scope.Append( "h." ).Append( validator.Method.Name ).Append( "( " );
+                                if( validator.Method.DeclaringType != service.Key.ClassType )
+                                {
+                                    scope.Append("((").AppendCSharpName( validator.Method.DeclaringType ).Append( ")h)." );
+                                }
+                                else scope.Append( "h." );
+                                scope.Append( validator.Method.Name ).Append( "( " );
 
                                 foreach( var p in validator.Parameters )
                                 {
@@ -78,8 +83,8 @@ namespace CK.Setup.Cris
                     scope.Append( "}" ).NewLine();
                 }
 
-                scope.Append( "readonly " ).Append( funcSignature ).Append( "[] _validators = new " ).Append( funcSignature ).Append( "[" ).Append( commands.Commands.Count ).Append( "]{" );
-                foreach( var e in commands.Commands )
+                scope.Append( "readonly " ).Append( funcSignature ).Append( "[] _validators = new " ).Append( funcSignature ).Append( "[" ).Append( registry.Commands.Count ).Append( "]{" );
+                foreach( var e in registry.Commands )
                 {
                     if( e.CommandIdx != 0 ) scope.Append( ", " );
                     if( e.Validators.Count == 0 )

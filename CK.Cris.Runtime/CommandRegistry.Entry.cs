@@ -1,3 +1,5 @@
+using CK.CodeGen;
+using CK.CodeGen.Abstractions;
 using CK.Core;
 using CK.Cris;
 using CK.Text;
@@ -15,7 +17,7 @@ namespace CK.Setup.Cris
         /// <summary>
         /// Command model.
         /// </summary>
-        public class Entry
+        public partial class Entry
         {
             readonly List<ValidatorMethod> _validators;
             readonly List<PostHandlerMethod> _postHandlers;
@@ -36,7 +38,7 @@ namespace CK.Setup.Cris
             public IReadOnlyList<ValidatorMethod> Validators => _validators;
 
             /// <summary>
-            /// Gets the post hanlder methods.
+            /// Gets the post handler methods.
             /// </summary>
             public IReadOnlyList<PostHandlerMethod> PostHandlers => _postHandlers;
 
@@ -69,6 +71,61 @@ namespace CK.Setup.Cris
             public IPocoInterfaceInfo? PocoResultType { get; }
 
             /// <summary>
+            /// Gets whether there are asynchronous post handlers to call.
+            /// </summary>
+            /// <param name="e">The entry.</param>
+            /// <returns>True if asynchronous calls must be made.</returns>
+            public bool HasPostHandlerAsyncCall => _postHandlers.Any( h => h.IsRefAsync || h.IsValAsync );
+
+            /// <summary>
+            /// Generates all the synchronous and asynchronous (if any) calls required based on these variable
+            /// names: <code>IActivityMonitor m, IServiceProvider s, CK.Cris.KnownCommand c, object r</code>.
+            /// <para>
+            /// Async calls use await keyword.
+            /// </para>
+            /// </summary>
+            /// <param name="w">The code writer to use.</param>
+            public void GeneratePostHandlerCallCode( ICodeWriter w )
+            {
+                foreach( var h in _postHandlers.Where( h => !h.IsRefAsync && !h.IsValAsync ).GroupBy( h => h.Owner ) ) GenerateCode( w, h, false );
+                foreach( var h in _postHandlers.Where( h => h.IsRefAsync || h.IsValAsync ).GroupBy( h => h.Owner ) ) GenerateCode( w, h, true );
+
+                static void GenerateCode( ICodeWriter w, IGrouping<IStObjFinalClass, PostHandlerMethod> h, bool async )
+                {
+                    w.Append( "{" ).NewLine();
+                    w.Append( "var h = (" ).AppendCSharpName( h.Key.ClassType ).Append( ")s.GetService(" ).AppendTypeOf( h.Key.ClassType ).Append( ");" ).NewLine();
+                    foreach( var m in h )
+                    {
+                        if( async ) w.Append( "await " );
+
+                        if( m.Method.DeclaringType != h.Key.ClassType )
+                        {
+                            w.Append( "((" ).AppendCSharpName( m.Method.DeclaringType ).Append( ")h)." );
+                        }
+                        else w.Append( "h." );
+
+                        w.Append( m.Method.Name ).Append( "( " );
+                        foreach( var p in m.Parameters )
+                        {
+                            if( p.Position > 0 ) w.Append( ", " );
+                            if( typeof( IActivityMonitor ).IsAssignableFrom( p.ParameterType ) ) w.Append( "m" );
+                            else if( p == m.ResultParameter ) w.Append( "r" );
+                            else if( p == m.CmdOrPartParameter )
+                            {
+                                w.Append( "(" ).AppendCSharpName( m.CmdOrPartParameter.ParameterType ).Append( ")c.Command" );
+                            }
+                            else
+                            {
+                                w.Append( "(" ).AppendCSharpName( p.ParameterType ).Append( ")s.GetService(" ).AppendTypeOf( p.ParameterType ).Append( ")" );
+                            }
+                        }
+                        w.Append( " );" ).NewLine();
+                    }
+                    w.Append( "}" ).NewLine();
+                }
+            }
+
+            /// <summary>
             /// Overridden to return the <see cref="CommandName"/>.
             /// </summary>
             /// <returns>The name of this command.</returns>
@@ -99,7 +156,7 @@ namespace CK.Setup.Cris
                                                             && i.PocoInterface.GetCustomAttributesData().Any( x => typeof( CommandNameAttribute ).IsAssignableFrom( x.AttributeType ) ) );
                 if( others.Any() )
                 {
-                    monitor.Error( $"CommandName attribute appear on '{others.Select( i => i.PocoInterface.FullName ).Concatenate("', '")}'. Only the primary ICommand interface (i.e. '{command.PrimaryInterface.FullName}') should define the Command names." );
+                    monitor.Error( $"CommandName attribute appear on '{others.Select( i => i.PocoInterface.FullName ).Concatenate( "', '" )}'. Only the primary ICommand interface (i.e. '{command.PrimaryInterface.FullName}') should define the Command names." );
                     return null;
                 }
                 if( names != null )
@@ -176,17 +233,17 @@ namespace CK.Setup.Cris
                 }
                 else
                 {
-                    resultType = typeof(void);
+                    resultType = typeof( void );
                     pocoResultType = null;
-                } 
+                }
                 #endregion
 
                 return new Entry( command, name, previousNames, commandIdx, resultType, pocoResultType );
             }
 
-            internal void AddUnclosedHandler( IActivityMonitor monitor, MethodInfo method, ParameterInfo[] parameters, ParameterInfo parameter, IPocoInterfaceInfo iCommand )
+            internal void AddUnclosedHandler( IActivityMonitor monitor, MethodInfo method, ParameterInfo[] parameters, ParameterInfo parameter )
             {
-                monitor.Info( $"Method {MethodName( method, parameters )} cannot handle '{CommandName}' command because type {iCommand.PocoInterface.Name} doesn't represent the whole command." );
+                monitor.Info( $"Method {MethodName( method, parameters )} cannot handle '{CommandName}' command because type {parameter.ParameterType.Name} doesn't represent the whole command." );
             }
 
             internal bool AddHandler( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, ParameterInfo parameter )
@@ -208,8 +265,8 @@ namespace CK.Setup.Cris
                         {
                             monitor.Warn( $"Handler method '{MethodName( method, parameters )}': expected return type is '{expected.Name}', not '{unwrappedReturnType.Name}'. This handler is skipped." );
                         }
+                        return true;
                     }
-                    return true;
                 }
 
                 if( Handler != null )
@@ -231,17 +288,18 @@ namespace CK.Setup.Cris
 
             internal bool AddPostHandler( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, ParameterInfo commandParameter )
             {
-                if( !CheckVoidReturn( monitor, "Validator", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
+                if( !CheckVoidReturn( monitor, "PostHandler", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
 
-                ParameterInfo? resultParameter = ResultType != typeof( void ) ? parameters.FirstOrDefault( p => p.ParameterType.IsAssignableFrom( ResultType ) ) : null;
+                ParameterInfo? resultParameter = ResultType != typeof( void ) && ResultType != typeof( NoWaitResult )
+                                                    ? parameters.FirstOrDefault( p => p.ParameterType.IsAssignableFrom( ResultType ) )
+                                                    : null;
                 if( resultParameter != null )
                 {
-                    monitor.Trace( $"PostHandler method '{MethodName( method, parameters )}': parameter '{resultParameter.Name}' will receive the Command's result." );
+                    monitor.Trace( $"PostHandler method '{MethodName( method, parameters )}': parameter '{resultParameter.Name}' is the Command's result." );
                 }
                 _postHandlers.Add( new PostHandlerMethod( this, owner, method, parameters, commandParameter, resultParameter, isRefAsync, isValAsync ) );
                 return true;
             }
-        }
 
             static bool CheckVoidReturn( IActivityMonitor monitor, string kind, MethodInfo method, ParameterInfo[] parameters, out bool isRefAsync, out bool isValAsync )
             {
@@ -255,7 +313,7 @@ namespace CK.Setup.Cris
                 CheckSyncAsyncMethodName( monitor, method, parameters, isRefAsync || isValAsync );
                 return true;
             }
-
+        }
     }
 
 }
