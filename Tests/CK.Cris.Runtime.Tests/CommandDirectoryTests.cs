@@ -29,7 +29,7 @@ namespace CK.Cris.Tests
             var m = d.FindModel( "Test" );
             m.Should().NotBeNull();
             d.Commands[0].Should().BeSameAs( m );
-            m.HasHandler.Should().Be( false );
+            m.Handler.Should().BeNull();
             m.CommandIdx.Should().Be( 0 );
             m.CommandName.Should().Be( "Test" );
             m.PreviousNames.Should().BeEquivalentTo( "PreviousTest1", "PreviousTest2" );
@@ -38,6 +38,7 @@ namespace CK.Cris.Tests
             var cmd = m.CreateInstance();
             d.FindModel( cmd ).Should().BeSameAs( m );
         }
+
 
     }
 }

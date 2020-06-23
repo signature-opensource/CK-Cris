@@ -1,6 +1,7 @@
 using CK.Core;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace CK.Cris
 {
@@ -43,10 +44,10 @@ namespace CK.Cris
         Type ResultType { get; }
 
         /// <summary>
-        /// Gets whether this command has an associated handler.
-        /// When false, no handler has been found and the command cannot be executed in this process.
+        /// Gets the handler for this this command.
+        /// When null, no handler has been found and the command cannot be executed in this process.
         /// </summary>
-        bool HasHandler { get; }
+        MethodInfo? Handler { get; }
 
     }
 }

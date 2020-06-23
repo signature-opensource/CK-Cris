@@ -2,12 +2,9 @@ using CK.CodeGen;
 using CK.CodeGen.Abstractions;
 using CK.Core;
 using CK.Cris;
-using CK.Setup;
 using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.InteropServices;
 
 namespace CK.Setup.Cris
 {
@@ -21,14 +18,14 @@ namespace CK.Setup.Cris
         {
             readonly Func<CK.Cris.ICommand> _f;
 
-            public CommandModel( Type t, int i, string n, string[] p, Type r, Func<CK.Cris.ICommand> f, bool h )
+            public CommandModel( Type t, int i, string n, string[] p, Type r, Func<CK.Cris.ICommand> f, MethodInfo h )
             {
                 CommandType = t;
                 CommandIdx = i;
                 CommandName = n;
                 PreviousNames = p;
                 ResultType = r;
-                HasHandler = h;
+                Handler = h;
                 _f = f;
             }
 
@@ -42,7 +39,7 @@ namespace CK.Setup.Cris
 
             public Type ResultType { get; }
 
-            public bool HasHandler { get; }
+            public MethodInfo Handler { get; }
 
             public CK.Cris.ICommand CreateInstance() => _f();
         }";
@@ -50,8 +47,8 @@ namespace CK.Setup.Cris
         public override AutoImplementationResult Implement( IActivityMonitor monitor, Type classType, ICodeGenerationContext c, ITypeScope scope )
         {
             if( classType != typeof( CommandDirectory ) ) throw new InvalidOperationException( "Applies only to the CommandDirectory class." );
-            var commands = CommandRegistry.FindOrCreate( monitor, c );
-            if( commands == null ) return AutoImplementationResult.Failed;
+            var registry = CommandRegistry.FindOrCreate( monitor, c );
+            if( registry == null ) return AutoImplementationResult.Failed;
 
             CodeWriterExtensions.Append( scope, CommandModel ).NewLine();
             CodeWriterExtensions.Append( scope, "public " ).Append( scope.Name ).Append( "() : base( CreateData() ) {}" ).NewLine();
@@ -61,18 +58,19 @@ namespace CK.Setup.Cris
                  .Append( "CommandModel m;" ).NewLine()
                     // The IndexedCommands maps the names and the IPocoRootInfo: its the same number of entries as our 'map' target since
                     // the final PocoClass type replaces the IPocoRootInfo.
-                 .Append( "var map = new Dictionary<object,CK.Cris.ICommandModel>(" ).Append( commands.IndexedCommands.Count ).Append( ");" ).NewLine()
-                 .Append( "var list = new CommandModel[" ).Append( commands.Commands.Count ).Append( "];" ).NewLine();
-            foreach( var e in commands.Commands )
+                 .Append( "var map = new Dictionary<object,CK.Cris.ICommandModel>(" ).Append( registry.IndexedCommands.Count ).Append( ");" ).NewLine()
+                 .Append( "var list = new CommandModel[" ).Append( registry.Commands.Count ).Append( "];" ).NewLine();
+            foreach( var e in registry.Commands )
             {
+                Debug.Assert( e.Command.ClosureInterface != null, "This is a Closed Poco." );
                 scope.Append( "m = list[" ).Append( e.CommandIdx ).Append( "] = new CommandModel( " )
                                                                                 .AppendTypeOf( e.Command.ClosureInterface ).Append( ", " )
                                                                                 .Append( e.CommandIdx ).Append( ", " )
                                                                                 .AppendSourceString( e.CommandName ).Append(", ")
                                                                                 .AppendArray( e.PreviousNames ).Append( ", " )
                                                                                 .AppendTypeOf( e.ResultType ).Append( ", " )
-                                                                                .Append( "() => new " ).Append( e.Command.PocoClass.FullName ).Append( "()," )
-                                                                                .Append( e.Handler != null )
+                                                                                .Append( "() => new " ).Append( e.Command.PocoClass.FullName! ).Append( "()," )
+                                                                                .Append( e.Handler?.Method )
                                                                                 .Append(" );" )
                                                                                 .NewLine();
                 foreach( var n in e.PreviousNames.Append( e.CommandName ) )
@@ -84,7 +82,28 @@ namespace CK.Setup.Cris
             scope.Append( "return (list,map);" ).NewLine();
             scope.Append( "}" ).NewLine();
 
-            return AutoImplementationResult.Success;
+            c.CurrentRun.ServiceContainer.Add( registry );
+            return new AutoImplementationResult( "CheckICommandHandlerImplementation" );
+        }
+
+        AutoImplementationResult CheckICommandHandlerImplementation( IActivityMonitor monitor, CommandRegistry registry )
+        {
+            AutoImplementationResult r = AutoImplementationResult.Success;
+
+            var missingHandlers = registry.Commands.Where( c => c.Handler == null );
+            foreach( var c in missingHandlers )
+            {
+                if( c.ExpectedHandlerService != null )
+                {
+                    monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType.FullName}' must implement a command handler method for command {c.CommandName} of type {c.Command.ClosureInterface!.FullName}." );
+                    r = AutoImplementationResult.Failed;
+                }
+                else
+                {
+                    monitor.Warn( $"Command {c.CommandName} of type {c.Command.ClosureInterface!.FullName} has no associated handler." );
+                }
+            }
+            return r;
         }
     }
 }

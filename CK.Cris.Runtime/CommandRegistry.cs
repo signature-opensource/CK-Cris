@@ -128,7 +128,7 @@ namespace CK.Setup.Cris
             if( !c.Assembly.Memory.TryGetCachedInstance<CommandRegistry>( out var result ) )
             {
                 IPocoSupportResult pocoResult = c.Assembly.GetPocoSupportResult();
-                var (index,commands) = CreateCommandMap( monitor, pocoResult );
+                var (index,commands) = CreateCommandMap( monitor, c.CurrentRun.EngineMap, pocoResult );
                 if( commands != null )
                 {
                     Debug.Assert( index != null, "Since commands is not null." );
@@ -148,7 +148,7 @@ namespace CK.Setup.Cris
             _pocoResult = poco;
         }
 
-        static (Dictionary<object, Entry>?,IReadOnlyList<Entry>?) CreateCommandMap( IActivityMonitor monitor, IPocoSupportResult pocoResult )
+        static (Dictionary<object, Entry>?,IReadOnlyList<Entry>?) CreateCommandMap( IActivityMonitor monitor, IStObjEngineMap services, IPocoSupportResult pocoResult )
         {
             bool success = true;
             var index = new Dictionary<object, Entry>();
@@ -158,7 +158,18 @@ namespace CK.Setup.Cris
                 foreach( var poco in commandPocos )
                 {
                     Debug.Assert( poco.IsClosedPoco && typeof( ICommand ).IsAssignableFrom( poco.ClosureInterface ) );
-                    var entry = Entry.Create( monitor, pocoResult, poco, commands.Count );
+
+                    var hServices = poco.Interfaces.Select( i => typeof( ICommandHandler<> ).MakeGenericType( i.PocoInterface ) )
+                                                        .Select( gI => (itf: gI, impl: services.Find( gI )) )
+                                                        .Where( m => m.impl != null )
+                                                        .GroupBy( m => m.impl )
+                                                        .ToArray();
+                    if( hServices.Length > 1 )
+                    {
+                        monitor.Error( $"Ambiguous command handler '{hServices.Select( m => $"{m.Key.ClassType.FullName}' implements '{m.Select( x => x.itf.FullName ).Concatenate( "' ,'" )}" )}': only one service can eventually handle a command." );
+                        success = false;
+                    }
+                    var entry = Entry.Create( monitor, pocoResult, poco, commands.Count, hServices.Length == 1 ? hServices[0].Key : null ) ;
                     if( entry == null ) success = false;
                     else
                     {

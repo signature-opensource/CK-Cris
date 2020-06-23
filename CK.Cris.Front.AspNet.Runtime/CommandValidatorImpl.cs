@@ -26,7 +26,9 @@ namespace CK.Setup.Cris
             var registry = CommandRegistry.FindOrCreate( monitor, c );
             if( registry == null ) return AutoImplementationResult.Failed;
 
-            var mValidate = scope.CreateSealedOverride( classType.GetMethod( nameof(CommandValidator.ValidateCommandAsync), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( KnownCommand ) } ) );
+            var validateMethod = classType.GetMethod( nameof( CommandValidator.ValidateCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( KnownCommand ) } );
+            Debug.Assert( validateMethod != null, "This is the signature of the central method." );
+            var mValidate = scope.CreateSealedOverride( validateMethod );
             if( registry.Commands.Any( e => e.Validators.Count > 0 ) )
             {
                 const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.KnownCommand, Task<CK.Cris.ValidationResult>>";
@@ -54,7 +56,7 @@ namespace CK.Setup.Cris
                                 if( validator.IsRefAsync || validator.IsValAsync ) scope.Append( "await " );
                                 if( validator.Method.DeclaringType != service.Key.ClassType )
                                 {
-                                    scope.Append("((").AppendCSharpName( validator.Method.DeclaringType ).Append( ")h)." );
+                                    scope.Append("((").AppendCSharpName( validator.Method.DeclaringType! ).Append( ")h)." );
                                 }
                                 else scope.Append( "h." );
                                 scope.Append( validator.Method.Name ).Append( "( " );

@@ -52,35 +52,6 @@ namespace CK.Cris.Tests
             //=> Invalid command Result type for 'CK.Cris.Tests.CommandResultTypeTests+ICInt': result types 'Int32', 'String' must resolve to a common most specific type.
         }
 
-        public interface IResult : IPoco
-        {
-            int Val { get; set; }
-        }
-
-        public interface IMoreResult : IResult
-        {
-            int MoreVal { get; set; }
-        }
-
-        public interface IAnotherResult : IResult
-        {
-            int AnotherVal { get; set; }
-        }
-
-        public interface IUnifiedResult : IMoreResult, IAnotherResult
-        {
-        }
-
-        public interface ICommandWithPocoResult : ICommand<IResult> { }
-
-        public interface ICommandWithMorePocoResult : ICommandWithPocoResult, ICommand<IMoreResult> { }
-
-        public interface ICommandWithAnotherPocoResult : ICommandWithPocoResult, ICommand<IAnotherResult> { }
-
-        public interface ICommandUnifiedButNotTheResult : ICommandWithMorePocoResult, ICommandWithAnotherPocoResult { }
-
-        public interface ICommandUnifiedWithTheResult : ICommandWithMorePocoResult, ICommandWithAnotherPocoResult, ICommand<IUnifiedResult> { }
-
         [Test]
         public void when_IPoco_result_are_not_closed_this_is_invalid()
         {

@@ -50,8 +50,7 @@ namespace CK.Setup.Cris
                     if( isOverallAsync ) scope.Append( "async " );
                     scope.Append( "Task<object> H" ).Append( e.CommandIdx ).Append( "( IActivityMonitor m, IServiceProvider s, CK.Cris.KnownCommand c, CK.Cris.CommandCallerInfo i )" ).NewLine()
                          .Append( "{" ).NewLine();
-                    scope.Append( "var handler = (" ).AppendCSharpName( h.Method.DeclaringType ).Append( ")s.GetService(" ).AppendTypeOf( h.Method.DeclaringType ).Append( ");" ).NewLine();
-
+                    scope.Append( "var handler = (" ).AppendCSharpName( h.Method.DeclaringType! ).Append( ")s.GetService(" ).AppendTypeOf( h.Method.DeclaringType! ).Append( ");" ).NewLine();
 
                     if( !isVoidReturn ) scope.AppendCSharpName( e.ResultType ).Append( " r = " );
                     if( isHandlerAsync ) scope.Append( "await " );

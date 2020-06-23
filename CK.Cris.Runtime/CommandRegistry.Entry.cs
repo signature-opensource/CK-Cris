@@ -78,6 +78,11 @@ namespace CK.Setup.Cris
             public bool HasPostHandlerAsyncCall => _postHandlers.Any( h => h.IsRefAsync || h.IsValAsync );
 
             /// <summary>
+            /// Gets the <see cref="IAutoService"/> that must implement the handler method.
+            /// </summary>
+            public IStObjFinalClass? ExpectedHandlerService { get; }
+
+            /// <summary>
             /// Generates all the synchronous and asynchronous (if any) calls required based on these variable
             /// names: <code>IActivityMonitor m, IServiceProvider s, CK.Cris.KnownCommand c, object r</code>.
             /// <para>
@@ -100,7 +105,7 @@ namespace CK.Setup.Cris
 
                         if( m.Method.DeclaringType != h.Key.ClassType )
                         {
-                            w.Append( "((" ).AppendCSharpName( m.Method.DeclaringType ).Append( ")h)." );
+                            w.Append( "((" ).AppendCSharpName( m.Method.DeclaringType! ).Append( ")h)." );
                         }
                         else w.Append( "h." );
 
@@ -131,7 +136,7 @@ namespace CK.Setup.Cris
             /// <returns>The name of this command.</returns>
             public override string ToString() => CommandName;
 
-            Entry( IPocoRootInfo command, string name, string[] previousNames, int commandIdx, Type resultType, IPocoInterfaceInfo? pocoResultType )
+            Entry( IPocoRootInfo command, string name, string[] previousNames, int commandIdx, Type resultType, IPocoInterfaceInfo? pocoResultType, IStObjFinalClass? handlerService )
             {
                 Command = command;
                 _validators = new List<ValidatorMethod>();
@@ -142,9 +147,10 @@ namespace CK.Setup.Cris
                 CommandIdx = commandIdx;
                 ResultType = resultType;
                 PocoResultType = pocoResultType;
+                ExpectedHandlerService = handlerService;
             }
 
-            internal static Entry? Create( IActivityMonitor monitor, IPocoSupportResult pocoSupportResult, IPocoRootInfo command, int commandIdx )
+            internal static Entry? Create( IActivityMonitor monitor, IPocoSupportResult pocoSupportResult, IPocoRootInfo command, int commandIdx, IStObjFinalClass? handlerService )
             {
                 string name;
                 string[] previousNames;
@@ -238,7 +244,7 @@ namespace CK.Setup.Cris
                 }
                 #endregion
 
-                return new Entry( command, name, previousNames, commandIdx, resultType, pocoResultType );
+                return new Entry( command, name, previousNames, commandIdx, resultType, pocoResultType, handlerService );
             }
 
             internal void AddUnclosedHandler( IActivityMonitor monitor, MethodInfo method, ParameterInfo[] parameters, ParameterInfo parameter )
@@ -268,7 +274,11 @@ namespace CK.Setup.Cris
                         return true;
                     }
                 }
-
+                if( ExpectedHandlerService != null && owner != ExpectedHandlerService )
+                {
+                    monitor.Warn( $"Handler method '{MethodName( method, parameters )}' is skipped (the command handler is implemented by '{ExpectedHandlerService.ClassType.FullName}')." );
+                    return true;
+                }
                 if( Handler != null )
                 {
                     monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{Handler}' handle '{CommandName}' command." );

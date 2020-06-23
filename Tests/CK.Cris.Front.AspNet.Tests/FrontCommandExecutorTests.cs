@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -113,10 +114,12 @@ namespace CK.Cris.Front.AspNet.Tests
 
         public class CmdIntValAsyncHandler : IAutoService
         {
+            public static bool Called;
+
             [CommandHandler]
             public ValueTask<int> HandleCommandAsync( ICmdIntTest cmd )
             {
-                CmdIntSyncHandler.Called = true;
+                CmdIntValAsyncHandler.Called = CmdIntSyncHandler.Called = true;
                 return new ValueTask<int>( 3712 );
             }
         }
@@ -158,6 +161,19 @@ namespace CK.Cris.Front.AspNet.Tests
         {
             var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdIntTest ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandler ) );
             TestHelper.GenerateCode( c ).CodeGenResult.Success.Should().BeFalse();
+        }
+
+        public class CmdIntValAsyncHandlerService : CmdIntValAsyncHandler, ICommandHandler<ICmdIntTest>
+        {
+        }
+
+
+        [Test]
+        public void ambiguous_handler_resolution_thanks_to_the_ICommanHandlerT_marker()
+        {
+            CmdIntValAsyncHandler.Called = false;
+            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdIntTest ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandlerService ) );
+            TestHelper.GenerateCode( c ).CodeGenResult.Success.Should().BeTrue();
         }
 
 
@@ -210,7 +226,7 @@ namespace CK.Cris.Front.AspNet.Tests
                 using( var scope = appServices.CreateScope() )
                 {
                     var directory = scope.ServiceProvider.GetRequiredService<CommandDirectory>();
-                    directory.Commands[0].HasHandler.Should().BeFalse();
+                    directory.Commands[0].Handler.Should().BeNull();
                 }
             }
         }
@@ -268,8 +284,8 @@ namespace CK.Cris.Front.AspNet.Tests
                 var cmd = services.GetRequiredService<IPocoFactory<ICollectAmbientValuesCmd>>().Create();
 
                 var r = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
-                if( r.Code != VISAMCode.Synchronous ) TestHelper.Monitor.Info( r.Result.ToString() );
                 r.Code.Should().Be( VISAMCode.Synchronous );
+                Debug.Assert( r.Result != null );
                 var ambientValues = (Dictionary<string, object?>)r.Result!;
                 ambientValues.Should().HaveCount( 3 );
             }

@@ -11,7 +11,7 @@
   <ItemGroup>
     <PackageReference Include="CK.Testing.StObjEngine" />
     <PackageReference Include="nunit" />
-    <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all"  />
+    <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
   </ItemGroup>
 
