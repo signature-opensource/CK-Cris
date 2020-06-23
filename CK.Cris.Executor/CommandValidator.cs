@@ -1,4 +1,3 @@
-using CK.AspNet;
 using CK.Core;
 using System;
 using System.Threading.Tasks;
@@ -8,7 +7,7 @@ namespace CK.Cris
     /// <summary>
     /// Command validation service.
     /// </summary>
-    [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.CommandValidatorImpl, CK.Cris.Front.AspNet.Runtime" )]
+    [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.CommandValidatorImpl, CK.Cris.Executor.Engine" )]
     public abstract class CommandValidator : ISingletonAutoService
     {
         protected CommandDirectory Directory;

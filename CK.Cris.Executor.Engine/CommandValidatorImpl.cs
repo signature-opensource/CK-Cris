@@ -3,18 +3,9 @@ using CK.CodeGen.Abstractions;
 using CK.Core;
 using CK.Cris;
 using CK.Text;
-using Microsoft.AspNetCore.Authorization.Infrastructure;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
-using System.Reflection.Metadata;
-using System.Resources;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 
 namespace CK.Setup.Cris
 {

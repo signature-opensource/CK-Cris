@@ -1,4 +1,3 @@
-using CK.AspNet;
 using CK.Core;
 using System;
 using System.Threading.Tasks;
@@ -10,7 +9,7 @@ namespace CK.Cris
     /// Executes commands on all the available services: there is no restriction on the
     /// kind of the executing services since they are called in the "front" context. 
     /// </summary>
-    [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.FrontCommandExecutorImpl, CK.Cris.Front.AspNet.Runtime" )]
+    [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.FrontCommandExecutorImpl, CK.Cris.Executor.Engine" )]
     public abstract class FrontCommandExecutor : ISingletonAutoService
     {
         protected CommandDirectory Directory;

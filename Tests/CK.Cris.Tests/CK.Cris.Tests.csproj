@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\CK.Cris.Runtime\CK.Cris.Runtime.csproj" />
+    <ProjectReference Include="..\..\CK.Cris.Engine\CK.Cris.Engine.csproj" />
   </ItemGroup>
 
 </Project>

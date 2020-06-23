@@ -16,7 +16,7 @@ namespace CK.Cris
         /// Initializes a new <see cref="CommandValidatorAttribute"/>.
         /// </summary>
         public CommandValidatorAttribute()
-            : base( "CK.Setup.Cris.CommandValidatorAttributeImpl, CK.Cris.Runtime" )
+            : base( "CK.Setup.Cris.CommandValidatorAttributeImpl, CK.Cris.Engine" )
         {
         }
     }

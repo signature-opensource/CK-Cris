@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Sdk Name="Microsoft.Build.CentralPackageVersions" Version="2.0.52" />
   <Import Project="..\..\Common\Shared.props" />
@@ -17,11 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\CK.Cris.Front.AspNet.Runtime\CK.Cris.Front.AspNet.Runtime.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="bin\Debug\netcoreapp3.1\" />
+    <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
   </ItemGroup>
 
 </Project>

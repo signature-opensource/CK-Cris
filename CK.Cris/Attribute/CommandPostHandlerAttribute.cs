@@ -16,7 +16,7 @@ namespace CK.Cris
         /// Initializes a new <see cref="CommandPostHandlerAttribute"/>.
         /// </summary>
         public CommandPostHandlerAttribute()
-            : base( "CK.Setup.Cris.CommandPostHandlerAttributeImpl, CK.Cris.Runtime" )
+            : base( "CK.Setup.Cris.CommandPostHandlerAttributeImpl, CK.Cris.Engine" )
         {
         }
     }

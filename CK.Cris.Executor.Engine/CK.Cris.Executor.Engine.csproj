@@ -3,7 +3,6 @@
   <Sdk Name="Microsoft.Build.CentralPackageVersions" Version="2.0.52" />
   <Import Project="..\Common\Shared.props" />
 
-
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>CK.Setup.Cris</RootNamespace>
@@ -11,14 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CK.StObj.Runtime" />
-    <PackageReference Include="CK.CodeGen" VersionOverride="0.15.1--0001-develop" />
+    <ProjectReference Include="..\CK.Cris.Executor\CK.Cris.Executor.csproj" />
+    <ProjectReference Include="..\CK.Cris.Engine\CK.Cris.Engine.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\CK.Cris.Model\CK.Cris.Model.csproj" />
-  </ItemGroup>
-
-
 
 </Project>

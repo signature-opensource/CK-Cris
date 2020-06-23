@@ -3,20 +3,22 @@
   <Sdk Name="Microsoft.Build.CentralPackageVersions" Version="2.0.52" />
   <Import Project="..\Common\Shared.props" />
 
+
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RootNamespace>CK.Setup.Cris</RootNamespace>
     <Nullable>enable</Nullable>
-    <RootNamespace>CK.Cris</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="CK.Auth.Abstractions" />
-    <PackageReference Include="CK.AspNet" />
+    <PackageReference Include="CK.StObj.Runtime" />
+    <PackageReference Include="CK.CodeGen" VersionOverride="0.15.1--0001-develop" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CK.Cris.Model\CK.Cris.Model.csproj" />
+    <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
   </ItemGroup>
+
+
 
 </Project>

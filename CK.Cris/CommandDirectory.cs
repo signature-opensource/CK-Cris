@@ -10,7 +10,7 @@ namespace CK.Cris
     /// <summary>
     /// Command directory that contains all the available command in the context.
     /// </summary>
-    [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.CommandDirectoryImpl, CK.Cris.Runtime" )]
+    [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.CommandDirectoryImpl, CK.Cris.Engine" )]
     public abstract class CommandDirectory : ISingletonAutoService
     {
         readonly IReadOnlyDictionary<object, ICommandModel> _index;
