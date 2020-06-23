@@ -232,20 +232,20 @@ namespace CK.Cris.Front.AspNet.Tests
         }
 
         #region CollectAmbientValues Handler & PostHandler.
-        public interface ICollectAmbientValuesCmd : ICommand<Dictionary<string, object?>>
+        public interface IAmbientValuesCollectCommand : ICommand<Dictionary<string, object?>>
         {
         }
 
         public class AmbientValuesService : IAutoService
         {
             [CommandHandler]
-            public Dictionary<string, object?> GetValues( ICollectAmbientValuesCmd cmd ) => new Dictionary<string, object?>();
+            public Dictionary<string, object?> GetValues( IAmbientValuesCollectCommand cmd ) => new Dictionary<string, object?>();
         }
 
         public class AuthService : IAutoService
         {
             [CommandPostHandler]
-            public void GetValues( ICollectAmbientValuesCmd cmd, IAuthenticationInfo info, Dictionary<string, object?> values )
+            public void GetValues( IAmbientValuesCollectCommand cmd, IAuthenticationInfo info, Dictionary<string, object?> values )
             {
                 values.Add( "ActorId", info.User.UserId );
                 values.Add( "ActualActorId", info.ActualUser.UserId );
@@ -255,7 +255,7 @@ namespace CK.Cris.Front.AspNet.Tests
         public class SecurityService : IAutoService
         {
             [CommandPostHandler]
-            public async Task GetValuesAsync( ICollectAmbientValuesCmd cmd, IActivityMonitor monitor, IAuthenticationInfo info, Dictionary<string, object?> values )
+            public async Task GetValuesAsync( IAmbientValuesCollectCommand cmd, IActivityMonitor monitor, IAuthenticationInfo info, Dictionary<string, object?> values )
             {
                 await Task.Delay( 25 );
                 monitor.Info( $"User {info.User.UserName} roles have been read from the database." );
@@ -266,7 +266,7 @@ namespace CK.Cris.Front.AspNet.Tests
         [Test]
         public async Task calling_PostHandlers()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICollectAmbientValuesCmd ), typeof( AmbientValuesService ), typeof( AuthService ), typeof( SecurityService ) );
+            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( IAmbientValuesCollectCommand ), typeof( AmbientValuesService ), typeof( AuthService ), typeof( SecurityService ) );
 
             var authTypeSystem = new StdAuthenticationTypeSystem();
             var authInfo = authTypeSystem.AuthenticationInfo.Create( authTypeSystem.UserInfo.Create( 3712, "John" ), DateTime.UtcNow.AddDays( 1 ) );
@@ -281,7 +281,7 @@ namespace CK.Cris.Front.AspNet.Tests
             {
                 var services = scope.ServiceProvider;
                 var executor = services.GetRequiredService<FrontCommandExecutor>();
-                var cmd = services.GetRequiredService<IPocoFactory<ICollectAmbientValuesCmd>>().Create();
+                var cmd = services.GetRequiredService<IPocoFactory<IAmbientValuesCollectCommand>>().Create();
 
                 var r = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
                 r.Code.Should().Be( VISAMCode.Synchronous );

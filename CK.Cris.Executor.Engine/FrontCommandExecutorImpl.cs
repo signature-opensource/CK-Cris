@@ -19,12 +19,12 @@ namespace CK.Setup.Cris
             if( registry == null ) return AutoImplementationResult.Failed;
 
             Debug.Assert( nameof( FrontCommandExecutor.ExecuteCommandAsync ) == "ExecuteCommandAsync" );
-            Debug.Assert( classType.GetMethod( nameof( FrontCommandExecutor.ExecuteCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( KnownCommand ), typeof( CommandCallerInfo ) } ) != null );
+            Debug.Assert( classType.GetMethod( nameof( FrontCommandExecutor.ExecuteCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( KnownCommand ) } ) != null );
 
-            var mExecute = scope.CreateFunction( "protected override Task<object> DoExecuteCommandAsync( IActivityMonitor m, IServiceProvider s, CK.Cris.KnownCommand c, CK.Cris.CommandCallerInfo i )" );
-            mExecute.Append( "return _handlers[c.Model.CommandIdx]( m, s, c, i );" );
+            var mExecute = scope.CreateFunction( "protected override Task<object> DoExecuteCommandAsync( IActivityMonitor m, IServiceProvider s, CK.Cris.KnownCommand c )" );
+            mExecute.Append( "return _handlers[c.Model.CommandIdx]( m, s, c );" );
 
-            const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.KnownCommand, CK.Cris.CommandCallerInfo, Task<object>>";
+            const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.KnownCommand, Task<object>>";
             foreach( var e in registry.Commands )
             {
                 var h = e.Handler;
@@ -39,7 +39,7 @@ namespace CK.Setup.Cris
 
                     scope.Append( "static " );
                     if( isOverallAsync ) scope.Append( "async " );
-                    scope.Append( "Task<object> H" ).Append( e.CommandIdx ).Append( "( IActivityMonitor m, IServiceProvider s, CK.Cris.KnownCommand c, CK.Cris.CommandCallerInfo i )" ).NewLine()
+                    scope.Append( "Task<object> H" ).Append( e.CommandIdx ).Append( "( IActivityMonitor m, IServiceProvider s, CK.Cris.KnownCommand c )" ).NewLine()
                          .Append( "{" ).NewLine();
                     scope.Append( "var handler = (" ).AppendCSharpName( h.Method.DeclaringType! ).Append( ")s.GetService(" ).AppendTypeOf( h.Method.DeclaringType! ).Append( ");" ).NewLine();
 
@@ -52,10 +52,6 @@ namespace CK.Setup.Cris
                         if( typeof( IActivityMonitor ).IsAssignableFrom( p.ParameterType ) )
                         {
                             scope.Append( "m" );
-                        }
-                        else if( p.ParameterType == typeof( CommandCallerInfo ) )
-                        {
-                            scope.Append( "i" );
                         }
                         else if( p == h.CommandParameter )
                         {
@@ -97,7 +93,7 @@ namespace CK.Setup.Cris
                 }
             }
 
-            scope.Append( "static readonly " ).Append( funcSignature ).Append( " NoHandler = ( m, s, c, i ) => throw new Exception( \"No Command handler found.\" );" ).NewLine();
+            scope.Append( "static readonly " ).Append( funcSignature ).Append( " NoHandler = ( m, s, c ) => throw new Exception( \"No Command handler found.\" );" ).NewLine();
 
             scope.Append( "readonly " ).Append( funcSignature ).Append( "[] _handlers = new " ).Append( funcSignature ).Append( "[" ).Append( registry.Commands.Count ).Append( "]{" );
             foreach( var e in registry.Commands )

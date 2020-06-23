@@ -128,7 +128,7 @@ namespace CK.Cris
 
         /// <summary>
         /// Sets the <see cref="Caller"/> information if it is currently null (this throws a <see cref="InvalidOperationException"/>
-        /// if it is already set to another caller information).
+        /// if it's already set to another caller information).
         /// </summary>
         /// <param name="caller">The caller information to set.</param>
         /// <returns>This command result or an updated one.</returns>
