@@ -65,8 +65,7 @@ namespace CK.Setup.Cris
             public Type ResultType { get; }
 
             /// <summary>
-            /// Gets the <see cref="ResultType"/> as the <see cref="IPocoInterfaceInfo"/> if it is a IPoco:
-            /// if not null, then the <see cref="IPocoRootInfo.ClosureInterface"/> is necessarily the <see cref="ResultType"/>.
+            /// Gets the <see cref="ResultType"/> as the <see cref="IPocoInterfaceInfo"/> if it is a IPoco.
             /// </summary>
             public IPocoInterfaceInfo? PocoResultType { get; }
 
@@ -141,7 +140,6 @@ namespace CK.Setup.Cris
                 Command = command;
                 _validators = new List<ValidatorMethod>();
                 _postHandlers = new List<PostHandlerMethod>();
-                Debug.Assert( Command.ClosureInterface != null );
                 CommandName = name;
                 PreviousNames = previousNames;
                 CommandIdx = commandIdx;
@@ -247,13 +245,15 @@ namespace CK.Setup.Cris
                 return new Entry( command, name, previousNames, commandIdx, resultType, pocoResultType, handlerService );
             }
 
-            internal void AddUnclosedHandler( IActivityMonitor monitor, MethodInfo method, ParameterInfo[] parameters, ParameterInfo parameter )
+            internal bool AddHandler( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, ParameterInfo parameter, bool isClosedHandler )
             {
-                monitor.Info( $"Method {MethodName( method, parameters )} cannot handle '{CommandName}' command because type {parameter.ParameterType.Name} doesn't represent the whole command." );
-            }
+                // If the Command is closed, we silently skip handlers of unclosed commands: we expect the final handler of the closure interface.
+                if( !isClosedHandler && Command.ClosureInterface != null )
+                {
+                    monitor.Info( $"Method {MethodName( method, parameters )} cannot handle '{CommandName}' command because type {parameter.ParameterType.Name} doesn't represent the whole command." );
+                    return true;
+                }
 
-            internal bool AddHandler( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, ParameterInfo parameter )
-            {
                 var (unwrappedReturnType, isRefAsync, isValAsync) = GetReturnParameterInfo( method );
 
                 var expected = ResultType;
@@ -281,12 +281,40 @@ namespace CK.Setup.Cris
                 }
                 if( Handler != null )
                 {
-                    monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{Handler}' handle '{CommandName}' command." );
-                    return false;
+                    if( Handler.IsClosedHandler )
+                    {
+                        if( isClosedHandler )
+                        {
+                            monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{Handler}' handle '{CommandName}' command." );
+                            return false;
+                        }
+                        WarnUnclosedHandlerSkipped( monitor, method, parameters );
+                        return true;
+                    }
+                    // Current handler is an unclosed one.
+                    if( isClosedHandler )
+                    {
+                        WarnUnclosedHandlerSkipped( monitor, Handler.Method, Handler.Parameters );
+                    }
+                    else
+                    {
+                        // Two unclosed handlers. Should we use the two command Parameter types?
+                        // - c1 == c2 => Ambiguity.
+                        // - c1 is assignable form c2 => c2
+                        // - c2 is assignable from c1 => c1
+                        // - c1 indepedent of c2 => Ambiguity.
+                        monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{Handler}' handle '{CommandName}' command." );
+                        return false;
+                    }
                 }
-                Handler = new HandlerMethod( this, owner, method, parameters, parameter, unwrappedReturnType, isRefAsync, isValAsync );
+                Handler = new HandlerMethod( this, owner, method, parameters, parameter, unwrappedReturnType, isRefAsync, isValAsync, isClosedHandler );
                 CheckSyncAsyncMethodName( monitor, method, parameters, Handler.IsRefAsync || Handler.IsValAsync );
                 return true;
+
+                static void WarnUnclosedHandlerSkipped( IActivityMonitor monitor, MethodInfo method, ParameterInfo[] parameters )
+                {
+                    monitor.Warn( $"Handler method '{MethodName( method, parameters )}' for unclosed command type is skipped since a closed handler is available." );
+                }
             }
 
             internal bool AddValidator( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, ParameterInfo commandParameter )

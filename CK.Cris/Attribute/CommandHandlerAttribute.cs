@@ -19,5 +19,12 @@ namespace CK.Cris
             : base( "CK.Setup.Cris.CommandHandlerAttributeImpl, CK.Cris.Engine" )
         {
         }
+
+        /// <summary>
+        /// Gets or sets whether the <see cref="ICommand"/> that the method accepts doesn't
+        /// need to be a unified interface of all the interfaces that define the <see cref="ICommand"/>.
+        /// Defaults to false: the "closed interface requirement" is the rule!
+        /// </summary>
+        public bool AllowUnclosedCommand { get; set; }
     }
 }

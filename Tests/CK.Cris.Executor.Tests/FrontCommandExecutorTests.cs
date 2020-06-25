@@ -36,7 +36,7 @@ namespace CK.Cris.Front.AspNet.Tests
 
         public class CmdRefAsyncHandler : IAutoService
         {
-            [CommandHandler]
+            [CommandHandler( AllowUnclosedCommand = true )]
             public Task HandleCommandAsync( ICmdTest cmd )
             {
                 CmdSyncHandler.Called = true;

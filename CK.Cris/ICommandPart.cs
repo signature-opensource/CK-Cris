@@ -7,7 +7,7 @@ namespace CK.Cris
     /// Marker interface to define mixable command parts.
     /// </summary>
     [CKTypeSuperDefiner]
-    public interface ICommandPart : IClosedPoco
+    public interface ICommandPart : IPoco
     {
     }
 

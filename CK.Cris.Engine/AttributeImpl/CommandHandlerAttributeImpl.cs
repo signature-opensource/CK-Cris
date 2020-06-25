@@ -11,16 +11,19 @@ namespace CK.Setup.Cris
 {
     class CommandHandlerAttributeImpl : CommandAttributeImpl, ICodeGenerator
     {
+        readonly CommandHandlerAttribute _a;
+
         public CommandHandlerAttributeImpl( CommandHandlerAttribute a, Type t, MethodInfo m )
             : base( t, m )
         {
+            _a = a;
         }
 
         public AutoImplementationResult Implement( IActivityMonitor monitor, ICodeGenerationContext codeGenContext )
         {
             var (registry, impl, method) = Prepare( monitor, codeGenContext );
             Debug.Assert( (registry == null) == (impl == null) );
-            return registry != null && registry.RegisterHandler( monitor, impl!, method )
+            return registry != null && registry.RegisterHandler( monitor, impl!, method, _a.AllowUnclosedCommand )
                     ? AutoImplementationResult.Success
                     : AutoImplementationResult.Failed;
         }

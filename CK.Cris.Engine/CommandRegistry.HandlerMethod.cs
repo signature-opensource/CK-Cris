@@ -16,6 +16,7 @@ namespace CK.Setup.Cris
             public readonly Type UnwrappedReturnType;
             public readonly bool IsRefAsync;
             public readonly bool IsValAsync;
+            public readonly bool IsClosedHandler;
 
             public HandlerMethod(
                         Entry command,
@@ -25,7 +26,8 @@ namespace CK.Setup.Cris
                         ParameterInfo commandParameter,
                         Type unwrappedReturnType,
                         bool isRefAsync,
-                        bool isValAsync )
+                        bool isValAsync,
+                        bool isClosedHandler )
             {
                 Command = command;
                 Owner = owner;
@@ -35,7 +37,9 @@ namespace CK.Setup.Cris
                 UnwrappedReturnType = unwrappedReturnType;
                 IsRefAsync = isRefAsync;
                 IsValAsync = isValAsync;
+                IsClosedHandler = isClosedHandler;
             }
+
             public override string ToString() => $"{Owner.ClassType.FullName}.{Method.Name}";
 
         }

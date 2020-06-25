@@ -62,14 +62,13 @@ namespace CK.Setup.Cris
                  .Append( "var list = new CommandModel[" ).Append( registry.Commands.Count ).Append( "];" ).NewLine();
             foreach( var e in registry.Commands )
             {
-                Debug.Assert( e.Command.ClosureInterface != null, "This is a Closed Poco." );
                 scope.Append( "m = list[" ).Append( e.CommandIdx ).Append( "] = new CommandModel( " )
-                                                                                .AppendTypeOf( e.Command.ClosureInterface ).Append( ", " )
+                                                                                .AppendTypeOf( e.Command.PocoClass ).Append( ", " )
                                                                                 .Append( e.CommandIdx ).Append( ", " )
                                                                                 .AppendSourceString( e.CommandName ).Append(", ")
                                                                                 .AppendArray( e.PreviousNames ).Append( ", " )
                                                                                 .AppendTypeOf( e.ResultType ).Append( ", " )
-                                                                                .Append( "() => new " ).Append( e.Command.PocoClass.FullName! ).Append( "()," )
+                                                                                .Append( "() => new " ).AppendCSharpName( e.Command.PocoClass ).Append( "()," )
                                                                                 .Append( e.Handler?.Method )
                                                                                 .Append(" );" )
                                                                                 .NewLine();
@@ -95,12 +94,19 @@ namespace CK.Setup.Cris
             {
                 if( c.ExpectedHandlerService != null )
                 {
-                    monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType.FullName}' must implement a command handler method for command {c.CommandName} of type {c.Command.ClosureInterface!.FullName}." );
+                    if( c.Command.ClosureInterface != null )
+                    {
+                        monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType.FullName}' must implement a command handler method for closed command {c.CommandName} of the closing type {c.Command.ClosureInterface.FullName}." );
+                    }
+                    else
+                    {
+                        monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType.FullName}' must implement a command handler method for unclosed command {c.CommandName} of primary type {c.Command.PrimaryInterface.FullName}." );
+                    }
                     r = AutoImplementationResult.Failed;
                 }
                 else
                 {
-                    monitor.Warn( $"Command {c.CommandName} of type {c.Command.ClosureInterface!.FullName} has no associated handler." );
+                    monitor.Warn( $"Command {c.CommandName} for primary type {c.Command.PrimaryInterface.FullName} has no associated handler." );
                 }
             }
             return r;

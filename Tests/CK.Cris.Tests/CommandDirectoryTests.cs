@@ -33,7 +33,6 @@ namespace CK.Cris.Tests
             m.CommandIdx.Should().Be( 0 );
             m.CommandName.Should().Be( "Test" );
             m.PreviousNames.Should().BeEquivalentTo( "PreviousTest1", "PreviousTest2" );
-            m.CommandType.Should().Be( typeof( ICmdTest ) );
             m.Should().BeSameAs( d.FindModel( "PreviousTest1" ) ).And.BeSameAs( d.FindModel( "PreviousTest2" ) );
             var cmd = m.CreateInstance();
             d.FindModel( cmd ).Should().BeSameAs( m );

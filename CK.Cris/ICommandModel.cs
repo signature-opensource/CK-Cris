@@ -11,8 +11,7 @@ namespace CK.Cris
     public interface ICommandModel
     {
         /// <summary>
-        /// Gets the command type: this is the closing interface of
-        /// the <see cref="IClosedPoco"/> command.
+        /// Gets the command type: this is the final type that implements the <see cref="IPoco"/> command.
         /// </summary>
         Type CommandType { get; }
 

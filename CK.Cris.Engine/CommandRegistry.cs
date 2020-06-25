@@ -1,6 +1,5 @@
 using CK.Core;
 using CK.Cris;
-using CK.Setup;
 using CK.Text;
 using Microsoft.CodeAnalysis;
 using System;
@@ -9,9 +8,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace CK.Setup.Cris
@@ -35,17 +31,22 @@ namespace CK.Setup.Cris
         public IReadOnlyList<Entry> Commands { get; }
 
 
-        internal bool RegisterHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m )
+        internal bool RegisterHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, bool allowUnclosed )
         {
             (Entry? e, ParameterInfo[]? parameters, ParameterInfo? p) = GetCommandEntry( monitor, "Handler", m );
             if( e == null ) return false;
             Debug.Assert( parameters != null && p != null );
-            if( p.ParameterType == e.Command.ClosureInterface )
+            bool isClosedHandler = p.ParameterType == e.Command.ClosureInterface;
+            if( !isClosedHandler && !allowUnclosed )
             {
-                return e.AddHandler( monitor, impl, m, parameters, p );
+                allowUnclosed = p.GetCustomAttributes().Any( a => a.GetType().FindInterfaces( (i,n) => i.Name == (string?)n, "IAllowUnclosedCommandAttribute" ).Length > 0 );
+                if( !allowUnclosed )
+                {
+                    monitor.Info( $"Method {MethodName( m, parameters )} cannot handle '{e.CommandName}' command because type {p.ParameterType.Name} doesn't represent the whole command." );
+                    return true;
+                }
             }
-            e.AddUnclosedHandler( monitor, m, parameters, p );
-            return true;
+            return e.AddHandler( monitor, impl, m, parameters, p, isClosedHandler );
         }
 
         internal bool RegisterPostHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m )
@@ -157,8 +158,6 @@ namespace CK.Setup.Cris
             {
                 foreach( var poco in commandPocos )
                 {
-                    Debug.Assert( poco.IsClosedPoco && typeof( ICommand ).IsAssignableFrom( poco.ClosureInterface ) );
-
                     var hServices = poco.Interfaces.Select( i => typeof( ICommandHandler<> ).MakeGenericType( i.PocoInterface ) )
                                                         .Select( gI => (itf: gI, impl: services.Find( gI )) )
                                                         .Where( m => m.impl != null )
@@ -236,7 +235,6 @@ namespace CK.Setup.Cris
                 {
                     Debug.Assert( commandInterface != null, "Since we have a parameter." );
                     Debug.Assert( parameters != null );
-                    Debug.Assert( commandInterface.Root.ClosureInterface != null, "Since this a ICommand : IClosedPoco." );
                     Debug.Assert( IndexedCommands.ContainsKey( commandInterface.Root ), "Since parameters are filtered by registered Poco." );
                     return (IndexedCommands[commandInterface.Root], parameters, p);
                 }
@@ -249,7 +247,6 @@ namespace CK.Setup.Cris
             var parameters = m.GetParameters();
             var candidates = parameters.Select( p => (p, _pocoResult.AllInterfaces.GetValueOrDefault( p.ParameterType )) )
                                                                     .Where( x => x.Item2 != null
-                                                                                && x.Item2.Root.IsClosedPoco
                                                                                 && typeof( ICommand ).IsAssignableFrom( x.Item2.PocoInterface ) )
                                                                     .ToArray();
             if( candidates.Length > 1 )
