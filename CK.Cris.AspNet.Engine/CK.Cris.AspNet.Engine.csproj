@@ -5,15 +5,14 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RootNamespace>CK.Setup.Cris</RootNamespace>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CK.Cris.Executor\CK.Cris.Executor.csproj" />
+    <ProjectReference Include="..\CK.Cris.AspNet\CK.Cris.AspNet.csproj" />
+    <ProjectReference Include="..\CK.Cris.Engine\CK.Cris.Engine.csproj" />
   </ItemGroup>
 
 </Project>
