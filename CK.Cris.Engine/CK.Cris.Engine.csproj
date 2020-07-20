@@ -12,7 +12,6 @@
 
   <ItemGroup>
     <PackageReference Include="CK.StObj.Runtime" />
-    <PackageReference Include="CK.CodeGen" VersionOverride="0.15.1--0001-develop" />
   </ItemGroup>
 
   <ItemGroup>
