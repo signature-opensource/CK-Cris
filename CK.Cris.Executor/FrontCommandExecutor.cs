@@ -31,21 +31,7 @@ namespace CK.Cris
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to execute.</param>
         /// <returns>The <see cref="CommandResult"/>.</returns>
-        public Task<CommandResult> ExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, ICommand command )
-        {
-            return ExecuteCommandAsync( monitor, services, Directory.Find( command ) );
-        }
-
-        /// <summary>
-        /// Executes a command by calling the ExecuteCommand or ExecuteCommandAsync method for the
-        /// closure of the command Poco (the ICommand interface that unifies all other ICommand and <see cref="ICommandPart"/>.
-        /// </summary>
-        /// <param name="monitor">The monitor to use.</param>
-        /// <param name="services">The service context from which any required dependencies must be resolved.</param>
-        /// <param name="command">The command to execute.</param>
-        /// <param name="caller">Optional caller information.</param>
-        /// <returns>The <see cref="CommandResult"/>.</returns>
-        public async Task<CommandResult> ExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, KnownCommand command )
+        public async Task<CommandResult> ExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, ICommand command )
         {
             DateTime execTime = DateTime.UtcNow;
             try
@@ -59,6 +45,6 @@ namespace CK.Cris
             }
         }
 
-        protected abstract Task<object> DoExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, KnownCommand command );
+        protected abstract Task<object> DoExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, ICommand command );
     }
 }

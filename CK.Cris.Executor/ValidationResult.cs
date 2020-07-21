@@ -16,7 +16,7 @@ namespace CK.Cris
         /// <param name="entries">The logged entries.</param>
         /// <param name="command">The command.</param>
         /// <param name="success">Whether the validation suceeded.</param>
-        public ValidationResult( IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries, KnownCommand command, bool success )
+        public ValidationResult( IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries, ICommand command, bool success )
         {
             AllEntries = entries;
             Command = command;
@@ -28,7 +28,7 @@ namespace CK.Cris
         /// </summary>
         /// <param name="entries">The logged entries.</param>
         /// <param name="command">The command.</param>
-        public ValidationResult( IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries, KnownCommand command )
+        public ValidationResult( IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries, ICommand command )
                   : this( entries, command, entries.All( e => e.MaskedLevel < LogLevel.Error ) )
         {
         }
@@ -37,7 +37,7 @@ namespace CK.Cris
         /// Initializes a new successful <see cref="ValidationResult"/>.
         /// <param name="command">The command.</param>
         /// </summary>
-        public ValidationResult( KnownCommand command )
+        public ValidationResult( ICommand command )
             : this( Array.Empty<ActivityMonitorSimpleCollector.Entry>(), command, true )
         {
         }
@@ -45,7 +45,7 @@ namespace CK.Cris
         /// <summary>
         /// Gets the command.
         /// </summary>
-        public KnownCommand Command { get; }
+        public ICommand Command { get; }
 
         /// <summary>
         /// Gets whether the command has been successfuly validated.

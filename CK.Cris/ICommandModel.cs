@@ -16,10 +16,9 @@ namespace CK.Cris
         Type CommandType { get; }
 
         /// <summary>
-        /// Creates a command object by using the <see cref="IPocoFactory{T}"/> of
-        /// the <see cref="CommandType"/>.
+        /// Creates a new command object.
         /// </summary>
-        ICommand CreateInstance();
+        ICommand Create();
 
         /// <summary>
         /// Gets the command index.

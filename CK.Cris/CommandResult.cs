@@ -107,6 +107,7 @@ namespace CK.Cris
         /// <summary>
         /// Gets the error or result object (if any).
         /// Null when the command doesn't expect any result or if the <see cref="Code"/> is <see cref="VISAMCode.Asynchronous"/>.
+        /// On error, this is either a string or a <see cref="CKExceptionData"/>.
         /// </summary>
         public object? Result { get; }
 

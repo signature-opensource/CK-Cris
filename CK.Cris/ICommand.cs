@@ -10,5 +10,10 @@ namespace CK.Cris
     [CKTypeDefiner]
     public interface ICommand : IPoco
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        [AutoImplementationClaim]
+        ICommandModel CommandModel { get; }
     }
 }

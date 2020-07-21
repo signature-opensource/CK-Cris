@@ -16,12 +16,13 @@ namespace CK.Setup.Cris
             var registry = CommandRegistry.FindOrCreate( monitor, c );
             if( registry == null ) return AutoImplementationResult.Failed;
 
-            var validateMethod = classType.GetMethod( nameof( CommandValidator.ValidateCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( KnownCommand ) } );
+            var validateMethod = classType.GetMethod( nameof( CommandValidator.ValidateCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( ICommand ) } );
             Debug.Assert( validateMethod != null, "This is the signature of the central method." );
+
             var mValidate = scope.CreateSealedOverride( validateMethod );
             if( registry.Commands.Any( e => e.Validators.Count > 0 ) )
             {
-                const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.KnownCommand, Task<CK.Cris.ValidationResult>>";
+                const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.ICommand, Task<CK.Cris.ValidationResult>>";
                 scope.Append( "static readonly " ).Append( funcSignature ).Append( " Success = ( m, s, c ) => Task.FromResult( new CK.Cris.ValidationResult( c ) );" )
                      .NewLine();
 
@@ -29,50 +30,53 @@ namespace CK.Setup.Cris
                 {
                     if( e.Validators.Count > 0 )
                     {
-                        scope.Append( "static async Task<CK.Cris.ValidationResult> V" ).Append( e.CommandIdx ).Append( "( IActivityMonitor m, IServiceProvider s, CK.Cris.KnownCommand c )" ).NewLine()
-                             .Append( "{" ).NewLine();
+                        bool requiresAsync = false;
+                        var f = scope.CreateFunction( "static Task<CK.Cris.ValidationResult> V" + e.CommandIdx + "( IActivityMonitor m, IServiceProvider s, CK.Cris.ICommand c )" );
 
-                        scope.Append( "IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries = Array.Empty<ActivityMonitorSimpleCollector.Entry>();" ).NewLine()
-                             .Append( "using( m.CollectEntries( e => entries = e, LogLevelFilter.Warn ) )" ).NewLine()
-                             .Append( "{" ).NewLine()
-                             .Append( "m.MinimalFilter = new LogFilter( LogLevelFilter.Warn, LogLevelFilter.Warn );" ).NewLine();
+                        f.Append( "IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries = Array.Empty<ActivityMonitorSimpleCollector.Entry>();" ).NewLine()
+                         .Append( "using( m.CollectEntries( e => entries = e, LogLevelFilter.Warn ) )" ).NewLine()
+                         .OpenBlock()
+                         .Append( "m.MinimalFilter = new LogFilter( LogLevelFilter.Warn, LogLevelFilter.Warn );" ).NewLine();
 
                         foreach( var service in e.Validators.GroupBy( v => v.Owner ) )
                         {
-                            scope.Append( "{" ).NewLine();
-                            scope.Append( "var h = (" ).AppendCSharpName( service.Key.ClassType ).Append( ")s.GetService(" ).AppendTypeOf( service.Key.ClassType ).Append( ");" ).NewLine();
+                            f.OpenBlock()
+                             .Append( "var h = (" ).AppendCSharpName( service.Key.ClassType ).Append( ")s.GetService(" ).AppendTypeOf( service.Key.ClassType ).Append( ");" ).NewLine();
                             foreach( var validator in service )
                             {
-                                if( validator.IsRefAsync || validator.IsValAsync ) scope.Append( "await " );
+                                if( validator.IsRefAsync || validator.IsValAsync )
+                                {
+                                    f.Append( "await " );
+                                    requiresAsync = true;
+                                }
                                 if( validator.Method.DeclaringType != service.Key.ClassType )
                                 {
-                                    scope.Append("((").AppendCSharpName( validator.Method.DeclaringType! ).Append( ")h)." );
+                                    f.Append("((").AppendCSharpName( validator.Method.DeclaringType! ).Append( ")h)." );
                                 }
-                                else scope.Append( "h." );
-                                scope.Append( validator.Method.Name ).Append( "( " );
+                                else f.Append( "h." );
+                                f.Append( validator.Method.Name ).Append( "( " );
 
                                 foreach( var p in validator.Parameters )
                                 {
-                                    if( p.Position > 0 ) scope.Append( ", " );
-                                    if( typeof( IActivityMonitor ).IsAssignableFrom( p.ParameterType ) ) scope.Append( "m" );
+                                    if( p.Position > 0 ) f.Append( ", " );
+                                    if( typeof( IActivityMonitor ).IsAssignableFrom( p.ParameterType ) ) f.Append( "m" );
                                     else if( p == validator.CmdOrPartParameter )
                                     {
-                                        scope.Append( "(" ).AppendCSharpName( validator.CmdOrPartParameter.ParameterType ).Append( ")c.Command" );
+                                        f.Append( "(" ).AppendCSharpName( validator.CmdOrPartParameter.ParameterType ).Append( ")c" );
                                     }
                                     else
                                     {
-                                        scope.Append( "(" ).AppendCSharpName( p.ParameterType ).Append( ")s.GetService(" ).AppendTypeOf( p.ParameterType ).Append( ")" );
+                                        f.Append( "(" ).AppendCSharpName( p.ParameterType ).Append( ")s.GetService(" ).AppendTypeOf( p.ParameterType ).Append( ")" );
                                     }
                                 }
-                                scope.Append( " );" ).NewLine();
+                                f.Append( " );" ).NewLine();
                             }
-                            scope.Append( "}" ).NewLine();
+                            f.CloseBlock();
                         }
+                        f.CloseBlock()
+                         .Append( "return " ).Append( requiresAsync ? "new CK.Cris.ValidationResult( entries, c );" : "Task.FromResult( new CK.Cris.ValidationResult( entries, c ) );" );
+                        if( requiresAsync ) f.Definition.Modifiers |= Modifiers.Async;
                     }
-                    scope.Append( "}" ).NewLine()
-                         .Append( "return new CK.Cris.ValidationResult( entries, c );" ).NewLine();
-
-                    scope.Append( "}" ).NewLine();
                 }
 
                 scope.Append( "readonly " ).Append( funcSignature ).Append( "[] _validators = new " ).Append( funcSignature ).Append( "[" ).Append( registry.Commands.Count ).Append( "]{" );
@@ -91,10 +95,11 @@ namespace CK.Setup.Cris
                 scope.Append( "};" )
                      .NewLine();
 
-                mValidate.Append( "return _validators[command.Model.CommandIdx]( monitor, services, command );" );
+                mValidate.Append( "return _validators[command.CommandModel.CommandIdx]( monitor, services, command );" );
             }
             else
             {
+                mValidate.Definition.Modifiers &= ~Modifiers.Async;
                 mValidate.Append( "return Task.FromResult<CK.Cris.ValidationResult>( new CK.Cris.ValidationResult( command ) );" );
             }
             return AutoImplementationResult.Success;

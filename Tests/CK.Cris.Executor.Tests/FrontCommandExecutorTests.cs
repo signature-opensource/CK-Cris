@@ -160,7 +160,7 @@ namespace CK.Cris.Front.AspNet.Tests
         public void ambiguous_handler_detection()
         {
             var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdIntTest ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandler ) );
-            TestHelper.GenerateCode( c ).CodeGenResult.Success.Should().BeFalse();
+            TestHelper.GenerateCode( c ).CodeGen.Success.Should().BeFalse();
         }
 
         public class CmdIntValAsyncHandlerService : CmdIntValAsyncHandler, ICommandHandler<ICmdIntTest>
@@ -173,7 +173,7 @@ namespace CK.Cris.Front.AspNet.Tests
         {
             CmdIntValAsyncHandler.Called = false;
             var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdIntTest ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandlerService ) );
-            TestHelper.GenerateCode( c ).CodeGenResult.Success.Should().BeTrue();
+            TestHelper.GenerateCode( c ).CodeGen.Success.Should().BeTrue();
         }
 
 

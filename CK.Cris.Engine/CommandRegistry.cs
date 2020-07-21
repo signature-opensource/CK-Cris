@@ -18,15 +18,10 @@ namespace CK.Setup.Cris
     public partial class CommandRegistry
     {
         readonly IPocoSupportResult _pocoResult;
+        readonly IReadOnlyDictionary<IPocoRootInfo, Entry> _indexedCommands;
 
         /// <summary>
-        /// Gets the discovered commands indexed by their <see cref="Entry.CommandName"/>, <see cref="Entry.PreviousNames"/> and
-        /// the <see cref="IPocoRootInfo"/>.
-        /// </summary>
-        public IReadOnlyDictionary<object, Entry> IndexedCommands { get; }
-
-        /// <summary>
-        /// Gets all the discovered commands.
+        /// Gets all the discovered commands ordered by their <see cref="Entry.CommandIdx"/>.
         /// </summary>
         public IReadOnlyList<Entry> Commands { get; }
 
@@ -67,8 +62,8 @@ namespace CK.Setup.Cris
                 Debug.Assert( commands != null, "p == null <==> commands == null" );
                 foreach( var command in commands )
                 {
-                    Debug.Assert( IndexedCommands.ContainsKey( command ), "Since parameters are filtered by registered Poco." );
-                    var e = IndexedCommands[command];
+                    Debug.Assert( _indexedCommands.ContainsKey( command ), "Since parameters are filtered by registered Poco." );
+                    var e = _indexedCommands[command];
                     success &= e.AddValidator( monitor, impl, m, parameters, p );
                 }
                 return success;
@@ -142,17 +137,17 @@ namespace CK.Setup.Cris
         }
 
 
-        CommandRegistry( IReadOnlyDictionary<object, Entry> index, IReadOnlyList<Entry> commands, IPocoSupportResult poco )
+        CommandRegistry( IReadOnlyDictionary<IPocoRootInfo, Entry> index, IReadOnlyList<Entry> commands, IPocoSupportResult poco )
         {
-            IndexedCommands = index;
+            _indexedCommands = index;
             Commands = commands;
             _pocoResult = poco;
         }
 
-        static (Dictionary<object, Entry>?,IReadOnlyList<Entry>?) CreateCommandMap( IActivityMonitor monitor, IStObjEngineMap services, IPocoSupportResult pocoResult )
+        static (Dictionary<IPocoRootInfo, Entry>?,IReadOnlyList<Entry>?) CreateCommandMap( IActivityMonitor monitor, IStObjEngineMap services, IPocoSupportResult pocoResult )
         {
             bool success = true;
-            var index = new Dictionary<object, Entry>();
+            var index = new Dictionary<IPocoRootInfo, Entry>();
             var commands = new List<Entry>();
             if( pocoResult.OtherInterfaces.TryGetValue( typeof( ICommand ), out IReadOnlyList<IPocoRootInfo>? commandPocos ) )
             {
@@ -173,15 +168,6 @@ namespace CK.Setup.Cris
                     else
                     {
                         commands.Add( entry );
-                        foreach( var name in entry.PreviousNames.Append( entry.CommandName ) )
-                        {
-                            if( index.TryGetValue( name, out var exists ) )
-                            {
-                                monitor.Error( $"The command name '{name}' clashes: both '{entry.Command.PrimaryInterface.AssemblyQualifiedName}' and '{exists.Command.PrimaryInterface.AssemblyQualifiedName}' share it." );
-                                success = false;
-                            }
-                            else index.Add( name, entry );
-                        }
                         index.Add( entry.Command, entry );
                     }
                 }
@@ -235,8 +221,8 @@ namespace CK.Setup.Cris
                 {
                     Debug.Assert( commandInterface != null, "Since we have a parameter." );
                     Debug.Assert( parameters != null );
-                    Debug.Assert( IndexedCommands.ContainsKey( commandInterface.Root ), "Since parameters are filtered by registered Poco." );
-                    return (IndexedCommands[commandInterface.Root], parameters, p);
+                    Debug.Assert( _indexedCommands.ContainsKey( commandInterface.Root ), "Since parameters are filtered by registered Poco." );
+                    return (_indexedCommands[commandInterface.Root], parameters, p);
                 }
             }
             return (null, null, null);
