@@ -18,7 +18,7 @@ namespace CK.Setup.Cris
             return new AutoImplementationResult( nameof( DoImplement ) );
         }
 
-        AutoImplementationResult DoImplement( IActivityMonitor monitor, Type classType, ICodeGenerationContext c, ITypeScope scope, IJsonSerializationCodeGen json )
+        AutoImplementationResult DoImplement( IActivityMonitor monitor, Type classType, ICodeGenerationContext c, ITypeScope scope, IJsonSerializationCodeGen? json = null )
         { 
             if( classType != typeof( CommandDirectory ) ) throw new InvalidOperationException( "Applies only to the CommandDirectory class." );
             var registry = CommandRegistry.FindOrCreate( monitor, c );
@@ -32,7 +32,7 @@ namespace CK.Setup.Cris
                  .Append( "{" ).NewLine();
             foreach( var e in registry.Commands )
             {
-                if( e.ResultType != typeof(void) )
+                if( json != null && e.ResultType != typeof(void) )
                 {
                     json.RegisterEnumOrCollectionType( e.ResultType );
                 }

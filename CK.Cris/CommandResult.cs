@@ -7,7 +7,7 @@ namespace CK.Cris
     /// <summary>
     /// Immutable command execution result.
     /// </summary>
-    public class CommandResult
+    public class CommandResult : ICommandResult
     {
         CommandResult( VISAMCode code, object? result, CommandCallerInfo? caller, DateTime startExecutionTime, DateTime? endExecutionTime )
         {
@@ -82,7 +82,7 @@ namespace CK.Cris
         public static CommandResult AsynchronousExecution( DateTime startExecutionTime, CommandCallerInfo caller )
         {
             if( caller == null ) throw new ArgumentNullException( nameof( caller ) );
-            if( caller.CommandId == null ) throw new ArgumentException( "A command identifier must be assigned.",  nameof( caller ) );
+            if( caller.CommandId == null ) throw new ArgumentException( "A command identifier must be assigned.", nameof( caller ) );
             return new CommandResult( VISAMCode.Asynchronous, null, caller, startExecutionTime, null );
         }
 
