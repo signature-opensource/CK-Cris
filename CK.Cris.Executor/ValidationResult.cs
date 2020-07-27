@@ -6,7 +6,7 @@ using System.Linq;
 namespace CK.Cris
 {
     /// <summary>
-    /// Captures the result of a command validation.
+    /// Captures the result of a command validation with potential warnings.
     /// </summary>
     public class ValidationResult
     {
@@ -34,7 +34,7 @@ namespace CK.Cris
         }
 
         /// <summary>
-        /// Initializes a new successful <see cref="ValidationResult"/>.
+        /// Initializes a new successful <see cref="ValidationResult"/> (no warning, no error).
         /// <param name="command">The command.</param>
         /// </summary>
         public ValidationResult( ICommand command )
@@ -48,7 +48,8 @@ namespace CK.Cris
         public ICommand Command { get; }
 
         /// <summary>
-        /// Gets whether the command has been successfuly validated.
+        /// Gets whether the command has been successfuly validated. <see cref="Errors"/> is empty
+        /// but there may be <see cref="Warnings"/>.
         /// </summary>
         public bool Success { get; }
 

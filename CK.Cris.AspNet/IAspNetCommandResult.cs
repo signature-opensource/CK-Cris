@@ -8,7 +8,7 @@ namespace CK.Cris.AspNet
     [ExternalName( "CrisCommandResult" )]
     public interface IAspNetCommandResult : IPoco
     {
-        VISAMCode Code { get; set; }
+        VESACode Code { get; set; }
 
         object Result { get; set; }
     }

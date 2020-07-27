@@ -59,7 +59,7 @@ namespace CK.Cris.Front.AspNet.Tests
         [TestCase( "ValAsync" )]
         public async Task basic_handling_of_void_returns( string kind )
         {
-            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdTest ) );
+            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( DefaultFrontCommandExceptionHandler ), typeof( CommandDirectory ), typeof( ICmdTest ) );
             c.RegisterType( kind switch
             {
                 "RefAsync" => typeof( CmdRefAsyncHandler ),
@@ -77,11 +77,9 @@ namespace CK.Cris.Front.AspNet.Tests
 
                 CmdSyncHandler.Called = false;
 
-                CommandResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
-                result.Caller.Should().BeNull();
+                ICommandResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
                 result.Result.Should().BeNull();
-                result.EndExecutionTime.Should().NotBeNull();
-                result.Code.Should().Be( VISAMCode.Synchronous );
+                result.Code.Should().Be( VESACode.Synchronous );
                 CmdSyncHandler.Called.Should().BeTrue();
             }
         }
@@ -129,7 +127,7 @@ namespace CK.Cris.Front.AspNet.Tests
         [TestCase( "ValAsync" )]
         public async Task basic_handling_with_returned_type( string kind )
         {
-            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdIntTest ) );
+            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( DefaultFrontCommandExceptionHandler ), typeof( CommandDirectory ), typeof( ICmdIntTest ) );
             c.RegisterType( kind switch
             {
                 "RefAsync" => typeof( CmdIntRefAsyncHandler ),
@@ -147,11 +145,9 @@ namespace CK.Cris.Front.AspNet.Tests
 
                 CmdIntSyncHandler.Called = false;
 
-                CommandResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
-                result.Caller.Should().BeNull();
+                ICommandResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
                 result.Result.Should().Be( 3712 );
-                result.EndExecutionTime.Should().NotBeNull();
-                result.Code.Should().Be( VISAMCode.Synchronous );
+                result.Code.Should().Be( VESACode.Synchronous );
                 CmdIntSyncHandler.Called.Should().BeTrue();
             }
         }
@@ -159,7 +155,7 @@ namespace CK.Cris.Front.AspNet.Tests
         [Test]
         public void ambiguous_handler_detection()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdIntTest ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandler ) );
+            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( DefaultFrontCommandExceptionHandler ), typeof( CommandDirectory ), typeof( ICmdIntTest ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandler ) );
             TestHelper.GenerateCode( c ).CodeGen.Success.Should().BeFalse();
         }
 
@@ -172,7 +168,7 @@ namespace CK.Cris.Front.AspNet.Tests
         public void ambiguous_handler_resolution_thanks_to_the_ICommanHandlerT_marker()
         {
             CmdIntValAsyncHandler.Called = false;
-            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdIntTest ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandlerService ) );
+            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( DefaultFrontCommandExceptionHandler ), typeof( CommandDirectory ), typeof( ICmdIntTest ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandlerService ) );
             TestHelper.GenerateCode( c ).CodeGen.Success.Should().BeTrue();
         }
 
@@ -208,15 +204,15 @@ namespace CK.Cris.Front.AspNet.Tests
         public void return_type_mismatch_detection()
         {
             {
-                var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType1 ) );
+                var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( DefaultFrontCommandExceptionHandler ), typeof( CommandDirectory ), typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType1 ) );
                 CheckUniqueCommandHasNoHandler( c );
             }
             {
-                var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType2 ) );
+                var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( DefaultFrontCommandExceptionHandler ), typeof( CommandDirectory ), typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType2 ) );
                 CheckUniqueCommandHasNoHandler( c );
             }
             {
-                var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType3 ) );
+                var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( DefaultFrontCommandExceptionHandler ), typeof( CommandDirectory ), typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType3 ) );
                 CheckUniqueCommandHasNoHandler( c );
             }
 
@@ -284,7 +280,7 @@ namespace CK.Cris.Front.AspNet.Tests
                 var cmd = services.GetRequiredService<IPocoFactory<IAmbientValuesCollectCommand>>().Create();
 
                 var r = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
-                r.Code.Should().Be( VISAMCode.Synchronous );
+                r.Code.Should().Be( VESACode.Synchronous );
                 Debug.Assert( r.Result != null );
                 var ambientValues = (Dictionary<string, object?>)r.Result!;
                 ambientValues.Should().HaveCount( 3 );
@@ -315,7 +311,7 @@ namespace CK.Cris.Front.AspNet.Tests
         [Test]
         public async Task calling_public_AutoService_implementation()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdTest ), typeof( CommandHandlerImpl ) );
+            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( DefaultFrontCommandExceptionHandler ), typeof( CommandDirectory ), typeof( ICmdTest ), typeof( CommandHandlerImpl ) );
             var appServices = TestHelper.GetAutomaticServices( c ).Services;
             using( var scope = appServices.CreateScope() )
             {
@@ -325,9 +321,9 @@ namespace CK.Cris.Front.AspNet.Tests
 
                 CommandHandlerImpl.Called = false;
 
-                CommandResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                ICommandResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
                 result.Result.Should().BeNull();
-                result.Code.Should().Be( VISAMCode.Synchronous );
+                result.Code.Should().Be( VESACode.Synchronous );
 
                 CommandHandlerImpl.Called.Should().BeTrue();
             }
@@ -352,7 +348,7 @@ namespace CK.Cris.Front.AspNet.Tests
         [Test]
         public async Task calling_explicit_AutoService_implementation()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( CommandDirectory ), typeof( ICmdTest ), typeof( CommandHandlerExplicitImpl ) );
+            var c = TestHelper.CreateStObjCollector( typeof( FrontCommandExecutor ), typeof( DefaultFrontCommandExceptionHandler ), typeof( CommandDirectory ), typeof( ICmdTest ), typeof( CommandHandlerExplicitImpl ) );
             var appServices = TestHelper.GetAutomaticServices( c ).Services;
             using( var scope = appServices.CreateScope() )
             {
@@ -362,9 +358,9 @@ namespace CK.Cris.Front.AspNet.Tests
 
                 CommandHandlerExplicitImpl.Called = false;
 
-                CommandResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                ICommandResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
                 result.Result.Should().BeNull();
-                result.Code.Should().Be( VISAMCode.Synchronous );
+                result.Code.Should().Be( VESACode.Synchronous );
 
                 CommandHandlerExplicitImpl.Called.Should().BeTrue();
             }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -14,12 +15,14 @@ namespace CK.Cris.AspNet
         readonly CommandValidator _validator;
         readonly FrontCommandExecutor _executor;
         readonly PocoDirectory _poco;
+        readonly IPocoFactory<ICommandResult> _resultFactory;
 
-        public CrisAspNetService( PocoDirectory poco, CommandValidator validator, FrontCommandExecutor executor )
+        public CrisAspNetService( PocoDirectory poco, CommandValidator validator, FrontCommandExecutor executor, IPocoFactory<ICommandResult> resultFactory )
         {
             _poco = poco;
             _validator = validator;
             _executor = executor;
+            _resultFactory = resultFactory;
         }
 
         public async Task HandleRequest( IActivityMonitor monitor, IServiceProvider requestServices, HttpRequest request, HttpResponse response )
@@ -36,22 +39,24 @@ namespace CK.Cris.AspNet
             }
             else
             {
-                CommandResult result;
+                ICommandResult result;
                 DateTime startValidation = DateTime.UtcNow;
                 ValidationResult validation = await _validator.ValidateCommandAsync( monitor, requestServices, cmd );
                 if( !validation.Success )
                 {
                     response.StatusCode = StatusCodes.Status406NotAcceptable;
-                    result = CommandResult.ValidationError( startValidation, validation );
+                    result = _resultFactory.Create();
+                    result.Code = VESACode.ValidationError;
+                    result.Result = validation.Errors.ToList();
                 }
                 else
                 {
                     result = await _executor.ExecuteCommandAsync( monitor, requestServices, cmd );
                     switch( result.Code )
                     {
-                        case VISAMCode.InternalError: response.StatusCode = StatusCodes.Status500InternalServerError; break;
-                        case VISAMCode.Synchronous: response.StatusCode = StatusCodes.Status200OK; break;
-                        default: throw new NotSupportedException( $"VISAM code can only be I or S. Code = {result.Code}" );
+                        case VESACode.Error: response.StatusCode = StatusCodes.Status500InternalServerError; break;
+                        case VESACode.Synchronous: response.StatusCode = StatusCodes.Status200OK; break;
+                        default: throw new NotSupportedException( $"VESA code can only be E or S. Code = {result.Code}" );
                     }
                 }
                 using( var writer = new Utf8JsonWriter( response.BodyWriter ) )

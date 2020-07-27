@@ -10,36 +10,17 @@ namespace CK.Cris
     public interface ICommandResult : IPoco
     {
         /// <summary>
-        /// Gets or sets the start time of the command handling.
+        /// Gets or sets the <see cref="VESACode"/>.
         /// </summary>
-        DateTime StartExecutionTime { get; set; }
-
-        /// <summary>
-        /// Gets or sets the <see cref="VISAMCode"/>.
-        /// </summary>
-        VISAMCode Code { get; set; }
-
-        /// <summary>
-        /// Gets or set the end time of the execution.
-        /// </summary>
-        DateTime? EndExecutionTime { get; set; }
+        VESACode Code { get; set; }
 
         /// <summary>
         /// Gets or sets the error or result object (if any).
-        /// Null when the command doesn't expect any result or if the <see cref="Code"/> is <see cref="VISAMCode.Asynchronous"/>.
-        /// On error, this should be either a string, a <see cref="IList{string}"/>, an <see cref="Exception"/> or a <see cref="CKExceptionData"/>.
+        /// Null when the command doesn't expect any result or if the <see cref="Code"/> is <see cref="VESACode.Asynchronous"/>.
+        /// On error, this should contain a description of the error that can be modelled as a poco, a simple string, a value tuple,
+        /// or any combination of types that are serializable.
         /// </summary>
         object? Result { get; set; }
-
-        /// <summary>
-        /// Gets an optional list of warnings.
-        /// </summary>
-        IList<string> Warnings { get; }
-
-        /// <summary>
-        /// Gets an optional list of warnings.
-        /// </summary>
-        IList<string> Infos { get; }
 
     }
 }

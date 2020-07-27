@@ -7,7 +7,7 @@ namespace CK.Cris
     /// <summary>
     /// Defines the possible command handling response types.
     /// </summary>
-    public enum VISAMCode
+    public enum VESACode
     {
         /// <summary>
         /// Validation error: the command failed to be validated. It has been rejected by the End Point.
@@ -15,9 +15,9 @@ namespace CK.Cris
         ValidationError = 'V',
 
         /// <summary>
-        /// Internal error: an error has been raised by the handling of the command.
+        /// An error has been raised by the handling of the command.
         /// </summary>
-        InternalError = 'I',
+        Error = 'E',
 
         /// <summary>
         /// The command has successfuly been executed in a synchronous-way, its result is directly accessible by the client.
@@ -27,11 +27,6 @@ namespace CK.Cris
         /// <summary>
         /// The execution of the command has been deferred.
         /// </summary>
-        Asynchronous = 'A',
-
-        /// <summary>
-        /// This distinguishes all meta command result.
-        /// </summary>
-        Meta = 'M'
+        Asynchronous = 'A'
     }
 }
