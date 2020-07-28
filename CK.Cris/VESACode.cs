@@ -1,3 +1,4 @@
+using CK.Core;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -7,6 +8,7 @@ namespace CK.Cris
     /// <summary>
     /// Defines the possible command handling response types.
     /// </summary>
+    [ExternalName( "VESACode" )]
     public enum VESACode
     {
         /// <summary>

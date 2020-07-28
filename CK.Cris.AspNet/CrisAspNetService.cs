@@ -35,7 +35,7 @@ namespace CK.Cris.AspNet
             }
             if( cmd == null )
             {
-                response.StatusCode = StatusCodes.Status400BadRequest;
+                response.StatusCode = StatusCodes.Status404NotFound;
             }
             else
             {
@@ -61,31 +61,29 @@ namespace CK.Cris.AspNet
                 }
                 using( var writer = new Utf8JsonWriter( response.BodyWriter ) )
                 {
-                    writer.WriteStartObject();
-                    writer.WriteString( "Code", result.Code.ToString() );
-                    writer.WritePropertyName( "Result" );
-                    if( result.Result is ValidationResult )
-                    {
-                        writer.WriteStartObject();
-                        writer.WriteEndObject();
-                    }
-                    writer.WriteEndObject();
+                    PocoJsonSerializer.Write( result, writer );
                 }
             }
         }
 
         static ICommand? ReadCommand( IActivityMonitor m, PocoDirectory p, MemoryStream buffer )
         {
+            int length = 0;
             try
             {
-                var reader = new Utf8JsonReader( buffer.GetBuffer().AsSpan( 0, (int)buffer.Position ) );
+                length = (int)buffer.Position;
+                var reader = new Utf8JsonReader( buffer.GetBuffer().AsSpan( 0, length ) );
                 var poco = p.ReadPocoValue( ref reader );
                 if( poco == null ) m.Error( "Null poco received." );
                 return (ICommand?)poco;
             }
             catch( Exception ex )
             {
-                m.Error( "Unable to read Poco from body.", ex );
+                using( m.OpenError( $"Unable to read Poco from body (byte length = {length}.", ex ) )
+                {
+                    var s = Encoding.UTF8.GetString( buffer.GetBuffer(), 0, length );
+                    m.Trace( s );
+                }
                 return null;
             }
         }

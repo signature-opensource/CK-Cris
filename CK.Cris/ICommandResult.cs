@@ -7,6 +7,7 @@ namespace CK.Cris
     /// <summary>
     /// Describes the result of a command.
     /// </summary>
+    [ExternalName( "CrisResult" )]
     public interface ICommandResult : IPoco
     {
         /// <summary>

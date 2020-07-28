@@ -40,10 +40,13 @@ namespace CK.Cris.AspNet
                 }
                 else
                 {
-
+                    await _service.HandleRequest( m, ctx.RequestServices, ctx.Request, ctx.Response );
                 }
             }
-            await _next( ctx );
+            else
+            {
+                await _next( ctx );
+            }
         }
 
     }
