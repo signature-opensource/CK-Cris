@@ -113,11 +113,6 @@ namespace CK.Cris.Front.AspNet.Tests
             int ActorId { get; set; }
         }
 
-        public interface ICmdTestSecure : ICmdTest, IAuthenticatedCommandPart
-        {
-            bool WarnByAsyncValidator { get; set; }
-        }
-
         public class AuthenticationValidator : IAutoService
         {
             [CommandValidator]
@@ -126,6 +121,12 @@ namespace CK.Cris.Front.AspNet.Tests
                 if( cmd.ActorId != info.User.UserId ) m.Error( "Security error." );
             }
         }
+
+        public interface ICmdTestSecure : ICmdTest, IAuthenticatedCommandPart
+        {
+            bool WarnByAsyncValidator { get; set; }
+        }
+
 
         public class AsyncValidator : IAutoService
         {
