@@ -44,7 +44,7 @@ namespace CK.Cris.AspNet
                 ValidationResult validation = await _validator.ValidateCommandAsync( monitor, requestServices, cmd );
                 if( !validation.Success )
                 {
-                    response.StatusCode = StatusCodes.Status406NotAcceptable;
+                    response.StatusCode = StatusCodes.Status400BadRequest;
                     result = _resultFactory.Create();
                     result.Code = VESACode.ValidationError;
                     result.Result = validation.Errors.ToList();

@@ -3,6 +3,7 @@ using CK.Core;
 using CK.Cris;
 using CK.Text;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
@@ -102,7 +103,13 @@ namespace CK.Setup.Cris
                 mValidate.Definition.Modifiers &= ~Modifiers.Async;
                 mValidate.Append( "return Task.FromResult<CK.Cris.ValidationResult>( new CK.Cris.ValidationResult( command ) );" );
             }
-            return AutoImplementationResult.Success;
+            return new AutoImplementationResult( "HandleSerialization" );
+        }
+
+        bool HandleSerialization( IActivityMonitor monitor, ICodeGenerationContext c, IJsonSerializationCodeGen s )
+        {
+            s.RegisterEnumOrCollectionType( typeof( List<string> ) );
+            return true;
         }
     }
 
