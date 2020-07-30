@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <Sdk Name="Microsoft.Build.CentralPackageVersions" Version="2.0.52" />
   <Import Project="..\..\Common\Shared.props" />
@@ -6,10 +6,12 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="CK.Testing.StObjEngine" />
+    <PackageReference Include="CK.AspNet.Tester" />
     <PackageReference Include="nunit" />
     <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
@@ -17,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\CK.Cris.AspNet.Engine\CK.Cris.AspNet.Engine.csproj" />
+    <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
   </ItemGroup>
 
   <ItemGroup>

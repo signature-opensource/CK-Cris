@@ -12,7 +12,7 @@ namespace CK.Cris
         /// <summary>
         /// Gets a singleton instance of this marker type.
         /// </summary>
-        public NoWaitResult Instance = new NoWaitResult();
+        public static NoWaitResult Instance = new NoWaitResult();
 
         NoWaitResult() {}
     }

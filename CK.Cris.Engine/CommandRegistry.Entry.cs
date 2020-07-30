@@ -43,12 +43,12 @@ namespace CK.Setup.Cris
             /// <summary>
             /// Gets the name of this command.
             /// </summary>
-            public string CommandName { get; }
+            public string CommandName => Command.Name;
 
             /// <summary>
             /// Gets the name of this command.
             /// </summary>
-            public IReadOnlyList<string> PreviousNames { get; }
+            public IReadOnlyList<string> PreviousNames => Command.PreviousNames;
 
             /// <summary>
             /// Gets a unique, zero-based index that identifies this command among all
@@ -114,7 +114,7 @@ namespace CK.Setup.Cris
                             else if( p == m.ResultParameter ) w.Append( "r" );
                             else if( p == m.CmdOrPartParameter )
                             {
-                                w.Append( "(" ).AppendCSharpName( m.CmdOrPartParameter.ParameterType ).Append( ")c.Command" );
+                                w.Append( "(" ).AppendCSharpName( m.CmdOrPartParameter.ParameterType ).Append( ")c" );
                             }
                             else
                             {
@@ -133,13 +133,11 @@ namespace CK.Setup.Cris
             /// <returns>The name of this command.</returns>
             public override string ToString() => CommandName;
 
-            Entry( IPocoRootInfo command, string name, string[] previousNames, int commandIdx, Type resultType, IPocoInterfaceInfo? pocoResultType, IStObjFinalClass? handlerService )
+            Entry( IPocoRootInfo command, int commandIdx, Type resultType, IPocoInterfaceInfo? pocoResultType, IStObjFinalClass? handlerService )
             {
                 Command = command;
                 _validators = new List<ValidatorMethod>();
                 _postHandlers = new List<PostHandlerMethod>();
-                CommandName = name;
-                PreviousNames = previousNames;
                 CommandIdx = commandIdx;
                 ResultType = resultType;
                 PocoResultType = pocoResultType;
@@ -148,48 +146,6 @@ namespace CK.Setup.Cris
 
             internal static Entry? Create( IActivityMonitor monitor, IPocoSupportResult pocoSupportResult, IPocoRootInfo command, int commandIdx, IStObjFinalClass? handlerService )
             {
-                string name;
-                string[] previousNames;
-
-                #region Handling CommandName attributes. 
-                var names = command.PrimaryInterface.GetCustomAttributesData().Where( d => typeof( CommandNameAttribute ).IsAssignableFrom( d.AttributeType ) ).FirstOrDefault();
-
-                var others = command.Interfaces.Where( i => i.PocoInterface != command.PrimaryInterface
-                                                            && i.PocoInterface.GetCustomAttributesData().Any( x => typeof( CommandNameAttribute ).IsAssignableFrom( x.AttributeType ) ) );
-                if( others.Any() )
-                {
-                    monitor.Error( $"CommandName attribute appear on '{others.Select( i => i.PocoInterface.FullName ).Concatenate( "', '" )}'. Only the primary ICommand interface (i.e. '{command.PrimaryInterface.FullName}') should define the Command names." );
-                    return null;
-                }
-                if( names != null )
-                {
-                    var args = names.ConstructorArguments;
-                    name = (string)args[0].Value!;
-                    previousNames = ((IEnumerable<CustomAttributeTypedArgument>)args[1].Value!).Select( a => (string)a.Value! ).ToArray();
-                    if( String.IsNullOrWhiteSpace( name ) )
-                    {
-                        monitor.Error( $"Empty name in CommandName attribute on '{command.PrimaryInterface.FullName}'." );
-                        return null;
-                    }
-                    if( previousNames.Any( n => String.IsNullOrWhiteSpace( n ) ) )
-                    {
-                        monitor.Error( $"Empty previous name in CommandName attribute on '{command.PrimaryInterface.FullName}'." );
-                        return null;
-                    }
-                    if( previousNames.Contains( name ) || previousNames.GroupBy( Util.FuncIdentity ).Any( g => g.Count() > 1 ) )
-                    {
-                        monitor.Error( $"Duplicate CommandName in attribute on '{command.PrimaryInterface.FullName}'." );
-                        return null;
-                    }
-                }
-                else
-                {
-                    name = command.PrimaryInterface.FullName!;
-                    previousNames = Array.Empty<string>();
-                    monitor.Warn( $"Command '{name}' use its full name as its name since no CommandName attribute is defined." );
-                }
-                #endregion
-
                 Type resultType;
                 IPocoInterfaceInfo? pocoResultType;
 
@@ -229,7 +185,7 @@ namespace CK.Setup.Cris
                     }
                     else
                     {
-                        monitor.Error( $"Invalid command Result type for '{name}': result types '{resultTypes.Select( t => t.Name ).Concatenate( "', '" )}' must resolve to a common most specific type." );
+                        monitor.Error( $"Invalid command Result type for '{command.Name}': result types '{resultTypes.Select( t => t.Name ).Concatenate( "', '" )}' must resolve to a common most specific type." );
                         return null;
                     }
                 }
@@ -240,7 +196,7 @@ namespace CK.Setup.Cris
                 }
                 #endregion
 
-                return new Entry( command, name, previousNames, commandIdx, resultType, pocoResultType, handlerService );
+                return new Entry( command, commandIdx, resultType, pocoResultType, handlerService );
             }
 
             internal bool AddHandler( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, ParameterInfo parameter, bool isClosedHandler )

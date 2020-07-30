@@ -15,7 +15,7 @@ namespace CK.Cris.Tests
     [TestFixture]
     public class CommandDirectoryTests
     {
-        [CommandName( "Test", "PreviousTest1", "PreviousTest2" )]
+        [ExternalName( "Test", "PreviousTest1", "PreviousTest2" )]
         public interface ICmdTest : ICommand
         {
         }
@@ -24,18 +24,19 @@ namespace CK.Cris.Tests
         public void simple_command_models()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICmdTest ) );
-            var d = TestHelper.GetAutomaticServices( c ).Services.GetRequiredService<CommandDirectory>();
+            var services = TestHelper.GetAutomaticServices( c ).Services;
+            var poco = services.GetRequiredService<PocoDirectory>();
+
+            var d = services.GetRequiredService<CommandDirectory>();
             d.Commands.Should().HaveCount( 1 );
-            var m = d.FindModel( "Test" );
-            m.Should().NotBeNull();
-            d.Commands[0].Should().BeSameAs( m );
+            var m = d.Commands[0];
             m.Handler.Should().BeNull();
             m.CommandIdx.Should().Be( 0 );
             m.CommandName.Should().Be( "Test" );
             m.PreviousNames.Should().BeEquivalentTo( "PreviousTest1", "PreviousTest2" );
-            m.Should().BeSameAs( d.FindModel( "PreviousTest1" ) ).And.BeSameAs( d.FindModel( "PreviousTest2" ) );
-            var cmd = m.CreateInstance();
-            d.FindModel( cmd ).Should().BeSameAs( m );
+            m.Should().BeSameAs( poco.Find( "PreviousTest1" ) ).And.BeSameAs( poco.Find( "PreviousTest2" ) );
+            var cmd = m.Create();
+            cmd.CommandModel.Should().BeSameAs( m );
         }
 
 

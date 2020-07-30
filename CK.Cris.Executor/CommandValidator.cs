@@ -11,37 +11,44 @@ namespace CK.Cris
     public abstract class CommandValidator : ISingletonAutoService
     {
         protected CommandDirectory Directory;
+        readonly IPocoFactory<ISimpleErrorResult> _simpleErrorResultFactory;
 
         /// <summary>
         /// Initializes a new <see cref="CommandValidator"/>.
         /// </summary>
         /// <param name="directory">The command directory.</param>
-        public CommandValidator( CommandDirectory directory )
+        /// <param name="simpleErrorResultFactory">SimpleValidationError factory.</param>
+        public CommandValidator( CommandDirectory directory, IPocoFactory<ISimpleErrorResult> simpleErrorResultFactory )
         {
             Directory = directory;
+            _simpleErrorResultFactory = simpleErrorResultFactory;
         }
 
         /// <summary>
-        /// Validates a command by calling all the ValidateCommand or ValidateCommandAsync methods for all the parts
-        /// of the command (<see cref="ICommand"/> and <see cref="ICommandPart"/>).
+        /// Creates a <see cref="ISimpleErrorResult"/> with the errors if the result is not successful,
+        /// null otherwise.
         /// </summary>
-        /// <param name="monitor">The monitor to use.</param>
-        /// <param name="services">The service context from which any required dependencies must be resolved.</param>
-        /// <param name="command">The command to validate.</param>
-        /// <returns>The validation result.</returns>
-        public Task<ValidationResult> ValidateCommandAsync( IActivityMonitor monitor, IServiceProvider services, ICommand command )
+        /// <param name="v">The validation result.</param>
+        /// <returns>Null or a simple validation result.</returns>
+        public ISimpleErrorResult? CreateSimpleErrorResult( ValidationResult v )
         {
-            return ValidateCommandAsync( monitor, services, Directory.Find( command ) );
+            if( v.Success ) return null;
+            var r = _simpleErrorResultFactory.Create();
+            r.Errors.AddRange( v.Errors );
+            return r;
         }
 
         /// <summary>
         /// Validates a command by calling all the ValidateCommand or ValidateCommandAsync methods for all the parts
         /// of the command (<see cref="ICommand"/> and <see cref="ICommandPart"/>).
+        /// <para>
+        /// Exceptions are NOT handled by this method: a validator should never throw: exceptions must be handled by the caller.
+        /// </para>
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to validate.</param>
         /// <returns>The validation result.</returns>
-        public abstract Task<ValidationResult> ValidateCommandAsync( IActivityMonitor monitor, IServiceProvider services, KnownCommand command );
+        public abstract Task<ValidationResult> ValidateCommandAsync( IActivityMonitor monitor, IServiceProvider services, ICommand command );
     }
 }
