@@ -36,12 +36,12 @@ namespace CK.Cris
         /// <summary>
         /// Dumps the command detail in the <paramref name="monitor"/>.
         /// By default, this sends the ToString() representation of the command as trace.
-        /// (That will be handled by the monitor since is is in an OpenError context.
+        /// (That will be handled by the monitor since it is in an OpenError context.
         /// See the remarks in <see cref="IActivityMonitor.UnfilteredOpenGroup(ActivityMonitorGroupData)"/>).
         /// </summary>
-        /// <param name="monitor"></param>
-        /// <param name="services"></param>
-        /// <param name="command"></param>
+        /// <param name="monitor">The monitor.</param>
+        /// <param name="services">The services.</param>
+        /// <param name="command">The command that failed.</param>
         protected virtual void DumpCommand( IActivityMonitor monitor, IServiceProvider services, ICommand command )
         {
             monitor.Trace( command.ToString() );

@@ -35,6 +35,8 @@ namespace CK.Cris.AspNet.Tests
                 typeof( DefaultFrontCommandExceptionHandler ),
                 typeof( CommandDirectory ),
                 typeof( ICommandResult ),
+                typeof( CommandExecutor ),
+                typeof( ISimpleErrorResult ),
                 typeof( CommandValidator ),
                 typeof( PocoJsonSerializer ),
                 typeof( CrisAspNetService ),

@@ -103,14 +103,9 @@ namespace CK.Setup.Cris
                 mValidate.Definition.Modifiers &= ~Modifiers.Async;
                 mValidate.Append( "return Task.FromResult<CK.Cris.ValidationResult>( new CK.Cris.ValidationResult( command ) );" );
             }
-            return new AutoImplementationResult( "HandleSerialization" );
+            return AutoImplementationResult.Success;
         }
 
-        bool HandleSerialization( IActivityMonitor monitor, ICodeGenerationContext c, IJsonSerializationCodeGen s )
-        {
-            s.RegisterEnumOrCollectionType( typeof( List<string> ) );
-            return true;
-        }
     }
 
 }

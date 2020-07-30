@@ -2,6 +2,7 @@ using CK.Core;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -13,11 +14,11 @@ namespace CK.Cris.AspNet
     public class CrisAspNetService : ISingletonAutoService
     {
         readonly CommandValidator _validator;
-        readonly FrontCommandExecutor _executor;
+        readonly CommandExecutor _executor;
         readonly PocoDirectory _poco;
         readonly IPocoFactory<ICommandResult> _resultFactory;
 
-        public CrisAspNetService( PocoDirectory poco, CommandValidator validator, FrontCommandExecutor executor, IPocoFactory<ICommandResult> resultFactory )
+        public CrisAspNetService( PocoDirectory poco, CommandValidator validator, CommandExecutor executor, IPocoFactory<ICommandResult> resultFactory )
         {
             _poco = poco;
             _validator = validator;
@@ -27,65 +28,98 @@ namespace CK.Cris.AspNet
 
         public async Task HandleRequest( IActivityMonitor monitor, IServiceProvider requestServices, HttpRequest request, HttpResponse response )
         {
-            ICommand? cmd;
-            using( var buffer = new MemoryStream( 4096 ) )
+            // If we cannot read the command, it is considered as a Code V (Validation error), hence a BadRequest status code.
+            (ICommand? cmd, ICommandResult? result) = await ReadCommand( monitor, request );
+            if( result == null )
             {
-                await request.Body.CopyToAsync( buffer );
-                cmd = ReadCommand( monitor, _poco, buffer );
+                Debug.Assert( cmd != null );
+                // The validation return null if no issues occurred, a code V for validation errors and a Code E if an exception occurred
+                // (Command validators must not raise any exception).
+                result = await GetValidationError( monitor, requestServices, cmd );
             }
-            if( cmd == null )
+            if( result != null )
             {
-                response.StatusCode = StatusCodes.Status404NotFound;
+                // Error can be E or V.
+                response.StatusCode = result.Code == VESACode.ValidationError ? StatusCodes.Status400BadRequest : StatusCodes.Status500InternalServerError;
             }
             else
             {
-                ICommandResult result;
-                DateTime startValidation = DateTime.UtcNow;
-                ValidationResult validation = await _validator.ValidateCommandAsync( monitor, requestServices, cmd );
-                if( !validation.Success )
+                // Valid command: calls the execution handler.
+                Debug.Assert( cmd != null );
+                result = await _executor.ExecuteCommandAsync( monitor, requestServices, cmd );
+                switch( result.Code )
                 {
-                    response.StatusCode = StatusCodes.Status400BadRequest;
-                    result = _resultFactory.Create();
-                    result.Code = VESACode.ValidationError;
-                    result.Result = validation.Errors.ToList();
+                    case VESACode.Error: response.StatusCode = StatusCodes.Status500InternalServerError; break;
+                    case VESACode.Synchronous: response.StatusCode = StatusCodes.Status200OK; break;
+                    default: throw new NotSupportedException( $"VESA code can only be E or S. Code = {result.Code}" );
                 }
-                else
-                {
-                    result = await _executor.ExecuteCommandAsync( monitor, requestServices, cmd );
-                    switch( result.Code )
-                    {
-                        case VESACode.Error: response.StatusCode = StatusCodes.Status500InternalServerError; break;
-                        case VESACode.Synchronous: response.StatusCode = StatusCodes.Status200OK; break;
-                        default: throw new NotSupportedException( $"VESA code can only be E or S. Code = {result.Code}" );
-                    }
-                }
-                using( var writer = new Utf8JsonWriter( response.BodyWriter ) )
-                {
-                    PocoJsonSerializer.Write( result, writer );
-                }
+            }
+            using( var writer = new Utf8JsonWriter( response.BodyWriter ) )
+            {
+                PocoJsonSerializer.Write( result, writer );
             }
         }
 
-        static ICommand? ReadCommand( IActivityMonitor m, PocoDirectory p, MemoryStream buffer )
+        private async Task<(ICommand?, ICommandResult?)> ReadCommand( IActivityMonitor monitor, HttpRequest request )
         {
-            int length = 0;
-            try
+            ICommand? cmd;
+            int length = -1;
+            using( var buffer = new MemoryStream( 4096 ) )
             {
-                length = (int)buffer.Position;
+                try
+                {
+                    await request.Body.CopyToAsync( buffer );
+                    (cmd, length) = ReadCommand( monitor, _poco, buffer );
+                }
+                catch( Exception ex )
+                {
+                    var message = $"Unable to read Poco from request body (byte length = {length}.";
+                    using( monitor.OpenError( message, ex ) )
+                    {
+                        monitor.Trace( Encoding.UTF8.GetString( buffer.GetBuffer(), 0, length ) );
+                    }
+                    return (null, CreateExceptionResult( message, ex, VESACode.ValidationError ));
+                }
+            }
+            return (cmd, null);
+
+            static (ICommand?, int) ReadCommand( IActivityMonitor monitor, PocoDirectory p, MemoryStream buffer )
+            {
+                int length = (int)buffer.Position;
                 var reader = new Utf8JsonReader( buffer.GetBuffer().AsSpan( 0, length ) );
                 var poco = p.ReadPocoValue( ref reader );
-                if( poco == null ) m.Error( "Null poco received." );
-                return (ICommand?)poco;
+                if( poco == null ) throw new InvalidDataException( "Null poco received." );
+                return ((ICommand?)poco, length);
+            }
+
+        }
+
+        async Task<ICommandResult?> GetValidationError( IActivityMonitor monitor, IServiceProvider requestServices, ICommand cmd )
+        {
+            try
+            {
+                ValidationResult validation = await _validator.ValidateCommandAsync( monitor, requestServices, cmd );
+                if( !validation.Success )
+                {
+                    ICommandResult result = _resultFactory.Create();
+                    result.Code = VESACode.ValidationError;
+                    result.Result = _validator.CreateSimpleErrorResult( validation );
+                    return result;
+                }
             }
             catch( Exception ex )
             {
-                using( m.OpenError( $"Unable to read Poco from body (byte length = {length}.", ex ) )
-                {
-                    var s = Encoding.UTF8.GetString( buffer.GetBuffer(), 0, length );
-                    m.Trace( s );
-                }
-                return null;
+                return CreateExceptionResult( "CommandValidator unexpected error.", ex, VESACode.Error );
             }
+            return null;
+        }
+
+        ICommandResult CreateExceptionResult( string message, Exception ex, VESACode code )
+        {
+            ICommandResult result = _resultFactory.Create();
+            result.Code = code;
+            result.Result = _executor.CreateSimpleErrorResult( message, ex.Message );
+            return result;
         }
 
     }

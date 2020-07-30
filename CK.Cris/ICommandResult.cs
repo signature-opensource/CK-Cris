@@ -18,8 +18,9 @@ namespace CK.Cris
         /// <summary>
         /// Gets or sets the error or result object (if any).
         /// Null when the command doesn't expect any result or if the <see cref="Code"/> is <see cref="VESACode.Asynchronous"/>.
-        /// On error, this should contain a description of the error that can be modelled as a poco, a simple string, a value tuple,
-        /// or any combination of types that are serializable.
+        /// On error (<see cref="VESACode.Error"/> or <see cref="VESACode.ValidationError"/>), this should contain a description of
+        /// the error, typically a <see cref="ISimpleErrorResult"/>, a simple string, a value tuple, or any combination of
+        /// types that serializable (ie. registered).
         /// </summary>
         object? Result { get; set; }
 

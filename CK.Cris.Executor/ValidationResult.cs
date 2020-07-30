@@ -10,13 +10,7 @@ namespace CK.Cris
     /// </summary>
     public class ValidationResult
     {
-        /// <summary>
-        /// Initializes a new <see cref="ValidationResult"/>.
-        /// </summary>
-        /// <param name="entries">The logged entries.</param>
-        /// <param name="command">The command.</param>
-        /// <param name="success">Whether the validation suceeded.</param>
-        public ValidationResult( IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries, ICommand command, bool success )
+        ValidationResult( IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries, ICommand command, bool success )
         {
             AllEntries = entries;
             Command = command;

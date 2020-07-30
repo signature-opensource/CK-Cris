@@ -25,7 +25,10 @@ namespace CK.Cris.Front.AspNet.Tests
         [Test]
         public async Task when_there_is_no_validation_methods_the_validation_succeeds()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ICmdTest ) );
+            var c = TestHelper.CreateStObjCollector(
+                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ),
+                typeof( ICmdTest ) );
+
             var services = TestHelper.GetAutomaticServices( c ).Services;
 
             var directory = services.GetRequiredService<CommandDirectory>();
@@ -34,6 +37,32 @@ namespace CK.Cris.Front.AspNet.Tests
             var validator = services.GetRequiredService<CommandValidator>();
             var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
             result.Success.Should().BeTrue();
+        }
+
+        public class BuggyValidator : IAutoService
+        {
+            [CommandValidator]
+            public void ValidateCommand( IActivityMonitor m, ICmdTest cmd )
+            {
+                throw new Exception( "This should not happen!" );
+            }
+        }
+
+        [Test]
+        public void exceptions_raised_by_validators_are_NOT_handled_by_the_CommandValidator_the_caller_MUST_handle_them()
+        {
+            var c = TestHelper.CreateStObjCollector(
+                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ),
+                typeof( ICmdTest ),
+                typeof( BuggyValidator ) );
+            var services = TestHelper.GetAutomaticServices( c ).Services;
+
+            var directory = services.GetRequiredService<CommandDirectory>();
+            var cmd = directory.Commands[0].Create();
+
+            var validator = services.GetRequiredService<CommandValidator>();
+            validator.Awaiting( sut => sut.ValidateCommandAsync( TestHelper.Monitor, services, cmd ) )
+                .Should().Throw<Exception>().WithMessage( "This should not happen!" );
         }
 
         [ExternalName("NoValidators")]
@@ -67,7 +96,10 @@ namespace CK.Cris.Front.AspNet.Tests
         [TestCase( true, true )]
         public async Task the_simplest_validation_is_held_by_a_dependency_free_service_and_is_synchronous( bool scopedService, bool singletonService )
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ICmdTest ), typeof( ICmdWithoutValidators ) );
+            var c = TestHelper.CreateStObjCollector(
+                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ),
+                typeof( ICmdTest ),
+                typeof( ICmdWithoutValidators ) );
             if( singletonService ) c.RegisterType( typeof( SimplestValidatorEverSingleton ) );
             if( scopedService ) c.RegisterType( typeof( SimplestValidatorEverScoped ) );
 
@@ -144,12 +176,11 @@ namespace CK.Cris.Front.AspNet.Tests
         public async Task part_with_parameter_injection()
         {
             var c = TestHelper.CreateStObjCollector(
-                        typeof( CommandValidator ),
-                        typeof( CommandDirectory ),
-                        typeof( ICmdTestSecure ),
-                        typeof(AuthenticationValidator),
-                        typeof( SimplestValidatorEverScoped ),
-                        typeof( AsyncValidator ) );
+                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ),
+                typeof( ICmdTestSecure ),
+                typeof( AuthenticationValidator ),
+                typeof( SimplestValidatorEverScoped ),
+                typeof( AsyncValidator ) );
 
             var authTypeSystem = new StdAuthenticationTypeSystem();
             var authInfo = authTypeSystem.AuthenticationInfo.Create( authTypeSystem.UserInfo.Create( 3712, "John" ), DateTime.UtcNow.AddDays( 1 ) );

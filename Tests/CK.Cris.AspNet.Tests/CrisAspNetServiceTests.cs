@@ -1,6 +1,8 @@
 using CK.Core;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
@@ -59,9 +61,34 @@ namespace CK.Cris.AspNet.Tests
                     TestHandler.Called.Should().BeFalse( "Validation error." );
                     r.StatusCode.Should().Be( HttpStatusCode.BadRequest );
                     string response = await r.Content.ReadAsStringAsync();
-                    response.Should().Be( @"[""CrisResult"",{""Code"":86,""Result"":[""L\u003Cstring\u003E"",[""Value must be positive.""]]}]" );
+                    response.Should().Be( @"[""CrisResult"",{""Code"":86,""Result"":[""CrisSimpleError"",{""Errors"":[""Value must be positive.""]}]}]" );
                 }
             }
         }
+
+        public class BuggyValidator : IAutoService
+        {
+            [CommandValidator]
+            public void ValidateCommand( IActivityMonitor m, ICmdTest cmd )
+            {
+                throw new Exception( "This should not happen!" );
+            }
+        }
+
+        [Test]
+        public async Task exceptions_raised_by_validators_are_handled_and_results_to_a_Code_E_and_an_HttpStatusCode_InternalServerError()
+        {
+            var c = TestHelper.CreateStObjCollector( typeof( ICmdTest ), typeof( BuggyValidator ) );
+            using( var s = new CrisTestServer( c ) )
+            {
+                HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, @"[""Test"",{""Value"":3712}]" );
+                Debug.Assert( r != null );
+                r.StatusCode.Should().Be( HttpStatusCode.InternalServerError );
+                string response = await r.Content.ReadAsStringAsync();
+                response.Should().Be( @"[""CrisResult"",{""Code"":69,""Result"":[""CrisSimpleError"",{""Errors"":[""CommandValidator unexpected error."",""This should not happen!""]}]}]" );
+            }
+
+        }
+
     }
 }

@@ -31,6 +31,7 @@ namespace CK.Cris.Front.AspNet.Tests
                 typeof( FrontCommandExecutor ),
                 typeof( DefaultFrontCommandExceptionHandler ),
                 typeof( CommandDirectory ),
+                typeof( ISimpleErrorResult ),
                 typeof( ICommandResult ) );
             c.RegisterTypes( types );
             return c;
