@@ -1,12 +1,12 @@
 <Project>
   <ItemGroup>
-    <PackageReference Update="CK.StObj.Model" Version="0.0.0--02wtbyt-local+v14.0.1" />
-    <PackageReference Update="CK.StObj.Runtime" Version="0.0.0--02wtbyt-local+v14.0.1" />
-    <PackageReference Update="CK.Poco.Json" Version="0.0.0--02wtbyt-local+v14.0.1" />
-    <PackageReference Update="CK.Testing.StObjEngine" Version="0.0.0--02wtbyt-local+v14.0.1" />
-    <PackageReference Update="CK.AspNet.Tester" Version="0.0.0--02wpt2k-local+v3.1.1" />
-    <PackageReference Update="CK.AspNet.Auth" Version="0.0.0--02wtc6o-local+v10.1.0" />
-    <PackageReference Update="CK.Auth.Abstractions" Version="0.0.0--02wpt2k-local+v0.10.0" />
+    <PackageReference Update="CK.StObj.Model" Version="14.0.2--0084-develop" />
+    <PackageReference Update="CK.StObj.Runtime" Version="14.0.2--0084-develop" />
+    <PackageReference Update="CK.Poco.Json" Version="14.0.2--0084-develop" />
+    <PackageReference Update="CK.Testing.StObjEngine" Version="14.0.2--0084-develop" />
+    <PackageReference Update="CK.AspNet.Tester" Version="3.1.2--0002-develop" />
+    <PackageReference Update="CK.AspNet.Auth" Version="10.1.1--0006-develop" />
+    <PackageReference Update="CK.Auth.Abstractions" Version="0.10.1--0006-develop" />
     <PackageReference Update="Microsoft.SourceLink.GitLab" Version="1.0.0" />
   </ItemGroup>
   <ItemGroup>
