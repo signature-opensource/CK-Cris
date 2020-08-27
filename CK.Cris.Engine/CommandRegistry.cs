@@ -34,7 +34,7 @@ namespace CK.Setup.Cris
             bool isClosedHandler = p.ParameterType == e.Command.ClosureInterface;
             if( !isClosedHandler && !allowUnclosed )
             {
-                allowUnclosed = p.GetCustomAttributes().Any( a => a.GetType().FindInterfaces( (i,n) => i.Name == (string?)n, "IAllowUnclosedCommandAttribute" ).Length > 0 );
+                allowUnclosed = p.GetCustomAttributes().Any( a => a.GetType().FindInterfaces( (i,n) => i.Name == (string?)n, nameof(IAllowUnclosedCommandAttribute) ).Length > 0 );
                 if( !allowUnclosed )
                 {
                     monitor.Info( $"Method {MethodName( m, parameters )} cannot handle '{e.CommandName}' command because type {p.ParameterType.Name} doesn't represent the whole command." );
