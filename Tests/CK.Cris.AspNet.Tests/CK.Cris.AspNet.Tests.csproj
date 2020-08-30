@@ -23,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="%24StObjGen\" />
     <Folder Include="bin\Debug\netcoreapp3.1\" />
   </ItemGroup>
 

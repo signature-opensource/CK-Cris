@@ -9,7 +9,7 @@ using System.Text;
 
 namespace CK.Setup.Cris
 {
-    class CommandHandlerAttributeImpl : CommandAttributeImpl, ICodeGenerator
+    class CommandHandlerAttributeImpl : CommandAttributeImpl, ICSCodeGenerator
     {
         readonly CommandHandlerAttribute _a;
 
@@ -19,13 +19,13 @@ namespace CK.Setup.Cris
             _a = a;
         }
 
-        public AutoImplementationResult Implement( IActivityMonitor monitor, ICodeGenerationContext codeGenContext )
+        public CSCodeGenerationResult Implement( IActivityMonitor monitor, ICSCodeGenerationContext codeGenContext )
         {
             var (registry, impl, method) = Prepare( monitor, codeGenContext );
             Debug.Assert( (registry == null) == (impl == null) );
             return registry != null && registry.RegisterHandler( monitor, impl!, method, _a.AllowUnclosedCommand )
-                    ? AutoImplementationResult.Success
-                    : AutoImplementationResult.Failed;
+                    ? CSCodeGenerationResult.Success
+                    : CSCodeGenerationResult.Failed;
         }
     }
 }

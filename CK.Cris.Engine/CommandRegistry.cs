@@ -119,7 +119,7 @@ namespace CK.Setup.Cris
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="c">The context.</param>
         /// <returns>The directory or null on error.</returns>
-        public static CommandRegistry? FindOrCreate( IActivityMonitor monitor, ICodeGenerationContext c )
+        public static CommandRegistry? FindOrCreate( IActivityMonitor monitor, ICSCodeGenerationContext c )
         {
             if( !c.Assembly.Memory.TryGetCachedInstance<CommandRegistry>( out var result ) )
             {
@@ -160,7 +160,7 @@ namespace CK.Setup.Cris
                                                         .ToArray();
                     if( hServices.Length > 1 )
                     {
-                        monitor.Error( $"Ambiguous command handler '{hServices.Select( m => $"{m.Key.ClassType.FullName}' implements '{m.Select( x => x.itf.FullName ).Concatenate( "' ,'" )}" )}': only one service can eventually handle a command." );
+                        monitor.Error( $"Ambiguous command handler '{hServices.Select( m => $"{m.Key!.ClassType.FullName}' implements '{m.Select( x => x.itf.FullName ).Concatenate( "' ,'" )}" )}': only one service can eventually handle a command." );
                         success = false;
                     }
                     var entry = Entry.Create( monitor, pocoResult, poco, commands.Count, hServices.Length == 1 ? hServices[0].Key : null ) ;

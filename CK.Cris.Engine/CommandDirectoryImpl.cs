@@ -10,19 +10,19 @@ namespace CK.Setup.Cris
     /// <summary>
     /// Code generator of the <see cref="CommandDirectory"/> service.
     /// </summary>
-    public class CommandDirectoryImpl : AutoImplementorType
+    public class CommandDirectoryImpl : CSCodeGeneratorType
     {
-        public override AutoImplementationResult Implement( IActivityMonitor monitor, Type classType, ICodeGenerationContext c, ITypeScope scope )
+        public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
             // We need the IJsonSerializationCodeGen service to register command result type.
-            return new AutoImplementationResult( nameof( DoImplement ) );
+            return new CSCodeGenerationResult( nameof( DoImplement ) );
         }
 
-        AutoImplementationResult DoImplement( IActivityMonitor monitor, Type classType, ICodeGenerationContext c, ITypeScope scope, IJsonSerializationCodeGen? json = null )
+        CSCodeGenerationResult DoImplement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope, IJsonSerializationCodeGen? json = null )
         { 
             if( classType != typeof( CommandDirectory ) ) throw new InvalidOperationException( "Applies only to the CommandDirectory class." );
             var registry = CommandRegistry.FindOrCreate( monitor, c );
-            if( registry == null ) return AutoImplementationResult.Failed;
+            if( registry == null ) return CSCodeGenerationResult.Failed;
 
             CodeWriterExtensions.Append( scope, "public " ).Append( scope.Name ).Append( "() : base( CreateCommands() ) {}" ).NewLine();
 
@@ -55,12 +55,12 @@ namespace CK.Setup.Cris
                  .CloseBlock();
 
             c.CurrentRun.ServiceContainer.Add( registry );
-            return new AutoImplementationResult( "CheckICommandHandlerImplementation" );
+            return new CSCodeGenerationResult( "CheckICommandHandlerImplementation" );
         }
 
-        AutoImplementationResult CheckICommandHandlerImplementation( IActivityMonitor monitor, CommandRegistry registry )
+        CSCodeGenerationResult CheckICommandHandlerImplementation( IActivityMonitor monitor, CommandRegistry registry )
         {
-            AutoImplementationResult r = AutoImplementationResult.Success;
+            CSCodeGenerationResult r = CSCodeGenerationResult.Success;
 
             var missingHandlers = registry.Commands.Where( c => c.Handler == null );
             foreach( var c in missingHandlers )
@@ -75,7 +75,7 @@ namespace CK.Setup.Cris
                     {
                         monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType.FullName}' must implement a command handler method for unclosed command {c.CommandName} of primary type {c.Command.PrimaryInterface.FullName}." );
                     }
-                    r = AutoImplementationResult.Failed;
+                    r = CSCodeGenerationResult.Failed;
                 }
                 else
                 {
