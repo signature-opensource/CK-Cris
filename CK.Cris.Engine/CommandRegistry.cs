@@ -114,14 +114,27 @@ namespace CK.Setup.Cris
         }
 
         /// <summary>
-        /// Gets or builds a <see cref="CommandRegistry"/> for a <see cref="ICodeGenerationContext"/>.
+        /// Gets a <see cref="CommandRegistry"/> for a <see cref="ICodeGenerationContext"/> (it has been created
+        /// by <see cref="FindOrCreate"/> during the CSharp code generation phase).
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
-        /// <param name="c">The context.</param>
+        /// <param name="c">The code generation context.</param>
+        /// <returns>The registry or null if it has been created yet.</returns>
+        public static CommandRegistry? Find( IActivityMonitor monitor, ICodeGenerationContext c )
+        {
+            c.CurrentRun.Memory.TryGetCachedInstance<CommandRegistry>( out var r );
+            return r;
+        }
+
+        /// <summary>
+        /// Gets or builds a <see cref="CommandRegistry"/> for a <see cref="ICSCodeGenerationContext"/>.
+        /// </summary>
+        /// <param name="monitor">The monitor to use.</param>
+        /// <param name="c">The CSharp code generation context.</param>
         /// <returns>The directory or null on error.</returns>
         public static CommandRegistry? FindOrCreate( IActivityMonitor monitor, ICSCodeGenerationContext c )
         {
-            if( !c.Assembly.Memory.TryGetCachedInstance<CommandRegistry>( out var result ) )
+            if( !c.CurrentRun.Memory.TryGetCachedInstance<CommandRegistry>( out var result ) )
             {
                 IPocoSupportResult pocoResult = c.Assembly.GetPocoSupportResult();
                 var (index,commands) = CreateCommandMap( monitor, c.CurrentRun.EngineMap, pocoResult );
@@ -131,7 +144,7 @@ namespace CK.Setup.Cris
                     monitor.Info( commands.Count > 0 ? $"{commands.Count} commands detected." : "No Command detected." );
                     result = new CommandRegistry( index, commands, pocoResult );
                 }
-                c.Assembly.Memory.AddCachedInstance( result );
+                c.CurrentRun.Memory.AddCachedInstance( result );
             }
             return result;
         }

@@ -41,7 +41,7 @@ namespace CK.Setup.Cris
             public IReadOnlyList<PostHandlerMethod> PostHandlers => _postHandlers;
 
             /// <summary>
-            /// Gets the name of this command.
+            /// Gets the name of this command (this is the <see cref="IPocoRootInfo.Name"/>).
             /// </summary>
             public string CommandName => Command.Name;
 

@@ -1,7 +1,9 @@
 using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
+using CK.StObj.TypeScript;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
@@ -10,7 +12,7 @@ namespace CK.Setup.Cris
     /// <summary>
     /// Code generator of the <see cref="CommandDirectory"/> service.
     /// </summary>
-    public class CommandDirectoryImpl : CSCodeGeneratorType
+    public partial class CommandDirectoryImpl : CSCodeGeneratorType
     {
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
@@ -84,5 +86,6 @@ namespace CK.Setup.Cris
             }
             return r;
         }
+
     }
 }
