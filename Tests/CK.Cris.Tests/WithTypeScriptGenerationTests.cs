@@ -40,6 +40,8 @@ namespace CK.Cris.Tests
 
         static NormalizedPath GenerateTSCode( string testName, params Type[] types )
         {
+            Assume.That( false, "Waiting for TSType & Poco Root class handling." );
+
             var output = TestHelper.CleanupFolder( _outputFolder.AppendPart( testName ), false );
             var config = new StObjEngineConfiguration();
             config.Aspects.Add( new TypeScriptAspectConfiguration() );
