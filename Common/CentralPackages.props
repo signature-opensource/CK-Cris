@@ -7,7 +7,7 @@
     <PackageReference Update="CK.Poco.Json" Version="14.0.4--0002-develop" />
     <PackageReference Update="CK.Testing.StObjEngine" Version="14.0.4--0002-develop" />
     <PackageReference Update="CK.AspNet.Tester" Version="3.1.2--0005-develop" />
-    <PackageReference Update="CK.AspNet.Auth" Version="10.1.1--0025-develop" />
+    <PackageReference Update="CK.AspNet.Auth" Version="10.1.1--0027-develop" />
     <PackageReference Update="CK.Auth.Abstractions" Version="0.10.1--0015-develop" />
     <PackageReference Update="Microsoft.SourceLink.GitLab" Version="1.0.0" />
   </ItemGroup>
