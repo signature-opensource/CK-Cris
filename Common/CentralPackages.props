@@ -1,13 +1,13 @@
 <Project>
   <ItemGroup>
     <PackageReference Update="CK.StObj.TypeScript" Version="0.1.0-a00-00-0006-develop" />
-    <PackageReference Update="CK.StObj.TypeScript.Engine" Version="0.1.0-a00-00-0016-develop" />
-    <PackageReference Update="CK.StObj.Model" Version="14.0.4--0004-develop" />
-    <PackageReference Update="CK.StObj.Runtime" Version="14.0.4--0004-develop" />
-    <PackageReference Update="CK.Poco.Json" Version="14.0.4--0004-develop" />
-    <PackageReference Update="CK.Testing.StObjEngine" Version="14.0.4--0004-develop" />
+    <PackageReference Update="CK.StObj.TypeScript.Engine" Version="0.1.0-a00-00-0017-develop" />
+    <PackageReference Update="CK.StObj.Model" Version="14.0.4--0005-develop" />
+    <PackageReference Update="CK.StObj.Runtime" Version="14.0.4--0005-develop" />
+    <PackageReference Update="CK.Poco.Json" Version="14.0.4--0005-develop" />
+    <PackageReference Update="CK.Testing.StObjEngine" Version="14.0.4--0005-develop" />
     <PackageReference Update="CK.AspNet.Tester" Version="3.1.2--0006-develop" />
-    <PackageReference Update="CK.AspNet.Auth" Version="10.1.1--0030-develop" />
+    <PackageReference Update="CK.AspNet.Auth" Version="10.1.1--0031-develop" />
     <PackageReference Update="CK.Auth.Abstractions" Version="0.10.1--0016-develop" />
     <PackageReference Update="Microsoft.SourceLink.GitLab" Version="1.0.0" />
   </ItemGroup>
