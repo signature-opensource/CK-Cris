@@ -1,8 +1,9 @@
 using CK.CodeGen;
-using CK.CodeGen.Abstractions;
 using CK.Core;
 using CK.Cris;
+using CK.StObj.TypeScript;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
@@ -11,83 +12,57 @@ namespace CK.Setup.Cris
     /// <summary>
     /// Code generator of the <see cref="CommandDirectory"/> service.
     /// </summary>
-    public class CommandDirectoryImpl : AutoImplementorType
+    public partial class CommandDirectoryImpl : CSCodeGeneratorType
     {
-        const string CommandModel = @"
-        class CommandModel : CK.Cris.ICommandModel
+        public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
-            readonly Func<CK.Cris.ICommand> _f;
-
-            public CommandModel( Type t, int i, string n, string[] p, Type r, Func<CK.Cris.ICommand> f, MethodInfo h )
-            {
-                CommandType = t;
-                CommandIdx = i;
-                CommandName = n;
-                PreviousNames = p;
-                ResultType = r;
-                Handler = h;
-                _f = f;
-            }
-
-            public Type CommandType { get; }
-
-            public int CommandIdx { get; }
-
-            public string CommandName { get; }
-
-            public IReadOnlyList<string> PreviousNames { get; }
-
-            public Type ResultType { get; }
-
-            public MethodInfo Handler { get; }
-
-            public CK.Cris.ICommand CreateInstance() => _f();
-        }";
-
-        public override AutoImplementationResult Implement( IActivityMonitor monitor, Type classType, ICodeGenerationContext c, ITypeScope scope )
-        {
-            if( classType != typeof( CommandDirectory ) ) throw new InvalidOperationException( "Applies only to the CommandDirectory class." );
-            var registry = CommandRegistry.FindOrCreate( monitor, c );
-            if( registry == null ) return AutoImplementationResult.Failed;
-
-            CodeWriterExtensions.Append( scope, CommandModel ).NewLine();
-            CodeWriterExtensions.Append( scope, "public " ).Append( scope.Name ).Append( "() : base( CreateData() ) {}" ).NewLine();
-
-            scope.Append( "static (IReadOnlyList<CK.Cris.ICommandModel> commands, IReadOnlyDictionary<object,CK.Cris.ICommandModel> index) CreateData()" ).NewLine()
-                 .Append( "{" ).NewLine()
-                 .Append( "CommandModel m;" ).NewLine()
-                    // The IndexedCommands maps the names and the IPocoRootInfo: its the same number of entries as our 'map' target since
-                    // the final PocoClass type replaces the IPocoRootInfo.
-                 .Append( "var map = new Dictionary<object,CK.Cris.ICommandModel>(" ).Append( registry.IndexedCommands.Count ).Append( ");" ).NewLine()
-                 .Append( "var list = new CommandModel[" ).Append( registry.Commands.Count ).Append( "];" ).NewLine();
-            foreach( var e in registry.Commands )
-            {
-                scope.Append( "m = list[" ).Append( e.CommandIdx ).Append( "] = new CommandModel( " )
-                                                                                .AppendTypeOf( e.Command.PocoClass ).Append( ", " )
-                                                                                .Append( e.CommandIdx ).Append( ", " )
-                                                                                .AppendSourceString( e.CommandName ).Append(", ")
-                                                                                .AppendArray( e.PreviousNames ).Append( ", " )
-                                                                                .AppendTypeOf( e.ResultType ).Append( ", " )
-                                                                                .Append( "() => new " ).AppendCSharpName( e.Command.PocoClass ).Append( "()," )
-                                                                                .Append( e.Handler?.Method )
-                                                                                .Append(" );" )
-                                                                                .NewLine();
-                foreach( var n in e.PreviousNames.Append( e.CommandName ) )
-                {
-                    scope.Append( "map.Add( " ).AppendSourceString( n ).Append( ", m );" ).NewLine();
-                }
-                scope.Append( "map.Add( " ).AppendTypeOf( e.Command.PocoClass ).Append( ", m );" ).NewLine();
-            }
-            scope.Append( "return (list,map);" ).NewLine();
-            scope.Append( "}" ).NewLine();
-
-            c.CurrentRun.ServiceContainer.Add( registry );
-            return new AutoImplementationResult( "CheckICommandHandlerImplementation" );
+            // We need the IJsonSerializationCodeGen service to register command result type.
+            return new CSCodeGenerationResult( nameof( DoImplement ) );
         }
 
-        AutoImplementationResult CheckICommandHandlerImplementation( IActivityMonitor monitor, CommandRegistry registry )
+        CSCodeGenerationResult DoImplement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope, IJsonSerializationCodeGen? json = null )
+        { 
+            if( classType != typeof( CommandDirectory ) ) throw new InvalidOperationException( "Applies only to the CommandDirectory class." );
+            var registry = CommandRegistry.FindOrCreate( monitor, c );
+            if( registry == null ) return CSCodeGenerationResult.Failed;
+
+            CodeWriterExtensions.Append( scope, "public " ).Append( scope.Name ).Append( "() : base( CreateCommands() ) {}" ).NewLine();
+
+            scope.Append( "static IReadOnlyList<CK.Cris.ICommandModel> CreateCommands()" ).NewLine()
+                 .OpenBlock()
+                 .Append( "var list = new ICommandModel[]" ).NewLine()
+                 .Append( "{" ).NewLine();
+            foreach( var e in registry.Commands )
+            {
+                if( json != null && e.ResultType != typeof(void) )
+                {
+                    json.RegisterEnumOrCollectionType( e.ResultType );
+                }
+                var f = c.Assembly.FindOrCreateAutoImplementedClass( monitor, e.Command.PocoFactoryClass );
+                f.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICommandModel" ) );
+                f.Append( "public Type CommandType => PocoClassType;" ).NewLine()
+                 .Append( "public int CommandIdx => " ).Append( e.CommandIdx ).Append( ";" ).NewLine()
+                 .Append( "public string CommandName => Name;" ).NewLine()
+                 .Append( "public Type ResultType => " ).AppendTypeOf( e.ResultType ).Append( ";" ).NewLine()
+                 .Append( "public MethodInfo Handler => " ).Append( e.Handler?.Method ).Append( ";" ).NewLine()
+                 .Append( "CK.Cris.ICommand CK.Cris.ICommandModel.Create() => (CK.Cris.ICommand)Create();" ).NewLine();
+
+                var p = c.Assembly.FindOrCreateAutoImplementedClass( monitor, e.Command.PocoClass );
+                p.Append( "public CK.Cris.ICommandModel CommandModel => _factory;" ).NewLine();
+
+                scope.Append( p.FullName ).Append( "._factory,").NewLine();
+            }
+            scope.Append( "};" ).NewLine()
+                 .Append( "return list;" )
+                 .CloseBlock();
+
+            c.CurrentRun.ServiceContainer.Add( registry );
+            return new CSCodeGenerationResult( "CheckICommandHandlerImplementation" );
+        }
+
+        CSCodeGenerationResult CheckICommandHandlerImplementation( IActivityMonitor monitor, CommandRegistry registry )
         {
-            AutoImplementationResult r = AutoImplementationResult.Success;
+            CSCodeGenerationResult r = CSCodeGenerationResult.Success;
 
             var missingHandlers = registry.Commands.Where( c => c.Handler == null );
             foreach( var c in missingHandlers )
@@ -102,7 +77,7 @@ namespace CK.Setup.Cris
                     {
                         monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType.FullName}' must implement a command handler method for unclosed command {c.CommandName} of primary type {c.Command.PrimaryInterface.FullName}." );
                     }
-                    r = AutoImplementationResult.Failed;
+                    r = CSCodeGenerationResult.Failed;
                 }
                 else
                 {
@@ -111,5 +86,6 @@ namespace CK.Setup.Cris
             }
             return r;
         }
+
     }
 }

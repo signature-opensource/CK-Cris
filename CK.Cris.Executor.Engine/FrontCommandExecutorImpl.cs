@@ -1,5 +1,4 @@
 using CK.CodeGen;
-using CK.CodeGen.Abstractions;
 using CK.Core;
 using CK.Cris;
 using CK.Text;
@@ -9,22 +8,22 @@ using System.Linq;
 
 namespace CK.Setup.Cris
 {
-    public partial class FrontCommandExecutorImpl : AutoImplementorType
+    public partial class FrontCommandExecutorImpl : CSCodeGeneratorType
     {
 
-        public override AutoImplementationResult Implement( IActivityMonitor monitor, Type classType, ICodeGenerationContext c, ITypeScope scope )
+        public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
             if( classType != typeof( FrontCommandExecutor ) ) throw new InvalidOperationException( "Applies only to the FrontCommandExecutor class." );
             var registry = CommandRegistry.FindOrCreate( monitor, c );
-            if( registry == null ) return AutoImplementationResult.Failed;
+            if( registry == null ) return CSCodeGenerationResult.Failed;
 
             Debug.Assert( nameof( FrontCommandExecutor.ExecuteCommandAsync ) == "ExecuteCommandAsync" );
-            Debug.Assert( classType.GetMethod( nameof( FrontCommandExecutor.ExecuteCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( KnownCommand ) } ) != null );
+            Debug.Assert( classType.GetMethod( nameof( FrontCommandExecutor.ExecuteCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( ICommand ) } ) != null );
 
-            var mExecute = scope.CreateFunction( "protected override Task<object> DoExecuteCommandAsync( IActivityMonitor m, IServiceProvider s, CK.Cris.KnownCommand c )" );
-            mExecute.Append( "return _handlers[c.Model.CommandIdx]( m, s, c );" );
+            var mExecute = scope.CreateFunction( "protected override Task<object> DoExecuteCommandAsync( IActivityMonitor m, IServiceProvider s, CK.Cris.ICommand c )" );
+            mExecute.Append( "return _handlers[c.CommandModel.CommandIdx]( m, s, c );" );
 
-            const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.KnownCommand, Task<object>>";
+            const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.ICommand, Task<object>>";
             foreach( var e in registry.Commands )
             {
                 var h = e.Handler;
@@ -39,7 +38,7 @@ namespace CK.Setup.Cris
 
                     scope.Append( "static " );
                     if( isOverallAsync ) scope.Append( "async " );
-                    scope.Append( "Task<object> H" ).Append( e.CommandIdx ).Append( "( IActivityMonitor m, IServiceProvider s, CK.Cris.KnownCommand c )" ).NewLine()
+                    scope.Append( "Task<object> H" ).Append( e.CommandIdx ).Append( "( IActivityMonitor m, IServiceProvider s, CK.Cris.ICommand c )" ).NewLine()
                          .Append( "{" ).NewLine();
                     scope.Append( "var handler = (" ).AppendCSharpName( h.Method.DeclaringType! ).Append( ")s.GetService(" ).AppendTypeOf( h.Method.DeclaringType! ).Append( ");" ).NewLine();
 
@@ -55,7 +54,7 @@ namespace CK.Setup.Cris
                         }
                         else if( p == h.CommandParameter )
                         {
-                            scope.Append( "(" ).AppendCSharpName( h.CommandParameter.ParameterType ).Append( ")c.Command" );
+                            scope.Append( "(" ).AppendCSharpName( h.CommandParameter.ParameterType ).Append( ")c" );
                         }
                         else
                         {
@@ -111,7 +110,7 @@ namespace CK.Setup.Cris
             scope.Append( "};" )
                  .NewLine();
 
-            return AutoImplementationResult.Success;
+            return CSCodeGenerationResult.Success;
         }
 
     }

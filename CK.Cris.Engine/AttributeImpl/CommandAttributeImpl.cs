@@ -30,9 +30,9 @@ namespace CK.Setup.Cris
             }
         }
 
-        protected (CommandRegistry? Registry, IStObjFinalClass? Impl, MethodInfo Method) Prepare( IActivityMonitor monitor, ICodeGenerationContext codeGenContext )
+        protected (CommandRegistry? Registry, IStObjFinalClass? Impl, MethodInfo Method) Prepare( IActivityMonitor monitor, ICSCodeGenerationContext codeGenContext )
         {
-            IStObjFinalClass impl = codeGenContext.CurrentRun.EngineMap.Find( _type );
+            IStObjFinalClass? impl = codeGenContext.CurrentRun.EngineMap.Find( _type );
             if( !_method.IsPublic )
             {
                 monitor.Error( $"Method '{_type.FullName}.{_method.Name}' that is a [{AttributeName}] must be public." );

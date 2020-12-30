@@ -48,7 +48,7 @@ namespace CK.Cris.Tests
         public void incompatible_result_type()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICIntButString ) );
-            TestHelper.GenerateCode( c ).CodeGenResult.Success.Should().BeFalse();
+            TestHelper.GenerateCode( c ).CodeGen.Success.Should().BeFalse();
             //=> Invalid command Result type for 'CK.Cris.Tests.CommandResultTypeTests+ICInt': result types 'Int32', 'String' must resolve to a common most specific type.
         }
 
@@ -71,7 +71,7 @@ namespace CK.Cris.Tests
             }
             {
                 var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICommandUnifiedButNotTheResult ), typeof( IMoreResult ), typeof( IAnotherResult ) );
-                var d = TestHelper.GenerateCode( c ).CodeGenResult.Success.Should().BeFalse();
+                var d = TestHelper.GenerateCode( c ).CodeGen.Success.Should().BeFalse();
                 //=> Invalid command Result type for 'CK.Cris.Tests.CommandResultTypeTests+ICommandWithPocoResult':
                 //   result types 'IMoreResult', 'IAnotherResult' must resolve to a common most specific type.
             }

@@ -18,15 +18,10 @@ namespace CK.Setup.Cris
     public partial class CommandRegistry
     {
         readonly IPocoSupportResult _pocoResult;
+        readonly IReadOnlyDictionary<IPocoRootInfo, Entry> _indexedCommands;
 
         /// <summary>
-        /// Gets the discovered commands indexed by their <see cref="Entry.CommandName"/>, <see cref="Entry.PreviousNames"/> and
-        /// the <see cref="IPocoRootInfo"/>.
-        /// </summary>
-        public IReadOnlyDictionary<object, Entry> IndexedCommands { get; }
-
-        /// <summary>
-        /// Gets all the discovered commands.
+        /// Gets all the discovered commands ordered by their <see cref="Entry.CommandIdx"/>.
         /// </summary>
         public IReadOnlyList<Entry> Commands { get; }
 
@@ -39,7 +34,7 @@ namespace CK.Setup.Cris
             bool isClosedHandler = p.ParameterType == e.Command.ClosureInterface;
             if( !isClosedHandler && !allowUnclosed )
             {
-                allowUnclosed = p.GetCustomAttributes().Any( a => a.GetType().FindInterfaces( (i,n) => i.Name == (string?)n, "IAllowUnclosedCommandAttribute" ).Length > 0 );
+                allowUnclosed = p.GetCustomAttributes().Any( a => a.GetType().FindInterfaces( (i,n) => i.Name == (string?)n, nameof(IAllowUnclosedCommandAttribute) ).Length > 0 );
                 if( !allowUnclosed )
                 {
                     monitor.Info( $"Method {MethodName( m, parameters )} cannot handle '{e.CommandName}' command because type {p.ParameterType.Name} doesn't represent the whole command." );
@@ -67,8 +62,8 @@ namespace CK.Setup.Cris
                 Debug.Assert( commands != null, "p == null <==> commands == null" );
                 foreach( var command in commands )
                 {
-                    Debug.Assert( IndexedCommands.ContainsKey( command ), "Since parameters are filtered by registered Poco." );
-                    var e = IndexedCommands[command];
+                    Debug.Assert( _indexedCommands.ContainsKey( command ), "Since parameters are filtered by registered Poco." );
+                    var e = _indexedCommands[command];
                     success &= e.AddValidator( monitor, impl, m, parameters, p );
                 }
                 return success;
@@ -119,14 +114,27 @@ namespace CK.Setup.Cris
         }
 
         /// <summary>
-        /// Gets or builds a <see cref="CommandRegistry"/> for a <see cref="ICodeGenerationContext"/>.
+        /// Gets a <see cref="CommandRegistry"/> for a <see cref="ICodeGenerationContext"/> (it has been created
+        /// by <see cref="FindOrCreate"/> during the CSharp code generation phase).
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
-        /// <param name="c">The context.</param>
-        /// <returns>The directory or null on error.</returns>
-        public static CommandRegistry? FindOrCreate( IActivityMonitor monitor, ICodeGenerationContext c )
+        /// <param name="c">The code generation context.</param>
+        /// <returns>The registry or null if it has been created yet.</returns>
+        public static CommandRegistry? Find( IActivityMonitor monitor, ICodeGenerationContext c )
         {
-            if( !c.Assembly.Memory.TryGetCachedInstance<CommandRegistry>( out var result ) )
+            c.CurrentRun.Memory.TryGetCachedInstance<CommandRegistry>( out var r );
+            return r;
+        }
+
+        /// <summary>
+        /// Gets or builds a <see cref="CommandRegistry"/> for a <see cref="ICSCodeGenerationContext"/>.
+        /// </summary>
+        /// <param name="monitor">The monitor to use.</param>
+        /// <param name="c">The CSharp code generation context.</param>
+        /// <returns>The directory or null on error.</returns>
+        public static CommandRegistry? FindOrCreate( IActivityMonitor monitor, ICSCodeGenerationContext c )
+        {
+            if( !c.CurrentRun.Memory.TryGetCachedInstance<CommandRegistry>( out var result ) )
             {
                 IPocoSupportResult pocoResult = c.Assembly.GetPocoSupportResult();
                 var (index,commands) = CreateCommandMap( monitor, c.CurrentRun.EngineMap, pocoResult );
@@ -136,23 +144,23 @@ namespace CK.Setup.Cris
                     monitor.Info( commands.Count > 0 ? $"{commands.Count} commands detected." : "No Command detected." );
                     result = new CommandRegistry( index, commands, pocoResult );
                 }
-                c.Assembly.Memory.AddCachedInstance( result );
+                c.CurrentRun.Memory.AddCachedInstance( result );
             }
             return result;
         }
 
 
-        CommandRegistry( IReadOnlyDictionary<object, Entry> index, IReadOnlyList<Entry> commands, IPocoSupportResult poco )
+        CommandRegistry( IReadOnlyDictionary<IPocoRootInfo, Entry> index, IReadOnlyList<Entry> commands, IPocoSupportResult poco )
         {
-            IndexedCommands = index;
+            _indexedCommands = index;
             Commands = commands;
             _pocoResult = poco;
         }
 
-        static (Dictionary<object, Entry>?,IReadOnlyList<Entry>?) CreateCommandMap( IActivityMonitor monitor, IStObjEngineMap services, IPocoSupportResult pocoResult )
+        static (Dictionary<IPocoRootInfo, Entry>?,IReadOnlyList<Entry>?) CreateCommandMap( IActivityMonitor monitor, IStObjEngineMap services, IPocoSupportResult pocoResult )
         {
             bool success = true;
-            var index = new Dictionary<object, Entry>();
+            var index = new Dictionary<IPocoRootInfo, Entry>();
             var commands = new List<Entry>();
             if( pocoResult.OtherInterfaces.TryGetValue( typeof( ICommand ), out IReadOnlyList<IPocoRootInfo>? commandPocos ) )
             {
@@ -165,7 +173,7 @@ namespace CK.Setup.Cris
                                                         .ToArray();
                     if( hServices.Length > 1 )
                     {
-                        monitor.Error( $"Ambiguous command handler '{hServices.Select( m => $"{m.Key.ClassType.FullName}' implements '{m.Select( x => x.itf.FullName ).Concatenate( "' ,'" )}" )}': only one service can eventually handle a command." );
+                        monitor.Error( $"Ambiguous command handler '{hServices.Select( m => $"{m.Key!.ClassType.FullName}' implements '{m.Select( x => x.itf.FullName ).Concatenate( "' ,'" )}" )}': only one service can eventually handle a command." );
                         success = false;
                     }
                     var entry = Entry.Create( monitor, pocoResult, poco, commands.Count, hServices.Length == 1 ? hServices[0].Key : null ) ;
@@ -173,15 +181,6 @@ namespace CK.Setup.Cris
                     else
                     {
                         commands.Add( entry );
-                        foreach( var name in entry.PreviousNames.Append( entry.CommandName ) )
-                        {
-                            if( index.TryGetValue( name, out var exists ) )
-                            {
-                                monitor.Error( $"The command name '{name}' clashes: both '{entry.Command.PrimaryInterface.AssemblyQualifiedName}' and '{exists.Command.PrimaryInterface.AssemblyQualifiedName}' share it." );
-                                success = false;
-                            }
-                            else index.Add( name, entry );
-                        }
                         index.Add( entry.Command, entry );
                     }
                 }
@@ -235,8 +234,8 @@ namespace CK.Setup.Cris
                 {
                     Debug.Assert( commandInterface != null, "Since we have a parameter." );
                     Debug.Assert( parameters != null );
-                    Debug.Assert( IndexedCommands.ContainsKey( commandInterface.Root ), "Since parameters are filtered by registered Poco." );
-                    return (IndexedCommands[commandInterface.Root], parameters, p);
+                    Debug.Assert( _indexedCommands.ContainsKey( commandInterface.Root ), "Since parameters are filtered by registered Poco." );
+                    return (_indexedCommands[commandInterface.Root], parameters, p);
                 }
             }
             return (null, null, null);

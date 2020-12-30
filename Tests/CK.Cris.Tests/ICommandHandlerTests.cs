@@ -20,7 +20,7 @@ namespace CK.Cris.Tests
         public void Command_method_handler_must_exist()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICommandUnifiedWithTheResult ), typeof( IUnifiedResult), typeof( CmdHandlerMissingHandler ) );
-            TestHelper.GenerateCode( c ).CodeGenResult.Success.Should().BeFalse();
+            TestHelper.GenerateCode( c ).CodeGen.Success.Should().BeFalse();
         }
 
         public class CmdHandlerOfBase : ICommandHandler<ICommandWithPocoResult>
@@ -44,7 +44,7 @@ namespace CK.Cris.Tests
             var d = s.GetRequiredService<CommandDirectory>();
 
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
-            var model = d.FindModel( cmd );
+            var model = cmd.CommandModel;
             model.Handler.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerOfBase ).GetMethod( "Run" ) );
         }
 
@@ -65,7 +65,7 @@ namespace CK.Cris.Tests
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
             cmd.Should().BeAssignableTo<ICommandWithMorePocoResult>();
 
-            var model = d.FindModel( cmd );
+            var model = cmd.CommandModel;
             model.Handler.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerWithMore ).GetMethod( "RunMore" ) );
         }
 
@@ -95,7 +95,7 @@ namespace CK.Cris.Tests
         public void Command_method_handler_must_also_be_unified()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICommandUnifiedWithTheResult ), typeof( CmdHandlerFailingUnified ), typeof( CmdHandlerWithMore ), typeof( CmdHandlerWithAnother ), typeof( CmdHandlerAlternate ) );
-            TestHelper.GenerateCode( c ).CodeGenResult.Success.Should().BeFalse();
+            TestHelper.GenerateCode( c ).CodeGen.Success.Should().BeFalse();
         }
 
         // This one unifies the Services AND offer a final handler.
@@ -122,7 +122,7 @@ namespace CK.Cris.Tests
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
             cmd.Should().BeAssignableTo<ICommandUnifiedWithTheResult>();
 
-            var model = d.FindModel( cmd );
+            var model = cmd.CommandModel;
             model.Handler.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerUnified ).GetMethod( "Run", new[] { typeof( ICommandUnifiedWithTheResult ) } ) );
         }
 
@@ -158,7 +158,7 @@ namespace CK.Cris.Tests
 
             var baseHandler = typeof( CmdHandlerUnified ).GetMethod( "Run", new[] { typeof( ICommandUnifiedWithTheResult ) } );
 
-            var model = d.FindModel( cmd );
+            var model = cmd.CommandModel;
             model.Handler.Should().NotBeNull().And.BeSameAs( baseHandler, "The base method is the one decorated by the [CommandHandler]." );
 
             var handlerService = s.GetRequiredService<ICommandHandler<ICommandWithPocoResult>>();
