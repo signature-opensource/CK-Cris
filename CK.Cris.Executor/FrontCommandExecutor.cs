@@ -36,7 +36,7 @@ namespace CK.Cris
         /// <summary>
         /// Executes a command by calling the ExecuteCommand or ExecuteCommandAsync method for the
         /// closure of the command Poco (the ICommand interface that unifies all other ICommand and <see cref="ICommandPart"/>.
-        /// Any exceptions are catched and sent to the <see cref="IFrontCommandExceptionHandler"/> service.
+        /// Any exceptions are caught and sent to the <see cref="IFrontCommandExceptionHandler"/> service.
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>

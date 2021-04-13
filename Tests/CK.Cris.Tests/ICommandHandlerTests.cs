@@ -56,7 +56,7 @@ namespace CK.Cris.Tests
         }
 
         [Test]
-        public void ICommandHandler_implementation_can_be_specialized_without_redifining_command_type()
+        public void ICommandHandler_implementation_can_be_specialized_without_redefining_command_type()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICommandWithMorePocoResult ), typeof( CmdHandlerWithMore ), typeof( CmdHandlerAlternate ) );
             var s = TestHelper.GetAutomaticServices( c ).Services;
