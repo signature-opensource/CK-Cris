@@ -42,7 +42,7 @@ namespace CK.Cris
         public ICommand Command { get; }
 
         /// <summary>
-        /// Gets whether the command has been successfuly validated. <see cref="Errors"/> is empty
+        /// Gets whether the command has been successfully validated. <see cref="Errors"/> is empty
         /// but there may be <see cref="Warnings"/>.
         /// </summary>
         public bool Success { get; }

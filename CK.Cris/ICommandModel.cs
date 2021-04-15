@@ -42,7 +42,7 @@ namespace CK.Cris
         Type ResultType { get; }
 
         /// <summary>
-        /// Gets the handler for this this command.
+        /// Gets the handler for this command.
         /// When null, no handler has been found and the command cannot be executed in this process.
         /// </summary>
         MethodInfo? Handler { get; }
