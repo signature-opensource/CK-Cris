@@ -41,6 +41,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.AspNet.Engine", "CK
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.AspNet.Tests", "Tests\CK.Cris.AspNet.Tests\CK.Cris.AspNet.Tests.csproj", "{9626283D-CAC7-4B78-94AA-86441AA3DBDA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CK.Auth.Cris", "CK.Auth.Cris\CK.Auth.Cris.csproj", "{5599A0BC-46B1-43B4-8B88-D7452B613A7F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,6 +89,10 @@ Global
 		{9626283D-CAC7-4B78-94AA-86441AA3DBDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9626283D-CAC7-4B78-94AA-86441AA3DBDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9626283D-CAC7-4B78-94AA-86441AA3DBDA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5599A0BC-46B1-43B4-8B88-D7452B613A7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5599A0BC-46B1-43B4-8B88-D7452B613A7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5599A0BC-46B1-43B4-8B88-D7452B613A7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5599A0BC-46B1-43B4-8B88-D7452B613A7F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
