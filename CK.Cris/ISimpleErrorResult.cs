@@ -6,7 +6,7 @@ using System.Text;
 namespace CK.Cris
 {
     /// <summary>
-    /// Simple model for errors.
+    /// Simple model for errors: a list of strings.
     /// </summary>
     [ExternalName( "CrisSimpleError" )]
     public interface ISimpleErrorResult : IPoco

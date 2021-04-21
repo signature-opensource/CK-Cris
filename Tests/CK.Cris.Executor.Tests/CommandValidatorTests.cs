@@ -11,7 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
 
-namespace CK.Cris.Front.AspNet.Tests
+namespace CK.Cris.Executor.Tests
 {
     [TestFixture]
     public class CommandValidatorTests

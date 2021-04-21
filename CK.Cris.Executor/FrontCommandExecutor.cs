@@ -35,7 +35,7 @@ namespace CK.Cris
 
         /// <summary>
         /// Executes a command by calling the ExecuteCommand or ExecuteCommandAsync method for the
-        /// closure of the command Poco (the ICommand interface that unifies all other ICommand and <see cref="ICommandPart"/>.
+        /// closure of the command Poco (the ICommand interface that unifies all other ICommand and <see cref="ICommandPart"/>).
         /// Any exceptions are caught and sent to the <see cref="IFrontCommandExceptionHandler"/> service.
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
@@ -55,7 +55,7 @@ namespace CK.Cris
                 r.Code = VESACode.Error;
                 try
                 {
-                    await ErrorHandler.OnError( monitor, services, ex, command, r );
+                    await ErrorHandler.OnErrorAsync( monitor, services, ex, command, r );
                     if( r.Result == null || (r.Result is IEnumerable e && !e.GetEnumerator().MoveNext()) )
                     {
                         var msg = $"IFrontCommandExceptionHandler '{ErrorHandler.GetType().Name}' failed to add any error result. The exception message is added.";
@@ -65,7 +65,10 @@ namespace CK.Cris
                 }
                 catch( Exception ex2 )
                 {
-                    monitor.Fatal( "While handling error.", ex2 );
+                    using( monitor.OpenFatal( "Error in ErrorHandler.", ex2 ) )
+                    {
+                        monitor.Error( "Original error.", ex );
+                    }
                     r.Result = ex2.Message;
                 }
                 return r;
