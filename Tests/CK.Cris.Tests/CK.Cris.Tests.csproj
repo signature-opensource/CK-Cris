@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <Sdk Name="Microsoft.Build.CentralPackageVersions" Version="2.0.52" />
   <Import Project="..\..\Common\Shared.props" />
@@ -9,6 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+
+    <PackageReference Include="CK.StObj.TypeScript" />
+
     <PackageReference Include="CK.Testing.StObjEngine" />
     <PackageReference Include="nunit" />
     <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" />

@@ -17,9 +17,9 @@
           declared and one or more <TypeScript><OutuptPath>...</OutuptPath></TypeScript> is defined in the BinPathConfiguration.
 
           The CK.Cris model package does not reference CK.StObj.TypeScript: using it is optional (the TypeScript attribute is not required
-          to support TypeScript Command generation.
+          to support TypeScript Command generation).
     -->
-    <PackageReference Include="CK.StObj.TypeScript.Engine" />
+    <PackageReference Include="CK.StObj.TypeScript.Engine" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
