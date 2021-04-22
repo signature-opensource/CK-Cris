@@ -11,7 +11,8 @@ namespace CK.Cris
     public interface ICommand : IPoco
     {
         /// <summary>
-        /// 
+        /// Gets the <see cref="ICommandModel"/> that describes this command.
+        /// This property is automatically implemented. 
         /// </summary>
         [AutoImplementationClaim]
         ICommandModel CommandModel { get; }
