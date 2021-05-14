@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using static CK.Testing.StObjEngineTestHelper;
 
@@ -159,11 +160,13 @@ namespace CK.Cris.Tests
             var baseHandler = typeof( CmdHandlerUnified ).GetMethod( "Run", new[] { typeof( ICommandUnifiedWithTheResult ) } );
 
             var model = cmd.CommandModel;
+            Debug.Assert( model.Handler != null );
             model.Handler.Should().NotBeNull().And.BeSameAs( baseHandler, "The base method is the one decorated by the [CommandHandler]." );
 
             var handlerService = s.GetRequiredService<ICommandHandler<ICommandWithPocoResult>>();
 
-            var result = (IResult)model.Handler.Invoke( handlerService, new[] { cmd } );
+            var result = (IResult?)model.Handler.Invoke( handlerService, new[] { cmd } );
+            Debug.Assert( result != null );
             result.Val.Should().Be( 3712, "Calling the base method naturally uses the overridden method." );
         }
 

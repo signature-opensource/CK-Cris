@@ -8,8 +8,8 @@ namespace CK.Auth
 {
     /// <summary>
     /// Authentication service registers <c>ActorId</c>, <c>ActualActorId</c> and <c>DeviceId</c> into <see cref="IAmbientValuesCollectCommand"/>
-    /// based on the <see cref="IAuthenticationInfo"/> and validates the <see cref="IAuthenticatedCommandPart"/>, <see cref="IAuthenticatedDeviceCommandPart"/>
-    /// and <see cref="IAuthenticatedImpersonationCommandPart"/>.
+    /// based on the <see cref="IAuthenticationInfo"/> and validates the <see cref="ICommandAuthenticated"/>, <see cref="ICommandAuthenticatedDevice"/>
+    /// and <see cref="ICommandAuthenticatedImpersonation"/>.
     /// </summary>
     /// <remarks>
     /// This default implementation may be specialized if needed.
@@ -26,16 +26,16 @@ namespace CK.Auth
         [CommandPostHandler]
         public virtual void GetAmbientValues( IAmbientValuesCollectCommand cmd, IAuthenticationInfo authInfo, Dictionary<string, object?> values )
         {
-            values.Add( nameof( IAuthenticatedCommandPart.ActorId ), authInfo.User.UserId );
-            values.Add( nameof( IAuthenticatedImpersonationCommandPart.ActualActorId ), authInfo.ActualUser.UserId );
-            values.Add( nameof( IAuthenticatedDeviceCommandPart.DeviceId ), authInfo.DeviceId );
+            values.Add( nameof( ICommandAuthenticated.ActorId ), authInfo.User.UserId );
+            values.Add( nameof( ICommandAuthenticatedImpersonation.ActualActorId ), authInfo.ActualUser.UserId );
+            values.Add( nameof( ICommandAuthenticatedDevice.DeviceId ), authInfo.DeviceId );
         }
 
         /// <summary>
-        /// Checks whether <see cref="IAuthenticatedCommandPart.ActorId"/> is the same as the current <see cref="IAuthenticationInfo.User"/>
+        /// Checks whether <see cref="ICommandAuthenticated.ActorId"/> is the same as the current <see cref="IAuthenticationInfo.User"/>
         /// identifier and if not, emits an error in the <paramref name="monitor"/>.
         /// <para>
-        /// If the command is marked with <see cref="IAuthenticatedCriticalCommandPart"/>, the <see cref="IAuthenticationInfo.Level"/> must be
+        /// If the command is marked with <see cref="ICommandAuthenticatedCritical"/>, the <see cref="IAuthenticationInfo.Level"/> must be
         /// critical otherwise an error is emitted.
         /// </para>
         /// </summary>
@@ -46,13 +46,13 @@ namespace CK.Auth
         /// <param name="cmd">The command to validate.</param>
         /// <param name="info">The current authentication information.</param>
         [CommandValidator]
-        public virtual void ValidateAuthenticatedPart( IActivityMonitor monitor, IAuthenticatedCommandPart cmd, IAuthenticationInfo info )
+        public virtual void ValidateAuthenticatedPart( IActivityMonitor monitor, ICommandAuthenticated cmd, IAuthenticationInfo info )
         {
             if( cmd.ActorId != info.User.UserId )
             {
                 monitor.Error( "Invalid actor identifier: the command provided identifier doesn't match the current authentication." );
             }
-            else if( cmd is IAuthenticatedCriticalCommandPart )
+            else if( cmd is ICommandAuthenticatedCritical )
             {
                 if( info.Level != AuthLevel.Critical )
                 {
@@ -62,14 +62,14 @@ namespace CK.Auth
         }
 
         /// <summary>
-        /// Checks whether <see cref="IAuthenticatedDeviceCommandPart.DeviceId"/> is the same as the current <see cref="IAuthenticationInfo.DeviceId"/>
+        /// Checks whether <see cref="ICommandAuthenticatedDevice.DeviceId"/> is the same as the current <see cref="IAuthenticationInfo.DeviceId"/>
         /// and if not, emits an error in the <paramref name="monitor"/>.
         /// </summary>
         /// <param name="monitor">The monitor to use to raise errors or warnings.</param>
         /// <param name="cmd">The command to validate.</param>
         /// <param name="info">The current authentication information.</param>
         [CommandValidator]
-        public virtual void ValidateDevicePart( IActivityMonitor monitor, IAuthenticatedDeviceCommandPart cmd, IAuthenticationInfo info )
+        public virtual void ValidateDevicePart( IActivityMonitor monitor, ICommandAuthenticatedDevice cmd, IAuthenticationInfo info )
         {
             if( cmd.DeviceId != info.DeviceId )
             {
@@ -78,14 +78,14 @@ namespace CK.Auth
         }
 
         /// <summary>
-        /// Checks whether <see cref="IAuthenticatedImpersonationCommandPart.ActualActorId"/> is the same as the current <see cref="IAuthenticationInfo.ActualUser"/>
+        /// Checks whether <see cref="ICommandAuthenticatedImpersonation.ActualActorId"/> is the same as the current <see cref="IAuthenticationInfo.ActualUser"/>
         /// identifier and if not, emits an error in the <paramref name="monitor"/>.
         /// </summary>
         /// <param name="monitor">The monitor to use to raise errors or warnings.</param>
         /// <param name="cmd">The command to validate.</param>
         /// <param name="info">The current authentication information.</param>
         [CommandValidator]
-        public virtual void ValidateImpersonationPart( IActivityMonitor monitor, IAuthenticatedImpersonationCommandPart cmd, IAuthenticationInfo info )
+        public virtual void ValidateImpersonationPart( IActivityMonitor monitor, ICommandAuthenticatedImpersonation cmd, IAuthenticationInfo info )
         {
             if( cmd.ActualActorId != info.ActualUser.UserId )
             {

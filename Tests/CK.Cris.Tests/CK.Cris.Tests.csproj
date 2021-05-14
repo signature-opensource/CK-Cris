@@ -6,12 +6,11 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
-
-    <PackageReference Include="CK.StObj.TypeScript" />
-
     <PackageReference Include="CK.Testing.StObjEngine" />
     <PackageReference Include="nunit" />
     <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" />

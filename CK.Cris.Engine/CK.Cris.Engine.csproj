@@ -19,7 +19,7 @@
           The CK.Cris model package does not reference CK.StObj.TypeScript: using it is optional (the TypeScript attribute is not required
           to support TypeScript Command generation).
     -->
-    <PackageReference Include="CK.StObj.TypeScript.Engine" PrivateAssets="all" />
+    <PackageReference Include="CK.StObj.TypeScript.Engine" />
   </ItemGroup>
 
   <ItemGroup>

@@ -7,10 +7,10 @@ using System.Text;
 namespace CK.Auth
 {
     /// <summary>
-    /// Extends the basic <see cref="IAuthenticatedCommandPart"/> to add the <see cref="DeviceId"/> field.
+    /// Extends the basic <see cref="ICommandAuthenticated"/> to add the <see cref="DeviceId"/> field.
     /// </summary>
     [CKTypeDefiner]
-    public interface IAuthenticatedDeviceCommandPart : IAuthenticatedCommandPart
+    public interface ICommandAuthenticatedDevice : ICommandAuthenticated
     {
         /// <summary>
         /// Gets or sets the device identifier.

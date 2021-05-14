@@ -14,270 +14,121 @@ namespace CK.Setup.Cris
 {
     public partial class CommandDirectoryImpl : ITSCodeGenerator
     {
-        bool ITSCodeGenerator.ConfigureTypeScriptAttribute( IActivityMonitor monitor, TypeScriptGenerator generator, Type type, TypeScriptAttribute attr, IReadOnlyList<ITSCodeGeneratorType> generatorTypes, ref ITSCodeGenerator? currentHandler )
+        bool ITSCodeGenerator.ConfigureTypeScriptAttribute( IActivityMonitor monitor, ITSTypeFileBuilder builder, TypeScriptAttribute a )
         {
-            bool isPoco = typeof( IPoco ).IsAssignableFrom( type );
-            if( isPoco )
-            {
-                // These very well known IPoco MUST be handled by this since these are the Cris base types.
-                bool isCommandOrPart = typeof( ICommand ).IsAssignableFrom( type ) || typeof( ICommandPart ).IsAssignableFrom( type );
-                bool isCommandResult = !isCommandOrPart && typeof( ICommandResult ).IsAssignableFrom( type );
-                bool isSimpleErrorResult = !(isCommandOrPart && isCommandResult) && typeof( ISimpleErrorResult ).IsAssignableFrom( type );
-
-                if( isCommandOrPart || isCommandResult || isSimpleErrorResult )
-                {
-                    if( currentHandler != null )
-                    {
-                        monitor.Warn( $"Type '{type.FullName}' must be handled by CommandDirectoryImpl: replacing current handler '{currentHandler.GetType().FullName}'." );
-                    }
-                    currentHandler = this;
-                }
-                else
-                {
-                    // Another IPoco can be a result of the ICommand<TResult>: it should have been allowed.
-                }
-            }
+            // Nothing to do: we don't want to interfere with the standard IPoco handling.
+            return true;
+        }
+        bool ITSCodeGenerator.Initialize( IActivityMonitor monitor, TypeScriptContext context )
+        {
+            context.PocoCodeGenerator.PocoGenerated += OnPocoGenerated;
             return true;
         }
 
-        bool ITSCodeGenerator.GenerateCode( IActivityMonitor monitor, TypeScriptGenerator g )
+        void OnPocoGenerated( object? sender, PocoGeneratedEventArgs e )
+        {
+            if( typeof(ICommand).IsAssignableFrom( e.TypeFile.Type ) )
+            {
+                var registry = CommandRegistry.Find( e.Monitor, e.TypeFile.Context.CodeContext );
+                Debug.Assert( registry != null, "Implement (CSharp code) has necessarily been successfully called." );
+
+                var cmd = registry.Find( e.PocoRootInfo );
+                // A IPoco that supports ICommand should be a registered command.
+                // If it's not the case, this is weird but that MAY be possible.
+                // Defensive programming here.
+                if( cmd == null ) return;
+
+                EnsureCrisFiles( e );
+
+                bool isVoidReturn = cmd.ResultType == typeof( void );
+                bool isFireAndForget = !isVoidReturn && cmd.ResultType == typeof( NoWaitResult );
+
+                // Compute the (potentially) type name only once by caching the signature.
+                var b = e.PocoClassPart;
+                string? signature = AppendCommandModelSignature( b, cmd, e );
+                if( signature == null )
+                {
+                    e.SetError();
+                    return;
+                }
+                b.Append( " = " )
+                    .OpenBlock()
+                    .Append( "commandName: " ).AppendSourceString( cmd.CommandName ).Append( "," ).NewLine()
+                    .Append( "isFireAndForget: " ).Append( isFireAndForget ).Append( "," ).NewLine()
+                    .Append( "send: (e: ICrsEndpoint) => e.send( this )" ).NewLine()
+                    .CloseBlock();
+
+                foreach( var itf in e.PocoRootInfo.Interfaces )
+                {
+                    var code = e.TypeFile.File.Body.FindKeyedPart( itf.PocoInterface );
+                    Debug.Assert( code != null );
+                    code.Append( signature ).Append( ";" ).NewLine();
+                }
+            }
+        }
+
+        static string? AppendCommandModelSignature( ITSCodePart code, CommandRegistry.Entry cmd, PocoGeneratedEventArgs e )
+        {
+            var signature = "readonly " + (e.TypeFile.Context.Root.PascalCase ? "C" : "c") + "ommandModel: CommandModel<";
+            code.Append( signature );
+            var typeName = code.AppendAndGetComplexTypeName( e.Monitor, e.Context, cmd.ResultType );
+            if( typeName == null ) return null;
+            signature += typeName + ">";
+            code.Append( ">" );
+            return signature;
+        }
+
+        private static void EnsureCrisFiles( PocoGeneratedEventArgs e )
+        {
+            var folder = e.Context.Root.Root.FindOrCreateFolder( "CK" ).FindOrCreateFolder( "Cris" );
+            var fModel = folder.FindOrCreateFile( "model.ts", out bool created );
+            if( created )
+            {
+                fModel.Body.Append( @"
+export interface CommandModel<TResult> {
+    readonly commandName: string;
+    readonly isFireAndForget: boolean;
+    send: (e: ICrsEndpoint) => Promise<TResult>;
+    //applyAmbientValues: (values: { [index: string]: any }) => void;
+}
+
+type CommandResult<T> = T extends { commandModel: CommandModel<infer TResult> } ? TResult : never;
+
+export interface ICrsEndpoint {
+    send<T>(command: T): Promise<CommandResult<T>>;
+}
+" );
+            }
+            e.TypeFile.File.Imports.EnsureImport( "CommandModel", fModel )
+                                   .AddType( "ICrsEndpoint" );
+        }
+
+        bool ITSCodeGenerator.GenerateCode( IActivityMonitor monitor, TypeScriptContext g )
         {
             var registry = CommandRegistry.Find( monitor, g.CodeContext );
-            Debug.Assert( registry != null, "Implement (CSharp code) has necessarily be successfully called." );
-
-            using( monitor.OpenInfo( $"Generating TypeScript support for {registry.Commands} commands." ) )
+            Debug.Assert( registry != null, "Implement (CSharp code) has necessarily been successfully called." );
+            using( monitor.OpenInfo( $"Declaring TypeScript support for {registry.Commands.Count} commands." ) )
             {
                 foreach( var cmd in registry.Commands )
                 {
-                    var result = cmd.PocoResultType;
-                    if( result != null ) GenerateRootClass( monitor, g, result.Root );
-                    GenerateRootClass( monitor, g, cmd.Command );
+                    // Declares the IPoco and the command result.
+                    // The TSIPocoCodeGenerator (in CK.StObj.TypeScript.Engine) generates all the
+                    // interfaces and the final class implementation in the same file (file and class
+                    // is the PrimaryInterface name without the I).
+                    g.DeclareTSType( monitor, cmd.Command.PrimaryInterface );
+
+                    // Declares the command result, whatever it is.
+                    // If it's a IPoco, it will benefit from the same treatment as the command above.
+                    // Some types are handled by default, but if there is eventually no generator for the
+                    // type then the setup fails.
+                    if( cmd.ResultType != typeof(void) && cmd.ResultType != typeof(NoWaitResult) )
+                    {
+                        g.DeclareTSType( monitor, cmd.ResultType );
+                    }
                 }
+
             }
             return true;
         }
-
-        bool GenerateRootClass( IActivityMonitor monitor, TypeScriptGenerator g, IPocoRootInfo root )
-        {
-            bool success = true;
-            var className = root.Name;
-            if( className.StartsWith( "I" ) && className == root.PrimaryInterface.FullName )
-            {
-                className = root.Name.Substring( 1 );
-            }
-
-            using( monitor.OpenTrace( $"Generating class 'Cris/{className}.ts'." ) )
-            {
-                var rootFile = g.Context.Root.FindOrCreateFolder( "Cris" ).FindOrCreateFile( className + ".ts" );
-
-                rootFile.Body.Append( "export class " ).Append( className ).Append( " extends" );
-                foreach( var i in root.Interfaces )
-                {
-                    var f = EnsurePocoInterface( monitor, g, i );
-                    if( f == null )
-                    {
-                        success = false;
-                        break;
-                    }
-                    Debug.Assert( f.File != null );
-                    rootFile.Imports.EnsureImport( f.TypeName, f.File );
-                    rootFile.Body.Append( " " ).Append( f.TypeName );
-                }
-                rootFile.Body.OpenBlock();
-                foreach( var p in root.PropertyList )
-                {
-                    success &= AppendProperty( monitor, g, rootFile, p );
-                }
-                rootFile.Body.CloseBlock();
-                return success;
-            }
-        }
-
-        TSTypeFile? EnsurePocoInterface( IActivityMonitor monitor, TypeScriptGenerator g, IPocoInterfaceInfo i )
-        {
-            var tsTypedFile = g.GetTSTypeFile( monitor, i.PocoFactoryInterface );
-            TypeScriptFile? f = tsTypedFile.File;
-            if( f == null )
-            {
-                f = tsTypedFile.EnsureFile();
-                f.Body.Append( "export interface " ).Append( tsTypedFile.TypeName );
-                bool hasInterface = false;
-                foreach( Type baseInterface in i.PocoFactoryInterface.GetInterfaces() )
-                {
-                    var b = i.Root.Interfaces.FirstOrDefault( p => p.PocoInterface == baseInterface );
-                    if( b == null ) continue;
-                    if( !hasInterface )
-                    {
-                        f.Body.Append( " extends " );
-                        hasInterface = true;
-                    }
-                    else f.Body.Append( ", " );
-                    var fInterface = EnsurePocoInterface( monitor, g, b );
-                    if( fInterface == null ) return null;
-                    f.Body.Append( fInterface.TypeName );
-                }
-                f.Body.OpenBlock();
-                bool success = true;
-                foreach( var iP in i.PocoInterface.GetProperties() )
-                {
-                    // Is this interface property implemented at the class level?
-                    // If not (ExternallyImplemented property) we currently ignore it.
-                    IPocoPropertyInfo? p = i.Root.Properties.GetValueOrDefault( iP.Name );
-                    if( p != null )
-                    {
-                        success &= AppendProperty( monitor, g, f, p );
-                    }
-                }
-                f.Body.CloseBlock();
-            }
-            return tsTypedFile;
-        }
-
-        bool AppendProperty( IActivityMonitor monitor, TypeScriptGenerator g, TypeScriptFile f, IPocoPropertyInfo p )
-        {
-            bool success = true;
-            f.Body.Append( g.ToIdentifier( p.PropertyName ) ).Append( p.IsEventuallyNullable ? "?: " : ": " );
-            bool hasUnions = false;
-            foreach( var (t, nullInfo) in p.PropertyUnionTypes )
-            {
-                if( hasUnions ) f.Body.Append( "|" );
-                hasUnions = true;
-                success &= AppendTypeName( monitor, f.Body, g, t );
-            }
-            if( !hasUnions )
-            {
-                success &= AppendTypeName( monitor, f.Body, g, p.PropertyNullableTypeTree, withUndefined: false );
-            }
-            f.Body.Append( ";" ).NewLine();
-            return success;
-        }
-
-        bool AppendTypeName( IActivityMonitor monitor, ITSFileBodySection b, TypeScriptGenerator g, NullableTypeTree type, bool withUndefined = true )
-        {
-            bool success = true;
-            var t = type.Type;
-            if( t.IsArray )
-            {
-                b.Append( "Array<" );
-                success &= AppendTypeName( monitor, b, g, type.SubTypes[0] );
-                b.Append( ">" );
-            }
-            else if( type.Kind.IsTupleType() )
-            {
-                b.Append( "[" );
-                foreach( var s in type.SubTypes )
-                {
-                    success &= AppendTypeName( monitor, b, g, s );
-                }
-                b.Append( "]" );
-            }
-            else if( t.IsGenericType )
-            {
-                var tDef = t.GetGenericTypeDefinition();
-                if( type.SubTypes.Count == 2 && (tDef == typeof( IDictionary<,> ) || tDef == typeof( Dictionary<,> )) )
-                {
-                    b.Append( "Map<" );
-                    success &= AppendTypeName( monitor, b, g, type.SubTypes[0] );
-                    b.Append( "," );
-                    success &= AppendTypeName( monitor, b, g, type.SubTypes[1] );
-                    b.Append( ">" );
-                }
-                else if( type.SubTypes.Count == 1 )
-                {
-                    if( tDef == typeof( ISet<> ) || tDef == typeof( HashSet<> ) )
-                    {
-                        b.Append( "Set<" );
-                        success &= AppendTypeName( monitor, b, g, type.SubTypes[0] );
-                        b.Append( ">" );
-                    }
-                    else if( tDef == typeof( IList<> ) || tDef == typeof( List<> ) )
-                    {
-                        b.Append( "Array<" );
-                        success &= AppendTypeName( monitor, b, g, type.SubTypes[0] );
-                        b.Append( ">" );
-                    }
-                }
-                else
-                {
-                    monitor.Error( $"Unhandled type '{t.FullName}' for TypeScript generation." );
-                    return false;
-                }
-            }
-            else if( t == typeof( int ) || t == typeof( float ) || t == typeof( double ) ) b.Append( "number" );
-            else if( t == typeof( bool ) ) b.Append( "boolean" );
-            else if( t == typeof( string ) ) b.Append( "string" );
-            else if( t == typeof( object ) ) b.Append( "object" );
-            else
-            {
-                var other = g.GetTSTypeFile( monitor, t );
-                b.File.Imports.EnsureImport( other.TypeName, other.EnsureFile() );
-                b.Append( other.TypeName );
-            }
-            if( withUndefined && type.Kind.IsNullable() ) b.Append( "|undefined" );
-            return success;
-        }
-
-        bool AppendTypeName( IActivityMonitor monitor, ITSFileBodySection b, TypeScriptGenerator g, Type t )
-        {
-            bool success = true;
-            if( t.IsArray )
-            {
-                b.Append( "Array<" );
-                success &= AppendTypeName( monitor, b, g, t.GetElementType()! );
-                b.Append( ">" );
-            }
-            else if( t.IsValueTuple() )
-            {
-                b.Append( "[" );
-                foreach( var s in t.GetGenericArguments() )
-                {
-                    success &= AppendTypeName( monitor, b, g, s );
-                }
-                b.Append( "]" );
-            }
-            else if( t.IsGenericType )
-            {
-                var tDef = t.GetGenericTypeDefinition();
-                if( tDef == typeof( IDictionary<,> ) || tDef == typeof( Dictionary<,> ) )
-                {
-                    var args = t.GetGenericArguments();
-                    b.Append( "Map<" );
-                    success &= AppendTypeName( monitor, b, g, args[0] );
-                    b.Append( "," );
-                    success &= AppendTypeName( monitor, b, g, args[1] );
-                    b.Append( ">" );
-                }
-                else if( tDef == typeof( ISet<> ) || tDef == typeof( HashSet<> ) )
-                {
-                    b.Append( "Set<" );
-                    success &= AppendTypeName( monitor, b, g, t.GetGenericArguments()[0] );
-                    b.Append( ">" );
-                }
-                else if( tDef == typeof( IList<> ) || tDef == typeof( List<> ) )
-                {
-                    b.Append( "Array<" );
-                    success &= AppendTypeName( monitor, b, g, t.GetGenericArguments()[0] );
-                    b.Append( ">" );
-                }
-                else
-                {
-                    monitor.Error( $"Unhandled type '{t.FullName}' for TypeScript generation." );
-                    return false;
-                }
-            }
-            else if( t == typeof( int ) || t == typeof( float ) || t == typeof( double ) ) b.Append( "number" );
-            else if( t == typeof( bool ) ) b.Append( "boolean" );
-            else if( t == typeof( string ) ) b.Append( "string" );
-            else if( t == typeof( object ) ) b.Append( "unknown" );
-            else
-            {
-                var other = g.GetTSTypeFile( monitor, t );
-                b.File.Imports.EnsureImport( other.TypeName, other.EnsureFile() );
-                b.Append( other.TypeName );
-            }
-            return success;
-        }
-
-
     }
 }

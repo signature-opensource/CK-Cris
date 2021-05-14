@@ -10,7 +10,7 @@ namespace CK.Auth
     /// This is the most basic command part that can be used to authenticate a command in <see cref="AuthLevel.Normal"/>
     /// or <see cref="AuthLevel.Critical"/> authentication levels.
     /// </summary>
-    public interface IAuthenticatedCommandPart : ICommandPart
+    public interface ICommandAuthenticated : ICommandPart
     {
         /// <summary>
         /// Gets or sets the actor identifier.

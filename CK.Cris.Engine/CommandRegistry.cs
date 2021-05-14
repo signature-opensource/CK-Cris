@@ -25,6 +25,12 @@ namespace CK.Setup.Cris
         /// </summary>
         public IReadOnlyList<Entry> Commands { get; }
 
+        /// <summary>
+        /// Finds a command from its Poco definition.
+        /// </summary>
+        /// <param name="poco">The poco definition.</param>
+        /// <returns>The command or null.</returns>
+        public Entry? Find( IPocoRootInfo poco ) => _indexedCommands.GetValueOrDefault( poco );
 
         internal bool RegisterHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, bool allowUnclosed )
         {

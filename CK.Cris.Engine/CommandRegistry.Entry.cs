@@ -58,8 +58,12 @@ namespace CK.Setup.Cris
 
             /// <summary>
             /// Gets the final (most specialized) result type.
-            /// This is typeof(void) when no <see cref="ICommand{TResult}"/> exists.
+            /// This is <c>typeof(void)</c> when no <see cref="ICommand{TResult}"/> exists.
             /// </summary>
+            /// <remarks>
+            /// This can be the special <c>typeof(NoWaitResult)</c> if the command is a
+            /// fire &amp; forget command.
+            /// </remarks>
             public Type ResultType { get; }
 
             /// <summary>

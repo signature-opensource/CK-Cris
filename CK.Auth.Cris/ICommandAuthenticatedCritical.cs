@@ -10,7 +10,7 @@ namespace CK.Auth
     /// Marker interface for commands that require the <see cref="AuthLevel.Critical"/> level to be validated.
     /// </summary>
     [CKTypeDefiner]
-    public interface IAuthenticatedCriticalCommandPart : IAuthenticatedCommandPart
+    public interface ICommandAuthenticatedCritical : ICommandAuthenticated
     {
     }
 }

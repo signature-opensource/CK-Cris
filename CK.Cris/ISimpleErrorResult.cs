@@ -7,6 +7,7 @@ namespace CK.Cris
 {
     /// <summary>
     /// Simple model for errors: a list of strings.
+    /// Since this is a <see cref="IPoco"/>, it can easily be extended.
     /// </summary>
     [ExternalName( "CrisSimpleError" )]
     public interface ISimpleErrorResult : IPoco

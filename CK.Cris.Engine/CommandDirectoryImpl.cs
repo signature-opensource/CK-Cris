@@ -1,7 +1,6 @@
 using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
-using CK.StObj.TypeScript;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -47,6 +46,7 @@ namespace CK.Setup.Cris
                  .Append( "public MethodInfo Handler => " ).Append( e.Handler?.Method ).Append( ";" ).NewLine()
                  .Append( "CK.Cris.ICommand CK.Cris.ICommandModel.Create() => (CK.Cris.ICommand)Create();" ).NewLine();
 
+                // The CommandModel is the _factory field.
                 var p = c.Assembly.FindOrCreateAutoImplementedClass( monitor, e.Command.PocoClass );
                 p.Append( "public CK.Cris.ICommandModel CommandModel => _factory;" ).NewLine();
 
@@ -57,7 +57,7 @@ namespace CK.Setup.Cris
                  .CloseBlock();
 
             c.CurrentRun.ServiceContainer.Add( registry );
-            return new CSCodeGenerationResult( "CheckICommandHandlerImplementation" );
+            return new CSCodeGenerationResult( nameof( CheckICommandHandlerImplementation ) );
         }
 
         CSCodeGenerationResult CheckICommandHandlerImplementation( IActivityMonitor monitor, CommandRegistry registry )
