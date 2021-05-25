@@ -115,7 +115,7 @@ namespace CK.Setup.Cris
             return signature;
         }
 
-        private static void EnsureCrisFiles( PocoGeneratingEventArgs e )
+        static void EnsureCrisFiles( PocoGeneratingEventArgs e )
         {
             var folder = e.TypeFile.Context.Root.Root.FindOrCreateFolder( "CK" ).FindOrCreateFolder( "Cris" );
             var fModel = folder.FindOrCreateFile( "model.ts", out bool created );
