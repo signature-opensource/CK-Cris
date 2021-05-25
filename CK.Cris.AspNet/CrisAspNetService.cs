@@ -60,7 +60,7 @@ namespace CK.Cris.AspNet
             }
         }
 
-        private async Task<(ICommand?, ICommandResult?)> ReadCommand( IActivityMonitor monitor, HttpRequest request )
+        async Task<(ICommand?, ICommandResult?)> ReadCommand( IActivityMonitor monitor, HttpRequest request )
         {
             ICommand? cmd;
             int length = -1;
@@ -69,27 +69,65 @@ namespace CK.Cris.AspNet
                 try
                 {
                     await request.Body.CopyToAsync( buffer );
-                    (cmd, length) = ReadCommand( monitor, _poco, buffer );
+                    length = (int)buffer.Position;
+                    if( length > 0 )
+                    {
+                        cmd = ReadCommand( monitor, _poco, buffer );
+                    }
+                    else
+                    {
+                        return (null, CreateExceptionResult( "Unable to read Command Poco from empty request body.", null, VESACode.ValidationError ));
+                    }
                 }
                 catch( Exception ex )
                 {
-                    var message = $"Unable to read Poco from request body (byte length = {length}.";
-                    using( monitor.OpenError( message, ex ) )
+                    string errorMessage;
+                    if( length < 0 )
                     {
-                        monitor.Trace( Encoding.UTF8.GetString( buffer.GetBuffer(), 0, length ) );
+                        errorMessage = $"Unable to read Command Poco from request body.";
+                        monitor.Error( errorMessage, ex );
                     }
-                    return (null, CreateExceptionResult( message, ex, VESACode.ValidationError ));
+                    else
+                    {
+                        errorMessage = $"Unable to read Command Poco from request body (byte length = {length}).";
+                        var x = ReadBodyTextOnError( buffer );
+                        if( x.B != null )
+                        {
+                            monitor.Error( errorMessage + " Body: " + x.B, ex );
+                        }
+                        else
+                        {
+                            using( monitor.OpenError( errorMessage, ex ) )
+                            {
+                                monitor.Error( "While tracing request body.", x.E );
+                            }
+                        }
+                    }
+                    return (null, CreateExceptionResult( errorMessage, ex, VESACode.ValidationError ));
                 }
             }
             return (cmd, null);
 
-            static (ICommand?, int) ReadCommand( IActivityMonitor monitor, PocoDirectory p, MemoryStream buffer )
+            static ICommand? ReadCommand( IActivityMonitor monitor, PocoDirectory p, MemoryStream buffer )
             {
-                int length = (int)buffer.Position;
-                var reader = new Utf8JsonReader( buffer.GetBuffer().AsSpan( 0, length ) );
+                var reader = new Utf8JsonReader( buffer.GetBuffer().AsSpan( 0, (int)buffer.Position ) );
                 var poco = p.ReadPocoValue( ref reader );
                 if( poco == null ) throw new InvalidDataException( "Null poco received." );
-                return ((ICommand?)poco, length);
+                if( !(poco is ICommand c) ) throw new InvalidDataException( "Received Poco is not a Command." );
+                return c;
+            }
+
+            static (string? B, Exception? E) ReadBodyTextOnError( MemoryStream buffer )
+            {
+                try
+                {
+                    return (Encoding.UTF8.GetString( buffer.GetBuffer(), 0, (int)buffer.Position ), null );
+                }
+                catch( Exception ex )
+                {
+                    return (null,ex);
+                }
+
             }
 
         }
@@ -114,11 +152,11 @@ namespace CK.Cris.AspNet
             return null;
         }
 
-        ICommandResult CreateExceptionResult( string message, Exception ex, VESACode code )
+        ICommandResult CreateExceptionResult( string message, Exception? ex, VESACode code )
         {
             ICommandResult result = _resultFactory.Create();
             result.Code = code;
-            result.Result = _executor.CreateSimpleErrorResult( message, ex.Message );
+            result.Result = _executor.CreateSimpleErrorResult( message, ex?.Message );
             return result;
         }
 

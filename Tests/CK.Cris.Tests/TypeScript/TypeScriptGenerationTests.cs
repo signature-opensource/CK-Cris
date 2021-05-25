@@ -10,6 +10,8 @@ using System.Text;
 using System.Xml.Linq;
 using static CK.Testing.StObjEngineTestHelper;
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
 namespace CK.Cris.Tests
 {
     [TestFixture]
@@ -28,6 +30,45 @@ namespace CK.Cris.Tests
 
             var command = File.ReadAllText( fCommand );
             var result = File.ReadAllText( fResult );
+        }
+
+        public interface IColoredAmbientValues : AmbientValues.IAmbientValues
+        {
+            string Color { get; set; }
+        }
+
+        public class ColorService : IAutoService
+        {
+            [CommandPostHandler]
+            public void GetColoredAmbientValues( AmbientValues.IAmbientValuesCollectCommand cmd, IColoredAmbientValues values )
+            {
+                values.Color = "Red";
+            }
+        }
+
+        public interface ICommandColored : ICommandPart
+        {
+            string Color { get; set; }
+        }
+
+        public interface IBeautifulCommand : ICommandColored
+        {
+            string Beauty { get; set; }
+        }
+
+        [Test]
+        public void with_ambient_values()
+        {
+            var output = TypeScriptTestHelper.GenerateTSCode( nameof( with_ambient_values ),
+                                                              typeof( CommandDirectory ),
+                                                              typeof( AmbientValues.IAmbientValues ),
+                                                              typeof( AmbientValues.IAmbientValuesCollectCommand ),
+                                                              typeof( AmbientValues.AmbientValuesService ),
+                                                              typeof( IColoredAmbientValues ),
+                                                              typeof( ColorService ),
+                                                              typeof( ICommandColored ),
+                                                              typeof( IBeautifulCommand ) );
+
         }
 
     }

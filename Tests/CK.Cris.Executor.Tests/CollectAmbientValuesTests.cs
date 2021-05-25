@@ -16,6 +16,15 @@ namespace CK.Cris.Executor.Tests
     [TestFixture]
     public class CollectAmbientValuesTests
     {
+        /// <summary>
+        /// Defines a set of ambient values that will be filled by the pseudo <see cref="AuthService"/> below.
+        /// </summary>
+        public interface IAuthAmbientValues : IAmbientValues
+        {
+            int ActorId { get; set; }
+            int ActualActorId { get; set; }
+            string DeviceId { get; set; }
+        }
 
         /// <summary>
         /// Mimics the CK.Auth.Cris.CrisAuthenticationService (only the ambient values part, not the validation methods).
@@ -23,32 +32,47 @@ namespace CK.Cris.Executor.Tests
         public class AuthService : IAutoService
         {
             [CommandPostHandler]
-            public void GetValues( IAmbientValuesCollectCommand cmd, IAuthenticationInfo info, Dictionary<string, object?> values )
+            public void GetValues( IAmbientValuesCollectCommand cmd, IAuthenticationInfo info, IAuthAmbientValues values )
             {
-                values.Add( "ActorId", info.User.UserId );
-                values.Add( "ActualActorId", info.ActualUser.UserId );
-                values.Add( "DeviceId", info.DeviceId );
+                values.ActorId = info.User.UserId;
+                values.ActualActorId = info.ActualUser.UserId;
+                values.DeviceId = info.DeviceId;
             }
         }
 
         /// <summary>
+        /// Another example: exposes a set of roles.
+        /// </summary>
+        public interface ISecurityAmbientValues : IAmbientValues
+        {
+            string[] Roles { get; set; }
+        }
+
+
+        /// <summary>
         /// Mimics a service that will retrieve roles from a database for the current user (this uses an async handler).
+        /// Here also, a real service should also validate one or more command part that corresponds to the ambient values.
         /// </summary>
         public class SecurityService : IAutoService
         {
             [CommandPostHandler]
-            public async Task GetValuesAsync( IAmbientValuesCollectCommand cmd, IActivityMonitor monitor, IAuthenticationInfo info, Dictionary<string, object?> values )
+            public async Task GetValuesAsync( IAmbientValuesCollectCommand cmd, IActivityMonitor monitor, IAuthenticationInfo info, ISecurityAmbientValues values )
             {
                 await Task.Delay( 25 );
                 monitor.Info( $"User {info.User.UserName} roles have been read from the database." );
-                values.Add( "Roles", new[] { "Administrator", "Tester", "Approver" } );
+                values.Roles = new[] { "Administrator", "Tester", "Approver" };
             }
         }
 
         [Test]
         public async Task CommandPostHandler_fills_the_resulting_ambient_values()
         {
-            var c = FrontCommandExecutorTests.CreateFrontCommandCollector( typeof( IAmbientValuesCollectCommand ), typeof( AmbientValuesCollectHandler ), typeof( AuthService ), typeof( SecurityService ) );
+            var c = FrontCommandExecutorTests.CreateFrontCommandCollector( typeof( IAmbientValuesCollectCommand ),
+                                                                           typeof( AmbientValuesService ),
+                                                                           typeof( AuthService ),
+                                                                           typeof( IAuthAmbientValues ),
+                                                                           typeof( SecurityService ),
+                                                                           typeof( ISecurityAmbientValues ) );
 
             var authTypeSystem = new StdAuthenticationTypeSystem();
             var authInfo = authTypeSystem.AuthenticationInfo.Create( authTypeSystem.UserInfo.Create( 3712, "John" ), DateTime.UtcNow.AddDays( 1 ) );
@@ -68,8 +92,14 @@ namespace CK.Cris.Executor.Tests
                 var r = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
                 r.Code.Should().Be( VESACode.Synchronous );
                 Debug.Assert( r.Result != null );
-                var ambientValues = (Dictionary<string, object?>)r.Result!;
-                ambientValues.Should().HaveCount( 4 );
+
+                var auth = (IAuthAmbientValues)r.Result!;
+                auth.ActorId.Should().Be( 3712 );
+                auth.ActualActorId.Should().Be( 3712 );
+                auth.DeviceId.Should().Be( authInfo.DeviceId );
+
+                var sec = (ISecurityAmbientValues)r.Result!;
+                sec.Roles.Should().BeEquivalentTo( "Administrator", "Tester", "Approver" );
             }
         }
 

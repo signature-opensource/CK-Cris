@@ -13,12 +13,22 @@ using System.Threading.Tasks;
 namespace CK.Setup.Cris
 {
     /// <summary>
-    /// Holds the set of <see cref="Entry"/> that have been discovered.
+    /// Holds the set of <see cref="Entry"/> that have been discovered and index them by
+    /// <see cref="IPocoRootInfo"/>.
     /// </summary>
     public partial class CommandRegistry
     {
-        readonly IPocoSupportResult _pocoResult;
         readonly IReadOnlyDictionary<IPocoRootInfo, Entry> _indexedCommands;
+
+        /// <summary>
+        /// Gets the root information on all available Poco.
+        /// </summary>
+        public IPocoSupportResult PocoResult { get; }
+
+        /// <summary>
+        /// Exposes the ambient values poco.
+        /// </summary>
+        public IPocoRootInfo AmbientValues { get; }
 
         /// <summary>
         /// Gets all the discovered commands ordered by their <see cref="Entry.CommandIdx"/>.
@@ -66,11 +76,18 @@ namespace CK.Setup.Cris
                 Debug.Assert( parameters != null );
                 bool success = true;
                 Debug.Assert( commands != null, "p == null <==> commands == null" );
-                foreach( var command in commands )
+                if( commands.Count == 0 )
                 {
-                    Debug.Assert( _indexedCommands.ContainsKey( command ), "Since parameters are filtered by registered Poco." );
-                    var e = _indexedCommands[command];
-                    success &= e.AddValidator( monitor, impl, m, parameters, p );
+                    monitor.Trace( $"Method {MethodName(m,parameters)} is unused since no command match the '{p.Name}' parameter." );
+                }
+                else
+                {
+                    foreach( var command in commands )
+                    {
+                        Debug.Assert( _indexedCommands.ContainsKey( command ), "Since parameters are filtered by registered Poco." );
+                        var e = _indexedCommands[command];
+                        success &= e.AddValidator( monitor, impl, m, parameters, p );
+                    }
                 }
                 return success;
             }
@@ -91,7 +108,6 @@ namespace CK.Setup.Cris
             var (param, commands) = GetCommandsFromPart( monitor, m, parameters );
             if( param != null )
             {
-                Debug.Assert( commands != null, "param == null <==> commands == null" );
                 return (parameters, param, commands);
             }
             return (parameters, null, null);
@@ -100,8 +116,7 @@ namespace CK.Setup.Cris
         (ParameterInfo? Parameter, IReadOnlyList<IPocoRootInfo>? Commands) GetCommandsFromPart( IActivityMonitor monitor, MethodInfo m, ParameterInfo[] parameters )
         {
             var candidates = parameters.Where( param => typeof( ICommandPart ).IsAssignableFrom( param.ParameterType ) )
-                                        .Select( param => (param, commandPartsList: _pocoResult.OtherInterfaces.GetValueOrDefault( param.ParameterType )) )
-                                        .Where( x => x.commandPartsList != null )
+                                        .Select( param => (param, commandPartsList: PocoResult.OtherInterfaces.GetValueOrDefault( param.ParameterType, Array.Empty<IPocoRootInfo>() )! ) )
                                         .ToArray();
             if( candidates.Length > 1 )
             {
@@ -147,8 +162,16 @@ namespace CK.Setup.Cris
                 if( commands != null )
                 {
                     Debug.Assert( index != null, "Since commands is not null." );
-                    monitor.Info( commands.Count > 0 ? $"{commands.Count} commands detected." : "No Command detected." );
-                    result = new CommandRegistry( index, commands, pocoResult );
+                    monitor.Info( $"{commands.Count} commands detected." );
+                    var av = pocoResult.Find( typeof( CK.Cris.AmbientValues.IAmbientValues ) );
+                    if( av == null )
+                    {
+                        monitor.Error( "CK.Cris.AmbientValues.IAmbientValues must be registered." );
+                    }
+                    else
+                    {
+                        result = new CommandRegistry( index, commands, pocoResult, av.Root );
+                    }
                 }
                 c.CurrentRun.Memory.AddCachedInstance( result );
             }
@@ -156,11 +179,12 @@ namespace CK.Setup.Cris
         }
 
 
-        CommandRegistry( IReadOnlyDictionary<IPocoRootInfo, Entry> index, IReadOnlyList<Entry> commands, IPocoSupportResult poco )
+        CommandRegistry( IReadOnlyDictionary<IPocoRootInfo, Entry> index, IReadOnlyList<Entry> commands, IPocoSupportResult poco, IPocoRootInfo ambientValues )
         {
             _indexedCommands = index;
             Commands = commands;
-            _pocoResult = poco;
+            PocoResult = poco;
+            AmbientValues = ambientValues;
         }
 
         static (Dictionary<IPocoRootInfo, Entry>?,IReadOnlyList<Entry>?) CreateCommandMap( IActivityMonitor monitor, IStObjEngineMap services, IPocoSupportResult pocoResult )
@@ -250,7 +274,7 @@ namespace CK.Setup.Cris
         (ParameterInfo[]? Parameters, ParameterInfo? Param, IPocoInterfaceInfo? ParamInterface) GetCommandCandidate( IActivityMonitor monitor, MethodInfo m )
         {
             var parameters = m.GetParameters();
-            var candidates = parameters.Select( p => (p, _pocoResult.AllInterfaces.GetValueOrDefault( p.ParameterType )) )
+            var candidates = parameters.Select( p => (p, PocoResult.AllInterfaces.GetValueOrDefault( p.ParameterType )) )
                                                                     .Where( x => x.Item2 != null
                                                                                 && typeof( ICommand ).IsAssignableFrom( x.Item2.PocoInterface ) )
                                                                     .ToArray();

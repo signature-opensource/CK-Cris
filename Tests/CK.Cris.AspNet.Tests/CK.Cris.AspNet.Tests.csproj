@@ -18,11 +18,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\CK.Auth.Cris\CK.Auth.Cris.csproj" />
     <ProjectReference Include="..\..\CK.Cris.AspNet.Engine\CK.Cris.AspNet.Engine.csproj" />
     <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="%24StObjGen\" />
     <Folder Include="bin\Debug\netcoreapp3.1\" />
   </ItemGroup>
 

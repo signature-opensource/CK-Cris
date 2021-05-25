@@ -115,7 +115,14 @@ namespace CK.Setup.Cris
                         {
                             if( p.Position > 0 ) w.Append( ", " );
                             if( typeof( IActivityMonitor ).IsAssignableFrom( p.ParameterType ) ) w.Append( "m" );
-                            else if( p == m.ResultParameter ) w.Append( "r" );
+                            else if( p == m.ResultParameter )
+                            {
+                                if( m.MustCastResultParameter )
+                                {
+                                    w.Append( "(" ).AppendCSharpName( p.ParameterType ).Append( ")" );
+                                }
+                                w.Append( "r" );
+                            }
                             else if( p == m.CmdOrPartParameter )
                             {
                                 w.Append( "(" ).AppendCSharpName( m.CmdOrPartParameter.ParameterType ).Append( ")c" );
@@ -260,7 +267,7 @@ namespace CK.Setup.Cris
                         // - c1 == c2 => Ambiguity.
                         // - c1 is assignable form c2 => c2
                         // - c2 is assignable from c1 => c1
-                        // - c1 indepedent of c2 => Ambiguity.
+                        // - c1 independent of c2 => Ambiguity.
                         monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{Handler}' handle '{CommandName}' command." );
                         return false;
                     }
@@ -286,14 +293,36 @@ namespace CK.Setup.Cris
             {
                 if( !CheckVoidReturn( monitor, "PostHandler", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
 
-                ParameterInfo? resultParameter = ResultType != typeof( void ) && ResultType != typeof( NoWaitResult )
-                                                    ? parameters.FirstOrDefault( p => p.ParameterType.IsAssignableFrom( ResultType ) )
-                                                    : null;
+                // Looking for the command result in the parameters.
+                bool mustCastResultParameter = false;
+                ParameterInfo? resultParameter = null;
+                if( PocoResultType != null )
+                {
+                    // The result is a IPoco: the first parameter that is one of the IPoco interfaces or a non IPoco interface (like a definer)
+                    // that this poco supports is fine.
+                    resultParameter = parameters.FirstOrDefault( p => p.ParameterType is Type t
+                                                                      && (PocoResultType.Root.Interfaces.Any( itf => itf.PocoInterface == t )
+                                                                          || PocoResultType.Root.OtherInterfaces.Contains( t )) );
+                    if( resultParameter != null ) mustCastResultParameter = true;
+                }
+                else if( ResultType != typeof( void ) && ResultType != typeof( NoWaitResult ) )
+                {
+                    // The result type is not a IPoco. The first parameter that can be assigned to the result type is fine. 
+                    resultParameter = parameters.FirstOrDefault( p => p.ParameterType.IsAssignableFrom( ResultType ) );
+                }
                 if( resultParameter != null )
                 {
                     monitor.Trace( $"PostHandler method '{MethodName( method, parameters )}': parameter '{resultParameter.Name}' is the Command's result." );
                 }
-                _postHandlers.Add( new PostHandlerMethod( this, owner, method, parameters, commandParameter, resultParameter, isRefAsync, isValAsync ) );
+                _postHandlers.Add( new PostHandlerMethod( this,
+                                                          owner,
+                                                          method,
+                                                          parameters,
+                                                          commandParameter,
+                                                          resultParameter,
+                                                          mustCastResultParameter,
+                                                          isRefAsync,
+                                                          isValAsync ) );
                 return true;
             }
 

@@ -21,10 +21,10 @@ namespace CK.Cris.AspNet.Tests
             _users = new List<IUserInfo>();
             // Albert is registered in Basic.
             _users.Add( typeSystem.UserInfo.Create( 1, "System" ) );
-            _users.Add( typeSystem.UserInfo.Create( 2, "Albert", new[] { new StdUserSchemeInfo( "Basic", DateTime.MinValue ) } ) );
-            _users.Add( typeSystem.UserInfo.Create( 3, "Robert" ) );
+            _users.Add( typeSystem.UserInfo.Create( 3712, "Albert", new[] { new StdUserSchemeInfo( "Basic", DateTime.MinValue ) } ) );
+            _users.Add( typeSystem.UserInfo.Create( 3713, "Robert" ) );
             // Hubert is registered in Google.
-            _users.Add( typeSystem.UserInfo.Create( 4, "Hubert", new[] { new StdUserSchemeInfo( "Google", DateTime.MinValue ) } ) );
+            _users.Add( typeSystem.UserInfo.Create( 3714, "Hubert", new[] { new StdUserSchemeInfo( "Google", DateTime.MinValue ) } ) );
         }
 
         public IReadOnlyList<IUserInfo> AllUsers => _users;

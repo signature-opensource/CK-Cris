@@ -8,6 +8,8 @@ using System.Diagnostics;
 using System.Text;
 using static CK.Testing.StObjEngineTestHelper;
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
 namespace CK.Cris.Tests
 {
     [TestFixture]

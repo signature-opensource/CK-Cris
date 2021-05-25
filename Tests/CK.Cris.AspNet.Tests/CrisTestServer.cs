@@ -8,12 +8,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
 
@@ -27,6 +23,7 @@ namespace CK.Cris.AspNet.Tests
 
         public CrisTestServer(
             StObjCollector collector,
+            bool withAuthentication = false,
             Action<IServiceCollection>? configureServices = null,
             Action<IApplicationBuilder>? configureApplication = null )
         {
@@ -40,9 +37,25 @@ namespace CK.Cris.AspNet.Tests
                 typeof( CommandValidator ),
                 typeof( PocoJsonSerializer ),
                 typeof( CrisAspNetService ),
-                typeof( StdAuthenticationTypeSystem ),
-                typeof( FakeWebFrontLoginService )
+                typeof( AmbientValues.IAmbientValues ),
+                typeof( AmbientValues.IAmbientValuesCollectCommand ),
+                typeof( AmbientValues.AmbientValuesService )
             } );
+
+            if( withAuthentication )
+            {
+                collector.RegisterTypes( new[] {
+                    typeof( StdAuthenticationTypeSystem ),
+                    typeof( FakeWebFrontLoginService ),
+                    typeof( CrisAuthenticationService ),
+                    typeof( IAuthAmbientValues ),
+                    typeof( ICommandAuthUnsafe ),
+                    typeof( ICommandAuthNormal ),
+                    typeof( ICommandAuthCritical ),
+                    typeof( ICommandAuthDeviceId ),
+                    typeof( ICommandAuthImpersonation )
+            } );
+            }
 
             var (result, stObjMap) = TestHelper.CompileAndLoadStObjMap( collector );
 
@@ -50,13 +63,22 @@ namespace CK.Cris.AspNet.Tests
                 services =>
                 {
                     services.AddOptions();
-                    services.AddAuthentication().AddWebFrontAuth( options => options.CookieMode = AuthenticationCookieMode.RootPath );
+                    if( withAuthentication )
+                    {
+                        // Uses RootPath for cookies: no need to set the Token header, the TestServerClient cookie container
+                        // does the job.
+                        services.AddAuthentication().AddWebFrontAuth( options => options.CookieMode = AuthenticationCookieMode.RootPath );
+                    }
                     services.AddStObjMap( TestHelper.Monitor, stObjMap );
                     configureServices?.Invoke( services );
                 },
                 app =>
                 {
                     app.UseGuardRequestMonitor();
+                    if( withAuthentication )
+                    {
+                        app.UseAuthentication();
+                    }
                     app.UseCris();
                     configureApplication?.Invoke( app );
                 },
@@ -69,23 +91,20 @@ namespace CK.Cris.AspNet.Tests
             var host = b.Build();
             host.Start();
             Client = new TestServerClient( host );
-            Server = Client.Server;
         }
 
-        public async Task<bool> Login( string userName, string password = "success" )
+        public TestServerClient Client { get; }
+
+        public async Task<bool> LoginAsync( string userName, string password = "success" )
         {
             var body = $"{{\"userName\":\"{userName}\",\"password\":\"{password}\"}}";
             HttpResponseMessage response = await Client.PostJSON( BasicLoginUri, body );
             return response.IsSuccessStatusCode;
         }
 
-        public async Task Logout() => await Client.Get( LogoutUri + "?full" );
+        public Task LogoutAsync() => Client.Get( LogoutUri + "?full" );
 
-        public TestServer Server { get; }
-
-        public TestServerClient Client { get; }
-
-        public void Dispose() => Server?.Dispose();
+        public void Dispose() => Client.Dispose();
 
     }
 }
