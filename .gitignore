@@ -260,3 +260,4 @@ CodeCakeBuilder/MemoryKey.*.txt
 CodeCakeBuilder/UnitTestsDone.*.txt
 $StObjGen/
 
+/Tests/CK.Cris.Tests/TypeScriptOutput/

@@ -49,11 +49,17 @@ namespace CK.Cris.Tests
 
         public interface ICommandColored : ICommandPart
         {
+            /// <summary>
+            /// Gets or sets the Nico's color.
+            /// </summary>
             string Color { get; set; }
         }
 
         public interface IBeautifulCommand : ICommandColored
         {
+            /// <summary>
+            /// Gets or sets the Nico's beauty's string.
+            /// </summary>
             string Beauty { get; set; }
         }
 
