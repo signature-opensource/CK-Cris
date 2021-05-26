@@ -22,6 +22,7 @@ namespace CK.Cris.Tests
         {
             var output = TypeScriptTestHelper.GenerateTSCode( nameof( DiamondResultAndCommand_works ),
                                                               typeof( CommandDirectory ),
+                                                              typeof( AmbientValues.IAmbientValues ),
                                                               typeof( ICommandUnifiedWithTheResult ),
                                                               typeof( IUnifiedResult ) );
 
@@ -61,13 +62,16 @@ namespace CK.Cris.Tests
         {
             var output = TypeScriptTestHelper.GenerateTSCode( nameof( with_ambient_values ),
                                                               typeof( CommandDirectory ),
+                                                              // By registering the IBeautifulCommand first,
+                                                              // we use the fact that the OnPocoGenerating calls EnsurePoco on the IAmbientValues
+                                                              // so that the ambient values are known when handling any command...
+                                                              typeof( IBeautifulCommand ),
                                                               typeof( AmbientValues.IAmbientValues ),
                                                               typeof( AmbientValues.IAmbientValuesCollectCommand ),
                                                               typeof( AmbientValues.AmbientValuesService ),
                                                               typeof( IColoredAmbientValues ),
                                                               typeof( ColorService ),
-                                                              typeof( ICommandColored ),
-                                                              typeof( IBeautifulCommand ) );
+                                                              typeof( ICommandColored ) );
 
         }
 
