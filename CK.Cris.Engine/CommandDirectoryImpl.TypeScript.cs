@@ -118,7 +118,7 @@ namespace CK.Setup.Cris
                         .OpenBlock()
                             .Append( ApplyAmbientValues )
                         .CloseBlock()
-                    .Append("};").NewLine();
+                    .CloseBlock( withSemiColon: true );
 
                 // All the interfaces share the commandModel signature. 
                 foreach( var itf in e.PocoClass.PocoRootInfo.Interfaces )
@@ -145,12 +145,13 @@ namespace CK.Setup.Cris
                             int idx = e.PocoClass.CreateParameters.IndexOf( p => p.Name == fromAmbient.ParameterName );
                             if( idx >= 0 ) e.PocoClass.CreateParameters.RemoveAt( idx );
                             // Adds the assignment: this property comes from its ambient value.
-                            b.Append( "if( force || typeof this." ).Append( fromAmbient.Property.Name ).Append( " === undefined ) this." ).Append( fromAmbient.Property.Name )
-                                .Append( " = values[" ).AppendSourceString( fromAmbient.ParameterName ).Append( "];" ).NewLine();
+                            if( atLeastOne ) b.NewLine();
+                            b.Append( "if( force || typeof this." ).Append( fromAmbient.Property.Name ).Append( " === \"undefined\" ) this." ).Append( fromAmbient.Property.Name )
+                                .Append( " = values[" ).AppendSourceString( fromAmbient.ParameterName ).Append( "];" );
                             atLeastOne = true;
                         }
                     }
-                    if( !atLeastOne ) b.Append( "// This command has no property that appears in the Ambient Values." ).NewLine();
+                    if( !atLeastOne && e.PocoClass.PocoRootInfo != _registry.AmbientValues ) b.Append( "// This command has no property that appear in the Ambient Values." ).NewLine();
                 }
             }
             else if( e.PocoClass.PocoRootInfo == _registry.AmbientValues )
