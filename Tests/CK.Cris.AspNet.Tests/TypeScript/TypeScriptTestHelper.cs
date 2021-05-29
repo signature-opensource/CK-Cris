@@ -4,12 +4,13 @@ using FluentAssertions;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml.Linq;
 using static CK.Testing.StObjEngineTestHelper;
 
-namespace CK.Cris.Tests
+namespace CK.Cris.TypeScript.Tests
 {
     static class TypeScriptTestHelper
     {
@@ -28,9 +29,11 @@ namespace CK.Cris.Tests
         {
             readonly Type[] _types;
 
-            public MonoCollectorResolver( params Type[] types )
+            public MonoCollectorResolver( IEnumerable<Type> types )
             {
-                _types = types;
+                _types = types.Append( typeof( CommandDirectory ) )
+                              .Append( typeof( TypeScriptCrisCommandGenerator ) )
+                              .ToArray();
             }
 
             public StObjCollectorResult GetUnifiedResult( BinPathConfiguration unified )

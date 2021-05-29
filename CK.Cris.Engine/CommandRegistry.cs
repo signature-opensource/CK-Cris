@@ -2,6 +2,7 @@ using CK.Core;
 using CK.Cris;
 using CK.Text;
 using Microsoft.CodeAnalysis;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -148,16 +149,16 @@ namespace CK.Setup.Cris
         }
 
         /// <summary>
-        /// Gets or builds a <see cref="CommandRegistry"/> for a <see cref="ICSCodeGenerationContext"/>.
+        /// Gets or builds a <see cref="CommandRegistry"/> for the current run of a <see cref="ICodeGenerationContext"/>.
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
-        /// <param name="c">The CSharp code generation context.</param>
+        /// <param name="c">The generated path.</param>
         /// <returns>The directory or null on error.</returns>
-        public static CommandRegistry? FindOrCreate( IActivityMonitor monitor, ICSCodeGenerationContext c )
+        public static CommandRegistry? FindOrCreate( IActivityMonitor monitor, ICodeGenerationContext c )
         {
             if( !c.CurrentRun.Memory.TryGetCachedInstance<CommandRegistry>( out var result ) )
             {
-                IPocoSupportResult pocoResult = c.Assembly.GetPocoSupportResult();
+                var pocoResult = c.CurrentRun.ServiceContainer.GetRequiredService<IPocoSupportResult>();
                 var (index,commands) = CreateCommandMap( monitor, c.CurrentRun.EngineMap, pocoResult );
                 if( commands != null )
                 {

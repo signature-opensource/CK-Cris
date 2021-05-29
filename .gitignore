@@ -261,3 +261,4 @@ CodeCakeBuilder/UnitTestsDone.*.txt
 $StObjGen/
 
 /Tests/CK.Cris.Tests/TypeScriptOutput/
+/Tests/CK.Cris.AspNet.Tests/TypeScriptOutput/

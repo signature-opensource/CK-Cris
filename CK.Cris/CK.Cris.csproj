@@ -11,17 +11,6 @@
 
   <ItemGroup>
     <PackageReference Include="CK.StObj.Model" />
-    <!--
-         To avoid too much micro packages, Cris depends on CK.StObj.TypeScript. This is a definitely a trade-off.
-
-         The CK.StObj.TypeScript package contains only 2 types: the TypeScriptAttribute (with Folder, FileName,
-         TypeName, SameFolderAs and SameFileAs properties) and the TypeScriptAspectConfiguration
-         object.
-
-         The CK.StObj.TypeScript.Engine is bigger and triggers TypeScript generation only when the TypeScriptAspect is
-         declared and one or more <TypeScript><OutuptPath>...</OutuptPath></TypeScript> is defined in the BinPathConfiguration.
-    -->
-    <PackageReference Include="CK.StObj.TypeScript" />
   </ItemGroup>
 
 </Project>

@@ -28,9 +28,7 @@ namespace CK.Cris.Tests
         int AnotherVal { get; set; }
     }
 
-    public interface IUnifiedResult : IMoreResult, IAnotherResult
-    {
-    }
+    public interface IUnifiedResult : IMoreResult, IAnotherResult { }
 
     public interface ICommandWithPocoResult : ICommand<IResult> { }
 
@@ -38,9 +36,10 @@ namespace CK.Cris.Tests
 
     public interface ICommandWithAnotherPocoResult : ICommandWithPocoResult, ICommand<IAnotherResult> { }
 
+    public interface ICommandUnifiedWithTheResult : ICommandWithMorePocoResult, ICommandWithAnotherPocoResult, ICommand<IUnifiedResult> { }
+
+
     // Cannot work: the results are NOT unified in a final type.
     public interface ICommandUnifiedButNotTheResult : ICommandWithMorePocoResult, ICommandWithAnotherPocoResult { }
-
-    public interface ICommandUnifiedWithTheResult : ICommandWithMorePocoResult, ICommandWithAnotherPocoResult, ICommand<IUnifiedResult> { }
 
 }

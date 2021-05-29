@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Microsoft.Build.CentralPackageVersions" Version="2.0.52" />
+  <Import Project="..\Common\Shared.props" />
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <!--
+         The CK.StObj.TypeScript package contains only 2 types: the TypeScriptAttribute (with Folder, FileName,
+         TypeName, SameFolderAs and SameFileAs properties) and the TypeScriptAspectConfiguration
+         object, but it depends on another micro-package: the CK.Poco.Json that generates Json serialization.
+
+         The CK.StObj.TypeScript.Engine is bigger and triggers TypeScript generation only when the TypeScriptAspect is
+         declared and one or more <TypeScript><OutuptPath>...</OutuptPath></TypeScript> is defined in the BinPathConfiguration.
+    -->
+
+  <ItemGroup>
+    <PackageReference Include="CK.StObj.TypeScript" />
+    <PackageReference Include="CK.Poco.Json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
+  </ItemGroup>
+
+</Project>

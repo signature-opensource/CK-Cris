@@ -1,6 +1,7 @@
 using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
+using CK.Setup.Cris;
 using CK.StObj.TypeScript;
 using CK.StObj.TypeScript.Engine;
 using CK.TypeScript.CodeGen;
@@ -10,10 +11,12 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
-namespace CK.Setup.Cris
+namespace CK.Setup
 {
-    public partial class CommandDirectoryImpl : ITSCodeGenerator
+    public class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerator
     {
+        CommandRegistry? _registry;
+
         bool ITSCodeGenerator.ConfigureTypeScriptAttribute( IActivityMonitor monitor, ITSTypeFileBuilder builder, TypeScriptAttribute a )
         {
             // Nothing to do: we don't want to interfere with the standard IPoco handling.
@@ -21,13 +24,15 @@ namespace CK.Setup.Cris
         }
         bool ITSCodeGenerator.Initialize( IActivityMonitor monitor, TypeScriptContext context )
         {
+            _registry = CommandRegistry.Find( monitor, context.CodeContext );
+            Debug.Assert( _registry != null, "CSharp code implementation has necessarily been successfully called." );
             context.PocoCodeGenerator.PocoGenerating += OnPocoGenerating;
             return true;
         }
 
         bool ITSCodeGenerator.GenerateCode( IActivityMonitor monitor, TypeScriptContext g )
         {
-            var registry = CommandRegistry.Find( monitor, g.CodeContext );
+            CommandRegistry? registry = CommandRegistry.Find( monitor, g.CodeContext );
             Debug.Assert( registry != null, "Implement (CSharp code) has necessarily been successfully called." );
             using( monitor.OpenInfo( $"Declaring TypeScript support for {registry.Commands.Count} commands." ) )
             {
@@ -54,8 +59,8 @@ namespace CK.Setup.Cris
         }
 
 
-        // We capture the list of the parameters that corresponds to the Ambient Values.
-        List<TypeScriptVarType>? _ambientValuesParameters;
+        // We capture the list of the Ambient Values properties.
+        IReadOnlyList<TypeScriptPocoPropertyInfo>? _ambientValuesProperties;
 
         /// <summary>
         /// This is where everything happens: if the Poco being generated is a ICommand, then:
@@ -94,7 +99,7 @@ namespace CK.Setup.Cris
                     return;
                 }
 
-                Debug.Assert( _ambientValuesParameters != null, "The PocoGeneratingEventArgs for IAmbientValues has been called." );
+                Debug.Assert( _ambientValuesProperties != null, "The PocoGeneratingEventArgs for IAmbientValues has been called." );
 
                 EnsureCrisModel( e );
 
@@ -130,24 +135,30 @@ namespace CK.Setup.Cris
 
                 void ApplyAmbientValues( ITSCodePart b )
                 {
-                    Debug.Assert( _ambientValuesParameters != null );
+                    Debug.Assert( _ambientValuesProperties != null );
                     bool atLeastOne = false;
-                    foreach( var a in _ambientValuesParameters )
+                    foreach( var a in _ambientValuesProperties )
                     {
                         // Find the property with the same (parameter) name.
-                        var fromAmbient = e.PocoClass.Properties.FirstOrDefault( p => p.ParameterName == a.Name );
+                        var fromAmbient = e.PocoClass.Properties.FirstOrDefault( p => p.Property.Name == a.Property.Name );
                         if( fromAmbient != null )
                         {
                             // Documents it.
                             fromAmbient.Property.Comment += Environment.NewLine + "(This is an Ambient Value.)";
                             e.Monitor.Debug( $"Property '{fromAmbient.Property.Name}' is an ambient value." );
-                            // The parameter in the create method SHOULD exist. We remove it.
-                            int idx = e.PocoClass.CreateParameters.IndexOf( p => p.Name == fromAmbient.ParameterName );
-                            if( idx >= 0 ) e.PocoClass.CreateParameters.RemoveAt( idx );
+                            // Remove the parameter.
+                            fromAmbient.CreateMethodParameter = null;
                             // Adds the assignment: this property comes from its ambient value.
                             if( atLeastOne ) b.NewLine();
-                            b.Append( "if( force || typeof this." ).Append( fromAmbient.Property.Name ).Append( " === \"undefined\" ) this." ).Append( fromAmbient.Property.Name )
-                                .Append( " = values[" ).AppendSourceString( fromAmbient.ParameterName ).Append( "];" );
+                            if( fromAmbient.PocoProperty.IsReadOnly )
+                            {
+                                throw new NotImplementedException( "Read only properties ambient value assignment." );
+                            }
+                            else
+                            {
+                                b.Append( "if( force || typeof this." ).Append( fromAmbient.Property.Name ).Append( " === \"undefined\" ) this." ).Append( fromAmbient.Property.Name )
+                                 .Append( " = values[" ).AppendSourceString( fromAmbient.ParameterName ).Append( "];" );
+                            }
                             atLeastOne = true;
                         }
                     }
@@ -156,8 +167,8 @@ namespace CK.Setup.Cris
             }
             else if( e.PocoClass.PocoRootInfo == _registry.AmbientValues )
             {
-                Debug.Assert( _ambientValuesParameters == null );
-                _ambientValuesParameters = e.PocoClass.CreateParameters;
+                Debug.Assert( _ambientValuesProperties == null );
+                _ambientValuesProperties = e.PocoClass.Properties;
             }
         }
 

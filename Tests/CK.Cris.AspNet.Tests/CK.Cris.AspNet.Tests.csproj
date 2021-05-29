@@ -10,6 +10,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\CK.Cris.Tests\DiamondResultAndCommand.cs" Link="DiamondResultAndCommand.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="CK.Testing.StObjEngine" />
     <PackageReference Include="CK.AspNet.Tester" />
     <PackageReference Include="nunit" />
@@ -24,7 +28,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="%24StObjGen\" />
     <Folder Include="bin\Debug\netcoreapp3.1\" />
   </ItemGroup>
 
