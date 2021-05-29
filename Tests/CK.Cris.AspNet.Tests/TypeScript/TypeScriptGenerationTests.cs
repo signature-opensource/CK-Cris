@@ -64,9 +64,9 @@ namespace CK.Cris.TypeScript.Tests
         }
 
         [Test]
-        public void with_ambient_values()
+        public void beautiful_colored_command_with_ambient_values()
         {
-            var output = TypeScriptTestHelper.GenerateTSCode( nameof( with_ambient_values ),
+            var output = TypeScriptTestHelper.GenerateTSCode( nameof( beautiful_colored_command_with_ambient_values ),
                                                               typeof( CommandDirectory ),
                                                               // By registering the IBeautifulCommand first,
                                                               // we use (and test!) the fact that the OnPocoGenerating calls EnsurePoco

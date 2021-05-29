@@ -4,7 +4,7 @@
   <Import Project="..\Common\Shared.props" />
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <!--
@@ -15,7 +15,6 @@
          The CK.StObj.TypeScript.Engine is bigger and triggers TypeScript generation only when the TypeScriptAspect is
          declared and one or more <TypeScript><OutuptPath>...</OutuptPath></TypeScript> is defined in the BinPathConfiguration.
     -->
-
   <ItemGroup>
     <PackageReference Include="CK.StObj.TypeScript" />
     <PackageReference Include="CK.Poco.Json" />
