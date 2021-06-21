@@ -18,10 +18,10 @@ namespace CodeCake
             return new CKSetupComponent[]{
 
 new CKSetupComponent( "CK.Cris", "netstandard2.1" ),
-new CKSetupComponent( "CK.Cris.AspNet", "netcoreapp3.1" ),
 new CKSetupComponent( "CK.Cris.Executor", "netstandard2.1" ),
 new CKSetupComponent( "CK.Cris.Executor.Engine", "netcoreapp3.1" ),
 new CKSetupComponent( "CK.Cris.Engine", "netcoreapp3.1" ),
+new CKSetupComponent( "CK.Cris.AspNet", "netcoreapp3.1" ),
 new CKSetupComponent( "CK.Cris.AspNet.Engine", "netcoreapp3.1" )
 };
         }
