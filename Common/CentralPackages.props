@@ -1,7 +1,7 @@
 <Project>
   <ItemGroup>
-    <PackageReference Update="CK.StObj.TypeScript" Version="0.3.1--0050-develop" />
-    <PackageReference Update="CK.StObj.TypeScript.Engine" Version="0.3.1--0050-develop" />
+    <PackageReference Update="CK.StObj.TypeScript" Version="0.3.1--0051-develop" />
+    <PackageReference Update="CK.StObj.TypeScript.Engine" Version="0.3.1--0051-develop" />
     <PackageReference Update="CK.StObj.Model" Version="16.1.1--0057-develop" />
     <PackageReference Update="CK.StObj.Runtime" Version="16.1.1--0057-develop" />
     <PackageReference Update="CK.Poco.Json" Version="16.1.1--0057-develop" />
