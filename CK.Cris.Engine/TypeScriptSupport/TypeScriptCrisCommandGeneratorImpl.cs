@@ -157,7 +157,7 @@ namespace CK.Setup
                             else
                             {
                                 b.Append( "if( force || typeof this." ).Append( fromAmbient.Property.Name ).Append( " === \"undefined\" ) this." ).Append( fromAmbient.Property.Name )
-                                 .Append( " = values[" ).AppendSourceString( fromAmbient.ParameterName ).Append( "];" );
+                                 .Append( " = values[" ).AppendSourceString( fromAmbient.CtorParameterName ).Append( "];" );
                             }
                             atLeastOne = true;
                         }
@@ -176,7 +176,7 @@ namespace CK.Setup
         {
             var signature = "readonly " + (e.TypeFile.Context.Root.PascalCase ? "C" : "c") + "ommandModel: CommandModel<";
             code.Append( signature );
-            var typeName = code.AppendAndGetComplexTypeName( e.Monitor, e.TypeFile.Context, cmd.ResultType );
+            var typeName = code.AppendAndGetComplexTypeName( e.Monitor, e.TypeFile.Context, cmd.ResultNullableTypeTree );
             if( typeName == null ) return null;
             signature += typeName + ">";
             code.Append( ">" );

@@ -111,7 +111,7 @@ namespace CK.Cris.AspNet
             static ICommand? ReadCommand( IActivityMonitor monitor, PocoDirectory p, MemoryStream buffer )
             {
                 var reader = new Utf8JsonReader( buffer.GetBuffer().AsSpan( 0, (int)buffer.Position ) );
-                var poco = p.ReadPocoValue( ref reader );
+                var poco = p.Read( ref reader );
                 if( poco == null ) throw new InvalidDataException( "Null poco received." );
                 if( !(poco is ICommand c) ) throw new InvalidDataException( "Received Poco is not a Command." );
                 return c;

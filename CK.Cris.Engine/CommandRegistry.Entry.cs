@@ -64,7 +64,13 @@ namespace CK.Setup.Cris
             /// This can be the special <c>typeof(NoWaitResult)</c> if the command is a
             /// fire &amp; forget command.
             /// </remarks>
-            public Type ResultType { get; }
+            public Type ResultType => ResultNullableTypeTree.Type;
+
+            /// <summary>
+            /// Gets the final (most specialized) result nullable type tree.
+            /// See <see cref="ResultType"/>.
+            /// </remarks>
+            public NullableTypeTree ResultNullableTypeTree { get; }
 
             /// <summary>
             /// Gets the <see cref="ResultType"/> as the <see cref="IPocoInterfaceInfo"/> if it is a IPoco.
@@ -144,13 +150,13 @@ namespace CK.Setup.Cris
             /// <returns>The name of this command.</returns>
             public override string ToString() => CommandName;
 
-            Entry( IPocoRootInfo command, int commandIdx, Type resultType, IPocoInterfaceInfo? pocoResultType, IStObjFinalClass? handlerService )
+            Entry( IPocoRootInfo command, int commandIdx, NullableTypeTree resultType, IPocoInterfaceInfo? pocoResultType, IStObjFinalClass? handlerService )
             {
                 Command = command;
                 _validators = new List<ValidatorMethod>();
                 _postHandlers = new List<PostHandlerMethod>();
                 CommandIdx = commandIdx;
-                ResultType = resultType;
+                ResultNullableTypeTree = resultType;
                 PocoResultType = pocoResultType;
                 ExpectedHandlerService = handlerService;
             }
@@ -207,7 +213,7 @@ namespace CK.Setup.Cris
                 }
                 #endregion
 
-                return new Entry( command, commandIdx, resultType, pocoResultType, handlerService );
+                return new Entry( command, commandIdx, resultType.GetNullableTypeTree(), pocoResultType, handlerService );
             }
 
             internal bool AddHandler( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, ParameterInfo parameter, bool isClosedHandler )

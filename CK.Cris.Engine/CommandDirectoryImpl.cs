@@ -1,6 +1,7 @@
 using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
+using CK.Setup.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -18,11 +19,11 @@ namespace CK.Setup.Cris
 
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
-            // We need the IJsonSerializationCodeGen service to register command result type.
+            // We need the JsonSerializationCodeGen service to register command result type.
             return new CSCodeGenerationResult( nameof( DoImplement ) );
         }
 
-        CSCodeGenerationResult DoImplement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope, IJsonSerializationCodeGen? json = null )
+        CSCodeGenerationResult DoImplement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope, JsonSerializationCodeGen? json = null )
         { 
             if( classType != typeof( CommandDirectory ) ) throw new InvalidOperationException( "Applies only to the CommandDirectory class." );
             _registry = CommandRegistry.FindOrCreate( monitor, c );
@@ -36,9 +37,14 @@ namespace CK.Setup.Cris
                  .Append( "{" ).NewLine();
             foreach( var e in _registry.Commands )
             {
-                if( json != null && e.ResultType != typeof(void) )
+                // Registering non Poco result type (Poco are all registered by JsonSerializationCodeGen).
+                if( json != null
+                    && e.ResultType != typeof(void)
+                    && e.PocoResultType != null
+                    && !json.IsAllowedType( e.ResultType ) )
                 {
-                    json.RegisterEnumOrCollectionType( e.ResultType );
+                    var info = json.CreateTypeInfo( e.ResultNullableTypeTree )
+                    json.Al.RegisterEnumOrCollectionType( e.ResultType );
                 }
                 var f = c.Assembly.FindOrCreateAutoImplementedClass( monitor, e.Command.PocoFactoryClass );
                 f.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICommandModel" ) );
