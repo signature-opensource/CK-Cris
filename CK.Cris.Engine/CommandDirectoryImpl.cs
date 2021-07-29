@@ -43,8 +43,11 @@ namespace CK.Setup.Cris
                     && e.PocoResultType != null
                     && !json.IsAllowedType( e.ResultType ) )
                 {
-                    var info = json.CreateTypeInfo( e.ResultNullableTypeTree )
-                    json.Al.RegisterEnumOrCollectionType( e.ResultType );
+                    if( !json.AllowType( e.ResultNullableTypeTree ) )
+                    {
+                        monitor.Error( $"Failed to allow returned type '{e.ResultNullableTypeTree}' in JSON for command '{e.CommandName}'." );
+                        return CSCodeGenerationResult.Failed;
+                    }
                 }
                 var f = c.Assembly.FindOrCreateAutoImplementedClass( monitor, e.Command.PocoFactoryClass );
                 f.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICommandModel" ) );

@@ -64,9 +64,7 @@ namespace CK.Cris.Tests
                     throw;
                 }
 
-                var r1 = new Utf8JsonReader( bin1 );
-
-                var o2 = directory.ReadPocoValue( ref r1 );
+                var o2 = directory.JsonDeserialize( bin1 );
 
                 m.Position = 0;
                 using( var w2 = new Utf8JsonWriter( m ) )
