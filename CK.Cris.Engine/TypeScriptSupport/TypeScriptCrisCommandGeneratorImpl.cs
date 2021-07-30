@@ -118,7 +118,7 @@ namespace CK.Setup
                     .OpenBlock()
                         .Append( "commandName: " ).AppendSourceString( cmd.CommandName ).Append( "," ).NewLine()
                         .Append( "isFireAndForget: " ).Append( isFireAndForget ).Append( "," ).NewLine()
-                        .Append( "send: (e: ICrsEndpoint) => e.send( this )" ).Append( "," ).NewLine()
+                        .Append( "send: (e: ICrisEndpoint) => e.send( this )" ).Append( "," ).NewLine()
                         .Append( "applyAmbientValues: (values: { [index: string]: any }, force?: boolean ) => " )
                         .OpenBlock()
                             .Append( ApplyAmbientValues )
@@ -193,18 +193,18 @@ namespace CK.Setup
 export interface CommandModel<TResult> {
     readonly commandName: string;
     readonly isFireAndForget: boolean;
-    send: (e: ICrsEndpoint) => Promise<TResult>;
+    send: (e: ICrisEndpoint) => Promise<TResult>;
     applyAmbientValues: (values: { [index: string]: any }, force?: boolean ) => void;
 }
 
 type CommandResult<T> = T extends { commandModel: CommandModel<infer TResult> } ? TResult : never;
 
-export interface ICrsEndpoint {
+export interface ICrisEndpoint {
     send<T>(command: T): Promise<CommandResult<T>>;
 }
 " );
             }
-            e.TypeFile.File.Imports.EnsureImport( fModel, "CommandModel", "ICrsEndpoint" );
+            e.TypeFile.File.Imports.EnsureImport( fModel, "CommandModel", "ICrisEndpoint" );
         }
 
     }
