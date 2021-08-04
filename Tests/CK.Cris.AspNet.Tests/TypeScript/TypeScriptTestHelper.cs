@@ -33,6 +33,7 @@ namespace CK.Cris.TypeScript.Tests
             {
                 _types = types.Append( typeof( CommandDirectory ) )
                               .Append( typeof( TypeScriptCrisCommandGenerator ) )
+                              .Append( typeof( CK.Core.PocoJsonSerializer ) )
                               .ToArray();
             }
 

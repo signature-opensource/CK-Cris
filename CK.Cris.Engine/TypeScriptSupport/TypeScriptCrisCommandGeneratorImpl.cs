@@ -32,11 +32,10 @@ namespace CK.Setup
 
         bool ITSCodeGenerator.GenerateCode( IActivityMonitor monitor, TypeScriptContext g )
         {
-            CommandRegistry? registry = CommandRegistry.Find( monitor, g.CodeContext );
-            Debug.Assert( registry != null, "Implement (CSharp code) has necessarily been successfully called." );
-            using( monitor.OpenInfo( $"Declaring TypeScript support for {registry.Commands.Count} commands." ) )
+            Debug.Assert( _registry != null );
+            using( monitor.OpenInfo( $"Declaring TypeScript support for {_registry.Commands.Count} commands." ) )
             {
-                foreach( var cmd in registry.Commands )
+                foreach( var cmd in _registry.Commands )
                 {
                     // Declares the IPoco and the command result.
                     // The TSIPocoCodeGenerator (in CK.StObj.TypeScript.Engine) generates all the
@@ -126,11 +125,14 @@ namespace CK.Setup
                     .CloseBlock( withSemiColon: true );
 
                 // All the interfaces share the commandModel signature. 
-                foreach( var itf in e.PocoClass.PocoRootInfo.Interfaces )
+                if( e.TypeFile.Context.Root.GeneratePocoInterfaces )
                 {
-                    var code = e.TypeFile.File.Body.FindKeyedPart( itf.PocoInterface );
-                    Debug.Assert( code != null );
-                    code.Append( signature ).Append( ";" ).NewLine();
+                    foreach( var itf in e.PocoClass.PocoRootInfo.Interfaces )
+                    {
+                        var code = e.TypeFile.File.Body.FindKeyedPart( itf.PocoInterface );
+                        Debug.Assert( code != null );
+                        code.Append( signature ).Append( ";" ).NewLine();
+                    }
                 }
 
                 void ApplyAmbientValues( ITSCodePart b )
