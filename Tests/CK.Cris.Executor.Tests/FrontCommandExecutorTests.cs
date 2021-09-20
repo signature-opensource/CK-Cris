@@ -15,8 +15,8 @@ using static CK.Testing.StObjEngineTestHelper;
 
 #nullable enable
 
-namespace CK.Cris.Front.AspNet.Tests
-{
+namespace CK.Cris.Executor.Tests
+{ 
     [TestFixture]
     public class FrontCommandExecutorTests
     {
@@ -25,14 +25,15 @@ namespace CK.Cris.Front.AspNet.Tests
         /// </summary>
         /// <param name="types">More types to register.</param>
         /// <returns>The collector.</returns>
-        static StObjCollector CreateFrontCommandCollector( params Type[] types )
+        public static StObjCollector CreateFrontCommandCollector( params Type[] types )
         {
             var c = TestHelper.CreateStObjCollector(
                 typeof( FrontCommandExecutor ),
                 typeof( DefaultFrontCommandExceptionHandler ),
                 typeof( CommandDirectory ),
                 typeof( ISimpleErrorResult ),
-                typeof( ICommandResult ) );
+                typeof( ICommandResult ),
+                typeof( AmbientValues.IAmbientValues ) );
             c.RegisterTypes( types );
             return c;
         }
@@ -245,68 +246,6 @@ namespace CK.Cris.Front.AspNet.Tests
                 }
             }
         }
-
-        #region CollectAmbientValues Handler & PostHandler.
-        public interface IAmbientValuesCollectCommand : ICommand<Dictionary<string, object?>>
-        {
-        }
-
-        public class AmbientValuesService : IAutoService
-        {
-            [CommandHandler]
-            public Dictionary<string, object?> GetValues( IAmbientValuesCollectCommand cmd ) => new Dictionary<string, object?>();
-        }
-
-        public class AuthService : IAutoService
-        {
-            [CommandPostHandler]
-            public void GetValues( IAmbientValuesCollectCommand cmd, IAuthenticationInfo info, Dictionary<string, object?> values )
-            {
-                values.Add( "ActorId", info.User.UserId );
-                values.Add( "ActualActorId", info.ActualUser.UserId );
-            }
-        }
-
-        public class SecurityService : IAutoService
-        {
-            [CommandPostHandler]
-            public async Task GetValuesAsync( IAmbientValuesCollectCommand cmd, IActivityMonitor monitor, IAuthenticationInfo info, Dictionary<string, object?> values )
-            {
-                await Task.Delay( 25 );
-                monitor.Info( $"User {info.User.UserName} roles have been read from the database." );
-                values.Add( "Roles", new[] { "Admin", "Tester", "Approver" } );
-            }
-        }
-
-        [Test]
-        public async Task calling_PostHandlers()
-        {
-            var c = CreateFrontCommandCollector( typeof( IAmbientValuesCollectCommand ), typeof( AmbientValuesService ), typeof( AuthService ), typeof( SecurityService ) );
-
-            var authTypeSystem = new StdAuthenticationTypeSystem();
-            var authInfo = authTypeSystem.AuthenticationInfo.Create( authTypeSystem.UserInfo.Create( 3712, "John" ), DateTime.UtcNow.AddDays( 1 ) );
-            var map = TestHelper.CompileAndLoadStObjMap( c ).Map;
-            var reg = new StObjContextRoot.ServiceRegister( TestHelper.Monitor, new ServiceCollection() );
-            reg.Register<IAuthenticationInfo>( s => authInfo, true, false );
-            reg.AddStObjMap( map ).Should().BeTrue( "Service configuration succeed." );
-
-            var appServices = reg.Services.BuildServiceProvider();
-
-            using( var scope = appServices.CreateScope() )
-            {
-                var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<FrontCommandExecutor>();
-                var cmd = services.GetRequiredService<IPocoFactory<IAmbientValuesCollectCommand>>().Create();
-
-                var r = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
-                r.Code.Should().Be( VESACode.Synchronous );
-                Debug.Assert( r.Result != null );
-                var ambientValues = (Dictionary<string, object?>)r.Result!;
-                ambientValues.Should().HaveCount( 3 );
-            }
-        }
-        #endregion
-
 
         #region [CommandHandler] on IAutoService publicly implemented.
 

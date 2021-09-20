@@ -19,7 +19,7 @@ namespace CK.Setup.Cris
         public CSCodeGenerationResult Implement( IActivityMonitor monitor, ICSCodeGenerationContext codeGenContext )
         {
             var (registry, impl, method) = Prepare( monitor, codeGenContext );
-            Debug.Assert( (registry == null) == (impl == null) );
+            Debug.Assert( registry == null || impl != null, "registry available => final implementation of the class that implements the method exists." );
             return registry != null && registry.RegisterValidator( monitor, impl!, method )
                     ? CSCodeGenerationResult.Success
                     : CSCodeGenerationResult.Failed;

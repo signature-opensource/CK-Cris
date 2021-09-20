@@ -13,11 +13,11 @@
   <ItemGroup>
     <PackageReference Include="CK.StObj.Runtime" />
     <!--
-          This Engine package uses the CK.StObj.TypeScript.Engine to offer TypeScript generation (when the TypeScriptAspect is
-          declared and one or more <TypeScript><OutuptPath>...</OutuptPath></TypeScript> is defined in the BinPathConfiguration.
+          This CK.Cris.Engine directly implements the CK.Cris.TypeSript.Engine to avoid another (quite small) assembly.
 
-          The CK.Cris model package does not reference CK.StObj.TypeScript: using it is optional (the TypeScript attribute is not required
-          to support TypeScript Command generation.
+          Note that Cris TypeScript generation requires:
+          - the TypeScriptAspect is declared and one or more <TypeScript><OutuptPath>...</OutuptPath></TypeScript> is defined in the BinPathConfiguration.
+          - AND the CK.Cris.TypeScript must be referenced.
     -->
     <PackageReference Include="CK.StObj.TypeScript.Engine" />
   </ItemGroup>

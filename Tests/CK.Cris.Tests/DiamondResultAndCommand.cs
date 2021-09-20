@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
 namespace CK.Cris.Tests
 {
     public interface IResult : IPoco
@@ -10,8 +12,14 @@ namespace CK.Cris.Tests
         int Val { get; set; }
     }
 
+    /// <summary>
+    /// Extends the basic result with a <see cref="MoreVal"/>.
+    /// </summary>
     public interface IMoreResult : IResult
     {
+        /// <summary>
+        /// Gets or sets the More value.
+        /// </summary>
         int MoreVal { get; set; }
     }
 
@@ -20,9 +28,7 @@ namespace CK.Cris.Tests
         int AnotherVal { get; set; }
     }
 
-    public interface IUnifiedResult : IMoreResult, IAnotherResult
-    {
-    }
+    public interface IUnifiedResult : IMoreResult, IAnotherResult { }
 
     public interface ICommandWithPocoResult : ICommand<IResult> { }
 
@@ -30,8 +36,10 @@ namespace CK.Cris.Tests
 
     public interface ICommandWithAnotherPocoResult : ICommandWithPocoResult, ICommand<IAnotherResult> { }
 
-    public interface ICommandUnifiedButNotTheResult : ICommandWithMorePocoResult, ICommandWithAnotherPocoResult { }
-
     public interface ICommandUnifiedWithTheResult : ICommandWithMorePocoResult, ICommandWithAnotherPocoResult, ICommand<IUnifiedResult> { }
+
+
+    // Cannot work: the results are NOT unified in a final type.
+    public interface ICommandUnifiedButNotTheResult : ICommandWithMorePocoResult, ICommandWithAnotherPocoResult { }
 
 }

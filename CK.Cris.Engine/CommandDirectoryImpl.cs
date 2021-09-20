@@ -1,7 +1,7 @@
 using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
-using CK.StObj.TypeScript;
+using CK.Setup.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,17 +14,20 @@ namespace CK.Setup.Cris
     /// </summary>
     public partial class CommandDirectoryImpl : CSCodeGeneratorType
     {
+        // We keep a reference instead of using CommandRegistry.FindOrCreate each time (for TypeScript).
+        CommandRegistry? _registry;
+
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
-            // We need the IJsonSerializationCodeGen service to register command result type.
+            // We need the JsonSerializationCodeGen service to register command result type.
             return new CSCodeGenerationResult( nameof( DoImplement ) );
         }
 
-        CSCodeGenerationResult DoImplement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope, IJsonSerializationCodeGen? json = null )
+        CSCodeGenerationResult DoImplement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope, JsonSerializationCodeGen? json = null )
         { 
             if( classType != typeof( CommandDirectory ) ) throw new InvalidOperationException( "Applies only to the CommandDirectory class." );
-            var registry = CommandRegistry.FindOrCreate( monitor, c );
-            if( registry == null ) return CSCodeGenerationResult.Failed;
+            _registry = CommandRegistry.FindOrCreate( monitor, c );
+            if( _registry == null ) return CSCodeGenerationResult.Failed;
 
             CodeWriterExtensions.Append( scope, "public " ).Append( scope.Name ).Append( "() : base( CreateCommands() ) {}" ).NewLine();
 
@@ -32,11 +35,19 @@ namespace CK.Setup.Cris
                  .OpenBlock()
                  .Append( "var list = new ICommandModel[]" ).NewLine()
                  .Append( "{" ).NewLine();
-            foreach( var e in registry.Commands )
+            foreach( var e in _registry.Commands )
             {
-                if( json != null && e.ResultType != typeof(void) )
+                // Registering non Poco result type (Poco are all registered by JsonSerializationCodeGen).
+                if( json != null
+                    && e.ResultType != typeof(void)
+                    && e.PocoResultType != null
+                    && !json.IsAllowedType( e.ResultType ) )
                 {
-                    json.RegisterEnumOrCollectionType( e.ResultType );
+                    if( !json.AllowType( e.ResultNullableTypeTree ) )
+                    {
+                        monitor.Error( $"Failed to allow returned type '{e.ResultNullableTypeTree}' in JSON for command '{e.CommandName}'." );
+                        return CSCodeGenerationResult.Failed;
+                    }
                 }
                 var f = c.Assembly.FindOrCreateAutoImplementedClass( monitor, e.Command.PocoFactoryClass );
                 f.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICommandModel" ) );
@@ -47,6 +58,7 @@ namespace CK.Setup.Cris
                  .Append( "public MethodInfo Handler => " ).Append( e.Handler?.Method ).Append( ";" ).NewLine()
                  .Append( "CK.Cris.ICommand CK.Cris.ICommandModel.Create() => (CK.Cris.ICommand)Create();" ).NewLine();
 
+                // The CommandModel is the _factory field.
                 var p = c.Assembly.FindOrCreateAutoImplementedClass( monitor, e.Command.PocoClass );
                 p.Append( "public CK.Cris.ICommandModel CommandModel => _factory;" ).NewLine();
 
@@ -56,15 +68,17 @@ namespace CK.Setup.Cris
                  .Append( "return list;" )
                  .CloseBlock();
 
-            c.CurrentRun.ServiceContainer.Add( registry );
-            return new CSCodeGenerationResult( "CheckICommandHandlerImplementation" );
+            // Publish the CommandRegistry in the services so that other can use it.
+            c.CurrentRun.ServiceContainer.Add( _registry );
+            return new CSCodeGenerationResult( nameof( CheckICommandHandlerImplementation ) );
         }
 
-        CSCodeGenerationResult CheckICommandHandlerImplementation( IActivityMonitor monitor, CommandRegistry registry )
+        CSCodeGenerationResult CheckICommandHandlerImplementation( IActivityMonitor monitor )
         {
-            CSCodeGenerationResult r = CSCodeGenerationResult.Success;
+            Debug.Assert( _registry != null );
 
-            var missingHandlers = registry.Commands.Where( c => c.Handler == null );
+            CSCodeGenerationResult r = CSCodeGenerationResult.Success;
+            var missingHandlers = _registry.Commands.Where( c => c.Handler == null );
             foreach( var c in missingHandlers )
             {
                 if( c.ExpectedHandlerService != null )

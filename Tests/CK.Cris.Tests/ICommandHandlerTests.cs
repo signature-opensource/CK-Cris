@@ -4,8 +4,11 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using static CK.Testing.StObjEngineTestHelper;
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 namespace CK.Cris.Tests
 {
@@ -19,7 +22,10 @@ namespace CK.Cris.Tests
         [Test]
         public void Command_method_handler_must_exist()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICommandUnifiedWithTheResult ), typeof( IUnifiedResult), typeof( CmdHandlerMissingHandler ) );
+            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
+                typeof( ICommandUnifiedWithTheResult ),
+                typeof( IUnifiedResult),
+                typeof( CmdHandlerMissingHandler ) );
             TestHelper.GenerateCode( c ).CodeGen.Success.Should().BeFalse();
         }
 
@@ -39,7 +45,10 @@ namespace CK.Cris.Tests
         [Test]
         public void ICommandHandler_has_the_priority()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICommandWithPocoResult ), typeof( CmdHandlerOfBase ), typeof( CmdHandlerAlternate ) );
+            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
+                typeof( ICommandWithPocoResult ),
+                typeof( CmdHandlerOfBase ),
+                typeof( CmdHandlerAlternate ) );
             var s = TestHelper.GetAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CommandDirectory>();
 
@@ -58,7 +67,10 @@ namespace CK.Cris.Tests
         [Test]
         public void ICommandHandler_implementation_can_be_specialized_without_redefining_command_type()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICommandWithMorePocoResult ), typeof( CmdHandlerWithMore ), typeof( CmdHandlerAlternate ) );
+            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
+                typeof( ICommandWithMorePocoResult ),
+                typeof( CmdHandlerWithMore ),
+                typeof( CmdHandlerAlternate ) );
             var s = TestHelper.GetAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CommandDirectory>();
 
@@ -78,7 +90,11 @@ namespace CK.Cris.Tests
         [Test]
         public void Command_handler_service_must_be_unified_just_like_other_IAutoService()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICommandUnifiedWithTheResult ), typeof( CmdHandlerWithMore ), typeof( CmdHandlerWithAnother ), typeof( CmdHandlerAlternate ) );
+            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
+                typeof( ICommandUnifiedWithTheResult ),
+                typeof( CmdHandlerWithMore ),
+                typeof( CmdHandlerWithAnother ),
+                typeof( CmdHandlerAlternate ) );
             TestHelper.GetFailedResult( c );
         }
 
@@ -94,7 +110,12 @@ namespace CK.Cris.Tests
         [Test]
         public void Command_method_handler_must_also_be_unified()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICommandUnifiedWithTheResult ), typeof( CmdHandlerFailingUnified ), typeof( CmdHandlerWithMore ), typeof( CmdHandlerWithAnother ), typeof( CmdHandlerAlternate ) );
+            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
+                typeof( ICommandUnifiedWithTheResult ),
+                typeof( CmdHandlerFailingUnified ),
+                typeof( CmdHandlerWithMore ),
+                typeof( CmdHandlerWithAnother ),
+                typeof( CmdHandlerAlternate ) );
             TestHelper.GenerateCode( c ).CodeGen.Success.Should().BeFalse();
         }
 
@@ -115,7 +136,12 @@ namespace CK.Cris.Tests
         [Test]
         public void ICommandHandler_Service_AND_handler_method_must_be_unified()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICommandUnifiedWithTheResult ), typeof( CmdHandlerUnified ), typeof( CmdHandlerWithMore ), typeof( CmdHandlerWithAnother ), typeof( CmdHandlerAlternate ) );
+            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
+                typeof( ICommandUnifiedWithTheResult ),
+                typeof( CmdHandlerUnified ),
+                typeof( CmdHandlerWithMore ),
+                typeof( CmdHandlerWithAnother ),
+                typeof( CmdHandlerAlternate ) );
             var s = TestHelper.GetAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CommandDirectory>();
 
@@ -146,7 +172,7 @@ namespace CK.Cris.Tests
         [Test]
         public void Handler_method_can_be_virtual()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ),
+            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
                                                      typeof( ICommandUnifiedWithTheResult ),
                                                      typeof( IUnifiedResult ),
                                                      typeof( CmdHandlerUnifiedSpecialized ), typeof( CmdHandlerWithMore ), typeof( CmdHandlerWithAnother ), typeof( CmdHandlerAlternate ) );
@@ -159,11 +185,13 @@ namespace CK.Cris.Tests
             var baseHandler = typeof( CmdHandlerUnified ).GetMethod( "Run", new[] { typeof( ICommandUnifiedWithTheResult ) } );
 
             var model = cmd.CommandModel;
+            Debug.Assert( model.Handler != null );
             model.Handler.Should().NotBeNull().And.BeSameAs( baseHandler, "The base method is the one decorated by the [CommandHandler]." );
 
             var handlerService = s.GetRequiredService<ICommandHandler<ICommandWithPocoResult>>();
 
-            var result = (IResult)model.Handler.Invoke( handlerService, new[] { cmd } );
+            var result = (IResult?)model.Handler.Invoke( handlerService, new[] { cmd } );
+            Debug.Assert( result != null );
             result.Val.Should().Be( 3712, "Calling the base method naturally uses the overridden method." );
         }
 

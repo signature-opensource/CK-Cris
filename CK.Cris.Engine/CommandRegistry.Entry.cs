@@ -58,9 +58,19 @@ namespace CK.Setup.Cris
 
             /// <summary>
             /// Gets the final (most specialized) result type.
-            /// This is typeof(void) when no <see cref="ICommand{TResult}"/> exists.
+            /// This is <c>typeof(void)</c> when no <see cref="ICommand{TResult}"/> exists.
             /// </summary>
-            public Type ResultType { get; }
+            /// <remarks>
+            /// This can be the special <c>typeof(NoWaitResult)</c> if the command is a
+            /// fire &amp; forget command.
+            /// </remarks>
+            public Type ResultType => ResultNullableTypeTree.Type;
+
+            /// <summary>
+            /// Gets the final (most specialized) result nullable type tree.
+            /// See <see cref="ResultType"/>.
+            /// </remarks>
+            public NullableTypeTree ResultNullableTypeTree { get; }
 
             /// <summary>
             /// Gets the <see cref="ResultType"/> as the <see cref="IPocoInterfaceInfo"/> if it is a IPoco.
@@ -111,7 +121,14 @@ namespace CK.Setup.Cris
                         {
                             if( p.Position > 0 ) w.Append( ", " );
                             if( typeof( IActivityMonitor ).IsAssignableFrom( p.ParameterType ) ) w.Append( "m" );
-                            else if( p == m.ResultParameter ) w.Append( "r" );
+                            else if( p == m.ResultParameter )
+                            {
+                                if( m.MustCastResultParameter )
+                                {
+                                    w.Append( "(" ).AppendCSharpName( p.ParameterType ).Append( ")" );
+                                }
+                                w.Append( "r" );
+                            }
                             else if( p == m.CmdOrPartParameter )
                             {
                                 w.Append( "(" ).AppendCSharpName( m.CmdOrPartParameter.ParameterType ).Append( ")c" );
@@ -133,13 +150,13 @@ namespace CK.Setup.Cris
             /// <returns>The name of this command.</returns>
             public override string ToString() => CommandName;
 
-            Entry( IPocoRootInfo command, int commandIdx, Type resultType, IPocoInterfaceInfo? pocoResultType, IStObjFinalClass? handlerService )
+            Entry( IPocoRootInfo command, int commandIdx, NullableTypeTree resultType, IPocoInterfaceInfo? pocoResultType, IStObjFinalClass? handlerService )
             {
                 Command = command;
                 _validators = new List<ValidatorMethod>();
                 _postHandlers = new List<PostHandlerMethod>();
                 CommandIdx = commandIdx;
-                ResultType = resultType;
+                ResultNullableTypeTree = resultType;
                 PocoResultType = pocoResultType;
                 ExpectedHandlerService = handlerService;
             }
@@ -196,7 +213,7 @@ namespace CK.Setup.Cris
                 }
                 #endregion
 
-                return new Entry( command, commandIdx, resultType, pocoResultType, handlerService );
+                return new Entry( command, commandIdx, resultType.GetNullableTypeTree(), pocoResultType, handlerService );
             }
 
             internal bool AddHandler( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, ParameterInfo parameter, bool isClosedHandler )
@@ -256,7 +273,7 @@ namespace CK.Setup.Cris
                         // - c1 == c2 => Ambiguity.
                         // - c1 is assignable form c2 => c2
                         // - c2 is assignable from c1 => c1
-                        // - c1 indepedent of c2 => Ambiguity.
+                        // - c1 independent of c2 => Ambiguity.
                         monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{Handler}' handle '{CommandName}' command." );
                         return false;
                     }
@@ -282,14 +299,36 @@ namespace CK.Setup.Cris
             {
                 if( !CheckVoidReturn( monitor, "PostHandler", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
 
-                ParameterInfo? resultParameter = ResultType != typeof( void ) && ResultType != typeof( NoWaitResult )
-                                                    ? parameters.FirstOrDefault( p => p.ParameterType.IsAssignableFrom( ResultType ) )
-                                                    : null;
+                // Looking for the command result in the parameters.
+                bool mustCastResultParameter = false;
+                ParameterInfo? resultParameter = null;
+                if( PocoResultType != null )
+                {
+                    // The result is a IPoco: the first parameter that is one of the IPoco interfaces or a non IPoco interface (like a definer)
+                    // that this poco supports is fine.
+                    resultParameter = parameters.FirstOrDefault( p => p.ParameterType is Type t
+                                                                      && (PocoResultType.Root.Interfaces.Any( itf => itf.PocoInterface == t )
+                                                                          || PocoResultType.Root.OtherInterfaces.Contains( t )) );
+                    if( resultParameter != null ) mustCastResultParameter = true;
+                }
+                else if( ResultType != typeof( void ) && ResultType != typeof( NoWaitResult ) )
+                {
+                    // The result type is not a IPoco. The first parameter that can be assigned to the result type is fine. 
+                    resultParameter = parameters.FirstOrDefault( p => p.ParameterType.IsAssignableFrom( ResultType ) );
+                }
                 if( resultParameter != null )
                 {
                     monitor.Trace( $"PostHandler method '{MethodName( method, parameters )}': parameter '{resultParameter.Name}' is the Command's result." );
                 }
-                _postHandlers.Add( new PostHandlerMethod( this, owner, method, parameters, commandParameter, resultParameter, isRefAsync, isValAsync ) );
+                _postHandlers.Add( new PostHandlerMethod( this,
+                                                          owner,
+                                                          method,
+                                                          parameters,
+                                                          commandParameter,
+                                                          resultParameter,
+                                                          mustCastResultParameter,
+                                                          isRefAsync,
+                                                          isValAsync ) );
                 return true;
             }
 

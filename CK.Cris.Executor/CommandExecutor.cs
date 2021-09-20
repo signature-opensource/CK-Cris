@@ -47,9 +47,9 @@ namespace CK.Cris
         /// Creates a <see cref="ISimpleErrorResult"/> with at least one error.
         /// </summary>
         /// <param name="firstError">The required first error.</param>
-        /// <param name="otherErrors">Optional other errors.</param>
+        /// <param name="otherErrors">Optional other errors (null strings are ignored).</param>
         /// <returns>A simple validation result.</returns>
-        public ISimpleErrorResult CreateSimpleErrorResult( string firstError, params string[] otherErrors )
+        public ISimpleErrorResult CreateSimpleErrorResult( string firstError, params string?[] otherErrors )
         {
             return _simpleErrorResultFactory.Create( firstError, otherErrors );
         }

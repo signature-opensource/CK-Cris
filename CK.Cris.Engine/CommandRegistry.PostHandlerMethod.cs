@@ -13,6 +13,7 @@ namespace CK.Setup.Cris
             public readonly ParameterInfo[] Parameters;
             public readonly ParameterInfo CmdOrPartParameter;
             public readonly ParameterInfo? ResultParameter;
+            public readonly bool MustCastResultParameter;
             public readonly bool IsRefAsync;
             public readonly bool IsValAsync;
 
@@ -23,6 +24,7 @@ namespace CK.Setup.Cris
                         ParameterInfo[] parameters,
                         ParameterInfo cmdOrPartParameter,
                         ParameterInfo? resultParameter,
+                        bool mustCastResultParameter,
                         bool isRefAsync,
                         bool isValAsync )
             {
@@ -32,6 +34,7 @@ namespace CK.Setup.Cris
                 Parameters = parameters;
                 CmdOrPartParameter = cmdOrPartParameter;
                 ResultParameter = resultParameter;
+                MustCastResultParameter = mustCastResultParameter;
                 IsRefAsync = isRefAsync;
                 IsValAsync = isValAsync;
             }

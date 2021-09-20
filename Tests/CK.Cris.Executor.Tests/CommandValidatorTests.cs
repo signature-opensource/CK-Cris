@@ -11,7 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
 
-namespace CK.Cris.Front.AspNet.Tests
+namespace CK.Cris.Executor.Tests
 {
     [TestFixture]
     public class CommandValidatorTests
@@ -26,7 +26,7 @@ namespace CK.Cris.Front.AspNet.Tests
         public async Task when_there_is_no_validation_methods_the_validation_succeeds()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ),
+                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ), typeof( AmbientValues.IAmbientValues ),
                 typeof( ICmdTest ) );
 
             var services = TestHelper.GetAutomaticServices( c ).Services;
@@ -52,7 +52,7 @@ namespace CK.Cris.Front.AspNet.Tests
         public void exceptions_raised_by_validators_are_NOT_handled_by_the_CommandValidator_the_caller_MUST_handle_them()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ),
+                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ), typeof( AmbientValues.IAmbientValues ),
                 typeof( ICmdTest ),
                 typeof( BuggyValidator ) );
             var services = TestHelper.GetAutomaticServices( c ).Services;
@@ -97,7 +97,7 @@ namespace CK.Cris.Front.AspNet.Tests
         public async Task the_simplest_validation_is_held_by_a_dependency_free_service_and_is_synchronous( bool scopedService, bool singletonService )
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ),
+                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ), typeof( AmbientValues.IAmbientValues ),
                 typeof( ICmdTest ),
                 typeof( ICmdWithoutValidators ) );
             if( singletonService ) c.RegisterType( typeof( SimplestValidatorEverSingleton ) );
@@ -176,7 +176,7 @@ namespace CK.Cris.Front.AspNet.Tests
         public async Task part_with_parameter_injection()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ),
+                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ), typeof( AmbientValues.IAmbientValues ),
                 typeof( ICmdTestSecure ),
                 typeof( AuthenticationValidator ),
                 typeof( SimplestValidatorEverScoped ),

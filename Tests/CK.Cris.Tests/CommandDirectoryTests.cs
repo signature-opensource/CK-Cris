@@ -10,6 +10,8 @@ using System.Text;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
 namespace CK.Cris.Tests
 {
     [TestFixture]
@@ -23,7 +25,7 @@ namespace CK.Cris.Tests
         [Test]
         public void simple_command_models()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICmdTest ) );
+            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICmdTest ), typeof( AmbientValues.IAmbientValues ) );
             var services = TestHelper.GetAutomaticServices( c ).Services;
             var poco = services.GetRequiredService<PocoDirectory>();
 
