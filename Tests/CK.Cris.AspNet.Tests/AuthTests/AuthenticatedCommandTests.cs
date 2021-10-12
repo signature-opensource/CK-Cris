@@ -46,30 +46,30 @@ namespace CK.Cris.AspNet.Tests.AuthTests
                     Debug.Assert( r != null );
                     r.StatusCode.Should().Be( HttpStatusCode.OK );
                     string response = await r.Content.ReadAsStringAsync();
-                    response.Should().Be( @"[""CrisResult"",{""Code"":83,""Result"":null}]" );
+                    response.Should().Be( @"[""CrisResult"",{""code"":83,""result"":null}]" );
                 }
                 {
                     HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""YES. There is no ActorId in the Json => it is 0 by default.""}]" );
                     Debug.Assert( r != null );
                     r.StatusCode.Should().Be( HttpStatusCode.OK );
                     string response = await r.Content.ReadAsStringAsync();
-                    response.Should().Be( @"[""CrisResult"",{""Code"":83,""Result"":null}]" );
+                    response.Should().Be( @"[""CrisResult"",{""code"":83,""result"":null}]" );
                 }
                 {
                     HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""NO WAY!"",""ActorId"":3712}]" );
                     Debug.Assert( r != null );
                     r.StatusCode.Should().Be( HttpStatusCode.BadRequest );
                     string response = await r.Content.ReadAsStringAsync();
-                    response.Should().Be( @"[""CrisResult"",{""Code"":86,""Result"":[""CrisSimpleError"",{""Errors"":[""Invalid actor identifier: the command provided identifier doesn\u0027t match the current authentication.""]}]}]" );
+                    response.Should().Be( @"[""CrisResult"",{""code"":86,""result"":[""CrisSimpleError"",{""errors"":[""Invalid actor identifier: the command provided identifier doesn\u0027t match the current authentication.""]}]}]" );
                 }
                 UnsafeHandler.LastUserInfo = null;
                 await s.LoginAsync( "Albert" );
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""Yes! Albert 3712 is logged in."",""ActorId"":3712}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""userInfo"":""Yes! Albert 3712 is logged in."",""actorId"":3712}]" );
                     Debug.Assert( r != null );
                     r.StatusCode.Should().Be( HttpStatusCode.OK );
                     string response = await r.Content.ReadAsStringAsync();
-                    response.Should().Be( @"[""CrisResult"",{""Code"":83,""Result"":null}]" );
+                    response.Should().Be( @"[""CrisResult"",{""code"":83,""result"":null}]" );
                     UnsafeHandler.LastUserInfo.Should().Be( "Yes! Albert 3712 is logged in." );
                 }
                 {
