@@ -32,7 +32,7 @@ namespace CK.Cris
         /// <summary>
         /// Executes a command by calling the ExecuteCommand or ExecuteCommandAsync method for the
         /// closure of the command Poco (the ICommand interface that unifies all other ICommand and <see cref="ICommandPart"/>.
-        /// Any exceptions are catched and sent to the <see cref="IFrontCommandExceptionHandler"/> service.
+        /// Any exceptions are caught and sent to the <see cref="IFrontCommandExceptionHandler"/> service.
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
@@ -47,9 +47,9 @@ namespace CK.Cris
         /// Creates a <see cref="ISimpleErrorResult"/> with at least one error.
         /// </summary>
         /// <param name="firstError">The required first error.</param>
-        /// <param name="otherErrors">Optional other errors.</param>
+        /// <param name="otherErrors">Optional other errors (null strings are ignored).</param>
         /// <returns>A simple validation result.</returns>
-        public ISimpleErrorResult CreateSimpleErrorResult( string firstError, params string[] otherErrors )
+        public ISimpleErrorResult CreateSimpleErrorResult( string firstError, params string?[] otherErrors )
         {
             return _simpleErrorResultFactory.Create( firstError, otherErrors );
         }

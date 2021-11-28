@@ -22,7 +22,7 @@ namespace CK.Cris
         Error = 'E',
 
         /// <summary>
-        /// The command has successfuly been executed in a synchronous-way, its result is directly accessible by the client.
+        /// The command has successfully been executed in a synchronous-way, its result is directly accessible by the client.
         /// </summary>
         Synchronous = 'S',
 

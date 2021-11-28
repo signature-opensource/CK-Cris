@@ -11,7 +11,7 @@ namespace Microsoft.AspNetCore.Builder
     public static class CrisApplicationBuilderExtension
     {
         /// <summary>
-        /// Injects the <see cref="CrisMiddleware"/> is the pipeline.
+        /// Injects the <see cref="CrisMiddleware"/> into the pipeline.
         /// </summary>
         /// <param name="this">This application builder.</param>
         /// <returns>The application builder.</returns>

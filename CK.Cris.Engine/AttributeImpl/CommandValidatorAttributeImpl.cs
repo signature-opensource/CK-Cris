@@ -9,20 +9,20 @@ using System.Text;
 
 namespace CK.Setup.Cris
 {
-    class CommandValidatorAttributeImpl : CommandAttributeImpl, ICodeGenerator
+    class CommandValidatorAttributeImpl : CommandAttributeImpl, ICSCodeGenerator
     {
         public CommandValidatorAttributeImpl( CommandValidatorAttribute a, Type t, MethodInfo m )
             : base( t, m )
         {
         }
 
-        public AutoImplementationResult Implement( IActivityMonitor monitor, ICodeGenerationContext codeGenContext )
+        public CSCodeGenerationResult Implement( IActivityMonitor monitor, ICSCodeGenerationContext codeGenContext )
         {
             var (registry, impl, method) = Prepare( monitor, codeGenContext );
-            Debug.Assert( (registry == null) == (impl == null) );
+            Debug.Assert( registry == null || impl != null, "registry available => final implementation of the class that implements the method exists." );
             return registry != null && registry.RegisterValidator( monitor, impl!, method )
-                    ? AutoImplementationResult.Success
-                    : AutoImplementationResult.Failed;
+                    ? CSCodeGenerationResult.Success
+                    : CSCodeGenerationResult.Failed;
         }
     }
 }

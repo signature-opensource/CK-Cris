@@ -9,13 +9,13 @@ using System.Linq;
 
 namespace CK.Setup.Cris
 {
-    public class CommandValidatorImpl : AutoImplementorType
+    public class CommandValidatorImpl : CSCodeGeneratorType
     {
-        public override AutoImplementationResult Implement( IActivityMonitor monitor, Type classType, ICodeGenerationContext c, ITypeScope scope )
+        public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
             if( classType != typeof( CommandValidator ) ) throw new InvalidOperationException( "Applies only to the CommandValidator class." );
             var registry = CommandRegistry.FindOrCreate( monitor, c );
-            if( registry == null ) return AutoImplementationResult.Failed;
+            if( registry == null ) return CSCodeGenerationResult.Failed;
 
             var validateMethod = classType.GetMethod( nameof( CommandValidator.ValidateCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( ICommand ) } );
             Debug.Assert( validateMethod != null, "This is the signature of the central method." );
@@ -103,7 +103,7 @@ namespace CK.Setup.Cris
                 mValidate.Definition.Modifiers &= ~Modifiers.Async;
                 mValidate.Append( "return Task.FromResult<CK.Cris.ValidationResult>( new CK.Cris.ValidationResult( command ) );" );
             }
-            return AutoImplementationResult.Success;
+            return CSCodeGenerationResult.Success;
         }
 
     }

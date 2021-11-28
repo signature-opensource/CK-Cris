@@ -15,7 +15,7 @@ namespace CK.Cris
     {
         /// <summary>
         /// Handles the error by logging the exception, calling <see cref="DumpCommand(IActivityMonitor, IServiceProvider, ICommand)"/>
-        /// to dump the command and setting <see cref="ICommandResult.Result"/> to the the exception message.
+        /// to dump the command and setting <see cref="ICommandResult.Result"/> to the exception message.
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
@@ -23,14 +23,14 @@ namespace CK.Cris
         /// <param name="command">The command that failed.</param>
         /// <param name="result">The command result (its <see cref="ICommandResult.Code"/> is already set to <see cref="VESACode.Error"/>).</param>
         /// <returns>The awaitable.</returns>
-        public virtual Task OnError( IActivityMonitor monitor, IServiceProvider services, Exception ex, ICommand command, ICommandResult result )
+        public virtual ValueTask OnErrorAsync( IActivityMonitor monitor, IServiceProvider services, Exception ex, ICommand command, ICommandResult result )
         {
             using( monitor.OpenError( $"While handling command '{command.CommandModel.CommandName}'.", ex ) )
             {
                 DumpCommand( monitor, services, command );
             }
             result.Result = ex.Message;
-            return Task.CompletedTask;
+            return default;
         }
 
         /// <summary>
