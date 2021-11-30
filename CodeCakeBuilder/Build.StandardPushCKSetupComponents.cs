@@ -17,13 +17,13 @@ namespace CodeCake
         {
             return new CKSetupComponent[]{
 
-new CKSetupComponent( "CK.Cris", "netstandard2.1" ),
-new CKSetupComponent( "CK.Cris.Executor", "netstandard2.1" ),
+new CKSetupComponent( "CK.Cris", "net6.0" ),
+new CKSetupComponent( "CK.Cris.Executor", "net6.0" ),
 new CKSetupComponent( "CK.Cris.Executor.Engine", "net6.0" ),
 new CKSetupComponent( "CK.Cris.Engine", "net6.0" ),
 new CKSetupComponent( "CK.Cris.AspNet", "net6.0" ),
 new CKSetupComponent( "CK.Cris.AspNet.Engine", "net6.0" ),
-new CKSetupComponent( "CK.Cris.TypeScript", "netstandard2.1" )
+new CKSetupComponent( "CK.Cris.TypeScript", "net6.0" )
 };
         }
 
