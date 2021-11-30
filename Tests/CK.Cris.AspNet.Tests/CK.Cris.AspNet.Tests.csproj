@@ -5,7 +5,6 @@
     <TargetFramework>net6.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\CK.Cris.Tests\DiamondResultAndCommand.cs" Link="DiamondResultAndCommand.cs" />
@@ -13,7 +12,7 @@
   <ItemGroup>
     <PackageReference Include="CK.Testing.StObjEngine" />
     <PackageReference Include="CK.AspNet.Tester" />
-    <PackageReference Include="nunit" />
+    <PackageReference Include="NUnit" />
     <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
   </ItemGroup>
@@ -21,8 +20,5 @@
     <ProjectReference Include="..\..\CK.Auth.Cris\CK.Auth.Cris.csproj" />
     <ProjectReference Include="..\..\CK.Cris.AspNet.Engine\CK.Cris.AspNet.Engine.csproj" />
     <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="bin\Debug\netcoreapp3.1\" />
   </ItemGroup>
 </Project>

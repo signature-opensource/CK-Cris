@@ -1,5 +1,5 @@
 using CK.Setup;
-using CK.Text;
+using CK.Core;
 using FluentAssertions;
 using System;
 using System.Collections.Generic;

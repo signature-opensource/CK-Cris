@@ -1,7 +1,6 @@
 using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
-using CK.Text;
 using System;
 using System.Diagnostics;
 using System.Linq;

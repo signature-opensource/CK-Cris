@@ -9,8 +9,8 @@
   <ItemGroup>
     <PackageReference Include="CK.Auth.Abstractions" />
     <PackageReference Include="CK.Testing.StObjEngine" />
-    <PackageReference Include="nunit" />
-    <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
   </ItemGroup>
   <ItemGroup>
