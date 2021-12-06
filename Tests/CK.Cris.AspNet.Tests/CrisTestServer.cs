@@ -86,7 +86,7 @@ namespace CK.Cris.AspNet.Tests
                 {
                     webBuilder.UseScopedHttpContext();
                 }
-            ).UseMonitoring();
+            ).UseCKMonitoring();
 
             var host = b.Build();
             host.Start();

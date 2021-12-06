@@ -39,9 +39,9 @@ namespace CK.Setup.Cris
                     if( isOverallAsync ) scope.Append( "async " );
                     scope.Append( "Task<object> H" ).Append( e.CommandIdx ).Append( "( IActivityMonitor m, IServiceProvider s, CK.Cris.ICommand c )" ).NewLine()
                          .Append( "{" ).NewLine();
-                    scope.Append( "var handler = (" ).AppendCSharpName( h.Method.DeclaringType! ).Append( ")s.GetService(" ).AppendTypeOf( h.Method.DeclaringType! ).Append( ");" ).NewLine();
+                    scope.Append( "var handler = (" ).Append( h.Method.DeclaringType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( h.Method.DeclaringType! ).Append( ");" ).NewLine();
 
-                    if( !isVoidReturn ) scope.AppendCSharpName( e.ResultType ).Append( " r = " );
+                    if( !isVoidReturn ) scope.Append( e.ResultType.ToCSharpName() ).Append( " r = " );
                     if( isHandlerAsync ) scope.Append( "await " );
                     scope.Append( "handler." ).Append( h.Method.Name ).Append( "( " );
                     foreach( var p in h.Parameters )
@@ -53,11 +53,11 @@ namespace CK.Setup.Cris
                         }
                         else if( p == h.CommandParameter )
                         {
-                            scope.Append( "(" ).AppendCSharpName( h.CommandParameter.ParameterType ).Append( ")c" );
+                            scope.Append( "(" ).Append( h.CommandParameter.ParameterType.ToCSharpName() ).Append( ")c" );
                         }
                         else
                         {
-                            scope.Append( "(" ).AppendCSharpName( p.ParameterType ).Append( ")s.GetService(" ).AppendTypeOf( p.ParameterType ).Append( ")" );
+                            scope.Append( "(" ).Append( p.ParameterType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( p.ParameterType ).Append( ")" );
                         }
                     }
                     scope.Append( " );" ).NewLine();
