@@ -1,14 +1,14 @@
 <Project>
   <ItemGroup>
-    <PackageReference Update="CK.StObj.TypeScript" Version="0.6.0-r01" />
-    <PackageReference Update="CK.StObj.TypeScript.Engine" Version="0.6.0-r01" />
-    <PackageReference Update="CK.StObj.Model" Version="19.0.0-r01" />
-    <PackageReference Update="CK.StObj.Runtime" Version="19.0.0-r01" />
+    <PackageReference Update="CK.StObj.TypeScript" Version="0.0.0--03n3y06-local+v0.6.0-r01" />
+    <PackageReference Update="CK.StObj.TypeScript.Engine" Version="0.0.0--03n3y06-local+v0.6.0-r01" />
+    <PackageReference Update="CK.StObj.Model" Version="0.0.0--03n3y06-local+v19.0.0-r01" />
+    <PackageReference Update="CK.StObj.Runtime" Version="0.0.0--03n3y06-local+v19.0.0-r01" />
     <PackageReference Update="CK.Poco.Json" Version="16.1.1--0065-develop" />
-    <PackageReference Update="CK.Testing.StObjEngine" Version="19.0.0-r01" />
-    <PackageReference Update="CK.AspNet.Tester" Version="4.0.0-r" />
-    <PackageReference Update="CK.AspNet.Auth" Version="16.0.0-r01" />
-    <PackageReference Update="CK.Auth.Abstractions" Version="2.0.0-r" />
+    <PackageReference Update="CK.Testing.StObjEngine" Version="0.0.0--03n3y06-local+v19.0.0-r01" />
+    <PackageReference Update="CK.AspNet.Tester" Version="0.0.0--03n215l-local+v4.0.0-r" />
+    <PackageReference Update="CK.AspNet.Auth" Version="0.0.0--03n5axf-local+v16.0.0-r01" />
+    <PackageReference Update="CK.Auth.Abstractions" Version="0.0.0--03n215l-local+v2.0.0-r" />
     <PackageReference Update="Microsoft.SourceLink.GitLab" Version="1.0.0" />
     <PackageReference Update="Microsoft.VisualStudio.Threading.Analyzers" Version="17.0.64" />
   </ItemGroup>
