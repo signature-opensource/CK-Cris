@@ -38,7 +38,7 @@ namespace CK.Cris.AspNet.Tests
         }
 
         [Test]
-        public async Task basic_call_to_a_command_handler()
+        public async Task basic_call_to_a_command_handler_Async()
         {
             var c = TestHelper.CreateStObjCollector( typeof( ICmdTest ), typeof( TestHandler ) );
             using( var s = new CrisTestServer( c ) )
@@ -76,7 +76,7 @@ namespace CK.Cris.AspNet.Tests
         }
 
         [Test]
-        public async Task exceptions_raised_by_validators_are_handled_and_results_to_a_Code_E_and_an_HttpStatusCode_InternalServerError()
+        public async Task exceptions_raised_by_validators_are_handled_and_results_to_a_Code_E_and_an_HttpStatusCode_InternalServerError_Async()
         {
             var c = TestHelper.CreateStObjCollector( typeof( ICmdTest ), typeof( BuggyValidator ) );
             using( var s = new CrisTestServer( c ) )
@@ -90,7 +90,7 @@ namespace CK.Cris.AspNet.Tests
         }
 
         [Test]
-        public async Task invalid_json_or_unknown_command_are_bad_request_with_detailed_error()
+        public async Task invalid_json_or_unknown_command_are_bad_request_with_detailed_error_Async()
         {
             var c = TestHelper.CreateStObjCollector();
             using( var s = new CrisTestServer( c ) )

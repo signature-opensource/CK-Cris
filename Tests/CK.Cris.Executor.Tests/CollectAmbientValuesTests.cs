@@ -65,7 +65,7 @@ namespace CK.Cris.Executor.Tests
         }
 
         [Test]
-        public async Task CommandPostHandler_fills_the_resulting_ambient_values()
+        public async Task CommandPostHandler_fills_the_resulting_ambient_values_Async()
         {
             var c = FrontCommandExecutorTests.CreateFrontCommandCollector( typeof( IAmbientValuesCollectCommand ),
                                                                            typeof( AmbientValuesService ),

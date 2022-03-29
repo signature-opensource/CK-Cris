@@ -77,7 +77,7 @@ namespace CK.Cris.Executor.Tests
         [TestCase( "Sync" )]
         [TestCase( "RefAsync" )]
         [TestCase( "ValAsync" )]
-        public async Task basic_handling_of_void_returns( string kind )
+        public async Task basic_handling_of_void_returns_Async( string kind )
         {
             StObjCollector c = CreateFrontCommandCollector( typeof( ICmdTest ) );
             c.RegisterType( kind switch
@@ -145,7 +145,7 @@ namespace CK.Cris.Executor.Tests
         [TestCase( "Sync" )]
         [TestCase( "RefAsync" )]
         [TestCase( "ValAsync" )]
-        public async Task basic_handling_with_returned_type( string kind )
+        public async Task basic_handling_with_returned_type_Async( string kind )
         {
             var c = CreateFrontCommandCollector( typeof( ICmdIntTest ) );
             c.RegisterType( kind switch
@@ -267,7 +267,7 @@ namespace CK.Cris.Executor.Tests
         }
 
         [Test]
-        public async Task calling_public_AutoService_implementation()
+        public async Task calling_public_AutoService_implementation_Async()
         {
             var c = CreateFrontCommandCollector( typeof( ICmdTest ), typeof( CommandHandlerImpl ) );
             var appServices = TestHelper.GetAutomaticServices( c ).Services;
@@ -304,7 +304,7 @@ namespace CK.Cris.Executor.Tests
         }
 
         [Test]
-        public async Task calling_explicit_AutoService_implementation()
+        public async Task calling_explicit_AutoService_implementation_Async()
         {
             var c = CreateFrontCommandCollector( typeof( ICmdTest ), typeof( CommandHandlerExplicitImpl ) );
             var appServices = TestHelper.GetAutomaticServices( c ).Services;

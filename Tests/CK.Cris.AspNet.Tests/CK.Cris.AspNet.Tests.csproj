@@ -15,6 +15,8 @@
     <PackageReference Include="NUnit" />
     <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <!-- We also test CK.Auth.Cris here. -->
+    <PackageReference Include="CK.AspNet.Auth" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\CK.Auth.Cris\CK.Auth.Cris.csproj" />
