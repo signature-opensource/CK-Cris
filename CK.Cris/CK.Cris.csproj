@@ -5,6 +5,6 @@
     <RootNamespace>CK.Cris</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.StObj.Model" Version="19.0.0-r09" />
+    <PackageReference Include="CK.StObj.Model" Version="19.0.0-r09-00-0015-develop" />
   </ItemGroup>
 </Project>
