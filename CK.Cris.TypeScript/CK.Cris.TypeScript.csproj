@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Sdk Name="Microsoft.Build.CentralPackageVersions" Version="2.0.52" />
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -21,7 +20,7 @@
         This is the goal of the Fake in EnsureReference.cs.
     -->
   <ItemGroup>
-    <PackageReference Include="CK.StObj.TypeScript" />
+    <PackageReference Include="CK.StObj.TypeScript" Version="0.6.0-r09" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />

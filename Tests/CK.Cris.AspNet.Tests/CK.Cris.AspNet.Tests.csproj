@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Sdk Name="Microsoft.Build.CentralPackageVersions" Version="2.0.52" />
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <IsPackable>false</IsPackable>
@@ -9,13 +8,13 @@
     <Compile Include="..\CK.Cris.Tests\DiamondResultAndCommand.cs" Link="DiamondResultAndCommand.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Testing.StObjEngine" />
-    <PackageReference Include="CK.AspNet.Tester" />
-    <PackageReference Include="NUnit" />
-    <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="CK.Testing.StObjEngine" Version="19.0.0-r09" />
+    <PackageReference Include="CK.AspNet.Tester" Version="4.0.0-r01-01" />
+    <PackageReference Include="NUnit" Version="3.13.3" />
+    <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" Version="4.2.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
     <!-- We also test CK.Auth.Cris here. -->
-    <PackageReference Include="CK.AspNet.Auth" />
+    <PackageReference Include="CK.AspNet.Auth" Version="16.0.0-r10" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\CK.Auth.Cris\CK.Auth.Cris.csproj" />
