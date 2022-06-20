@@ -20,7 +20,7 @@
         This is the goal of the Fake in EnsureReference.cs.
     -->
   <ItemGroup>
-    <PackageReference Include="CK.StObj.TypeScript" Version="0.6.0-r09-00-0008-develop" />
+    <PackageReference Include="CK.StObj.TypeScript" Version="0.6.0-r09-00-0009-develop" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
