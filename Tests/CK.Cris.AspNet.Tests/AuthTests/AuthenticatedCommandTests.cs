@@ -36,27 +36,27 @@ namespace CK.Cris.AspNet.Tests.AuthTests
         }
 
         [Test]
-        public async Task ICommandAuthUnsafe_cannot_be_fooled_on_its_ActorId()
+        public async Task ICommandAuthUnsafe_cannot_be_fooled_on_its_ActorId_Async()
         {
             var c = TestHelper.CreateStObjCollector( typeof( IUnsafeCommand ), typeof( UnsafeHandler ) );
             using( var s = new CrisTestServer( c, true ) )
             {
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""YES"",""ActorId"":0}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""YES"",""ActorId"":0}]" );
                     Debug.Assert( r != null );
                     r.StatusCode.Should().Be( HttpStatusCode.OK );
                     string response = await r.Content.ReadAsStringAsync();
                     response.Should().Be( @"[""CrisResult"",{""code"":83,""result"":null}]" );
                 }
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""YES. There is no ActorId in the Json => it is 0 by default.""}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""YES. There is no ActorId in the Json => it is 0 by default.""}]" );
                     Debug.Assert( r != null );
                     r.StatusCode.Should().Be( HttpStatusCode.OK );
                     string response = await r.Content.ReadAsStringAsync();
                     response.Should().Be( @"[""CrisResult"",{""code"":83,""result"":null}]" );
                 }
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""NO WAY!"",""ActorId"":3712}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""NO WAY!"",""ActorId"":3712}]" );
                     Debug.Assert( r != null );
                     r.StatusCode.Should().Be( HttpStatusCode.BadRequest );
                     string response = await r.Content.ReadAsStringAsync();
@@ -65,7 +65,7 @@ namespace CK.Cris.AspNet.Tests.AuthTests
                 UnsafeHandler.LastUserInfo = null;
                 await s.LoginAsync( "Albert" );
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""userInfo"":""Yes! Albert 3712 is logged in."",""actorId"":3712}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""userInfo"":""Yes! Albert 3712 is logged in."",""actorId"":3712}]" );
                     Debug.Assert( r != null );
                     r.StatusCode.Should().Be( HttpStatusCode.OK );
                     string response = await r.Content.ReadAsStringAsync();
@@ -73,13 +73,13 @@ namespace CK.Cris.AspNet.Tests.AuthTests
                     UnsafeHandler.LastUserInfo.Should().Be( "Yes! Albert 3712 is logged in." );
                 }
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""NO WAY!"",""ActorId"":7}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""NO WAY!"",""ActorId"":7}]" );
                     Debug.Assert( r != null );
                     r.StatusCode.Should().Be( HttpStatusCode.BadRequest );
                 }
                 await s.LogoutAsync();
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""NO! Albert is no more here."",""ActorId"":3712}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""NO! Albert is no more here."",""ActorId"":3712}]" );
                     Debug.Assert( r != null );
                     r.StatusCode.Should().Be( HttpStatusCode.BadRequest );
                 }

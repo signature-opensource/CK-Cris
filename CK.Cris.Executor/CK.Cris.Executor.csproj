@@ -1,16 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
-  <Sdk Name="Microsoft.Build.CentralPackageVersions" Version="2.0.52" />
-  <Import Project="..\Common\Shared.props" />
-
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <RootNamespace>CK.Cris</RootNamespace>
   </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
   </ItemGroup>
-
 </Project>

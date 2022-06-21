@@ -1,7 +1,5 @@
 using CK.Core;
 using CK.Cris;
-using CK.Text;
-using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;

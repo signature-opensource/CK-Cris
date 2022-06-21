@@ -1,10 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
-  <Sdk Name="Microsoft.Build.CentralPackageVersions" Version="2.0.52" />
-  <Import Project="..\Common\Shared.props" />
-
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <description>
     This package extends the IPoco typescript code for ICommand Poco by adding their CommandModel.
@@ -24,11 +20,9 @@
         This is the goal of the Fake in EnsureReference.cs.
     -->
   <ItemGroup>
-    <PackageReference Include="CK.StObj.TypeScript" />
+    <PackageReference Include="CK.StObj.TypeScript" Version="0.7.0" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
   </ItemGroup>
-
 </Project>

@@ -45,7 +45,7 @@ namespace CK.Cris.Tests
         {
             byte[] bin1;
             string bin1Text;
-            var directory = services.GetService<PocoDirectory>();
+            var directory = services.GetRequiredService<PocoDirectory>();
             using( var m = new MemoryStream() )
             {
                 try

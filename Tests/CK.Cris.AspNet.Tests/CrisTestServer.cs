@@ -86,7 +86,7 @@ namespace CK.Cris.AspNet.Tests
                 {
                     webBuilder.UseScopedHttpContext();
                 }
-            ).UseMonitoring();
+            ).UseCKMonitoring();
 
             var host = b.Build();
             host.Start();
@@ -98,11 +98,11 @@ namespace CK.Cris.AspNet.Tests
         public async Task<bool> LoginAsync( string userName, string password = "success" )
         {
             var body = $"{{\"userName\":\"{userName}\",\"password\":\"{password}\"}}";
-            HttpResponseMessage response = await Client.PostJSON( BasicLoginUri, body );
+            HttpResponseMessage response = await Client.PostJSONAsync( BasicLoginUri, body );
             return response.IsSuccessStatusCode;
         }
 
-        public Task LogoutAsync() => Client.Get( LogoutUri + "?full" );
+        public Task LogoutAsync() => Client.GetAsync( LogoutUri + "?full" );
 
         public void Dispose() => Client.Dispose();
 

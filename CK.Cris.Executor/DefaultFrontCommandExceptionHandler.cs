@@ -44,7 +44,7 @@ namespace CK.Cris
         /// <param name="command">The command that failed.</param>
         protected virtual void DumpCommand( IActivityMonitor monitor, IServiceProvider services, ICommand command )
         {
-            monitor.Trace( command.ToString() );
+            monitor.Trace( command.ToString()! );
         }
     }
 }

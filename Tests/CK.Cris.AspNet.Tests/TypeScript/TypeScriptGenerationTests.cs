@@ -1,6 +1,5 @@
 using CK.Core;
 using CK.Setup;
-using CK.Text;
 using FluentAssertions;
 using NUnit.Framework;
 using System;

@@ -1,7 +1,6 @@
 using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
-using CK.Text;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -42,7 +41,7 @@ namespace CK.Setup.Cris
                         foreach( var service in e.Validators.GroupBy( v => v.Owner ) )
                         {
                             f.OpenBlock()
-                             .Append( "var h = (" ).AppendCSharpName( service.Key.ClassType ).Append( ")s.GetService(" ).AppendTypeOf( service.Key.ClassType ).Append( ");" ).NewLine();
+                             .Append( "var h = (" ).Append( service.Key.ClassType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( service.Key.ClassType ).Append( ");" ).NewLine();
                             foreach( var validator in service )
                             {
                                 if( validator.IsRefAsync || validator.IsValAsync )
@@ -52,7 +51,7 @@ namespace CK.Setup.Cris
                                 }
                                 if( validator.Method.DeclaringType != service.Key.ClassType )
                                 {
-                                    f.Append("((").AppendCSharpName( validator.Method.DeclaringType! ).Append( ")h)." );
+                                    f.Append("((").Append( validator.Method.DeclaringType.ToCSharpName() ).Append( ")h)." );
                                 }
                                 else f.Append( "h." );
                                 f.Append( validator.Method.Name ).Append( "( " );
@@ -63,11 +62,11 @@ namespace CK.Setup.Cris
                                     if( typeof( IActivityMonitor ).IsAssignableFrom( p.ParameterType ) ) f.Append( "m" );
                                     else if( p == validator.CmdOrPartParameter )
                                     {
-                                        f.Append( "(" ).AppendCSharpName( validator.CmdOrPartParameter.ParameterType ).Append( ")c" );
+                                        f.Append( "(" ).Append( validator.CmdOrPartParameter.ParameterType.ToCSharpName() ).Append( ")c" );
                                     }
                                     else
                                     {
-                                        f.Append( "(" ).AppendCSharpName( p.ParameterType ).Append( ")s.GetService(" ).AppendTypeOf( p.ParameterType ).Append( ")" );
+                                        f.Append( "(" ).Append( p.ParameterType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( p.ParameterType ).Append( ")" );
                                     }
                                 }
                                 f.Append( " );" ).NewLine();

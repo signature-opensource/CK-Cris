@@ -18,7 +18,7 @@ namespace CK.Cris.AspNet
 
         public CrisMiddleware( RequestDelegate next, CrisAspNetService service )
         {
-            if( next == null ) throw new ArgumentNullException( nameof( next ) );
+            Throw.CheckNotNullArgument( next );
             _next = next;
             _service = service;
         }
@@ -29,10 +29,9 @@ namespace CK.Cris.AspNet
         /// <param name="ctx">The current context.</param>
         /// <param name="m">The request scoped monitor.</param>
         /// <returns>The awaitable.</returns>
-        public async Task Invoke( HttpContext ctx, IActivityMonitor m )
+        public async Task InvokeAsync( HttpContext ctx, IActivityMonitor m )
         {
-            PathString remainder;
-            if( ctx.Request.Path.StartsWithSegments( _crisPath, out remainder ) )
+            if( ctx.Request.Path.StartsWithSegments( _crisPath, out PathString remainder ) )
             {
                 if( !HttpMethods.IsPost( ctx.Request.Method ) )
                 {
@@ -40,7 +39,7 @@ namespace CK.Cris.AspNet
                 }
                 else
                 {
-                    await _service.HandleRequest( m, ctx.RequestServices, ctx.Request, ctx.Response );
+                    await _service.HandleRequestAsync( m, ctx.RequestServices, ctx.Request, ctx.Response );
                 }
             }
             else

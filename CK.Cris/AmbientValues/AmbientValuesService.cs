@@ -12,10 +12,7 @@ namespace CK.Cris.AmbientValues
     {
         readonly IPocoFactory<IAmbientValues> _factory;
 
-        public AmbientValuesService( IPocoFactory<IAmbientValues> factory )
-        {
-            _factory = factory;
-        }
+        public AmbientValuesService( IPocoFactory<IAmbientValues> factory ) => _factory = factory;
 
         /// <summary>
         /// Creates the empty <see cref="IAmbientValues"/> result.

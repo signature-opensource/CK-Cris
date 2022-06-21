@@ -38,7 +38,7 @@ namespace CK.Cris.AspNet.Tests
         }
 
         [Test]
-        public async Task basic_call_to_a_command_handler()
+        public async Task basic_call_to_a_command_handler_Async()
         {
             var c = TestHelper.CreateStObjCollector( typeof( ICmdTest ), typeof( TestHandler ) );
             using( var s = new CrisTestServer( c ) )
@@ -46,7 +46,7 @@ namespace CK.Cris.AspNet.Tests
                 // Value: 3712 is fine (it must be positive).
                 {
                     TestHandler.Called = false;
-                    HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, @"[""Test"",{""Value"":3712}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""Test"",{""Value"":3712}]" );
                     Debug.Assert( r != null );
                     TestHandler.Called.Should().BeTrue();
                     r.EnsureSuccessStatusCode();
@@ -56,7 +56,7 @@ namespace CK.Cris.AspNet.Tests
                 // Value: 0 is invalid.
                 {
                     TestHandler.Called = false;
-                    HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, @"[""Test"",{""Value"":0}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""Test"",{""Value"":0}]" );
                     Debug.Assert( r != null );
                     TestHandler.Called.Should().BeFalse( "Validation error." );
                     r.StatusCode.Should().Be( HttpStatusCode.BadRequest );
@@ -76,12 +76,12 @@ namespace CK.Cris.AspNet.Tests
         }
 
         [Test]
-        public async Task exceptions_raised_by_validators_are_handled_and_results_to_a_Code_E_and_an_HttpStatusCode_InternalServerError()
+        public async Task exceptions_raised_by_validators_are_handled_and_results_to_a_Code_E_and_an_HttpStatusCode_InternalServerError_Async()
         {
             var c = TestHelper.CreateStObjCollector( typeof( ICmdTest ), typeof( BuggyValidator ) );
             using( var s = new CrisTestServer( c ) )
             {
-                HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, @"[""Test"",{""Value"":3712}]" );
+                HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""Test"",{""Value"":3712}]" );
                 Debug.Assert( r != null );
                 r.StatusCode.Should().Be( HttpStatusCode.InternalServerError );
                 string response = await r.Content.ReadAsStringAsync();
@@ -90,41 +90,41 @@ namespace CK.Cris.AspNet.Tests
         }
 
         [Test]
-        public async Task invalid_json_or_unknown_command_are_bad_request_with_detailed_error()
+        public async Task invalid_json_or_unknown_command_are_bad_request_with_detailed_error_Async()
         {
             var c = TestHelper.CreateStObjCollector();
             using( var s = new CrisTestServer( c ) )
             {
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, @"[""Unknown"",{""value"":3712}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""Unknown"",{""value"":3712}]" );
                     Debug.Assert( r != null );
                     r.StatusCode.Should().Be( HttpStatusCode.BadRequest );
                     string response = await r.Content.ReadAsStringAsync();
                     response.Should().Be( @"[""CrisResult"",{""code"":86,""result"":[""CrisSimpleError"",{""errors"":[""Unable to read Command Poco from request body (byte length = 26)."",""Poco type \u0027Unknown\u0027 not found.""]}]}]" );
                 }
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, "" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, "" );
                     Debug.Assert( r != null );
                     r.StatusCode.Should().Be( HttpStatusCode.BadRequest );
                     string response = await r.Content.ReadAsStringAsync();
                     response.Should().Be( @"[""CrisResult"",{""code"":86,""result"":[""CrisSimpleError"",{""errors"":[""Unable to read Command Poco from empty request body.""]}]}]" );
                 }
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, "{}" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, "{}" );
                     Debug.Assert( r != null );
                     r.StatusCode.Should().Be( HttpStatusCode.BadRequest );
                     string response = await r.Content.ReadAsStringAsync();
                     response.Should().Be( @"[""CrisResult"",{""code"":86,""result"":[""CrisSimpleError"",{""errors"":[""Unable to read Command Poco from request body (byte length = 2)."",""Expecting Json Poco array.""]}]}]" );
                 }
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, "----" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, "----" );
                     Debug.Assert( r != null );
                     r.StatusCode.Should().Be( HttpStatusCode.BadRequest );
                     string response = await r.Content.ReadAsStringAsync();
                     response.Should().StartWith( @"[""CrisResult"",{""code"":86,""result"":[""CrisSimpleError"",{""errors"":[""Unable to read Command Poco from request body (byte length = 4)."",""" );
                 }
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSON( CrisTestServer.CrisUri, "\"X\"" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, "\"X\"" );
                     Debug.Assert( r != null );
                     r.StatusCode.Should().Be( HttpStatusCode.BadRequest );
                     string response = await r.Content.ReadAsStringAsync();

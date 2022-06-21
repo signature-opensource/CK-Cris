@@ -26,16 +26,16 @@ namespace CK.Cris.AspNet
             _resultFactory = resultFactory;
         }
 
-        public async Task HandleRequest( IActivityMonitor monitor, IServiceProvider requestServices, HttpRequest request, HttpResponse response )
+        public async Task HandleRequestAsync( IActivityMonitor monitor, IServiceProvider requestServices, HttpRequest request, HttpResponse response )
         {
             // If we cannot read the command, it is considered as a Code V (Validation error), hence a BadRequest status code.
-            (ICommand? cmd, ICommandResult? result) = await ReadCommand( monitor, request );
+            (ICommand? cmd, ICommandResult? result) = await ReadCommandAsync( monitor, request );
             if( result == null )
             {
                 Debug.Assert( cmd != null );
                 // The validation return null if no issues occurred, a code V for validation errors and a Code E if an exception occurred
                 // (Command validators must not raise any exception).
-                result = await GetValidationError( monitor, requestServices, cmd );
+                result = await GetValidationErrorAsync( monitor, requestServices, cmd );
             }
             if( result != null )
             {
@@ -47,12 +47,12 @@ namespace CK.Cris.AspNet
                 // Valid command: calls the execution handler.
                 Debug.Assert( cmd != null );
                 result = await _executor.ExecuteCommandAsync( monitor, requestServices, cmd );
-                switch( result.Code )
+                response.StatusCode = result.Code switch
                 {
-                    case VESACode.Error: response.StatusCode = StatusCodes.Status500InternalServerError; break;
-                    case VESACode.Synchronous: response.StatusCode = StatusCodes.Status200OK; break;
-                    default: throw new NotSupportedException( $"VESA code can only be E or S. Code = {result.Code}" );
-                }
+                    VESACode.Error => StatusCodes.Status500InternalServerError,
+                    VESACode.Synchronous => StatusCodes.Status200OK,
+                    _ => throw new NotSupportedException( $"VESA code can only be E or S. Code = {result.Code}" ),
+                };
             }
             using( var writer = new Utf8JsonWriter( response.BodyWriter ) )
             {
@@ -60,7 +60,7 @@ namespace CK.Cris.AspNet
             }
         }
 
-        async Task<(ICommand?, ICommandResult?)> ReadCommand( IActivityMonitor monitor, HttpRequest request )
+        async Task<(ICommand?, ICommandResult?)> ReadCommandAsync( IActivityMonitor monitor, HttpRequest request )
         {
             ICommand? cmd;
             int length = -1;
@@ -113,7 +113,7 @@ namespace CK.Cris.AspNet
                 var reader = new Utf8JsonReader( buffer.GetBuffer().AsSpan( 0, (int)buffer.Position ) );
                 var poco = p.Read( ref reader );
                 if( poco == null ) throw new InvalidDataException( "Null poco received." );
-                if( !(poco is ICommand c) ) throw new InvalidDataException( "Received Poco is not a Command." );
+                if( poco is not ICommand c ) throw new InvalidDataException( "Received Poco is not a Command." );
                 return c;
             }
 
@@ -132,7 +132,7 @@ namespace CK.Cris.AspNet
 
         }
 
-        async Task<ICommandResult?> GetValidationError( IActivityMonitor monitor, IServiceProvider requestServices, ICommand cmd )
+        async Task<ICommandResult?> GetValidationErrorAsync( IActivityMonitor monitor, IServiceProvider requestServices, ICommand cmd )
         {
             try
             {

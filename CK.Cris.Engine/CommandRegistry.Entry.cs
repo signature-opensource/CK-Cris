@@ -1,7 +1,6 @@
 using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
-using CK.Text;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -105,14 +104,14 @@ namespace CK.Setup.Cris
                 static void GenerateCode( ICodeWriter w, IGrouping<IStObjFinalClass, PostHandlerMethod> h, bool async )
                 {
                     w.Append( "{" ).NewLine();
-                    w.Append( "var h = (" ).AppendCSharpName( h.Key.ClassType ).Append( ")s.GetService(" ).AppendTypeOf( h.Key.ClassType ).Append( ");" ).NewLine();
+                    w.Append( "var h = (" ).Append( h.Key.ClassType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( h.Key.ClassType ).Append( ");" ).NewLine();
                     foreach( var m in h )
                     {
                         if( async ) w.Append( "await " );
 
                         if( m.Method.DeclaringType != h.Key.ClassType )
                         {
-                            w.Append( "((" ).AppendCSharpName( m.Method.DeclaringType! ).Append( ")h)." );
+                            w.Append( "((" ).Append( m.Method.DeclaringType!.ToCSharpName() ).Append( ")h)." );
                         }
                         else w.Append( "h." );
 
@@ -125,17 +124,17 @@ namespace CK.Setup.Cris
                             {
                                 if( m.MustCastResultParameter )
                                 {
-                                    w.Append( "(" ).AppendCSharpName( p.ParameterType ).Append( ")" );
+                                    w.Append( "(" ).Append( p.ParameterType.ToCSharpName() ).Append( ")" );
                                 }
                                 w.Append( "r" );
                             }
                             else if( p == m.CmdOrPartParameter )
                             {
-                                w.Append( "(" ).AppendCSharpName( m.CmdOrPartParameter.ParameterType ).Append( ")c" );
+                                w.Append( "(" ).Append( m.CmdOrPartParameter.ParameterType.ToCSharpName() ).Append( ")c" );
                             }
                             else
                             {
-                                w.Append( "(" ).AppendCSharpName( p.ParameterType ).Append( ")s.GetService(" ).AppendTypeOf( p.ParameterType ).Append( ")" );
+                                w.Append( "(" ).Append( p.ParameterType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( p.ParameterType ).Append( ")" );
                             }
                         }
                         w.Append( " );" ).NewLine();

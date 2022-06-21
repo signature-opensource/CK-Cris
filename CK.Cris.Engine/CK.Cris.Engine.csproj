@@ -1,17 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
-  <Sdk Name="Microsoft.Build.CentralPackageVersions" Version="2.0.52" />
-  <Import Project="..\Common\Shared.props" />
-
-
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>CK.Setup.Cris</RootNamespace>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="CK.StObj.Runtime" />
+    <PackageReference Include="CK.StObj.Runtime" Version="19.0.0" />
     <!--
           This CK.Cris.Engine directly implements the CK.Cris.TypeSript.Engine to avoid another (quite small) assembly.
 
@@ -19,13 +13,9 @@
           - the TypeScriptAspect is declared and one or more <TypeScript><OutuptPath>...</OutuptPath></TypeScript> is defined in the BinPathConfiguration.
           - AND the CK.Cris.TypeScript must be referenced.
     -->
-    <PackageReference Include="CK.StObj.TypeScript.Engine" />
+    <PackageReference Include="CK.StObj.TypeScript.Engine" Version="0.7.0" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
   </ItemGroup>
-
-
-
 </Project>
