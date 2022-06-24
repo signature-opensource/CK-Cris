@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.StObj.Runtime" Version="19.0.0" />
+    <PackageReference Include="CK.StObj.Runtime" Version="19.0.1--0002-develop" />
     <!--
           This CK.Cris.Engine directly implements the CK.Cris.TypeSript.Engine to avoid another (quite small) assembly.
 
@@ -13,7 +13,7 @@
           - the TypeScriptAspect is declared and one or more <TypeScript><OutuptPath>...</OutuptPath></TypeScript> is defined in the BinPathConfiguration.
           - AND the CK.Cris.TypeScript must be referenced.
     -->
-    <PackageReference Include="CK.StObj.TypeScript.Engine" Version="0.7.0" />
+    <PackageReference Include="CK.StObj.TypeScript.Engine" Version="0.7.1--0002-develop" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
