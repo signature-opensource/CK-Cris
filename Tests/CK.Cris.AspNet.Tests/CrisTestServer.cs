@@ -21,11 +21,10 @@ namespace CK.Cris.AspNet.Tests
         public const string BasicLoginUri = "/.webfront/c/basicLogin";
         public const string LogoutUri = "/.webfront/c/logout";
 
-        public CrisTestServer(
-            StObjCollector collector,
-            bool withAuthentication = false,
-            Action<IServiceCollection>? configureServices = null,
-            Action<IApplicationBuilder>? configureApplication = null )
+        public CrisTestServer( StObjCollector collector,
+                               bool withAuthentication = false,
+                               Action<IServiceCollection>? configureServices = null,
+                               Action<IApplicationBuilder>? configureApplication = null )
         {
             collector.RegisterTypes( new[] {
                 typeof( FrontCommandExecutor ),
