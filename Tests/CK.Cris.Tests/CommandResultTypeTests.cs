@@ -24,7 +24,9 @@ namespace CK.Cris.Tests
         public void simple_basic_return()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ), typeof( ICInt ) );
-            var d = TestHelper.GetAutomaticServices( c ).Services.GetRequiredService<CommandDirectory>();
+            using var s = TestHelper.CreateAutomaticServices( c ).Services;
+
+            var d = s.GetRequiredService<CommandDirectory>();
             d.Commands[0].ResultType.Should().Be( typeof( int ) );
         }
 
@@ -36,7 +38,8 @@ namespace CK.Cris.Tests
         public void a_specialized_command_can_generalize_the_initial_result_type()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ), typeof( ICIntButObject ) );
-            var d = TestHelper.GetAutomaticServices( c ).Services.GetRequiredService<CommandDirectory>();
+            using var s = TestHelper.CreateAutomaticServices( c ).Services;
+            var d = s.GetRequiredService<CommandDirectory>();
             var cmdModel = d.Commands[0];
             cmdModel.CommandType.Should().BeAssignableTo( typeof( ICIntButObject ) );
             cmdModel.ResultType.Should().Be( typeof( int ) );
