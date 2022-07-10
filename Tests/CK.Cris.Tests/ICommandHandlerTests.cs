@@ -26,7 +26,7 @@ namespace CK.Cris.Tests
                 typeof( ICommandUnifiedWithTheResult ),
                 typeof( IUnifiedResult),
                 typeof( CmdHandlerMissingHandler ) );
-            TestHelper.GenerateCode( c ).CodeGen.Success.Should().BeFalse();
+            TestHelper.GenerateCode( c, null ).Success.Should().BeFalse();
         }
 
         public class CmdHandlerOfBase : ICommandHandler<ICommandWithPocoResult>
@@ -49,7 +49,7 @@ namespace CK.Cris.Tests
                 typeof( ICommandWithPocoResult ),
                 typeof( CmdHandlerOfBase ),
                 typeof( CmdHandlerAlternate ) );
-            var s = TestHelper.GetAutomaticServices( c ).Services;
+            using var s = TestHelper.CreateAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CommandDirectory>();
 
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
@@ -71,7 +71,7 @@ namespace CK.Cris.Tests
                 typeof( ICommandWithMorePocoResult ),
                 typeof( CmdHandlerWithMore ),
                 typeof( CmdHandlerAlternate ) );
-            var s = TestHelper.GetAutomaticServices( c ).Services;
+            using var s = TestHelper.CreateAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CommandDirectory>();
 
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
@@ -116,7 +116,7 @@ namespace CK.Cris.Tests
                 typeof( CmdHandlerWithMore ),
                 typeof( CmdHandlerWithAnother ),
                 typeof( CmdHandlerAlternate ) );
-            TestHelper.GenerateCode( c ).CodeGen.Success.Should().BeFalse();
+            TestHelper.GenerateCode( c, null ).Success.Should().BeFalse();
         }
 
         // This one unifies the Services AND offer a final handler.
@@ -142,7 +142,7 @@ namespace CK.Cris.Tests
                 typeof( CmdHandlerWithMore ),
                 typeof( CmdHandlerWithAnother ),
                 typeof( CmdHandlerAlternate ) );
-            var s = TestHelper.GetAutomaticServices( c ).Services;
+            using var s = TestHelper.CreateAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CommandDirectory>();
 
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
@@ -176,7 +176,7 @@ namespace CK.Cris.Tests
                                                      typeof( ICommandUnifiedWithTheResult ),
                                                      typeof( IUnifiedResult ),
                                                      typeof( CmdHandlerUnifiedSpecialized ), typeof( CmdHandlerWithMore ), typeof( CmdHandlerWithAnother ), typeof( CmdHandlerAlternate ) );
-            var s = TestHelper.GetAutomaticServices( c ).Services;
+            using var s = TestHelper.CreateAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CommandDirectory>();
 
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();

@@ -29,7 +29,7 @@ namespace CK.Cris.Executor.Tests
                 typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ), typeof( AmbientValues.IAmbientValues ),
                 typeof( ICmdTest ) );
 
-            var services = TestHelper.GetAutomaticServices( c ).Services;
+            using var services = TestHelper.CreateAutomaticServices( c ).Services;
 
             var directory = services.GetRequiredService<CommandDirectory>();
             var cmd = directory.Commands[0].Create();
@@ -55,7 +55,7 @@ namespace CK.Cris.Executor.Tests
                 typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ), typeof( AmbientValues.IAmbientValues ),
                 typeof( ICmdTest ),
                 typeof( BuggyValidator ) );
-            var services = TestHelper.GetAutomaticServices( c ).Services;
+            using var services = TestHelper.CreateAutomaticServices( c ).Services;
 
             var directory = services.GetRequiredService<CommandDirectory>();
             var cmd = directory.Commands[0].Create();
@@ -103,7 +103,7 @@ namespace CK.Cris.Executor.Tests
             if( singletonService ) c.RegisterType( typeof( SimplestValidatorEverSingleton ) );
             if( scopedService ) c.RegisterType( typeof( SimplestValidatorEverScoped ) );
 
-            var appServices = TestHelper.GetAutomaticServices( c ).Services;
+            using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
 
             using( var scope = appServices.CreateScope() )
             {

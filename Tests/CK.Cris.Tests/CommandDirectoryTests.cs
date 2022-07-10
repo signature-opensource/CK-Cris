@@ -26,7 +26,7 @@ namespace CK.Cris.Tests
         public void simple_command_models()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICmdTest ), typeof( AmbientValues.IAmbientValues ) );
-            var services = TestHelper.GetAutomaticServices( c ).Services;
+            using var services = TestHelper.CreateAutomaticServices( c ).Services;
             var poco = services.GetRequiredService<PocoDirectory>();
 
             var d = services.GetRequiredService<CommandDirectory>();

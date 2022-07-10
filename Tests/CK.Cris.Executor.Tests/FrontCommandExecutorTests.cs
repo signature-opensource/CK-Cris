@@ -88,7 +88,7 @@ namespace CK.Cris.Executor.Tests
                 _ => throw new NotImplementedException()
             } );
 
-            var appServices = TestHelper.GetAutomaticServices( c ).Services;
+            using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
@@ -156,7 +156,7 @@ namespace CK.Cris.Executor.Tests
                 _ => throw new NotImplementedException()
             } );
 
-            var appServices = TestHelper.GetAutomaticServices( c ).Services;
+            using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
@@ -176,7 +176,7 @@ namespace CK.Cris.Executor.Tests
         public void ambiguous_handler_detection()
         {
             var c = CreateFrontCommandCollector( typeof( ICmdIntTest ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandler ) );
-            TestHelper.GenerateCode( c ).CodeGen.Success.Should().BeFalse();
+            TestHelper.GenerateCode( c, engineConfigurator: null ).Success.Should().BeFalse();
         }
 
         public class CmdIntValAsyncHandlerService : CmdIntValAsyncHandler, ICommandHandler<ICmdIntTest>
@@ -189,7 +189,7 @@ namespace CK.Cris.Executor.Tests
         {
             CmdIntValAsyncHandler.Called = false;
             var c = CreateFrontCommandCollector( typeof( ICmdIntTest ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandlerService ) );
-            TestHelper.GenerateCode( c ).CodeGen.Success.Should().BeTrue();
+            TestHelper.GenerateCode( c, engineConfigurator: null ).Success.Should().BeTrue();
         }
 
 
@@ -238,7 +238,7 @@ namespace CK.Cris.Executor.Tests
 
             static void CheckUniqueCommandHasNoHandler( Setup.StObjCollector c )
             {
-                var appServices = TestHelper.GetAutomaticServices( c ).Services;
+                using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
                 using( var scope = appServices.CreateScope() )
                 {
                     var directory = scope.ServiceProvider.GetRequiredService<CommandDirectory>();
@@ -270,7 +270,7 @@ namespace CK.Cris.Executor.Tests
         public async Task calling_public_AutoService_implementation_Async()
         {
             var c = CreateFrontCommandCollector( typeof( ICmdTest ), typeof( CommandHandlerImpl ) );
-            var appServices = TestHelper.GetAutomaticServices( c ).Services;
+            using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
@@ -307,7 +307,7 @@ namespace CK.Cris.Executor.Tests
         public async Task calling_explicit_AutoService_implementation_Async()
         {
             var c = CreateFrontCommandCollector( typeof( ICmdTest ), typeof( CommandHandlerExplicitImpl ) );
-            var appServices = TestHelper.GetAutomaticServices( c ).Services;
+            using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
