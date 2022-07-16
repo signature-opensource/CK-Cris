@@ -24,7 +24,9 @@ namespace CK.Cris.Tests
         public void simple_basic_return()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ), typeof( ICInt ) );
-            var d = TestHelper.GetAutomaticServices( c ).Services.GetRequiredService<CommandDirectory>();
+            using var s = TestHelper.CreateAutomaticServices( c ).Services;
+
+            var d = s.GetRequiredService<CommandDirectory>();
             d.Commands[0].ResultType.Should().Be( typeof( int ) );
         }
 
@@ -36,7 +38,8 @@ namespace CK.Cris.Tests
         public void a_specialized_command_can_generalize_the_initial_result_type()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ), typeof( ICIntButObject ) );
-            var d = TestHelper.GetAutomaticServices( c ).Services.GetRequiredService<CommandDirectory>();
+            using var s = TestHelper.CreateAutomaticServices( c ).Services;
+            var d = s.GetRequiredService<CommandDirectory>();
             var cmdModel = d.Commands[0];
             cmdModel.CommandType.Should().BeAssignableTo( typeof( ICIntButObject ) );
             cmdModel.ResultType.Should().Be( typeof( int ) );
@@ -50,7 +53,7 @@ namespace CK.Cris.Tests
         public void incompatible_result_type()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ), typeof( ICIntButString ) );
-            TestHelper.GenerateCode( c ).CodeGen.Success.Should().BeFalse();
+            TestHelper.GenerateCode( c, engineConfigurator: null ).Success.Should().BeFalse();
             //=> Invalid command Result type for 'CK.Cris.Tests.CommandResultTypeTests+ICInt': result types 'Int32', 'String' must resolve to a common most specific type.
         }
 
@@ -59,27 +62,30 @@ namespace CK.Cris.Tests
         {
             {
                 var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ), typeof( ICommandWithMorePocoResult ), typeof( IMoreResult ) );
-                var d = TestHelper.GetAutomaticServices( c ).Services.GetRequiredService<CommandDirectory>();
+                using var s = TestHelper.CreateAutomaticServices( c ).Services;
+                var d = s.GetRequiredService<CommandDirectory>();
                 var cmdModel = d.Commands[0];
                 cmdModel.CommandType.Should().BeAssignableTo( typeof( ICommandWithMorePocoResult ) );
                 cmdModel.ResultType.Should().BeAssignableTo( typeof( IMoreResult ) );
             }
             {
                 var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ), typeof( ICommandWithAnotherPocoResult ), typeof( IAnotherResult ) );
-                var d = TestHelper.GetAutomaticServices( c ).Services.GetRequiredService<CommandDirectory>();
+                using var s = TestHelper.CreateAutomaticServices( c ).Services;
+                var d = s.GetRequiredService<CommandDirectory>();
                 var cmdModel = d.Commands[0];
                 cmdModel.CommandType.Should().BeAssignableTo( typeof( ICommandWithAnotherPocoResult ) );
                 cmdModel.ResultType.Should().BeAssignableTo( typeof( IAnotherResult ) );
             }
             {
                 var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ), typeof( ICommandUnifiedButNotTheResult ), typeof( IMoreResult ), typeof( IAnotherResult ) );
-                var d = TestHelper.GenerateCode( c ).CodeGen.Success.Should().BeFalse();
+                TestHelper.GenerateCode( c, null ).Success.Should().BeFalse();
                 //=> Invalid command Result type for 'CK.Cris.Tests.CommandResultTypeTests+ICommandWithPocoResult':
                 //   result types 'IMoreResult', 'IAnotherResult' must resolve to a common most specific type.
             }
             {
                 var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ), typeof( ICommandUnifiedWithTheResult ), typeof( IUnifiedResult ) );
-                var d = TestHelper.GetAutomaticServices( c ).Services.GetRequiredService<CommandDirectory>();
+                using var s = TestHelper.CreateAutomaticServices( c ).Services;
+                var d = s.GetRequiredService<CommandDirectory>();
                 var cmdModel = d.Commands[0];
                 cmdModel.CommandType.Should().BeAssignableTo( typeof( ICommandUnifiedWithTheResult ) );
                 cmdModel.ResultType.Should().BeAssignableTo( typeof( IUnifiedResult ) );

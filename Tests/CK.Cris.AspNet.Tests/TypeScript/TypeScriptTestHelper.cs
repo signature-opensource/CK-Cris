@@ -37,14 +37,9 @@ namespace CK.Cris.TypeScript.Tests
                               .ToArray();
             }
 
-            public StObjCollectorResult GetUnifiedResult( BinPathConfiguration unified )
+            public StObjCollectorResult? GetResult( RunningBinPathGroup g )
             {
                 return TestHelper.GetSuccessfulResult( TestHelper.CreateStObjCollector( _types ) );
-            }
-
-            public StObjCollectorResult GetSecondaryResult( BinPathConfiguration head, IEnumerable<BinPathConfiguration> all )
-            {
-                throw new NotImplementedException( "There is only one BinPath: only the unified one is required." );
             }
         }
 
@@ -68,7 +63,7 @@ namespace CK.Cris.TypeScript.Tests
             config.BinPaths.Add( b );
 
             var engine = new StObjEngine( TestHelper.Monitor, config );
-            engine.Run( collectorResults ).Should().BeTrue( "StObjEngine.Run worked." );
+            engine.Run( collectorResults ).Success.Should().BeTrue( "StObjEngine.Run worked." );
             Directory.Exists( output ).Should().BeTrue();
             return output;
         }
