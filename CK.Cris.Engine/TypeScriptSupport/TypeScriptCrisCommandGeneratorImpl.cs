@@ -199,11 +199,11 @@ export interface CommandModel<TResult> {
     applyAmbientValues: (values: { [index: string]: any }, force?: boolean ) => void;
 }
 
-interface Command<TResult = void> {
+export interface Command<TResult = void> {
   commandModel: CommandModel<TResult>;
 }
 
-type CommandResult<TResult> = TResult extends Command<infer TResult> ? TResult : never;
+export type CommandResult<TResult> = TResult extends Command<infer TResult> ? TResult : never;
 
 export interface ICrisEndpoint {
   send<T>(command: T): Promise<CommandResult<T>>;
