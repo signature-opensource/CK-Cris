@@ -206,7 +206,7 @@ export interface Command<TResult = void> {
 export type CommandResult<TResult> = TResult extends Command<infer TResult> ? TResult : never;
 
 export interface ICrisEndpoint {
-  send<T>(command: T): Promise<CommandResult<T>>;
+ send<T>(command: Command<T>): Promise<T>;
 }
 " );
             }
