@@ -25,8 +25,8 @@ namespace CK.Cris.TypeScript.Tests
                                                               typeof( Cris.Tests.ICommandUnifiedWithTheResult ),
                                                               typeof( Cris.Tests.IUnifiedResult ) );
 
-            var fCommand = output.Combine( "CK/Cris/Tests/CommandWithPocoResult.ts" );
-            var fResult = output.Combine( "CK/Cris/Tests/Result.ts" );
+            var fCommand = output.SourcePath.Combine( "CK/Cris/Tests/CommandWithPocoResult.ts" );
+            var fResult = output.SourcePath.Combine( "CK/Cris/Tests/Result.ts" );
 
             var command = File.ReadAllText( fCommand );
             var result = File.ReadAllText( fResult );
