@@ -14,7 +14,7 @@ namespace CK.Cris
     public abstract class FrontCommandExecutor : ISingletonAutoService
     {
         protected readonly CommandDirectory Directory;
-        protected readonly IPocoFactory<ICommandResult> ResultFactory;
+        protected readonly IPocoFactory<ICrisResult> ResultFactory;
         protected readonly IFrontCommandExceptionHandler ErrorHandler;
         readonly IPocoFactory<ISimpleErrorResult> _simpleErrorResultFactory;
 
@@ -25,7 +25,7 @@ namespace CK.Cris
         /// <param name="resultFactory">The command result factory.</param>
         /// <param name="errorHandler">The error handler.</param>
         /// <param name="simpleErrorResultFactory">The simple error result factory.</param>
-        public FrontCommandExecutor( CommandDirectory directory, IPocoFactory<ICommandResult> resultFactory, IFrontCommandExceptionHandler errorHandler, IPocoFactory<ISimpleErrorResult> simpleErrorResultFactory )
+        public FrontCommandExecutor( CommandDirectory directory, IPocoFactory<ICrisResult> resultFactory, IFrontCommandExceptionHandler errorHandler, IPocoFactory<ISimpleErrorResult> simpleErrorResultFactory )
         {
             Directory = directory;
             ResultFactory = resultFactory;
@@ -41,8 +41,8 @@ namespace CK.Cris
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to execute.</param>
-        /// <returns>The <see cref="ICommandResult"/>.</returns>
-        public async Task<ICommandResult> ExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, ICommand command )
+        /// <returns>The <see cref="ICrisResult"/>.</returns>
+        public async Task<ICrisResult> ExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, ICommand command )
         {
             try
             {

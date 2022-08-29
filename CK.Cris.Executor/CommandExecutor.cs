@@ -37,8 +37,8 @@ namespace CK.Cris
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to execute.</param>
-        /// <returns>The <see cref="ICommandResult"/>.</returns>
-        public Task<ICommandResult> ExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, ICommand command )
+        /// <returns>The <see cref="ICrisResult"/>.</returns>
+        public Task<ICrisResult> ExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, ICommand command )
         {
             return _frontExecutor.ExecuteCommandAsync( monitor, services, command );
         }

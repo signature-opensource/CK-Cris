@@ -32,7 +32,7 @@ namespace CK.Cris.Executor.Tests
                 typeof( DefaultFrontCommandExceptionHandler ),
                 typeof( CommandDirectory ),
                 typeof( ISimpleErrorResult ),
-                typeof( ICommandResult ),
+                typeof( ICrisResult ),
                 typeof( AmbientValues.IAmbientValues ) );
             c.RegisterTypes( types );
             return c;
@@ -97,7 +97,7 @@ namespace CK.Cris.Executor.Tests
 
                 CmdSyncHandler.Called = false;
 
-                ICommandResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                ICrisResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
                 result.Result.Should().BeNull();
                 result.Code.Should().Be( VESACode.Synchronous );
                 CmdSyncHandler.Called.Should().BeTrue();
@@ -165,7 +165,7 @@ namespace CK.Cris.Executor.Tests
 
                 CmdIntSyncHandler.Called = false;
 
-                ICommandResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                ICrisResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
                 result.Result.Should().Be( 3712 );
                 result.Code.Should().Be( VESACode.Synchronous );
                 CmdIntSyncHandler.Called.Should().BeTrue();
@@ -279,7 +279,7 @@ namespace CK.Cris.Executor.Tests
 
                 CommandHandlerImpl.Called = false;
 
-                ICommandResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                ICrisResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
                 result.Result.Should().BeNull();
                 result.Code.Should().Be( VESACode.Synchronous );
 
@@ -316,7 +316,7 @@ namespace CK.Cris.Executor.Tests
 
                 CommandHandlerExplicitImpl.Called = false;
 
-                ICommandResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                ICrisResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
                 result.Result.Should().BeNull();
                 result.Code.Should().Be( VESACode.Synchronous );
 

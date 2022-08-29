@@ -16,9 +16,9 @@ namespace CK.Cris.AspNet
         readonly CommandValidator _validator;
         readonly CommandExecutor _executor;
         readonly PocoDirectory _poco;
-        readonly IPocoFactory<ICommandResult> _resultFactory;
+        readonly IPocoFactory<ICrisResult> _resultFactory;
 
-        public CrisAspNetService( PocoDirectory poco, CommandValidator validator, CommandExecutor executor, IPocoFactory<ICommandResult> resultFactory )
+        public CrisAspNetService( PocoDirectory poco, CommandValidator validator, CommandExecutor executor, IPocoFactory<ICrisResult> resultFactory )
         {
             _poco = poco;
             _validator = validator;
@@ -29,7 +29,7 @@ namespace CK.Cris.AspNet
         public async Task HandleRequestAsync( IActivityMonitor monitor, IServiceProvider requestServices, HttpRequest request, HttpResponse response )
         {
             // If we cannot read the command, it is considered as a Code V (Validation error), hence a BadRequest status code.
-            (ICommand? cmd, ICommandResult? result) = await ReadCommandAsync( monitor, request );
+            (ICommand? cmd, ICrisResult? result) = await ReadCommandAsync( monitor, request );
             if( result == null )
             {
                 Debug.Assert( cmd != null );
@@ -60,7 +60,7 @@ namespace CK.Cris.AspNet
             }
         }
 
-        async Task<(ICommand?, ICommandResult?)> ReadCommandAsync( IActivityMonitor monitor, HttpRequest request )
+        async Task<(ICommand?, ICrisResult?)> ReadCommandAsync( IActivityMonitor monitor, HttpRequest request )
         {
             ICommand? cmd;
             int length = -1;
@@ -132,14 +132,14 @@ namespace CK.Cris.AspNet
 
         }
 
-        async Task<ICommandResult?> GetValidationErrorAsync( IActivityMonitor monitor, IServiceProvider requestServices, ICommand cmd )
+        async Task<ICrisResult?> GetValidationErrorAsync( IActivityMonitor monitor, IServiceProvider requestServices, ICommand cmd )
         {
             try
             {
                 ValidationResult validation = await _validator.ValidateCommandAsync( monitor, requestServices, cmd );
                 if( !validation.Success )
                 {
-                    ICommandResult result = _resultFactory.Create();
+                    ICrisResult result = _resultFactory.Create();
                     result.Code = VESACode.ValidationError;
                     result.Result = _validator.CreateSimpleErrorResult( validation );
                     return result;
@@ -152,9 +152,9 @@ namespace CK.Cris.AspNet
             return null;
         }
 
-        ICommandResult CreateExceptionResult( string message, Exception? ex, VESACode code )
+        ICrisResult CreateExceptionResult( string message, Exception? ex, VESACode code )
         {
-            ICommandResult result = _resultFactory.Create();
+            ICrisResult result = _resultFactory.Create();
             result.Code = code;
             result.Result = _executor.CreateSimpleErrorResult( message, ex?.Message );
             return result;

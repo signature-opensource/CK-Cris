@@ -30,7 +30,7 @@ namespace CK.Cris.AspNet.Tests
                 typeof( FrontCommandExecutor ),
                 typeof( DefaultFrontCommandExceptionHandler ),
                 typeof( CommandDirectory ),
-                typeof( ICommandResult ),
+                typeof( ICrisResult ),
                 typeof( CommandExecutor ),
                 typeof( ISimpleErrorResult ),
                 typeof( CommandValidator ),

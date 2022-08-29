@@ -34,7 +34,7 @@ namespace CK.Setup
         {
             Debug.Assert( _registry != null );
             // The ICommandResult must be in TypeScript.
-            g.DeclareTSType( monitor, typeof(ICommandResult) );
+            g.DeclareTSType( monitor, typeof(ICrisResult) );
             using( monitor.OpenInfo( $"Declaring TypeScript support for {_registry.Commands.Count} commands." ) )
             {
                 foreach( var cmd in _registry.Commands )
