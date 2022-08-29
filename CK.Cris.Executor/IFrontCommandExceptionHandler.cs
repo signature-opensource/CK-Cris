@@ -14,14 +14,14 @@ namespace CK.Cris
     {
         /// <summary>
         /// Handle an execution error. Must typically log the exception and the
-        /// command and configure the result's error in <see cref="ICommandResult.Result"/>.
+        /// command and configure the result's error in <see cref="ICrisResult.Result"/>.
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="ex">The exception.</param>
         /// <param name="command">The command that failed.</param>
-        /// <param name="result">The command result (its <see cref="ICommandResult.Code"/> is already set to <see cref="VESACode.Error"/>).</param>
+        /// <param name="result">The command result (its <see cref="ICrisResult.Code"/> is already set to <see cref="VESACode.Error"/>).</param>
         /// <returns>The awaitable.</returns>
-        ValueTask OnErrorAsync( IActivityMonitor monitor, IServiceProvider services, Exception ex, ICommand command, ICommandResult result );
+        ValueTask OnErrorAsync( IActivityMonitor monitor, IServiceProvider services, Exception ex, ICommand command, ICrisResult result );
     }
 }
