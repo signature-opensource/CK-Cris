@@ -12,7 +12,7 @@ namespace CK.Cris
     /// </para>
     /// </summary>
     /// <remarks>
-    /// Parts can be composed: when defining a specialized part that extends an
+    /// Parts can also be extended: when defining a specialized part that extends an
     /// existing <see cref="ICommandPart"/>, the <see cref="CKTypeDefinerAttribute"/> must be
     /// applied to the specialized part.
     /// </remarks>
