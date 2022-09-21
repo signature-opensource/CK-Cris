@@ -34,12 +34,21 @@ namespace CK.Cris
         ///   </item>
         ///   <item>
         ///     On error (<see cref="VESACode.Error"/> or <see cref="VESACode.ValidationError"/>), this should contain a description of
-        ///     the error, typically a <see cref="ISimpleErrorResult"/>, a simple string, a value tuple, or any combination of
+        ///     the error, typically a <see cref="ICrisErrorResult"/>, a simple string, a value tuple, or any combination of
         ///     types that are easily serializable.
         ///   </item>
         /// </list>
         /// </summary>
         object? Result { get; set; }
+
+        /// <summary>
+        /// Gets or sets an optional identifier that identifies the handling of the command
+        /// regardless of this <see cref="Code"/>.
+        /// <para>
+        /// This identifier must of course be unique.
+        /// </para>
+        /// </summary>
+        string? CorrelationId { get; set; }
 
     }
 }

@@ -16,7 +16,7 @@ namespace CK.Cris
         protected readonly CommandDirectory Directory;
         protected readonly IPocoFactory<ICrisResult> ResultFactory;
         protected readonly IFrontCommandExceptionHandler ErrorHandler;
-        readonly IPocoFactory<ISimpleErrorResult> _simpleErrorResultFactory;
+        readonly IPocoFactory<ICrisErrorResult> _simpleErrorResultFactory;
 
         /// <summary>
         /// Initializes a new <see cref="FrontCommandExecutor"/>.
@@ -25,7 +25,7 @@ namespace CK.Cris
         /// <param name="resultFactory">The command result factory.</param>
         /// <param name="errorHandler">The error handler.</param>
         /// <param name="simpleErrorResultFactory">The simple error result factory.</param>
-        public FrontCommandExecutor( CommandDirectory directory, IPocoFactory<ICrisResult> resultFactory, IFrontCommandExceptionHandler errorHandler, IPocoFactory<ISimpleErrorResult> simpleErrorResultFactory )
+        public FrontCommandExecutor( CommandDirectory directory, IPocoFactory<ICrisResult> resultFactory, IFrontCommandExceptionHandler errorHandler, IPocoFactory<ICrisErrorResult> simpleErrorResultFactory )
         {
             Directory = directory;
             ResultFactory = resultFactory;

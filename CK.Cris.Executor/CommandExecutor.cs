@@ -14,19 +14,19 @@ namespace CK.Cris
     {
         readonly CommandDirectory _directory;
         readonly FrontCommandExecutor _frontExecutor;
-        readonly IPocoFactory<ISimpleErrorResult> _simpleErrorResultFactory;
+        readonly IPocoFactory<ICrisErrorResult> _errorResultFactory;
 
         /// <summary>
         /// Initializes a new <see cref="CommandExecutor"/>.
         /// </summary>
         /// <param name="directory">The command directory.</param>
         /// <param name="frontExecutor">The front executor.</param>
-        /// <param name="simpleErrorResultFactory">The simple error result factory.</param>
-        public CommandExecutor( CommandDirectory directory, FrontCommandExecutor frontExecutor, IPocoFactory<ISimpleErrorResult> simpleErrorResultFactory )
+        /// <param name="errorResultFactory">The error result factory.</param>
+        public CommandExecutor( CommandDirectory directory, FrontCommandExecutor frontExecutor, IPocoFactory<ICrisErrorResult> errorResultFactory )
         {
             _directory = directory;
             _frontExecutor = frontExecutor;
-            _simpleErrorResultFactory = simpleErrorResultFactory;
+            _errorResultFactory = errorResultFactory;
         }
 
         /// <summary>
@@ -44,14 +44,14 @@ namespace CK.Cris
         }
 
         /// <summary>
-        /// Creates a <see cref="ISimpleErrorResult"/> with at least one error.
+        /// Creates a <see cref="ICrisErrorResult"/> with at least one error.
         /// </summary>
         /// <param name="firstError">The required first error.</param>
         /// <param name="otherErrors">Optional other errors (null strings are ignored).</param>
         /// <returns>A simple validation result.</returns>
-        public ISimpleErrorResult CreateSimpleErrorResult( string firstError, params string?[] otherErrors )
+        public ICrisErrorResult CreateErrorResult( string firstError, params string?[] otherErrors )
         {
-            return _simpleErrorResultFactory.Create( firstError, otherErrors );
+            return _errorResultFactory.Create( firstError, otherErrors );
         }
 
     }

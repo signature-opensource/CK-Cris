@@ -31,7 +31,7 @@ namespace CK.Cris.Executor.Tests
                 typeof( FrontCommandExecutor ),
                 typeof( DefaultFrontCommandExceptionHandler ),
                 typeof( CommandDirectory ),
-                typeof( ISimpleErrorResult ),
+                typeof( ICrisErrorResult ),
                 typeof( ICrisResult ),
                 typeof( AmbientValues.IAmbientValues ) );
             c.RegisterTypes( types );

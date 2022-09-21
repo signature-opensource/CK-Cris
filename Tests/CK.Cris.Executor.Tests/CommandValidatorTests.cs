@@ -26,7 +26,7 @@ namespace CK.Cris.Executor.Tests
         public async Task when_there_is_no_validation_methods_the_validation_succeeds_Async()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ), typeof( AmbientValues.IAmbientValues ),
+                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ICrisErrorResult ), typeof( AmbientValues.IAmbientValues ),
                 typeof( ICmdTest ) );
 
             using var services = TestHelper.CreateAutomaticServices( c ).Services;
@@ -52,7 +52,7 @@ namespace CK.Cris.Executor.Tests
         public async Task exceptions_raised_by_validators_are_NOT_handled_by_the_CommandValidator_the_caller_MUST_handle_them_Async()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ), typeof( AmbientValues.IAmbientValues ),
+                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ICrisErrorResult ), typeof( AmbientValues.IAmbientValues ),
                 typeof( ICmdTest ),
                 typeof( BuggyValidator ) );
             using var services = TestHelper.CreateAutomaticServices( c ).Services;
@@ -97,7 +97,7 @@ namespace CK.Cris.Executor.Tests
         public async Task the_simplest_validation_is_held_by_a_dependency_free_service_and_is_synchronous_Async( bool scopedService, bool singletonService )
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ), typeof( AmbientValues.IAmbientValues ),
+                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ICrisErrorResult ), typeof( AmbientValues.IAmbientValues ),
                 typeof( ICmdTest ),
                 typeof( ICmdWithoutValidators ) );
             if( singletonService ) c.RegisterType( typeof( SimplestValidatorEverSingleton ) );
@@ -176,7 +176,7 @@ namespace CK.Cris.Executor.Tests
         public async Task part_with_parameter_injection_Async()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ISimpleErrorResult ), typeof( AmbientValues.IAmbientValues ),
+                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ICrisErrorResult ), typeof( AmbientValues.IAmbientValues ),
                 typeof( ICmdTestSecure ),
                 typeof( AuthenticationValidator ),
                 typeof( SimplestValidatorEverScoped ),

@@ -14,7 +14,4 @@
   <ItemGroup>
     <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="%24StObjGen\" />
-  </ItemGroup>
 </Project>
