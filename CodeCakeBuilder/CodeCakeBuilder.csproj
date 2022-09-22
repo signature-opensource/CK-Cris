@@ -9,10 +9,10 @@
     <Nullable>annotations</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Core" Version="15.0.0-r06" />
+    <PackageReference Include="CK.Core" Version="15.1.0" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CKSetup.Cake" Version="15.0.0-r08" />
+    <PackageReference Include="CKSetup.Cake" Version="16.0.0" />
     <PackageReference Include="NuGet.Credentials" Version="6.2.1" />
   </ItemGroup>
   <ItemGroup>

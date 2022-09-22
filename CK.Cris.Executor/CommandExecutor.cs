@@ -14,19 +14,19 @@ namespace CK.Cris
     {
         readonly CommandDirectory _directory;
         readonly FrontCommandExecutor _frontExecutor;
-        readonly IPocoFactory<ISimpleErrorResult> _simpleErrorResultFactory;
+        readonly IPocoFactory<ICrisResultError> _errorResultFactory;
 
         /// <summary>
         /// Initializes a new <see cref="CommandExecutor"/>.
         /// </summary>
         /// <param name="directory">The command directory.</param>
         /// <param name="frontExecutor">The front executor.</param>
-        /// <param name="simpleErrorResultFactory">The simple error result factory.</param>
-        public CommandExecutor( CommandDirectory directory, FrontCommandExecutor frontExecutor, IPocoFactory<ISimpleErrorResult> simpleErrorResultFactory )
+        /// <param name="errorResultFactory">The error result factory.</param>
+        public CommandExecutor( CommandDirectory directory, FrontCommandExecutor frontExecutor, IPocoFactory<ICrisResultError> errorResultFactory )
         {
             _directory = directory;
             _frontExecutor = frontExecutor;
-            _simpleErrorResultFactory = simpleErrorResultFactory;
+            _errorResultFactory = errorResultFactory;
         }
 
         /// <summary>
@@ -37,21 +37,21 @@ namespace CK.Cris
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to execute.</param>
-        /// <returns>The <see cref="ICommandResult"/>.</returns>
-        public Task<ICommandResult> ExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, ICommand command )
+        /// <returns>The <see cref="ICrisResult"/>.</returns>
+        public Task<ICrisResult> ExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, ICommand command )
         {
             return _frontExecutor.ExecuteCommandAsync( monitor, services, command );
         }
 
         /// <summary>
-        /// Creates a <see cref="ISimpleErrorResult"/> with at least one error.
+        /// Creates a <see cref="ICrisResultError"/> with at least one error.
         /// </summary>
         /// <param name="firstError">The required first error.</param>
         /// <param name="otherErrors">Optional other errors (null strings are ignored).</param>
         /// <returns>A simple validation result.</returns>
-        public ISimpleErrorResult CreateSimpleErrorResult( string firstError, params string?[] otherErrors )
+        public ICrisResultError CreateErrorResult( string firstError, params string?[] otherErrors )
         {
-            return _simpleErrorResultFactory.Create( firstError, otherErrors );
+            return _errorResultFactory.Create( firstError, otherErrors );
         }
 
     }

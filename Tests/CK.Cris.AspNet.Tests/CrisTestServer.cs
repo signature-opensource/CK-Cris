@@ -3,12 +3,14 @@ using CK.AspNet.Tester;
 using CK.Auth;
 using CK.Core;
 using CK.Setup;
+using FluentAssertions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
@@ -30,9 +32,9 @@ namespace CK.Cris.AspNet.Tests
                 typeof( FrontCommandExecutor ),
                 typeof( DefaultFrontCommandExceptionHandler ),
                 typeof( CommandDirectory ),
-                typeof( ICommandResult ),
+                typeof( ICrisResult ),
                 typeof( CommandExecutor ),
-                typeof( ISimpleErrorResult ),
+                typeof( ICrisResultError ),
                 typeof( CommandValidator ),
                 typeof( PocoJsonSerializer ),
                 typeof( CrisAspNetService ),
@@ -57,6 +59,8 @@ namespace CK.Cris.AspNet.Tests
             }
 
             var (result, stObjMap) = TestHelper.CompileAndLoadStObjMap( collector );
+
+            PocoDirectory = stObjMap.StObjs.Obtain<PocoDirectory>()!;
 
             var b = CK.AspNet.Tester.WebHostBuilderFactory.Create( null, null,
                 services =>
@@ -93,6 +97,18 @@ namespace CK.Cris.AspNet.Tests
         }
 
         public TestServerClient Client { get; }
+
+        public PocoDirectory PocoDirectory { get; }
+
+        public async Task<ICrisResult> GetCrisResultWithNullCorrelationIdAsync( HttpResponseMessage r )
+        {
+            r.EnsureSuccessStatusCode();
+            var result = PocoDirectory.Find<ICrisResult>()!.JsonDeserialize( await r.Content.ReadAsStringAsync() );
+            Debug.Assert( result != null );
+            result.CorrelationId.Should().NotBeNullOrWhiteSpace();
+            result.CorrelationId = null;
+            return result;
+        }
 
         public async Task<bool> LoginAsync( string userName, string password = "success" )
         {
