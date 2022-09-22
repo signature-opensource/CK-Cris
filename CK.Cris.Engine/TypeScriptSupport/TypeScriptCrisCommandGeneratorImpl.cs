@@ -33,8 +33,9 @@ namespace CK.Setup
         bool ITSCodeGenerator.GenerateCode( IActivityMonitor monitor, TypeScriptContext g )
         {
             Debug.Assert( _registry != null );
-            // The ICommandResult must be in TypeScript.
+            // The ICrisResult and the ICrisErrorResult must be in TypeScript.
             g.DeclareTSType( monitor, typeof(ICrisResult) );
+            g.DeclareTSType( monitor, typeof(ICrisResultError) );
             using( monitor.OpenInfo( $"Declaring TypeScript support for {_registry.Commands.Count} commands." ) )
             {
                 foreach( var cmd in _registry.Commands )

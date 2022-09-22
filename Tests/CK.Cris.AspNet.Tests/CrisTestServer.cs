@@ -34,7 +34,7 @@ namespace CK.Cris.AspNet.Tests
                 typeof( CommandDirectory ),
                 typeof( ICrisResult ),
                 typeof( CommandExecutor ),
-                typeof( ICrisErrorResult ),
+                typeof( ICrisResultError ),
                 typeof( CommandValidator ),
                 typeof( PocoJsonSerializer ),
                 typeof( CrisAspNetService ),

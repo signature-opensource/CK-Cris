@@ -14,7 +14,7 @@ namespace CK.Cris
     {
         readonly CommandDirectory _directory;
         readonly FrontCommandExecutor _frontExecutor;
-        readonly IPocoFactory<ICrisErrorResult> _errorResultFactory;
+        readonly IPocoFactory<ICrisResultError> _errorResultFactory;
 
         /// <summary>
         /// Initializes a new <see cref="CommandExecutor"/>.
@@ -22,7 +22,7 @@ namespace CK.Cris
         /// <param name="directory">The command directory.</param>
         /// <param name="frontExecutor">The front executor.</param>
         /// <param name="errorResultFactory">The error result factory.</param>
-        public CommandExecutor( CommandDirectory directory, FrontCommandExecutor frontExecutor, IPocoFactory<ICrisErrorResult> errorResultFactory )
+        public CommandExecutor( CommandDirectory directory, FrontCommandExecutor frontExecutor, IPocoFactory<ICrisResultError> errorResultFactory )
         {
             _directory = directory;
             _frontExecutor = frontExecutor;
@@ -44,12 +44,12 @@ namespace CK.Cris
         }
 
         /// <summary>
-        /// Creates a <see cref="ICrisErrorResult"/> with at least one error.
+        /// Creates a <see cref="ICrisResultError"/> with at least one error.
         /// </summary>
         /// <param name="firstError">The required first error.</param>
         /// <param name="otherErrors">Optional other errors (null strings are ignored).</param>
         /// <returns>A simple validation result.</returns>
-        public ICrisErrorResult CreateErrorResult( string firstError, params string?[] otherErrors )
+        public ICrisResultError CreateErrorResult( string firstError, params string?[] otherErrors )
         {
             return _errorResultFactory.Create( firstError, otherErrors );
         }

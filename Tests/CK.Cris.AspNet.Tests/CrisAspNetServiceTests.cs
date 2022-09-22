@@ -64,7 +64,7 @@ namespace CK.Cris.AspNet.Tests
                     TestHandler.Called.Should().BeFalse( "Validation error." );
 
                     var result = await s.GetCrisResultWithNullCorrelationIdAsync( r );
-                    result.ToString().Should().Be( @"{""code"":86,""result"":[""CrisErrorResult"",{""errors"":[""Value must be positive.""]}],""correlationId"":null}" );
+                    result.ToString().Should().Be( @"{""code"":86,""result"":[""CrisResultError"",{""errors"":[""Value must be positive.""]}],""correlationId"":null}" );
                 }
             }
         }
@@ -87,7 +87,7 @@ namespace CK.Cris.AspNet.Tests
                 HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""Test"",{""Value"":3712}]" );
                 Debug.Assert( r != null );
                 var result = await s.GetCrisResultWithNullCorrelationIdAsync( r );
-                result.ToString().Should().Be( @"{""code"":69,""result"":[""CrisErrorResult"",{""errors"":[""CommandValidator unexpected error."",""This should not happen!""]}],""correlationId"":null}" );
+                result.ToString().Should().Be( @"{""code"":69,""result"":[""CrisResultError"",{""errors"":[""CommandValidator unexpected error."",""This should not happen!""]}],""correlationId"":null}" );
             }
         }
 
@@ -101,31 +101,31 @@ namespace CK.Cris.AspNet.Tests
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""Unknown"",{""value"":3712}]" );
                     Debug.Assert( r != null );
                     var result = await s.GetCrisResultWithNullCorrelationIdAsync( r );
-                    result.ToString().Should().Be( @"{""code"":86,""result"":[""CrisErrorResult"",{""errors"":[""Unable to read Command Poco from request body (byte length = 26)."",""Poco type \u0027Unknown\u0027 not found.""]}],""correlationId"":null}" );
+                    result.ToString().Should().Be( @"{""code"":86,""result"":[""CrisResultError"",{""errors"":[""Unable to read Command Poco from request body (byte length = 26)."",""Poco type \u0027Unknown\u0027 not found.""]}],""correlationId"":null}" );
                 }
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, "" );
                     Debug.Assert( r != null );
                     var result = await s.GetCrisResultWithNullCorrelationIdAsync( r );
-                    result.ToString().Should().Be( @"{""code"":86,""result"":[""CrisErrorResult"",{""errors"":[""Unable to read Command Poco from empty request body.""]}],""correlationId"":null}" );
+                    result.ToString().Should().Be( @"{""code"":86,""result"":[""CrisResultError"",{""errors"":[""Unable to read Command Poco from empty request body.""]}],""correlationId"":null}" );
                 }
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, "{}" );
                     Debug.Assert( r != null );
                     var result = await s.GetCrisResultWithNullCorrelationIdAsync( r );
-                    result.ToString().Should().Be( @"{""code"":86,""result"":[""CrisErrorResult"",{""errors"":[""Unable to read Command Poco from request body (byte length = 2)."",""Expecting Json Poco array.""]}],""correlationId"":null}" );
+                    result.ToString().Should().Be( @"{""code"":86,""result"":[""CrisResultError"",{""errors"":[""Unable to read Command Poco from request body (byte length = 2)."",""Expecting Json Poco array.""]}],""correlationId"":null}" );
                 }
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, "----" );
                     Debug.Assert( r != null );
                     var result = await s.GetCrisResultWithNullCorrelationIdAsync( r );
-                    result.ToString().Should().StartWith( @"{""code"":86,""result"":[""CrisErrorResult"",{""errors"":[""Unable to read Command Poco from request body (byte length = 4)."",""" );
+                    result.ToString().Should().StartWith( @"{""code"":86,""result"":[""CrisResultError"",{""errors"":[""Unable to read Command Poco from request body (byte length = 4)."",""" );
                 }
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, "\"X\"" );
                     Debug.Assert( r != null );
                     var result = await s.GetCrisResultWithNullCorrelationIdAsync( r );
-                    result.ToString().Should().StartWith( @"{""code"":86,""result"":[""CrisErrorResult"",{""errors"":[""Unable to read Command Poco from request body (byte length = 3)."",""" );
+                    result.ToString().Should().StartWith( @"{""code"":86,""result"":[""CrisResultError"",{""errors"":[""Unable to read Command Poco from request body (byte length = 3)."",""" );
                 }
             }
         }

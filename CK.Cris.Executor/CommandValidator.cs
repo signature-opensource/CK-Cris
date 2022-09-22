@@ -11,26 +11,26 @@ namespace CK.Cris
     public abstract class CommandValidator : ISingletonAutoService
     {
         protected CommandDirectory Directory;
-        readonly IPocoFactory<ICrisErrorResult> _simpleErrorResultFactory;
+        readonly IPocoFactory<ICrisResultError> _simpleErrorResultFactory;
 
         /// <summary>
         /// Initializes a new <see cref="CommandValidator"/>.
         /// </summary>
         /// <param name="directory">The command directory.</param>
         /// <param name="simpleErrorResultFactory">SimpleValidationError factory.</param>
-        public CommandValidator( CommandDirectory directory, IPocoFactory<ICrisErrorResult> simpleErrorResultFactory )
+        public CommandValidator( CommandDirectory directory, IPocoFactory<ICrisResultError> simpleErrorResultFactory )
         {
             Directory = directory;
             _simpleErrorResultFactory = simpleErrorResultFactory;
         }
 
         /// <summary>
-        /// Creates a <see cref="ICrisErrorResult"/> with the errors if the result is not successful,
+        /// Creates a <see cref="ICrisResultError"/> with the errors if the result is not successful,
         /// null otherwise.
         /// </summary>
         /// <param name="v">The validation result.</param>
         /// <returns>Null or a simple validation result.</returns>
-        public ICrisErrorResult? CreateSimpleErrorResult( ValidationResult v )
+        public ICrisResultError? CreateSimpleErrorResult( ValidationResult v )
         {
             if( v.Success ) return null;
             var r = _simpleErrorResultFactory.Create();
