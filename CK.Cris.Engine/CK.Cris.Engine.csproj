@@ -5,9 +5,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.StObj.Runtime" Version="20.0.0" />
+    <PackageReference Include="CK.StObj.Runtime" Version="21.0.0" />
     <!--
-          This CK.Cris.Engine directly implements the CK.Cris.TypeSript.Engine to avoid another (quite small) assembly.
+          This CK.Cris.Engine directly implements the TypeScriptCrisCommandGeneratorImpl to avoid another (quite small) assembly.
 
           Note that Cris TypeScript generation requires:
           - the TypeScriptAspect is declared and one or more <TypeScript><OutuptPath>...</OutuptPath></TypeScript> is defined in the BinPathConfiguration.

@@ -21,6 +21,8 @@ namespace CK.Cris.TypeScript.Tests
         {
             var output = TypeScriptTestHelper.GenerateTSCode( nameof( DiamondResultAndCommand_works ),
                                                               typeof( CommandDirectory ),
+                                                              typeof( ICrisResult ),
+                                                              typeof( ICrisResultError ),
                                                               typeof( AmbientValues.IAmbientValues ),
                                                               typeof( Cris.Tests.ICommandUnifiedWithTheResult ),
                                                               typeof( Cris.Tests.IUnifiedResult ) );
@@ -77,7 +79,9 @@ namespace CK.Cris.TypeScript.Tests
                                                               typeof( AmbientValues.AmbientValuesService ),
                                                               typeof( IColoredAmbientValues ),
                                                               typeof( ColorService ),
-                                                              typeof( ICommandColored ) );
+                                                              typeof( ICommandColored ),
+                                                              typeof( ICrisResult ),
+                                                              typeof( ICrisResultError ) );
         }
 
     }

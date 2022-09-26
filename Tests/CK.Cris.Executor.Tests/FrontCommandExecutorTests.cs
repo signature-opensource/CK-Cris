@@ -16,7 +16,7 @@ using static CK.Testing.StObjEngineTestHelper;
 #nullable enable
 
 namespace CK.Cris.Executor.Tests
-{ 
+{
     [TestFixture]
     public class FrontCommandExecutorTests
     {
@@ -31,7 +31,7 @@ namespace CK.Cris.Executor.Tests
                 typeof( FrontCommandExecutor ),
                 typeof( DefaultFrontCommandExceptionHandler ),
                 typeof( CommandDirectory ),
-                typeof( ISimpleErrorResult ),
+                typeof( ICrisResultError ),
                 typeof( ICrisResult ),
                 typeof( AmbientValues.IAmbientValues ) );
             c.RegisterTypes( types );

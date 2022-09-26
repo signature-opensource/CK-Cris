@@ -8,7 +8,7 @@ namespace CK.Cris
 {
     /// <summary>
     /// Executes commands on all the available services: there is no restriction on the
-    /// kind of the executing services since they are called in the "front" context. 
+    /// kind of the executing services since they are called in the "front" context.
     /// </summary>
     [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.FrontCommandExecutorImpl, CK.Cris.Executor.Engine" )]
     public abstract class FrontCommandExecutor : ISingletonAutoService
@@ -16,7 +16,7 @@ namespace CK.Cris
         protected readonly CommandDirectory Directory;
         protected readonly IPocoFactory<ICrisResult> ResultFactory;
         protected readonly IFrontCommandExceptionHandler ErrorHandler;
-        readonly IPocoFactory<ISimpleErrorResult> _simpleErrorResultFactory;
+        readonly IPocoFactory<ICrisResultError> _simpleErrorResultFactory;
 
         /// <summary>
         /// Initializes a new <see cref="FrontCommandExecutor"/>.
@@ -25,7 +25,7 @@ namespace CK.Cris
         /// <param name="resultFactory">The command result factory.</param>
         /// <param name="errorHandler">The error handler.</param>
         /// <param name="simpleErrorResultFactory">The simple error result factory.</param>
-        public FrontCommandExecutor( CommandDirectory directory, IPocoFactory<ICrisResult> resultFactory, IFrontCommandExceptionHandler errorHandler, IPocoFactory<ISimpleErrorResult> simpleErrorResultFactory )
+        public FrontCommandExecutor( CommandDirectory directory, IPocoFactory<ICrisResult> resultFactory, IFrontCommandExceptionHandler errorHandler, IPocoFactory<ICrisResultError> simpleErrorResultFactory )
         {
             Directory = directory;
             ResultFactory = resultFactory;
