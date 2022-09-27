@@ -188,15 +188,19 @@ namespace CK.Setup
 
         static void EnsureCrisModel( PocoGeneratingEventArgs e )
         {
-            var folder = e.TypeFile.Context.Root.Root.FindOrCreateFolder( "CK" ).FindOrCreateFolder( "Cris" );
+            var folder = e.TypeFile.Context.Root.Root.FindOrCreateFolder( "CK/Cris" );
             var fModel = folder.FindOrCreateFile( "Model.ts", out bool created );
-            var fVesa = folder.FindOrCreateFile( "VESACode.ts" );
-            var fCrisError = folder.FindOrCreateFile( "CrisResultError.ts" );
             if( created )
             {
-                fModel.Imports.EnsureImport(fVesa, "VESACode");
-                fModel.Imports.EnsureImport( fCrisError, "CrisResultError" );
-                fModel.Body.Append( @"
+                InitializeCrisModelFile( e.Monitor, fModel );
+            }
+            e.TypeFile.File.Imports.EnsureImport( fModel, "CommandModel", "ICrisEndpoint" );
+        }
+
+        static void InitializeCrisModelFile( IActivityMonitor monitor, TypeScriptFile<TypeScriptContextRoot> fModel )
+        {
+            fModel.EnsureImport( monitor, typeof( VESACode ), typeof( ICrisResultError ) );
+            fModel.Body.Append( @"
 
 type ICommandResult<T> = {
     code: VESACode.Error | VESACode.ValidationError,
@@ -227,9 +231,6 @@ export interface ICrisEndpoint {
  send<T>(command: Command<T>): Promise<ICommandResult<T>>;
 }
 " );
-            }
-            e.TypeFile.File.Imports.EnsureImport( fModel, "CommandModel", "ICrisEndpoint" );
         }
-
     }
 }
