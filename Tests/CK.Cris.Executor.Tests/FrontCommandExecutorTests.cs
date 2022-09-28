@@ -16,7 +16,7 @@ using static CK.Testing.StObjEngineTestHelper;
 #nullable enable
 
 namespace CK.Cris.Executor.Tests
-{ 
+{
     [TestFixture]
     public class FrontCommandExecutorTests
     {

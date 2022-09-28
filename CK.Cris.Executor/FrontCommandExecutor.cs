@@ -8,7 +8,7 @@ namespace CK.Cris
 {
     /// <summary>
     /// Executes commands on all the available services: there is no restriction on the
-    /// kind of the executing services since they are called in the "front" context. 
+    /// kind of the executing services since they are called in the "front" context.
     /// </summary>
     [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.FrontCommandExecutorImpl, CK.Cris.Executor.Engine" )]
     public abstract class FrontCommandExecutor : ISingletonAutoService

@@ -93,7 +93,7 @@ namespace CK.Setup
                 // Defensive programming here.
                 if( cmd == null ) return;
 
-                // Force the IAmbientValues to be registered first. 
+                // Force the IAmbientValues to be registered first.
                 if( e.EnsurePoco( _registry.AmbientValues ) == null )
                 {
                     e.SetError( $"Since generating the IAmbientValues TypeScript failed, no command can be generated." );
@@ -119,14 +119,13 @@ namespace CK.Setup
                     .OpenBlock()
                         .Append( "commandName: " ).AppendSourceString( cmd.CommandName ).Append( "," ).NewLine()
                         .Append( "isFireAndForget: " ).Append( isFireAndForget ).Append( "," ).NewLine()
-                        .Append( "send: (e: ICrisEndpoint) => e.send( this )" ).Append( "," ).NewLine()
                         .Append( "applyAmbientValues: (values: { [index: string]: any }, force?: boolean ) => " )
                         .OpenBlock()
                             .Append( ApplyAmbientValues )
                         .CloseBlock()
                     .CloseBlock( withSemiColon: true );
 
-                // All the interfaces share the commandModel signature. 
+                // All the interfaces share the commandModel signature.
                 if( e.TypeFile.Context.Root.GeneratePocoInterfaces )
                 {
                     foreach( var itf in e.PocoClass.PocoRootInfo.Interfaces )
@@ -189,27 +188,49 @@ namespace CK.Setup
 
         static void EnsureCrisModel( PocoGeneratingEventArgs e )
         {
-            var folder = e.TypeFile.Context.Root.Root.FindOrCreateFolder( "CK" ).FindOrCreateFolder( "Cris" );
+            var folder = e.TypeFile.Context.Root.Root.FindOrCreateFolder( "CK/Cris" );
             var fModel = folder.FindOrCreateFile( "Model.ts", out bool created );
             if( created )
             {
-                fModel.Body.Append( @"
-export interface CommandModel<TResult> {
-    readonly commandName: string;
-    readonly isFireAndForget: boolean;
-    send: (e: ICrisEndpoint) => Promise<TResult>;
-    applyAmbientValues: (values: { [index: string]: any }, force?: boolean ) => void;
-}
-
-type CommandResult<T> = T extends { commandModel: CommandModel<infer TResult> } ? TResult : never;
-
-export interface ICrisEndpoint {
-    send<T>(command: T): Promise<CommandResult<T>>;
-}
-" );
+                InitializeCrisModelFile( e.Monitor, fModel );
             }
             e.TypeFile.File.Imports.EnsureImport( fModel, "CommandModel", "ICrisEndpoint" );
         }
 
+        static void InitializeCrisModelFile( IActivityMonitor monitor, TypeScriptFile<TypeScriptContextRoot> fModel )
+        {
+            fModel.EnsureImport( monitor, typeof( VESACode ), typeof( ICrisResultError ) );
+            fModel.Body.Append( @"
+
+type ICommandResult<T> = {
+    code: VESACode.Error | VESACode.ValidationError,
+    result: CrisResultError,
+    correlationId?: string
+} |
+{
+    code: 'CommunicationError',
+    result: Error
+} |
+{
+    code: VESACode.Synchronous,
+    result: T,
+    correlationId?: string
+};
+
+export interface CommandModel<TResult> {
+    readonly commandName: string;
+    readonly isFireAndForget: boolean;
+    applyAmbientValues: (values: { [index: string]: any }, force?: boolean ) => void;
+}
+
+export interface Command<TResult = void> {
+  commandModel: CommandModel<TResult>;
+}
+
+export interface ICrisEndpoint {
+ send<T>(command: Command<T>): Promise<ICommandResult<T>>;
+}
+" );
+        }
     }
 }

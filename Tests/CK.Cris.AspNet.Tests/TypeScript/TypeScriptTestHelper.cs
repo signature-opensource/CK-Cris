@@ -43,17 +43,17 @@ namespace CK.Cris.TypeScript.Tests
             }
         }
 
-        public static NormalizedPath GenerateTSCode( string testName, params Type[] types )
+        public static (NormalizedPath OutputPath, NormalizedPath SourcePath) GenerateTSCode( string testName, params Type[] types )
         {
             return GenerateTSCode( testName, new MonoCollectorResolver( types ) );
         }
 
-        public static NormalizedPath GenerateTSCode( string testName, IStObjCollectorResultResolver collectorResults )
+        public static (NormalizedPath OutputPath, NormalizedPath SourcePath) GenerateTSCode( string testName, IStObjCollectorResultResolver collectorResults )
         {
             return GenerateTSCode( testName, new TypeScriptAspectConfiguration(), collectorResults );
         }
 
-        public static NormalizedPath GenerateTSCode( string testName, TypeScriptAspectConfiguration tsConfig, IStObjCollectorResultResolver collectorResults )
+        public static (NormalizedPath OutputPath, NormalizedPath SourcePath) GenerateTSCode( string testName, TypeScriptAspectConfiguration tsConfig, IStObjCollectorResultResolver collectorResults )
         {
             NormalizedPath output = GetOutputFolder( testName );
             var config = new StObjEngineConfiguration();
@@ -65,7 +65,7 @@ namespace CK.Cris.TypeScript.Tests
             var engine = new StObjEngine( TestHelper.Monitor, config );
             engine.Run( collectorResults ).Success.Should().BeTrue( "StObjEngine.Run worked." );
             Directory.Exists( output ).Should().BeTrue();
-            return output;
+            return (output, output.AppendPart( "ts" ).AppendPart( "src" ));
         }
     }
 }
