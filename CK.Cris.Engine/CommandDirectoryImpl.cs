@@ -25,11 +25,61 @@ namespace CK.Setup.Cris
 
         CSCodeGenerationResult DoImplement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope, JsonSerializationCodeGen? json = null )
         { 
-            if( classType != typeof( CommandDirectory ) ) throw new InvalidOperationException( "Applies only to the CommandDirectory class." );
+            Throw.CheckState( "Applies only to the CommandDirectory class.", classType == typeof( CommandDirectory ) );
             _registry = CommandRegistry.FindOrCreate( monitor, c );
             if( _registry == null ) return CSCodeGenerationResult.Failed;
 
-            CodeWriterExtensions.Append( scope, "public " ).Append( scope.Name ).Append( "() : base( CreateCommands() ) {}" ).NewLine();
+            scope.Namespace.Append( @"
+                sealed class CRISCommandHandlerDesc : ICommandModel.IHandler
+                {
+                    // Waiting for ""StObj goes static"": the static fields of
+                    // GeneratedStObjContextRoot will expose the
+                    // static GFinalStObj[] _finalStObjs and services list so that the ""real""
+                    // GFinalStObj xor StObjServiceClassFactoryInfo can be used.
+                    public sealed class TEMPORARYStObjFinalClass : IStObjFinalClass
+                    {
+                        public TEMPORARYStObjFinalClass( Type classType,
+                                                         Type finalType,
+                                                         bool isScoped,
+                                                         IReadOnlyCollection<Type> multipleMappings,
+                                                         IReadOnlyCollection<Type> uniqueMappings )
+                        {
+                            ClassType = classType;
+                            FinalType = finalType;
+                            IsScoped = isScoped;
+                            MultipleMappings = multipleMappings;
+                            UniqueMappings = uniqueMappings;
+                        }
+                        public Type ClassType { get; }
+
+                        public Type FinalType { get; }
+
+                        public bool IsScoped { get; }
+
+                        public IReadOnlyCollection<Type> MultipleMappings { get; }
+
+                        public IReadOnlyCollection<Type> UniqueMappings { get; }
+                    }
+
+                    public CRISCommandHandlerDesc( TEMPORARYStObjFinalClass type,
+                                                   string methodName,
+                                                   Type[] parameters )
+                    {
+                        Type = type;
+                        MethodName = methodName;
+                        Parameters = parameters;
+                    }
+
+                    public IStObjFinalClass Type { get; }
+
+                    public string MethodName { get; }
+
+                    public Type[] Parameters { get; }
+                }
+" );
+
+            scope.GeneratedByComment();
+            scope.Append( "public " ).Append( scope.Name ).Append( "() : base( CreateCommands() ) {}" ).NewLine();
 
             scope.Append( "static IReadOnlyList<CK.Cris.ICommandModel> CreateCommands()" ).NewLine()
                  .OpenBlock()
@@ -55,8 +105,29 @@ namespace CK.Setup.Cris
                  .Append( "public int CommandIdx => " ).Append( e.CommandIdx ).Append( ";" ).NewLine()
                  .Append( "public string CommandName => Name;" ).NewLine()
                  .Append( "public Type ResultType => " ).AppendTypeOf( e.ResultType ).Append( ";" ).NewLine()
-                 .Append( "public MethodInfo Handler => " ).Append( e.Handler?.Method ).Append( ";" ).NewLine()
                  .Append( "CK.Cris.ICommand CK.Cris.ICommandModel.Create() => (CK.Cris.ICommand)Create();" ).NewLine();
+
+                if( e.Handler == null )
+                {
+                    f.Append( "public ICommandModel.IHandler? Handler => null;" );
+                }
+                else
+                {
+                    f.Append( "static readonly CRISCommandHandlerDesc.TEMPORARYStObjFinalClass _tempFinalClass = new CRISCommandHandlerDesc.TEMPORARYStObjFinalClass(" ).NewLine()
+                        .AppendTypeOf( e.Handler.Owner.ClassType ).Append( ", " ).NewLine()
+                        .AppendTypeOf( e.Handler.Owner.FinalType ).Append( ", " ).NewLine()
+                        .Append( e.Handler.Owner.IsScoped ).Append( ", " ).NewLine()
+                        .AppendArray( e.Handler.Owner.MultipleMappings ).Append( ", " ).NewLine()
+                        .AppendArray( e.Handler.Owner.UniqueMappings ).Append( " );" ).NewLine();
+
+                    f.Append( "static readonly ICommandModel.IHandler _cmdHandlerDesc = new CRISCommandHandlerDesc(" ).NewLine()
+                     .Append( "_tempFinalClass," ).NewLine()
+                     .AppendSourceString( e.Handler.Method.Name ).Append(",").NewLine()
+                     .AppendArray( e.Handler.Parameters.Select( p => p.ParameterType )).Append(");").NewLine();
+
+                    f.Append( "public ICommandModel.IHandler? Handler => _cmdHandlerDesc;" );
+                }
+                f.NewLine();
 
                 // The CommandModel is the _factory field.
                 var p = c.Assembly.FindOrCreateAutoImplementedClass( monitor, e.Command.PocoClass );

@@ -326,6 +326,40 @@ namespace CK.Cris.Executor.Tests
 
         #endregion
 
+        #region [CommandHandler] on a regular base class of an IAutoService.
+
+        public interface IIntResultCommand : ICommand<int>
+        {
+        }
+
+        public class BaseClassWithHandler
+        {
+            [CommandHandler]
+            public int Run( IIntResultCommand cmd ) => cmd.GetHashCode();
+        }
+
+        public class SpecializedBaseClassService : BaseClassWithHandler, IAutoService
+        {
+        }
+
+        [Test]
+        public async Task calling_a_base_class_implementation_Async()
+        {
+            var c = CreateFrontCommandCollector( typeof( IIntResultCommand ), typeof( SpecializedBaseClassService ) );
+            using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
+            using( var scope = appServices.CreateScope() )
+            {
+                var services = scope.ServiceProvider;
+                var executor = services.GetRequiredService<FrontCommandExecutor>();
+                var cmd = services.GetRequiredService<IPocoFactory<IIntResultCommand>>().Create();
+
+                ICrisResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                result.Result.Should().Be( cmd.GetHashCode() );
+                result.Code.Should().Be( VESACode.Synchronous );
+            }
+        }
+
+        #endregion
 
     }
 }

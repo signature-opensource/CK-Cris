@@ -12,7 +12,7 @@ namespace CK.Setup.Cris
 
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
-            if( classType != typeof( FrontCommandExecutor ) ) throw new InvalidOperationException( "Applies only to the FrontCommandExecutor class." );
+            Throw.CheckState( "Applies only to the FrontCommandExecutor class.", classType ==typeof( FrontCommandExecutor ) );
             var registry = CommandRegistry.FindOrCreate( monitor, c );
             if( registry == null ) return CSCodeGenerationResult.Failed;
 
@@ -39,7 +39,7 @@ namespace CK.Setup.Cris
                     if( isOverallAsync ) scope.Append( "async " );
                     scope.Append( "Task<object> H" ).Append( e.CommandIdx ).Append( "( IActivityMonitor m, IServiceProvider s, CK.Cris.ICommand c )" ).NewLine()
                          .Append( "{" ).NewLine();
-                    scope.Append( "var handler = (" ).Append( h.Method.DeclaringType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( h.Method.DeclaringType! ).Append( ");" ).NewLine();
+                    scope.Append( "var handler = (" ).Append( h.Owner.FinalType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( h.Owner.FinalType ).Append( ");" ).NewLine();
 
                     if( !isVoidReturn ) scope.Append( e.ResultType.ToCSharpName() ).Append( " r = " );
                     if( isHandlerAsync ) scope.Append( "await " );

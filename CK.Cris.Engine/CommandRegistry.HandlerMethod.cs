@@ -18,16 +18,15 @@ namespace CK.Setup.Cris
             public readonly bool IsValAsync;
             public readonly bool IsClosedHandler;
 
-            public HandlerMethod(
-                        Entry command,
-                        IStObjFinalClass owner,
-                        MethodInfo method,
-                        ParameterInfo[] parameters,
-                        ParameterInfo commandParameter,
-                        Type unwrappedReturnType,
-                        bool isRefAsync,
-                        bool isValAsync,
-                        bool isClosedHandler )
+            public HandlerMethod( Entry command,
+                                  IStObjFinalClass owner,
+                                  MethodInfo method,
+                                  ParameterInfo[] parameters,
+                                  ParameterInfo commandParameter,
+                                  Type unwrappedReturnType,
+                                  bool isRefAsync,
+                                  bool isValAsync,
+                                  bool isClosedHandler )
             {
                 Command = command;
                 Owner = owner;

@@ -9,7 +9,10 @@ using System.Text;
 
 namespace CK.Setup.Cris
 {
-    class CommandAttributeImpl
+    /// <summary>
+    /// Base class for CommandValidatorAttributeImpl, CommandHandlerAttributeImpl and CommandPostHandlerAttributeImpl.
+    /// </summary>
+    abstract class CommandAttributeImpl
     {
         readonly Type _type;
         readonly MethodInfo _method;
@@ -30,7 +33,8 @@ namespace CK.Setup.Cris
             }
         }
 
-        protected (CommandRegistry? Registry, IStObjFinalClass? Impl, MethodInfo Method) Prepare( IActivityMonitor monitor, ICSCodeGenerationContext codeGenContext )
+        protected (CommandRegistry? Registry, IStObjFinalClass? Impl, MethodInfo Method) Prepare( IActivityMonitor monitor,
+                                                                                                  ICSCodeGenerationContext codeGenContext )
         {
             IStObjFinalClass? impl = codeGenContext.CurrentRun.EngineMap.Find( _type );
             if( !_method.IsPublic )
