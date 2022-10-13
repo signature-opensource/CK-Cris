@@ -1,6 +1,7 @@
 using CK.Core;
 using CK.Setup;
 using FluentAssertions;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
@@ -224,7 +225,7 @@ namespace CK.Cris.Tests
             d.Commands[0].Handler.Should().BeNull();
         }
 
-        public class SpecializedBaseClassService : BaseClassWithHandler, IAutoService
+        public abstract class SpecializedBaseClassService : BaseClassWithHandler, IAutoService
         {
         }
 
@@ -237,7 +238,13 @@ namespace CK.Cris.Tests
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CommandDirectory>();
             d.Commands.Should().HaveCount( 1 );
-            d.Commands[0].Handler.Should().NotBeNull();
+            var handler = d.Commands[0].Handler;
+            Debug.Assert( handler != null );
+            handler.Type.ClassType.Should().Be( typeof( SpecializedBaseClassService ) );
+            handler.Type.FinalType.FullName.Should().Be( "CK.Cris.Tests.ICommandHandlerTests_SpecializedBaseClassService_CK" );
+            handler.Type.IsScoped.Should().Be( false );
+            handler.Type.MultipleMappings.Should().BeEmpty();
+            handler.Type.UniqueMappings.Should().BeEmpty();
         }
 
     }

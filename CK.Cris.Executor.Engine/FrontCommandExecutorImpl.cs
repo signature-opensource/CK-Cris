@@ -39,7 +39,14 @@ namespace CK.Setup.Cris
                     if( isOverallAsync ) scope.Append( "async " );
                     scope.Append( "Task<object> H" ).Append( e.CommandIdx ).Append( "( IActivityMonitor m, IServiceProvider s, CK.Cris.ICommand c )" ).NewLine()
                          .Append( "{" ).NewLine();
-                    scope.Append( "var handler = (" ).Append( h.Owner.FinalType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( h.Owner.FinalType ).Append( ");" ).NewLine();
+                    Debug.Assert( h.Method.DeclaringType != null );
+
+                    // This handles any potential explicit implementation.
+                    // Explicit implementations are not really a good idea, but if there are, they are handled.
+                    var callerType = h.Method.DeclaringType.IsInterface
+                                        ? h.Method.DeclaringType
+                                        : h.Owner.FinalType;
+                    scope.Append( "var handler = (" ).Append( callerType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( h.Owner.FinalType ).Append( ");" ).NewLine();
 
                     if( !isVoidReturn ) scope.Append( e.ResultType.ToCSharpName() ).Append( " r = " );
                     if( isHandlerAsync ) scope.Append( "await " );

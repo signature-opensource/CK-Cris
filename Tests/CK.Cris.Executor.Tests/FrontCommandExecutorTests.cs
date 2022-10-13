@@ -289,6 +289,43 @@ namespace CK.Cris.Executor.Tests
 
         #endregion
 
+
+        #region [CommandHandler] on IAutoService explicitly implemented.
+
+        public class CommandHandlerExplicitImpl : ICommandHandler
+        {
+            public static bool Called;
+
+            void ICommandHandler.Handle( IActivityMonitor m, ICmdTest c )
+            {
+                Called = true;
+                m.Info( "Explicit Hop!" );
+            }
+        }
+
+        [Test]
+        public async Task calling_explicit_AutoService_implementation_Async()
+        {
+            var c = CreateFrontCommandCollector( typeof( ICmdTest ), typeof( CommandHandlerExplicitImpl ) );
+            using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
+            using( var scope = appServices.CreateScope() )
+            {
+                var services = scope.ServiceProvider;
+                var executor = services.GetRequiredService<FrontCommandExecutor>();
+                var cmd = services.GetRequiredService<IPocoFactory<ICmdTest>>().Create();
+
+                CommandHandlerExplicitImpl.Called = false;
+
+                ICrisResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                result.Result.Should().BeNull();
+                result.Code.Should().Be( VESACode.Synchronous );
+
+                CommandHandlerExplicitImpl.Called.Should().BeTrue();
+            }
+        }
+
+        #endregion
+
         #region [CommandHandler] on a regular base class of an IAutoService.
 
         public interface IIntResultCommand : ICommand<int>
