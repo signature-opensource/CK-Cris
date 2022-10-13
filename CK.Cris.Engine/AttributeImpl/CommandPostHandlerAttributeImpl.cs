@@ -9,7 +9,7 @@ using System.Text;
 
 namespace CK.Setup.Cris
 {
-    class CommandPostHandlerAttributeImpl : CommandAttributeImpl, ICSCodeGenerator
+    sealed class CommandPostHandlerAttributeImpl : CommandAttributeImpl, ICSCodeGenerator
     {
         public CommandPostHandlerAttributeImpl( CommandPostHandlerAttribute a, Type t, MethodInfo m )
             : base( t, m )

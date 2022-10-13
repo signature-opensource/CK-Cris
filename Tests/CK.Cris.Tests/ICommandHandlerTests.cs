@@ -1,10 +1,13 @@
 using CK.Core;
+using CK.Setup;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
 using System.Text;
 using static CK.Testing.StObjEngineTestHelper;
 
@@ -53,8 +56,9 @@ namespace CK.Cris.Tests
             var d = s.GetRequiredService<CommandDirectory>();
 
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
-            var model = cmd.CommandModel;
-            model.Handler.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerOfBase ).GetMethod( "Run" ) );
+            var handler = cmd.CommandModel.Handler;
+            Debug.Assert( handler != null );
+            handler.Type.FinalType.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerOfBase ) );
         }
 
         public class CmdHandlerWithMore : CmdHandlerOfBase
@@ -77,8 +81,9 @@ namespace CK.Cris.Tests
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
             cmd.Should().BeAssignableTo<ICommandWithMorePocoResult>();
 
-            var model = cmd.CommandModel;
-            model.Handler.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerWithMore ).GetMethod( "RunMore" ) );
+            var handler = cmd.CommandModel.Handler;
+            Debug.Assert( handler != null );
+            handler.Type.FinalType.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerWithMore ) );
         }
 
         public class CmdHandlerWithAnother : CmdHandlerOfBase
@@ -148,8 +153,9 @@ namespace CK.Cris.Tests
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
             cmd.Should().BeAssignableTo<ICommandUnifiedWithTheResult>();
 
-            var model = cmd.CommandModel;
-            model.Handler.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerUnified ).GetMethod( "Run", new[] { typeof( ICommandUnifiedWithTheResult ) } ) );
+            var handler = cmd.CommandModel.Handler;
+            Debug.Assert( handler != null );
+            handler.Type.FinalType.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerUnified ) );
         }
 
         // Handlers can be virtual.
@@ -182,20 +188,57 @@ namespace CK.Cris.Tests
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
             cmd.Should().BeAssignableTo<ICommandUnifiedWithTheResult>();
 
-            var baseHandler = typeof( CmdHandlerUnified ).GetMethod( "Run", new[] { typeof( ICommandUnifiedWithTheResult ) } );
-
             var model = cmd.CommandModel;
             Debug.Assert( model.Handler != null );
-            model.Handler.Should().NotBeNull().And.BeSameAs( baseHandler, "The base method is the one decorated by the [CommandHandler]." );
 
             var handlerService = s.GetRequiredService<ICommandHandler<ICommandWithPocoResult>>();
-
-            var result = (IResult?)model.Handler.Invoke( handlerService, new[] { cmd } );
+            var method = handlerService.GetType().GetMethod( model.Handler.MethodName, model.Handler.Parameters.ToArray() );
+            Debug.Assert( method != null );
+            var result = (IResult?)method.Invoke( handlerService, new[] { cmd } );
             Debug.Assert( result != null );
             result.Val.Should().Be( 3712, "Calling the base method naturally uses the overridden method." );
         }
 
+        public interface ICmdTest : ICommand<int>
+        {
+            string Text { get; set; }
+        }
 
+        // For members attributes to kick in the code generation process,
+        // at least one IAttributeContextBound must exist on the type itself.
+        public class BaseClassWithHandler
+        {
+            [CommandHandler]
+            public int Run( ICmdTest cmd ) => cmd.Text.Length;
+        }
+
+        [Test]
+        public void Handler_method_on_regular_class_is_NOT_discovered()
+        {
+            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
+                                                     typeof( ICmdTest ),
+                                                     typeof( BaseClassWithHandler ) );
+            using var s = TestHelper.CreateAutomaticServices( c ).Services;
+            var d = s.GetRequiredService<CommandDirectory>();
+            d.Commands.Should().HaveCount( 1 );
+            d.Commands[0].Handler.Should().BeNull();
+        }
+
+        public class SpecializedBaseClassService : BaseClassWithHandler, IAutoService
+        {
+        }
+
+        [Test]
+        public void Handler_method_of_base_class_is_discovered_by_inheritance()
+        {
+            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
+                                                     typeof( ICmdTest ),
+                                                     typeof( SpecializedBaseClassService ) );
+            using var s = TestHelper.CreateAutomaticServices( c ).Services;
+            var d = s.GetRequiredService<CommandDirectory>();
+            d.Commands.Should().HaveCount( 1 );
+            d.Commands[0].Handler.Should().NotBeNull();
+        }
 
     }
 }

@@ -9,7 +9,7 @@ using System.Text;
 
 namespace CK.Setup.Cris
 {
-    class CommandValidatorAttributeImpl : CommandAttributeImpl, ICSCodeGenerator
+    sealed class CommandValidatorAttributeImpl : CommandAttributeImpl, ICSCodeGenerator
     {
         public CommandValidatorAttributeImpl( CommandValidatorAttribute a, Type t, MethodInfo m )
             : base( t, m )

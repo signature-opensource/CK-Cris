@@ -202,7 +202,7 @@ namespace CK.Setup
             fModel.EnsureImport( monitor, typeof( VESACode ), typeof( ICrisResultError ) );
             fModel.Body.Append( @"
 
-type ICommandResult<T> = {
+export type ICommandResult<T> = {
     code: VESACode.Error | VESACode.ValidationError,
     result: CrisResultError,
     correlationId?: string

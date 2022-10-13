@@ -215,7 +215,12 @@ namespace CK.Setup.Cris
                 return new Entry( command, commandIdx, resultType.GetNullableTypeTree(), pocoResultType, handlerService );
             }
 
-            internal bool AddHandler( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, ParameterInfo parameter, bool isClosedHandler )
+            internal bool AddHandler( IActivityMonitor monitor,
+                                      IStObjFinalClass owner,
+                                      MethodInfo method,
+                                      ParameterInfo[] parameters,
+                                      ParameterInfo parameter,
+                                      bool isClosedHandler )
             {
                 // If the Command is closed, we silently skip handlers of unclosed commands: we expect the final handler of the closure interface.
                 if( !isClosedHandler && Command.ClosureInterface != null )
