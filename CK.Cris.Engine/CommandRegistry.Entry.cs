@@ -57,7 +57,8 @@ namespace CK.Setup.Cris
 
             /// <summary>
             /// Gets the final (most specialized) result type.
-            /// This is <c>typeof(void)</c> when no <see cref="ICommand{TResult}"/> exists.
+            /// This is <c>typeof(void)</c> when the command is a <see cref="ICommand"/> that
+            /// is not a <see cref="ICommand{TResult}"/>.
             /// </summary>
             /// <remarks>
             /// This can be the special <c>typeof(NoWaitResult)</c> if the command is a
@@ -149,7 +150,11 @@ namespace CK.Setup.Cris
             /// <returns>The name of this command.</returns>
             public override string ToString() => CommandName;
 
-            Entry( IPocoRootInfo command, int commandIdx, NullableTypeTree resultType, IPocoInterfaceInfo? pocoResultType, IStObjFinalClass? handlerService )
+            Entry( IPocoRootInfo command,
+                   int commandIdx,
+                   NullableTypeTree resultType,
+                   IPocoInterfaceInfo? pocoResultType,
+                   IStObjFinalClass? handlerService )
             {
                 Command = command;
                 _validators = new List<ValidatorMethod>();
@@ -172,6 +177,14 @@ namespace CK.Setup.Cris
                     Type tG = i.GetGenericTypeDefinition();
                     if( tG != typeof( ICommand<> ) ) return null;
                     return i.GetGenericArguments()[0];
+                }
+
+                static PropertyInfo? ExtractResultInfo( Type i )
+                {
+                    if( !i.IsGenericType ) return null;
+                    Type tG = i.GetGenericTypeDefinition();
+                    if( tG != typeof( ICommand<> ) ) return null;
+                    return i.GetProperty( "R", BindingFlags.Static | BindingFlags.NonPublic )!;
                 }
 
                 var resultTypes = command.OtherInterfaces.Select( i => ExtractTResult( i ) )
