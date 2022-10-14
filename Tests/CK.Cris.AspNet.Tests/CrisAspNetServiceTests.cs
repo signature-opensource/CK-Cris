@@ -1,42 +1,60 @@
-using CK.Core;
-using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
-using NUnit.Framework;
-using System;
-using System.Diagnostics;
-using System.Net;
-using System.Net.Http;
-using System.Threading.Tasks;
-using static CK.Testing.StObjEngineTestHelper;
+
+// Object definition are in "Other" namespace: this tests that the generated code
+// is "CK.Cris" namespace independent.
+namespace Other
+{
+    using CK.Core;
+    using CK.Cris;
+    using System;
+
+    [ExternalName( "Test" )]
+    public interface ICmdTest : ICommand
+    {
+        int Value { get; set; }
+    }
+
+    public class TestHandler : IAutoService
+    {
+        public static bool Called;
+
+        [CommandHandler]
+        public void Execute( ICmdTest cmd )
+        {
+            Called = true;
+        }
+
+        [CommandValidator]
+        public void Validate( IActivityMonitor m, ICmdTest cmd )
+        {
+            if( cmd.Value <= 0 ) m.Error( "Value must be positive." );
+        }
+    }
+
+    public class BuggyValidator : IAutoService
+    {
+        [CommandValidator]
+        public void ValidateCommand( IActivityMonitor m, ICmdTest cmd )
+        {
+            throw new Exception( "This should not happen!" );
+        }
+    }
+
+
+}
 
 namespace CK.Cris.AspNet.Tests
 {
+    using Other;
+    using FluentAssertions;
+    using NUnit.Framework;
+    using System.Diagnostics;
+    using System.Net.Http;
+    using System.Threading.Tasks;
+    using static CK.Testing.StObjEngineTestHelper;
+
     [TestFixture]
     public class CrisAspNetServiceTests
     {
-        [ExternalName( "Test" )]
-        public interface ICmdTest : ICommand
-        {
-            int Value { get; set; }
-        }
-
-        public class TestHandler : IAutoService
-        {
-            public static bool Called;
-
-            [CommandHandler]
-            public void Execute( ICmdTest cmd )
-            {
-                Called = true;
-            }
-
-            [CommandValidator]
-            public void Validate( IActivityMonitor m, ICmdTest cmd )
-            {
-                if( cmd.Value <= 0 ) m.Error( "Value must be positive." );
-            }
-        }
-
         [Test]
         public async Task basic_call_to_a_command_handler_Async()
         {
@@ -66,15 +84,6 @@ namespace CK.Cris.AspNet.Tests
                     var result = await s.GetCrisResultWithNullCorrelationIdAsync( r );
                     result.ToString().Should().Be( @"{""code"":86,""result"":[""CrisResultError"",{""errors"":[""Value must be positive.""]}],""correlationId"":null}" );
                 }
-            }
-        }
-
-        public class BuggyValidator : IAutoService
-        {
-            [CommandValidator]
-            public void ValidateCommand( IActivityMonitor m, ICmdTest cmd )
-            {
-                throw new Exception( "This should not happen!" );
             }
         }
 
