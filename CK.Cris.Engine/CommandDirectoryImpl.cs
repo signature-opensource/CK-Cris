@@ -113,14 +113,14 @@ namespace CK.Setup.Cris
                 }
                 else
                 {
-                    f.Append( "static readonly CRISCommandHandlerDesc.TEMPORARYStObjFinalClass _tempFinalClass = new CRISCommandHandlerDesc.TEMPORARYStObjFinalClass(" ).NewLine()
+                    f.Append( "static readonly CK.CRISCommandHandlerDesc.TEMPORARYStObjFinalClass _tempFinalClass = new CK.CRISCommandHandlerDesc.TEMPORARYStObjFinalClass(" ).NewLine()
                         .AppendTypeOf( e.Handler.Owner.ClassType ).Append( ", " ).NewLine()
                         .AppendTypeOf( e.Handler.Owner.FinalType ).Append( ", " ).NewLine()
                         .Append( e.Handler.Owner.IsScoped ).Append( ", " ).NewLine()
                         .AppendArray( e.Handler.Owner.MultipleMappings ).Append( ", " ).NewLine()
                         .AppendArray( e.Handler.Owner.UniqueMappings ).Append( " );" ).NewLine();
 
-                    f.Append( "static readonly CK.Cris.ICommandModel.IHandler _cmdHandlerDesc = new CRISCommandHandlerDesc(" ).NewLine()
+                    f.Append( "static readonly CK.Cris.ICommandModel.IHandler _cmdHandlerDesc = new CK.CRISCommandHandlerDesc(" ).NewLine()
                      .Append( "_tempFinalClass," ).NewLine()
                      .AppendSourceString( e.Handler.Method.Name ).Append(",").NewLine()
                      .AppendArray( e.Handler.Parameters.Select( p => p.ParameterType )).Append(");").NewLine();
