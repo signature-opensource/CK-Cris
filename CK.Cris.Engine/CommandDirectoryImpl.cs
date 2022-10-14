@@ -29,8 +29,8 @@ namespace CK.Setup.Cris
             _registry = CommandRegistry.FindOrCreate( monitor, c );
             if( _registry == null ) return CSCodeGenerationResult.Failed;
 
-            scope.Namespace.Append( @"
-                sealed class CRISCommandHandlerDesc : ICommandModel.IHandler
+            scope.Workspace.Global.FindOrCreateNamespace( "CK" ).Append( @"
+                sealed class CRISCommandHandlerDesc : CK.Cris.ICommandModel.IHandler
                 {
                     // Waiting for ""StObj goes static"": the static fields of
                     // GeneratedStObjContextRoot will expose the
@@ -83,7 +83,7 @@ namespace CK.Setup.Cris
 
             scope.Append( "static IReadOnlyList<CK.Cris.ICommandModel> CreateCommands()" ).NewLine()
                  .OpenBlock()
-                 .Append( "var list = new ICommandModel[]" ).NewLine()
+                 .Append( "var list = new CK.Cris.ICommandModel[]" ).NewLine()
                  .Append( "{" ).NewLine();
             foreach( var e in _registry.Commands )
             {
@@ -109,7 +109,7 @@ namespace CK.Setup.Cris
 
                 if( e.Handler == null )
                 {
-                    f.Append( "public ICommandModel.IHandler? Handler => null;" );
+                    f.Append( "public CK.Cris.ICommandModel.IHandler? Handler => null;" );
                 }
                 else
                 {
@@ -120,12 +120,12 @@ namespace CK.Setup.Cris
                         .AppendArray( e.Handler.Owner.MultipleMappings ).Append( ", " ).NewLine()
                         .AppendArray( e.Handler.Owner.UniqueMappings ).Append( " );" ).NewLine();
 
-                    f.Append( "static readonly ICommandModel.IHandler _cmdHandlerDesc = new CRISCommandHandlerDesc(" ).NewLine()
+                    f.Append( "static readonly CK.Cris.ICommandModel.IHandler _cmdHandlerDesc = new CRISCommandHandlerDesc(" ).NewLine()
                      .Append( "_tempFinalClass," ).NewLine()
                      .AppendSourceString( e.Handler.Method.Name ).Append(",").NewLine()
                      .AppendArray( e.Handler.Parameters.Select( p => p.ParameterType )).Append(");").NewLine();
 
-                    f.Append( "public ICommandModel.IHandler? Handler => _cmdHandlerDesc;" );
+                    f.Append( "public CK.Cris.ICommandModel.IHandler? Handler => _cmdHandlerDesc;" );
                 }
                 f.NewLine();
 
