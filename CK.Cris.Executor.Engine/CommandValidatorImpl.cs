@@ -33,8 +33,7 @@ namespace CK.Setup.Cris
                         bool requiresAsync = false;
                         var f = scope.CreateFunction( "static Task<CK.Cris.ValidationResult> V" + e.CommandIdx + "( IActivityMonitor m, IServiceProvider s, CK.Cris.ICommand c )" );
 
-                        f.Append( "IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries = Array.Empty<ActivityMonitorSimpleCollector.Entry>();" ).NewLine()
-                         .Append( "using( m.CollectEntries( e => entries = e, LogLevelFilter.Warn ) )" ).NewLine()
+                        f.Append( "using( m.CollectEntries( out var entries, LogLevelFilter.Warn ) )" ).NewLine()
                          .OpenBlock()
                          .Append( "m.MinimalFilter = new LogFilter( LogLevelFilter.Warn, LogLevelFilter.Warn );" ).NewLine();
 
@@ -73,8 +72,8 @@ namespace CK.Setup.Cris
                             }
                             f.CloseBlock();
                         }
-                        f.CloseBlock()
-                         .Append( "return " ).Append( requiresAsync ? "new CK.Cris.ValidationResult( entries, c );" : "Task.FromResult( new CK.Cris.ValidationResult( entries, c ) );" );
+                        f.Append( "return " ).Append( requiresAsync ? "new CK.Cris.ValidationResult( entries, c );" : "Task.FromResult( new CK.Cris.ValidationResult( entries, c ) );" )
+                         .CloseBlock();
                         if( requiresAsync ) f.Definition.Modifiers |= Modifiers.Async;
                     }
                 }
