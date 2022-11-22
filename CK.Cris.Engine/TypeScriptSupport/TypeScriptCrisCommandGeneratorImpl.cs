@@ -200,8 +200,8 @@ namespace CK.Setup
         static void InitializeCrisModelFile( IActivityMonitor monitor, TypeScriptFile<TypeScriptContextRoot> fModel )
         {
             fModel.EnsureImport( monitor, typeof( VESACode ), typeof( ICrisResultError ), typeof(ICrisResult) );
-            fModel.Imports.EnsureImportFromLibrary( new LibraryImport( "axios", "^0.27.2", DependencyKind.Dependency ),
-                "Axios", "AxiosInstance"
+            fModel.Imports.EnsureImportFromLibrary( new LibraryImport( "axios", "^1.1.3", DependencyKind.Dependency ),
+                "Axios"
                 );
             fModel.Body.Append( @"
 
@@ -245,7 +245,7 @@ export class HttpCrisEndpoint implements ICrisEndpoint {
         return key == ""commandModel"" ? undefined : value;
       })}]`;
       const resp = await this.axios.post<string>('', string);
-      
+
       const result = JSON.parse(resp.data)[1] as CrisResult; // TODO: @Dan implement io-ts.
       if (result.code == VESACode.Synchronous) {
         return {
