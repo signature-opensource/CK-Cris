@@ -235,7 +235,7 @@ export interface ICrisEndpoint {
 }
 
 export class HttpCrisEndpoint implements ICrisEndpoint {
-  constructor(private readonly axios: Axios) {
+  constructor(private readonly axios: Axios, private readonly crisEndpointUrl: string) {
   }
 
   async send<T>(command: Command<T>): Promise<ICommandResult<T>> {
@@ -244,7 +244,7 @@ export class HttpCrisEndpoint implements ICrisEndpoint {
       string += `,${JSON.stringify(command, (key, value) => {
         return key == ""commandModel"" ? undefined : value;
       })}]`;
-      const resp = await this.axios.post<string>('', string);
+      const resp = await this.axios.post<string>(this.crisEndpointUrl, string);
 
       const result = JSON.parse(resp.data)[1] as CrisResult; // TODO: @Dan implement io-ts.
       if (result.code == VESACode.Synchronous) {
