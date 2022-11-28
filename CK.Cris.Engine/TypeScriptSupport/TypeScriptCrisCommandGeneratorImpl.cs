@@ -201,7 +201,9 @@ namespace CK.Setup
         {
             fModel.EnsureImport( monitor, typeof( VESACode ), typeof( ICrisResultError ), typeof(ICrisResult) );
             fModel.Imports.EnsureImportFromLibrary( new LibraryImport( "axios", "^1.1.3", DependencyKind.Dependency ),
-                "Axios"
+                "Axios",
+                "AxiosHeaders",
+                "AxiosRequestConfig"
                 );
             fModel.Body.Append( @"
 
@@ -234,8 +236,20 @@ export interface ICrisEndpoint {
  send<T>(command: Command<T>): Promise<ICommandResult<T>>;
 }
 
+const defaultCrisAxiosConfig: AxiosRequestConfig = {
+  responseType: 'text',
+  headers: {
+    common: new AxiosHeaders({
+      'Content-Type': 'application/json'
+    })
+  }
+};
+
 export class HttpCrisEndpoint implements ICrisEndpoint {
+  public axiosConfig: AxiosRequestConfig; // Allow user replace
+
   constructor(private readonly axios: Axios, private readonly crisEndpointUrl: string) {
+    this.axiosConfig = defaultCrisAxiosConfig;
   }
 
   async send<T>(command: Command<T>): Promise<ICommandResult<T>> {
@@ -244,7 +258,7 @@ export class HttpCrisEndpoint implements ICrisEndpoint {
       string += `,${JSON.stringify(command, (key, value) => {
         return key == ""commandModel"" ? undefined : value;
       })}]`;
-      const resp = await this.axios.post<string>(this.crisEndpointUrl, string);
+      const resp = await this.axios.post<string>(this.crisEndpointUrl, string, this.axiosConfig);
 
       const result = JSON.parse(resp.data)[1] as CrisResult; // TODO: @Dan implement io-ts.
       if (result.code == VESACode.Synchronous) {
