@@ -46,7 +46,7 @@ namespace CK.Setup.Cris
                     var callerType = h.Method.DeclaringType.IsInterface
                                         ? h.Method.DeclaringType
                                         : h.Owner.FinalType;
-                    scope.Append( "var handler = (" ).Append( callerType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( h.Owner.FinalType ).Append( ");" ).NewLine();
+                    scope.Append( "var handler = (" ).Append( callerType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( h.Owner.ClassType ).Append( ");" ).NewLine();
 
                     if( !isVoidReturn ) scope.Append( e.ResultType.ToCSharpName() ).Append( " r = " );
                     if( isHandlerAsync ) scope.Append( "await " );

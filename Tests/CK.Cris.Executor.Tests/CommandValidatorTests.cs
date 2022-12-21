@@ -96,10 +96,9 @@ namespace CK.Cris.Executor.Tests
         [TestCase( true, true )]
         public async Task the_simplest_validation_is_held_by_a_dependency_free_service_and_is_synchronous_Async( bool scopedService, bool singletonService )
         {
-            var c = TestHelper.CreateStObjCollector(
-                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
-                typeof( ICmdTest ),
-                typeof( ICmdWithoutValidators ) );
+            var c = TestHelper.CreateStObjCollector( typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
+                                                     typeof( ICmdTest ),
+                                                     typeof( ICmdWithoutValidators ) );
             if( singletonService ) c.RegisterType( typeof( SimplestValidatorEverSingleton ) );
             if( scopedService ) c.RegisterType( typeof( SimplestValidatorEverScoped ) );
 

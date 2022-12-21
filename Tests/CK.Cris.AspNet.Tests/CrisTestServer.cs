@@ -119,7 +119,9 @@ namespace CK.Cris.AspNet.Tests
 
         public Task LogoutAsync() => Client.GetAsync( LogoutUri + "?full" );
 
-        public void Dispose() => Client.Dispose();
-
+        public void Dispose()
+        {
+            //Client.Dispose(); // CK.Monitoring.Hosting is bugged and dispose GrandOutput.Default.
+        }
     }
 }
