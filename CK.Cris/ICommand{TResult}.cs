@@ -14,8 +14,6 @@ namespace CK.Cris
     public interface ICommand<out TResult> : ICommand
     {
         internal static TResult R => default!;
-
-        public static PropertyInfo GetResultType() => typeof( ICommand<TResult> ).GetProperty( "R", BindingFlags.Static | BindingFlags.NonPublic )!;
     }
 
 
