@@ -200,11 +200,8 @@ namespace CK.Setup
         static void InitializeCrisModelFile( IActivityMonitor monitor, TypeScriptFile<TypeScriptContextRoot> fModel )
         {
             fModel.EnsureImport( monitor, typeof( VESACode ), typeof( ICrisResultError ), typeof(ICrisResult) );
-            fModel.Imports.EnsureImportFromLibrary( new LibraryImport( "axios", "^1.1.3", DependencyKind.Dependency ),
-                "Axios",
-                "AxiosHeaders",
-                "AxiosRequestConfig"
-                );
+            fModel.Imports.EnsureImportFromLibrary( new LibraryImport( "axios", "^1.2.3", DependencyKind.Dependency ),
+                "Axios", "AxiosHeaders", "RawAxiosRequestConfig" );
             fModel.Body.Append( @"
 
 export type ICommandResult<T> = {
@@ -236,7 +233,7 @@ export interface ICrisEndpoint {
  send<T>(command: Command<T>): Promise<ICommandResult<T>>;
 }
 
-const defaultCrisAxiosConfig: AxiosRequestConfig = {
+const defaultCrisAxiosConfig: RawAxiosRequestConfig = {
   responseType: 'text',
   headers: {
     common: new AxiosHeaders({
@@ -246,7 +243,7 @@ const defaultCrisAxiosConfig: AxiosRequestConfig = {
 };
 
 export class HttpCrisEndpoint implements ICrisEndpoint {
-  public axiosConfig: AxiosRequestConfig; // Allow user replace
+  public axiosConfig: RawAxiosRequestConfig; // Allow user replace
 
   constructor(private readonly axios: Axios, private readonly crisEndpointUrl: string) {
     this.axiosConfig = defaultCrisAxiosConfig;
