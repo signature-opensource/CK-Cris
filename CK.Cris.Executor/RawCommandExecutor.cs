@@ -1,4 +1,5 @@
 using CK.Core;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,29 +8,27 @@ using System.Threading.Tasks;
 namespace CK.Cris
 {
     /// <summary>
-    /// Executes commands on all the available services: there is no restriction on the
-    /// kind of the executing services since they are called in the "front" context.
+    /// Executes commands on services provided to <see cref="ExecuteCommandAsync(IActivityMonitor, IServiceProvider, ICommand)"/>.
+    /// This class is agnostic of the context since the <see cref="IServiceProvider"/> defines the execution context: this is a true
+    /// singleton, the same instance can be used to execute any locally handled commands.
+    /// <para>
+    /// The concrete class implements all the generated code that routes the command to its handler.
+    /// </para>
     /// </summary>
-    [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.FrontCommandExecutorImpl, CK.Cris.Executor.Engine" )]
-    public abstract class FrontCommandExecutor : ISingletonAutoService
+    [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.RawCommandExecutorImpl, CK.Cris.Executor.Engine" )]
+    public abstract class RawCommandExecutor : ISingletonAutoService
     {
-        protected readonly CommandDirectory Directory;
-        protected readonly IPocoFactory<ICrisResult> ResultFactory;
-        protected readonly IFrontCommandExceptionHandler ErrorHandler;
+        readonly IPocoFactory<ICrisResult> _resultFactory;
         readonly IPocoFactory<ICrisResultError> _simpleErrorResultFactory;
 
         /// <summary>
-        /// Initializes a new <see cref="FrontCommandExecutor"/>.
+        /// Initializes a new <see cref="RawCommandExecutor"/>.
         /// </summary>
-        /// <param name="directory">The command directory.</param>
         /// <param name="resultFactory">The command result factory.</param>
-        /// <param name="errorHandler">The error handler.</param>
         /// <param name="simpleErrorResultFactory">The simple error result factory.</param>
-        public FrontCommandExecutor( CommandDirectory directory, IPocoFactory<ICrisResult> resultFactory, IFrontCommandExceptionHandler errorHandler, IPocoFactory<ICrisResultError> simpleErrorResultFactory )
+        public RawCommandExecutor( IPocoFactory<ICrisResult> resultFactory, IPocoFactory<ICrisResultError> simpleErrorResultFactory )
         {
-            Directory = directory;
-            ResultFactory = resultFactory;
-            ErrorHandler = errorHandler;
+            _resultFactory = resultFactory;
             _simpleErrorResultFactory = simpleErrorResultFactory;
         }
 
@@ -47,20 +46,29 @@ namespace CK.Cris
             try
             {
                 var o = await DoExecuteCommandAsync( monitor, services, command );
-                return ResultFactory.Create( r => { r.Code = VESACode.Synchronous; r.Result = o; } );
+                return _resultFactory.Create( r => { r.Code = VESACode.Synchronous; r.Result = o; } );
             }
             catch( Exception ex )
             {
-                var r = ResultFactory.Create();
+                var r = _resultFactory.Create();
                 r.Code = VESACode.Error;
                 try
                 {
-                    await ErrorHandler.OnErrorAsync( monitor, services, ex, command, r );
-                    if( r.Result == null || (r.Result is IEnumerable e && !e.GetEnumerator().MoveNext()) )
+                    var errorHandler = services.GetService<IFrontCommandExceptionHandler>();
+                    if( errorHandler == null )
                     {
-                        var msg = $"IFrontCommandExceptionHandler '{ErrorHandler.GetType().Name}' failed to add any error result. The exception message is added.";
-                        monitor.Error( msg );
-                        r.Result = _simpleErrorResultFactory.Create( msg, ex.Message );
+                        monitor.Error( $"Error while executing {command.GetType():C} occurred (no IFrontCommandExceptionHandler service available in the Services).", ex );
+                        r.Result = _simpleErrorResultFactory.Create( ex.Message );
+                    }
+                    else
+                    {
+                        await errorHandler.OnErrorAsync( monitor, services, ex, command, r );
+                        if( r.Result == null || (r.Result is IEnumerable e && !e.GetEnumerator().MoveNext()) )
+                        {
+                            var msg = $"IFrontCommandExceptionHandler '{errorHandler.GetType().Name}' failed to add any error result. The exception message is added.";
+                            monitor.Error( msg );
+                            r.Result = _simpleErrorResultFactory.Create( msg, ex.Message );
+                        }
                     }
                 }
                 catch( Exception ex2 )

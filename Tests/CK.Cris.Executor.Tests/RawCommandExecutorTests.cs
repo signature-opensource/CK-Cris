@@ -18,7 +18,7 @@ using static CK.Testing.StObjEngineTestHelper;
 namespace CK.Cris.Executor.Tests
 {
     [TestFixture]
-    public class FrontCommandExecutorTests
+    public class RawCommandExecutorTests
     {
         /// <summary>
         /// Default common types registration for FrontCommandExecutor.
@@ -28,7 +28,7 @@ namespace CK.Cris.Executor.Tests
         public static StObjCollector CreateFrontCommandCollector( params Type[] types )
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( FrontCommandExecutor ),
+                typeof( RawCommandExecutor ),
                 typeof( DefaultFrontCommandExceptionHandler ),
                 typeof( CommandDirectory ),
                 typeof( ICrisResultError ),
@@ -92,7 +92,7 @@ namespace CK.Cris.Executor.Tests
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<FrontCommandExecutor>();
+                var executor = services.GetRequiredService<RawCommandExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<ICmdTest>>().Create();
 
                 CmdSyncHandler.Called = false;
@@ -160,7 +160,7 @@ namespace CK.Cris.Executor.Tests
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<FrontCommandExecutor>();
+                var executor = services.GetRequiredService<RawCommandExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<ICmdIntTest>>().Create();
 
                 CmdIntSyncHandler.Called = false;
@@ -274,7 +274,7 @@ namespace CK.Cris.Executor.Tests
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<FrontCommandExecutor>();
+                var executor = services.GetRequiredService<RawCommandExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<ICmdTest>>().Create();
 
                 CommandHandlerImpl.Called = false;
@@ -311,7 +311,7 @@ namespace CK.Cris.Executor.Tests
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<FrontCommandExecutor>();
+                var executor = services.GetRequiredService<RawCommandExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<ICmdTest>>().Create();
 
                 CommandHandlerExplicitImpl.Called = false;
@@ -350,7 +350,7 @@ namespace CK.Cris.Executor.Tests
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<FrontCommandExecutor>();
+                var executor = services.GetRequiredService<RawCommandExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<IIntResultCommand>>().Create();
 
                 ICrisResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );

@@ -7,17 +7,17 @@ using System.Linq;
 
 namespace CK.Setup.Cris
 {
-    public partial class FrontCommandExecutorImpl : CSCodeGeneratorType
+    public partial class RawCommandExecutorImpl : CSCodeGeneratorType
     {
 
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
-            Throw.CheckState( "Applies only to the FrontCommandExecutor class.", classType ==typeof( FrontCommandExecutor ) );
+            Throw.CheckState( "Applies only to the FrontCommandExecutor class.", classType ==typeof( RawCommandExecutor ) );
             var registry = CommandRegistry.FindOrCreate( monitor, c );
             if( registry == null ) return CSCodeGenerationResult.Failed;
 
-            Debug.Assert( nameof( FrontCommandExecutor.ExecuteCommandAsync ) == "ExecuteCommandAsync" );
-            Debug.Assert( classType.GetMethod( nameof( FrontCommandExecutor.ExecuteCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( ICommand ) } ) != null );
+            Debug.Assert( nameof( RawCommandExecutor.ExecuteCommandAsync ) == "ExecuteCommandAsync" );
+            Debug.Assert( classType.GetMethod( nameof( RawCommandExecutor.ExecuteCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( ICommand ) } ) != null );
 
             var mExecute = scope.CreateFunction( "protected override Task<object> DoExecuteCommandAsync( IActivityMonitor m, IServiceProvider s, CK.Cris.ICommand c )" );
             mExecute.Append( "return _handlers[c.CommandModel.CommandIdx]( m, s, c );" );

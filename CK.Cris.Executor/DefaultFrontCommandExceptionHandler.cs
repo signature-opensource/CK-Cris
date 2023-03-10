@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace CK.Cris
 {
     /// <summary>
-    /// Default <see cref="FrontCommandExecutor"/> error handler.
+    /// Default <see cref="RawCommandExecutor"/> error handler.
     /// This is a template method that can be specialized but can also be totally replaced
     /// (see <see cref="ReplaceAutoServiceAttribute"/>).
     /// </summary>

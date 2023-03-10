@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace CK.Cris
 {
     /// <summary>
-    /// Handles any exception that occurred during the handling of a command by the <see cref="FrontCommandExecutor"/>.
+    /// Handles any exception that occurred during the handling of a command by the <see cref="RawCommandExecutor"/>.
     /// Default implementation is provided by <see cref="DefaultFrontCommandExceptionHandler"/>.
     /// </summary>
     public interface IFrontCommandExceptionHandler : IAutoService

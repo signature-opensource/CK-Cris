@@ -67,7 +67,7 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task CommandPostHandler_fills_the_resulting_ambient_values_Async()
         {
-            var c = FrontCommandExecutorTests.CreateFrontCommandCollector( typeof( IAmbientValuesCollectCommand ),
+            var c = RawCommandExecutorTests.CreateFrontCommandCollector( typeof( IAmbientValuesCollectCommand ),
                                                                            typeof( AmbientValuesService ),
                                                                            typeof( AuthService ),
                                                                            typeof( IAuthAmbientValues ),
@@ -86,7 +86,7 @@ namespace CK.Cris.Executor.Tests
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<FrontCommandExecutor>();
+                var executor = services.GetRequiredService<RawCommandExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<IAmbientValuesCollectCommand>>().Create();
 
                 var r = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );

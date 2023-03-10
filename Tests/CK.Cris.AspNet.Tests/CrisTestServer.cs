@@ -29,11 +29,10 @@ namespace CK.Cris.AspNet.Tests
                                Action<IApplicationBuilder>? configureApplication = null )
         {
             collector.RegisterTypes( new[] {
-                typeof( FrontCommandExecutor ),
+                typeof( RawCommandExecutor ),
                 typeof( DefaultFrontCommandExceptionHandler ),
                 typeof( CommandDirectory ),
                 typeof( ICrisResult ),
-                typeof( CommandExecutor ),
                 typeof( ICrisResultError ),
                 typeof( CommandValidator ),
                 typeof( PocoJsonSerializer ),

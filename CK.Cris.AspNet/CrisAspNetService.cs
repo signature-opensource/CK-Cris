@@ -16,16 +16,22 @@ namespace CK.Cris.AspNet
     public class CrisAspNetService : ISingletonAutoService
     {
         readonly CommandValidator _validator;
-        readonly CommandExecutor _executor;
+        readonly RawCommandExecutor _executor;
         readonly PocoDirectory _poco;
         readonly IPocoFactory<ICrisResult> _resultFactory;
+        readonly IPocoFactory<ICrisResultError> _errorResultFactory;
 
-        public CrisAspNetService( PocoDirectory poco, CommandValidator validator, CommandExecutor executor, IPocoFactory<ICrisResult> resultFactory )
+        public CrisAspNetService( PocoDirectory poco,
+                                  CommandValidator validator,
+                                  RawCommandExecutor executor,
+                                  IPocoFactory<ICrisResult> resultFactory,
+                                  IPocoFactory<ICrisResultError> errorResultFactory )
         {
             _poco = poco;
             _validator = validator;
             _executor = executor;
             _resultFactory = resultFactory;
+            _errorResultFactory = errorResultFactory;
         }
 
         IDisposable? HandleIncomingCKDepToken( IActivityMonitor monitor, HttpRequest request )
@@ -183,7 +189,7 @@ namespace CK.Cris.AspNet
         {
             ICrisResult result = _resultFactory.Create();
             result.Code = code;
-            result.Result = _executor.CreateErrorResult( message, ex?.Message );
+            result.Result = _errorResultFactory.Create( message, ex?.Message );
             return result;
         }
 
