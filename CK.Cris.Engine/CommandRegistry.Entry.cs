@@ -245,7 +245,7 @@ namespace CK.Setup.Cris
                 var (unwrappedReturnType, isRefAsync, isValAsync) = GetReturnParameterInfo( method );
 
                 var expected = ResultType;
-                if( expected == typeof( NoWaitResult ) ) expected = typeof( void );
+                if( expected == typeof( ICrisEvent.NoWaitResult ) ) expected = typeof( void );
 
                 if( unwrappedReturnType != expected )
                 {
@@ -328,7 +328,7 @@ namespace CK.Setup.Cris
                                                                           || PocoResultType.Root.OtherInterfaces.Contains( t )) );
                     if( resultParameter != null ) mustCastResultParameter = true;
                 }
-                else if( ResultType != typeof( void ) && ResultType != typeof( NoWaitResult ) )
+                else if( ResultType != typeof( void ) && ResultType != typeof( ICrisEvent.NoWaitResult ) )
                 {
                     // The result type is not a IPoco. The first parameter that can be assigned to the result type is fine. 
                     resultParameter = parameters.FirstOrDefault( p => p.ParameterType.IsAssignableFrom( ResultType ) );

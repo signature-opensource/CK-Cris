@@ -28,7 +28,7 @@ namespace CK.Setup.Cris
                 var h = e.Handler;
                 if( h != null )
                 {
-                    Debug.Assert( h.UnwrappedReturnType != typeof( NoWaitResult ), "This has been checked before: NoWaitResult expects a void return." );
+                    Debug.Assert( h.UnwrappedReturnType != typeof( ICrisEvent.NoWaitResult ), "This has been checked before: NoWaitResult expects a void return." );
                     bool isVoidReturn = h.UnwrappedReturnType == typeof( void );
                     bool isHandlerAsync = h.IsRefAsync || h.IsValAsync;
                     bool isPostHandlerAsync = e.HasPostHandlerAsyncCall;
