@@ -31,7 +31,7 @@ namespace CK.Cris.Executor.Tests
             var cmd = directory.Commands[0].Create();
 
             var validator = services.GetRequiredService<CommandValidator>();
-            var result = await validator.ValidateCommandAsync( services, cmd );
+            var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
             result.Success.Should().BeTrue();
         }
 
@@ -57,7 +57,7 @@ namespace CK.Cris.Executor.Tests
             var cmd = directory.Commands[0].Create();
 
             var validator = services.GetRequiredService<CommandValidator>();
-            await validator.Awaiting( sut => sut.ValidateCommandAsync( services, cmd ) )
+            await validator.Awaiting( sut => sut.ValidateCommandAsync( TestHelper.Monitor, services, cmd ) )
                            .Should().ThrowAsync<Exception>().WithMessage( "This should not happen!" );
         }
 
@@ -98,7 +98,7 @@ namespace CK.Cris.Executor.Tests
             if( singletonService ) c.RegisterType( typeof( SimplestValidatorEverSingleton ) );
             if( scopedService ) c.RegisterType( typeof( SimplestValidatorEverScoped ) );
 
-            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
+            using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
 
             using( var scope = appServices.CreateScope() )
             {
@@ -108,7 +108,7 @@ namespace CK.Cris.Executor.Tests
                 var validator = services.GetRequiredService<CommandValidator>();
 
                 var cmd = services.GetRequiredService<IPocoFactory<ICmdTest>>().Create( c => c.Value = -1 );
-                var result = await validator.ValidateCommandAsync( services, cmd );
+                var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeFalse();
                 if( scopedService )
                 {
@@ -120,7 +120,7 @@ namespace CK.Cris.Executor.Tests
                 }
 
                 cmd.Value = 0;
-                result = await validator.ValidateCommandAsync( services, cmd );
+                result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeTrue();
                 result.HasWarnings.Should().BeTrue();
                 if( scopedService )
@@ -183,7 +183,6 @@ namespace CK.Cris.Executor.Tests
             var map = TestHelper.CompileAndLoadStObjMap( c ).Map;
             var reg = new StObjContextRoot.ServiceRegister( TestHelper.Monitor, new ServiceCollection() );
             reg.Register<IAuthenticationInfo>( s => authInfo, isScoped: true, allowMultipleRegistration: false );
-            reg.Register<IActivityMonitor>( s => TestHelper.Monitor, isScoped: true, allowMultipleRegistration: false );
             reg.AddStObjMap( map ).Should().BeTrue( "Service configuration succeed." );
 
             var appServices = reg.Services.BuildServiceProvider();
@@ -196,23 +195,23 @@ namespace CK.Cris.Executor.Tests
                 var validator = services.GetRequiredService<CommandValidator>();
 
                 var cmd = services.GetRequiredService<IPocoFactory<ICmdTestSecure>>().Create( c => c.Value = 1 );
-                var result = await validator.ValidateCommandAsync( services, cmd );
+                var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeFalse();
                 result.Errors.Should().BeEquivalentTo( "Security error." );
 
                 cmd.ActorId = 3712;
-                result = await validator.ValidateCommandAsync( services, cmd );
+                result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeTrue();
                 result.HasWarnings.Should().BeFalse();
 
                 cmd.Value = 0;
-                result = await validator.ValidateCommandAsync( services, cmd );
+                result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeTrue();
                 result.HasWarnings.Should().BeTrue();
 
                 cmd.ActorId = 3712;
                 cmd.WarnByAsyncValidator = true;
-                result = await validator.ValidateCommandAsync( services, cmd );
+                result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeTrue();
                 result.HasWarnings.Should().BeTrue();
                 result.Warnings.Should().Contain( "AsyncValidator is not happy!" );

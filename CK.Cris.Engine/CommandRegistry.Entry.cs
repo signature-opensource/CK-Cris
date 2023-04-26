@@ -91,19 +91,30 @@ namespace CK.Setup.Cris
 
             /// <summary>
             /// Generates all the synchronous and asynchronous (if any) calls required based on these variable
-            /// names: <code>IServiceProvider s, CK.Cris.KnownCommand c, object r</code>.
+            /// names: <code>IServiceProvider s, CK.Cris.KnownCommand c, object r</code> and the variables
+            /// in <paramref name="cachedServices"/>.
             /// <para>
             /// Async calls use await keyword.
             /// </para>
             /// </summary>
             /// <param name="w">The code writer to use.</param>
-            public void GeneratePostHandlerCallCode( ICodeWriter w )
+            /// <param name="cachedServices">GetService cache.</param>
+            public void GeneratePostHandlerCallCode( ICodeWriter w, VariableCachedServices cachedServices )
             {
                 w.GeneratedByComment().NewLine();
-                foreach( var h in _postHandlers.Where( h => !h.IsRefAsync && !h.IsValAsync ).GroupBy( h => h.Owner ) ) GenerateCode( w, h, false );
-                foreach( var h in _postHandlers.Where( h => h.IsRefAsync || h.IsValAsync ).GroupBy( h => h.Owner ) ) GenerateCode( w, h, true );
+                foreach( var h in _postHandlers.Where( h => !h.IsRefAsync && !h.IsValAsync ).GroupBy( h => h.Owner ) )
+                {
+                    GenerateCode( w, h, false, cachedServices );
+                }
+                foreach( var h in _postHandlers.Where( h => h.IsRefAsync || h.IsValAsync ).GroupBy( h => h.Owner ) )
+                {
+                    GenerateCode( w, h, true, cachedServices );
+                }
 
-                static void GenerateCode( ICodeWriter w, IGrouping<IStObjFinalClass, PostHandlerMethod> h, bool async )
+                static void GenerateCode( ICodeWriter w,
+                                          IGrouping<IStObjFinalClass, PostHandlerMethod> h,
+                                          bool async,
+                                          VariableCachedServices cachedServices )
                 {
                     w.Append( "{" ).NewLine();
                     w.Append( "var h = (" ).Append( h.Key.ClassType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( h.Key.ClassType ).Append( ");" ).NewLine();
@@ -135,7 +146,7 @@ namespace CK.Setup.Cris
                             }
                             else
                             {
-                                w.Append( "(" ).Append( p.ParameterType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( p.ParameterType ).Append( ")" );
+                                cachedServices.WriteGetService( w, p.ParameterType );
                             }
                         }
                         w.Append( " );" ).NewLine();

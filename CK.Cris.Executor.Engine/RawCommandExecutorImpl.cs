@@ -2,15 +2,14 @@ using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
 namespace CK.Setup.Cris
 {
+
     public partial class RawCommandExecutorImpl : CSCodeGeneratorType
     {
-
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
             Throw.CheckState( "Applies only to the RawCommandExecutor class.", classType == typeof( RawCommandExecutor ) );
@@ -42,10 +41,12 @@ namespace CK.Setup.Cris
                     scope.Append( "Task<object> H" ).Append( e.CommandIdx ).Append( "( IServiceProvider s, CK.Cris.ICommand c )" ).NewLine()
                          .Append( "{" ).NewLine()
                          .GeneratedByComment().NewLine();
-                    Debug.Assert( h.Method.DeclaringType != null );
+
+                    var cachedServices = new VariableCachedServices( scope.CreatePart() );
 
                     // This handles any potential explicit implementation.
                     // Explicit implementations are not really a good idea, but if there are, they are handled.
+                    Debug.Assert( h.Method.DeclaringType != null );
                     var callerType = h.Method.DeclaringType.IsInterface
                                         ? h.Method.DeclaringType
                                         : h.Owner.FinalType;
@@ -53,6 +54,7 @@ namespace CK.Setup.Cris
 
                     if( !isVoidReturn ) scope.Append( e.ResultType.ToCSharpName() ).Append( " r = " );
                     if( isHandlerAsync ) scope.Append( "await " );
+
                     scope.Append( "handler." ).Append( h.Method.Name ).Append( "( " );
                     foreach( var p in h.Parameters )
                     {
@@ -63,12 +65,12 @@ namespace CK.Setup.Cris
                         }
                         else
                         {
-                            scope.Append( "(" ).Append( p.ParameterType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( p.ParameterType ).Append( ")" );
+                            cachedServices.WriteGetService( scope, p.ParameterType );
                         }
                     }
                     scope.Append( " );" ).NewLine();
 
-                    e.GeneratePostHandlerCallCode( scope );
+                    e.GeneratePostHandlerCallCode( scope, cachedServices );
 
                     if( isVoidReturn )
                     {

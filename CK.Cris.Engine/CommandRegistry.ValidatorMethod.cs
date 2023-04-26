@@ -15,14 +15,13 @@ namespace CK.Setup.Cris
             public readonly bool IsRefAsync;
             public readonly bool IsValAsync;
 
-            internal ValidatorMethod(
-                        Entry command,
-                        IStObjFinalClass owner,
-                        MethodInfo method,
-                        ParameterInfo[] parameters,
-                        ParameterInfo cmdOrPartParameter,
-                        bool isRefAsync,
-                        bool isValAsync )
+            internal ValidatorMethod( Entry command,
+                                      IStObjFinalClass owner,
+                                      MethodInfo method,
+                                      ParameterInfo[] parameters,
+                                      ParameterInfo cmdOrPartParameter,
+                                      bool isRefAsync,
+                                      bool isValAsync )
             {
                 Command = command;
                 Owner = owner;

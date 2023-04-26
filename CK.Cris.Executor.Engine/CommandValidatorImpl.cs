@@ -16,7 +16,7 @@ namespace CK.Setup.Cris
             var registry = CommandRegistry.FindOrCreate( monitor, c );
             if( registry == null ) return CSCodeGenerationResult.Failed;
 
-            var validateMethod = classType.GetMethod( nameof( CommandValidator.ValidateCommandAsync ), new[] { typeof( IServiceProvider ), typeof( ICommand ) } );
+            var validateMethod = classType.GetMethod( nameof( CommandValidator.ValidateCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( ICommand ) } );
             Debug.Assert( validateMethod != null, "This is the signature of the central method." );
 
             var mValidate = scope.CreateSealedOverride( validateMethod );
@@ -33,8 +33,9 @@ namespace CK.Setup.Cris
                         bool requiresAsync = false;
                         var f = scope.CreateFunction( "static Task<CK.Cris.ValidationResult> V" + e.CommandIdx + "( IActivityMonitor m, IServiceProvider s, CK.Cris.ICommand c )" );
 
-                        f.GeneratedByComment().NewLine()
-                         .Append( "using( m.CollectEntries( out var entries, LogLevelFilter.Warn ) )" ).NewLine()
+                        f.GeneratedByComment().NewLine();
+                        var cachedServices = new VariableCachedServices( f.CreatePart() );
+                        f.Append( "using( m.CollectEntries( out var entries, LogLevelFilter.Warn ) )" ).NewLine()
                          .OpenBlock()
                          .Append( "m.MinimalFilter = new LogFilter( LogLevelFilter.Warn, LogLevelFilter.Warn );" ).NewLine();
 
@@ -69,7 +70,7 @@ namespace CK.Setup.Cris
                                     }
                                     else
                                     {
-                                        f.Append( "(" ).Append( p.ParameterType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( p.ParameterType ).Append( ")" );
+                                        cachedServices.WriteGetService( f, p.ParameterType );
                                     }
                                 }
                                 f.Append( " );" ).NewLine();
@@ -99,16 +100,13 @@ namespace CK.Setup.Cris
                      .NewLine();
 
                 mValidate.GeneratedByComment().NewLine()
-                         .Append( "var m = (IActivityMonitor)services.GetService( typeof(IActivityMonitor) );" ).NewLine()
-                         .Append( "Throw.CheckArgument( " )
-                            .AppendSourceString( "A IActivityMonitor must be registered in the service provider." )
-                            .Append( ", m != null );" ).NewLine()
-                         .Append( "return _validators[command.CommandModel.CommandIdx]( m, services, command );" );
+                         .Append( "return _validators[command.CommandModel.CommandIdx]( validationMonitor, services, command );" );
             }
             else
             {
                 mValidate.Definition.Modifiers &= ~Modifiers.Async;
-                mValidate.Append( "return Task.FromResult<CK.Cris.ValidationResult>( new CK.Cris.ValidationResult( command ) );" );
+                mValidate.GeneratedByComment().NewLine()
+                         .Append( "return Task.FromResult<CK.Cris.ValidationResult>( new CK.Cris.ValidationResult( command ) );" );
             }
             return CSCodeGenerationResult.Success;
         }

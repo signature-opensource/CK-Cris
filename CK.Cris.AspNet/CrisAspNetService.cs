@@ -64,6 +64,7 @@ namespace CK.Cris.AspNet
                     Debug.Assert( cmd != null );
                     // The validation return null if no issues occurred, a code V for validation errors and a Code E if an exception occurred
                     // (Command validators must not raise any exception).
+                    // We use the request monitor to collect the validation results: warnings and errors will appear in the logs.
                     result = await GetValidationErrorAsync( monitor, requestServices, cmd );
                 }
                 if( result == null )
@@ -171,7 +172,7 @@ namespace CK.Cris.AspNet
         {
             try
             {
-                ValidationResult validation = await _validator.ValidateCommandAsync( requestServices, cmd );
+                ValidationResult validation = await _validator.ValidateCommandAsync( monitor, requestServices, cmd );
                 if( !validation.Success )
                 {
                     ICrisResult result = _resultFactory.Create();

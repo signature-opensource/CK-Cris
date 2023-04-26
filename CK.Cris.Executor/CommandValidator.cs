@@ -45,10 +45,12 @@ namespace CK.Cris
         /// Exceptions are NOT handled by this method: a validator should never throw: exceptions must be handled by the caller.
         /// </para>
         /// </summary>
+        /// <param name="validationMonitor">The validation monitor that collects validation results (warnings and errors).</param>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to validate.</param>
-        /// 
         /// <returns>The validation result.</returns>
-        public abstract Task<ValidationResult> ValidateCommandAsync( IServiceProvider services, ICommand command );
+        public abstract Task<ValidationResult> ValidateCommandAsync( IActivityMonitor validationMonitor,
+                                                                     IServiceProvider services,
+                                                                     ICommand command );
     }
 }
