@@ -78,8 +78,8 @@ namespace CK.Setup.Cris
                 }
 " );
 
-            scope.GeneratedByComment();
-            scope.Append( "public " ).Append( scope.Name ).Append( "() : base( CreateCommands() ) {}" ).NewLine();
+            scope.GeneratedByComment().NewLine()
+                 .Append( "public " ).Append( scope.Name ).Append( "() : base( CreateCommands() ) {}" ).NewLine();
 
             scope.Append( "static IReadOnlyList<CK.Cris.ICommandModel> CreateCommands()" ).NewLine()
                  .OpenBlock()

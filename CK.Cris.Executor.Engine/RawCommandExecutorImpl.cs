@@ -39,7 +39,7 @@ namespace CK.Setup.Cris
                     if( isOverallAsync ) scope.Append( "async " );
                     scope.Append( "Task<object> H" ).Append( e.CommandIdx ).Append( "( IActivityMonitor m, IServiceProvider s, CK.Cris.ICommand c )" ).NewLine()
                          .Append( "{" ).NewLine()
-                         .GeneratedByComment();
+                         .GeneratedByComment().NewLine();
                     Debug.Assert( h.Method.DeclaringType != null );
 
                     // This handles any potential explicit implementation.

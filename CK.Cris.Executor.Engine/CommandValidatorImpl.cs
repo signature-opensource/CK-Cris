@@ -16,7 +16,7 @@ namespace CK.Setup.Cris
             var registry = CommandRegistry.FindOrCreate( monitor, c );
             if( registry == null ) return CSCodeGenerationResult.Failed;
 
-            var validateMethod = classType.GetMethod( nameof( CommandValidator.ValidateCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( ICommand ) } );
+            var validateMethod = classType.GetMethod( nameof( CommandValidator.ValidateCommandAsync ), new[] { typeof( IServiceProvider ), typeof( ICommand ) } );
             Debug.Assert( validateMethod != null, "This is the signature of the central method." );
 
             var mValidate = scope.CreateSealedOverride( validateMethod );
@@ -33,7 +33,7 @@ namespace CK.Setup.Cris
                         bool requiresAsync = false;
                         var f = scope.CreateFunction( "static Task<CK.Cris.ValidationResult> V" + e.CommandIdx + "( IActivityMonitor m, IServiceProvider s, CK.Cris.ICommand c )" );
 
-                        f.GeneratedByComment()
+                        f.GeneratedByComment().NewLine()
                          .Append( "using( m.CollectEntries( out var entries, LogLevelFilter.Warn ) )" ).NewLine()
                          .OpenBlock()
                          .Append( "m.MinimalFilter = new LogFilter( LogLevelFilter.Warn, LogLevelFilter.Warn );" ).NewLine();
@@ -59,7 +59,10 @@ namespace CK.Setup.Cris
                                 foreach( var p in validator.Parameters )
                                 {
                                     if( p.Position > 0 ) f.Append( ", " );
-                                    if( typeof( IActivityMonitor ).IsAssignableFrom( p.ParameterType ) ) f.Append( "m" );
+                                    if( typeof( IActivityMonitor ).IsAssignableFrom( p.ParameterType ) )
+                                    {
+                                        f.Append( "m" );
+                                    }
                                     else if( p == validator.CmdOrPartParameter )
                                     {
                                         f.Append( "(" ).Append( validator.CmdOrPartParameter.ParameterType.ToCSharpName() ).Append( ")c" );
@@ -95,7 +98,12 @@ namespace CK.Setup.Cris
                 scope.Append( "};" )
                      .NewLine();
 
-                mValidate.Append( "return _validators[command.CommandModel.CommandIdx]( monitor, services, command );" );
+                mValidate.GeneratedByComment().NewLine()
+                         .Append( "var m = (IActivityMonitor)s.GetService( typeof(IActivityMonitor) );" ).NewLine()
+                         .Append( "Throw.CheckArgument( " )
+                            .AppendSourceString( "A IActivityMonitor must be registered in the service provider." )
+                            .Append( ", m != null );" ).NewLine()
+                         .Append( "return _validators[command.CommandModel.CommandIdx]( m, services, command );" );
             }
             else
             {
