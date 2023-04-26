@@ -1,13 +1,9 @@
 using CK.Auth;
 using CK.Core;
 using FluentAssertions;
-using FluentAssertions.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
-using System.Security.Policy;
-using System.Text;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
 
@@ -55,7 +51,7 @@ namespace CK.Cris.Executor.Tests
                 typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
                 typeof( ICmdTest ),
                 typeof( BuggyValidator ) );
-            using var services = TestHelper.CreateAutomaticServices( c ).Services;
+            using var services = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
 
             var directory = services.GetRequiredService<CommandDirectory>();
             var cmd = directory.Commands[0].Create();
@@ -102,7 +98,7 @@ namespace CK.Cris.Executor.Tests
             if( singletonService ) c.RegisterType( typeof( SimplestValidatorEverSingleton ) );
             if( scopedService ) c.RegisterType( typeof( SimplestValidatorEverScoped ) );
 
-            using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
+            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
 
             using( var scope = appServices.CreateScope() )
             {
@@ -186,7 +182,8 @@ namespace CK.Cris.Executor.Tests
 
             var map = TestHelper.CompileAndLoadStObjMap( c ).Map;
             var reg = new StObjContextRoot.ServiceRegister( TestHelper.Monitor, new ServiceCollection() );
-            reg.Register<IAuthenticationInfo>( s => authInfo, true, false );
+            reg.Register<IAuthenticationInfo>( s => authInfo, isScoped: true, allowMultipleRegistration: false );
+            reg.Register<IActivityMonitor>( s => TestHelper.Monitor, isScoped: true, allowMultipleRegistration: false );
             reg.AddStObjMap( map ).Should().BeTrue( "Service configuration succeed." );
 
             var appServices = reg.Services.BuildServiceProvider();

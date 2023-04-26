@@ -99,7 +99,7 @@ namespace CK.Setup.Cris
                      .NewLine();
 
                 mValidate.GeneratedByComment().NewLine()
-                         .Append( "var m = (IActivityMonitor)s.GetService( typeof(IActivityMonitor) );" ).NewLine()
+                         .Append( "var m = (IActivityMonitor)services.GetService( typeof(IActivityMonitor) );" ).NewLine()
                          .Append( "Throw.CheckArgument( " )
                             .AppendSourceString( "A IActivityMonitor must be registered in the service provider." )
                             .Append( ", m != null );" ).NewLine()
