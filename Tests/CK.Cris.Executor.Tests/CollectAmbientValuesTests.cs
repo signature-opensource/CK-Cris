@@ -67,7 +67,7 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task CommandPostHandler_fills_the_resulting_ambient_values_Async()
         {
-            var c = RawCommandExecutorTests.CreateFrontCommandCollector( typeof( IAmbientValuesCollectCommand ),
+            var c = RawCommandExecutorTests.CreateRawExecutorCollector( typeof( IAmbientValuesCollectCommand ),
                                                                            typeof( AmbientValuesService ),
                                                                            typeof( AuthService ),
                                                                            typeof( IAuthAmbientValues ),
@@ -89,16 +89,14 @@ namespace CK.Cris.Executor.Tests
                 var executor = services.GetRequiredService<RawCommandExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<IAmbientValuesCollectCommand>>().Create();
 
-                var r = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
-                r.Code.Should().Be( VESACode.Synchronous );
-                Debug.Assert( r.Result != null );
-
-                var auth = (IAuthAmbientValues)r.Result!;
+                var r = await executor.RawExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                Debug.Assert( r != null );
+                var auth = (IAuthAmbientValues)r;
                 auth.ActorId.Should().Be( 3712 );
                 auth.ActualActorId.Should().Be( 3712 );
                 auth.DeviceId.Should().Be( authInfo.DeviceId );
 
-                var sec = (ISecurityAmbientValues)r.Result!;
+                var sec = (ISecurityAmbientValues)r;
                 sec.Roles.Should().BeEquivalentTo( "Administrator", "Tester", "Approver" );
             }
         }

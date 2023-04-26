@@ -1,8 +1,10 @@
 using CK.Core;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IO;
 using System;
 using System.Buffers;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -68,7 +70,7 @@ namespace CK.Cris.AspNet
                 {
                     // Valid command: calls the execution handler.
                     Debug.Assert( cmd != null );
-                    result = await _executor.ExecuteCommandAsync( monitor, requestServices, cmd );
+                    result = await ExecuteCommandAsync( monitor, requestServices, cmd );
                 }
                 if( result.CorrelationId == null )
                 {
@@ -192,6 +194,59 @@ namespace CK.Cris.AspNet
             result.Result = _errorResultFactory.Create( message, ex?.Message );
             return result;
         }
+
+
+        /// <summary>
+        /// Executes a command by calling the ExecuteCommand or ExecuteCommandAsync method for the
+        /// closure of the command Poco (the ICommand interface that unifies all other ICommand and <see cref="ICommandPart"/>).
+        /// Any exceptions are caught and sent to the <see cref="IFrontCommandExceptionHandler"/> service.
+        /// </summary>
+        /// <param name="monitor">The monitor to use.</param>
+        /// <param name="services">The service context from which any required dependencies must be resolved.</param>
+        /// <param name="command">The command to execute.</param>
+        /// <returns>The <see cref="ICrisResult"/>.</returns>
+        public async Task<ICrisResult> ExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, ICommand command )
+        {
+            try
+            {
+                var o = await _executor.RawExecuteCommandAsync( monitor, services, command );
+                return _resultFactory.Create( r => { r.Code = VESACode.Synchronous; r.Result = o; } );
+            }
+            catch( Exception ex )
+            {
+                var r = _resultFactory.Create();
+                r.Code = VESACode.Error;
+                try
+                {
+                    var errorHandler = services.GetService<IFrontCommandExceptionHandler>();
+                    if( errorHandler == null )
+                    {
+                        monitor.Error( $"Error while executing {command.GetType():C} occurred (no IFrontCommandExceptionHandler service available in the Services).", ex );
+                        r.Result = _errorResultFactory.Create( ex.Message );
+                    }
+                    else
+                    {
+                        await errorHandler.OnErrorAsync( monitor, services, ex, command, r );
+                        if( r.Result == null || (r.Result is IEnumerable e && !e.GetEnumerator().MoveNext()) )
+                        {
+                            var msg = $"IFrontCommandExceptionHandler '{errorHandler.GetType().Name}' failed to add any error result. The exception message is added.";
+                            monitor.Error( msg );
+                            r.Result = _errorResultFactory.Create( msg, ex.Message );
+                        }
+                    }
+                }
+                catch( Exception ex2 )
+                {
+                    using( monitor.OpenFatal( "Error in ErrorHandler.", ex2 ) )
+                    {
+                        monitor.Error( "Original error.", ex );
+                    }
+                    r.Result = ex2.Message;
+                }
+                return r;
+            }
+        }
+
 
     }
 }

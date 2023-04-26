@@ -21,18 +21,16 @@ namespace CK.Cris.Executor.Tests
     public class RawCommandExecutorTests
     {
         /// <summary>
-        /// Default common types registration for FrontCommandExecutor.
+        /// Default common types registration for RawCommandExecutor.
         /// </summary>
         /// <param name="types">More types to register.</param>
         /// <returns>The collector.</returns>
-        public static StObjCollector CreateFrontCommandCollector( params Type[] types )
+        public static StObjCollector CreateRawExecutorCollector( params Type[] types )
         {
             var c = TestHelper.CreateStObjCollector(
                 typeof( RawCommandExecutor ),
-                typeof( DefaultFrontCommandExceptionHandler ),
                 typeof( CommandDirectory ),
                 typeof( ICrisResultError ),
-                typeof( ICrisResult ),
                 typeof( AmbientValues.IAmbientValues ) );
             c.RegisterTypes( types );
             return c;
@@ -79,7 +77,7 @@ namespace CK.Cris.Executor.Tests
         [TestCase( "ValAsync" )]
         public async Task basic_handling_of_void_returns_Async( string kind )
         {
-            StObjCollector c = CreateFrontCommandCollector( typeof( ICmdTest ) );
+            StObjCollector c = CreateRawExecutorCollector( typeof( ICmdTest ) );
             c.RegisterType( kind switch
             {
                 "RefAsync" => typeof( CmdRefAsyncHandler ),
@@ -97,9 +95,8 @@ namespace CK.Cris.Executor.Tests
 
                 CmdSyncHandler.Called = false;
 
-                ICrisResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
-                result.Result.Should().BeNull();
-                result.Code.Should().Be( VESACode.Synchronous );
+                var result = await executor.RawExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                result.Should().BeNull();
                 CmdSyncHandler.Called.Should().BeTrue();
             }
         }
@@ -147,7 +144,7 @@ namespace CK.Cris.Executor.Tests
         [TestCase( "ValAsync" )]
         public async Task basic_handling_with_returned_type_Async( string kind )
         {
-            var c = CreateFrontCommandCollector( typeof( ICmdIntTest ) );
+            var c = CreateRawExecutorCollector( typeof( ICmdIntTest ) );
             c.RegisterType( kind switch
             {
                 "RefAsync" => typeof( CmdIntRefAsyncHandler ),
@@ -165,9 +162,8 @@ namespace CK.Cris.Executor.Tests
 
                 CmdIntSyncHandler.Called = false;
 
-                ICrisResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
-                result.Result.Should().Be( 3712 );
-                result.Code.Should().Be( VESACode.Synchronous );
+                var result = await executor.RawExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                result.Should().Be( 3712 );
                 CmdIntSyncHandler.Called.Should().BeTrue();
             }
         }
@@ -175,7 +171,7 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public void ambiguous_handler_detection()
         {
-            var c = CreateFrontCommandCollector( typeof( ICmdIntTest ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandler ) );
+            var c = CreateRawExecutorCollector( typeof( ICmdIntTest ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandler ) );
             TestHelper.GenerateCode( c, engineConfigurator: null ).Success.Should().BeFalse();
         }
 
@@ -188,7 +184,7 @@ namespace CK.Cris.Executor.Tests
         public void ambiguous_handler_resolution_thanks_to_the_ICommanHandlerT_marker()
         {
             CmdIntValAsyncHandler.Called = false;
-            var c = CreateFrontCommandCollector( typeof( ICmdIntTest ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandlerService ) );
+            var c = CreateRawExecutorCollector( typeof( ICmdIntTest ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandlerService ) );
             TestHelper.GenerateCode( c, engineConfigurator: null ).Success.Should().BeTrue();
         }
 
@@ -224,15 +220,15 @@ namespace CK.Cris.Executor.Tests
         public void return_type_mismatch_detection()
         {
             {
-                var c = CreateFrontCommandCollector( typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType1 ) );
+                var c = CreateRawExecutorCollector( typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType1 ) );
                 CheckUniqueCommandHasNoHandler( c );
             }
             {
-                var c = CreateFrontCommandCollector( typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType2 ) );
+                var c = CreateRawExecutorCollector( typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType2 ) );
                 CheckUniqueCommandHasNoHandler( c );
             }
             {
-                var c = CreateFrontCommandCollector( typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType3 ) );
+                var c = CreateRawExecutorCollector( typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType3 ) );
                 CheckUniqueCommandHasNoHandler( c );
             }
 
@@ -269,7 +265,7 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task calling_public_AutoService_implementation_Async()
         {
-            var c = CreateFrontCommandCollector( typeof( ICmdTest ), typeof( CommandHandlerImpl ) );
+            var c = CreateRawExecutorCollector( typeof( ICmdTest ), typeof( CommandHandlerImpl ) );
             using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
             using( var scope = appServices.CreateScope() )
             {
@@ -279,9 +275,8 @@ namespace CK.Cris.Executor.Tests
 
                 CommandHandlerImpl.Called = false;
 
-                ICrisResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
-                result.Result.Should().BeNull();
-                result.Code.Should().Be( VESACode.Synchronous );
+                var result = await executor.RawExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                result.Should().BeNull();
 
                 CommandHandlerImpl.Called.Should().BeTrue();
             }
@@ -306,7 +301,7 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task calling_explicit_AutoService_implementation_Async()
         {
-            var c = CreateFrontCommandCollector( typeof( ICmdTest ), typeof( CommandHandlerExplicitImpl ) );
+            var c = CreateRawExecutorCollector( typeof( ICmdTest ), typeof( CommandHandlerExplicitImpl ) );
             using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
             using( var scope = appServices.CreateScope() )
             {
@@ -316,9 +311,8 @@ namespace CK.Cris.Executor.Tests
 
                 CommandHandlerExplicitImpl.Called = false;
 
-                ICrisResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
-                result.Result.Should().BeNull();
-                result.Code.Should().Be( VESACode.Synchronous );
+                var result = await executor.RawExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                result.Should().BeNull();
 
                 CommandHandlerExplicitImpl.Called.Should().BeTrue();
             }
@@ -345,7 +339,7 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task calling_a_base_class_implementation_Async()
         {
-            var c = CreateFrontCommandCollector( typeof( IIntResultCommand ), typeof( SpecializedBaseClassService ) );
+            var c = CreateRawExecutorCollector( typeof( IIntResultCommand ), typeof( SpecializedBaseClassService ) );
             using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
             using( var scope = appServices.CreateScope() )
             {
@@ -353,9 +347,8 @@ namespace CK.Cris.Executor.Tests
                 var executor = services.GetRequiredService<RawCommandExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<IIntResultCommand>>().Create();
 
-                ICrisResult result = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
-                result.Result.Should().Be( cmd.GetHashCode() );
-                result.Code.Should().Be( VESACode.Synchronous );
+                var result = await executor.RawExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                result.Should().Be( cmd.GetHashCode() );
             }
         }
 

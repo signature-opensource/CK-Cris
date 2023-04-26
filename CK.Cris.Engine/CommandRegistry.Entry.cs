@@ -99,6 +99,7 @@ namespace CK.Setup.Cris
             /// <param name="w">The code writer to use.</param>
             public void GeneratePostHandlerCallCode( ICodeWriter w )
             {
+                w.GeneratedByComment();
                 foreach( var h in _postHandlers.Where( h => !h.IsRefAsync && !h.IsValAsync ).GroupBy( h => h.Owner ) ) GenerateCode( w, h, false );
                 foreach( var h in _postHandlers.Where( h => h.IsRefAsync || h.IsValAsync ).GroupBy( h => h.Owner ) ) GenerateCode( w, h, true );
 

@@ -1,4 +1,5 @@
 using CK.Core;
+using CK.Cris.AspNet;
 using CK.Setup;
 using FluentAssertions;
 using NUnit.Framework;

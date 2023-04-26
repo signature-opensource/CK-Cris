@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CK.Cris
+namespace CK.Cris.AspNet
 {
     /// <summary>
     /// Handles any exception that occurred during the handling of a command by the <see cref="RawCommandExecutor"/>.

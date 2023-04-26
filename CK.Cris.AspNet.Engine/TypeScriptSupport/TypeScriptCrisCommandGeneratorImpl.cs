@@ -1,6 +1,7 @@
 using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
+using CK.Cris.AspNet;
 using CK.Setup.Cris;
 using CK.StObj.TypeScript;
 using CK.StObj.TypeScript.Engine;

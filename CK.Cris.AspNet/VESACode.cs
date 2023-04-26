@@ -1,9 +1,6 @@
 using CK.Core;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace CK.Cris
+namespace CK.Cris.AspNet
 {
     /// <summary>
     /// Defines the possible command handling response types.

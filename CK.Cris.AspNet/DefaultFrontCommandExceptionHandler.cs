@@ -1,10 +1,8 @@
 using CK.Core;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace CK.Cris
+namespace CK.Cris.AspNet
 {
     /// <summary>
     /// Default <see cref="RawCommandExecutor"/> error handler.

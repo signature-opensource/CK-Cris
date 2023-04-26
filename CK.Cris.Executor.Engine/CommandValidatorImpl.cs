@@ -12,7 +12,7 @@ namespace CK.Setup.Cris
     {
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
-            if( classType != typeof( CommandValidator ) ) throw new InvalidOperationException( "Applies only to the CommandValidator class." );
+            Throw.CheckArgument( "Applies only to the CommandValidator class.", classType == typeof( CommandValidator ) );
             var registry = CommandRegistry.FindOrCreate( monitor, c );
             if( registry == null ) return CSCodeGenerationResult.Failed;
 
@@ -33,7 +33,8 @@ namespace CK.Setup.Cris
                         bool requiresAsync = false;
                         var f = scope.CreateFunction( "static Task<CK.Cris.ValidationResult> V" + e.CommandIdx + "( IActivityMonitor m, IServiceProvider s, CK.Cris.ICommand c )" );
 
-                        f.Append( "using( m.CollectEntries( out var entries, LogLevelFilter.Warn ) )" ).NewLine()
+                        f.GeneratedByComment()
+                         .Append( "using( m.CollectEntries( out var entries, LogLevelFilter.Warn ) )" ).NewLine()
                          .OpenBlock()
                          .Append( "m.MinimalFilter = new LogFilter( LogLevelFilter.Warn, LogLevelFilter.Warn );" ).NewLine();
 

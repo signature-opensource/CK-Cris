@@ -8,7 +8,7 @@ namespace CK.Cris
     /// <summary>
     /// Captures the result of a command validation with potential warnings.
     /// </summary>
-    public class ValidationResult
+    public sealed class ValidationResult
     {
         ValidationResult( IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries, ICommand command, bool success )
         {
