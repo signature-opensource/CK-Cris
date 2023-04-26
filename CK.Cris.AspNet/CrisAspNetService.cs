@@ -209,7 +209,7 @@ namespace CK.Cris.AspNet
         {
             try
             {
-                var o = await _executor.RawExecuteCommandAsync( monitor, services, command );
+                var o = await _executor.RawExecuteCommandAsync( services, command );
                 return _resultFactory.Create( r => { r.Code = VESACode.Synchronous; r.Result = o; } );
             }
             catch( Exception ex )

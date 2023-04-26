@@ -91,7 +91,7 @@ namespace CK.Setup.Cris
 
             /// <summary>
             /// Generates all the synchronous and asynchronous (if any) calls required based on these variable
-            /// names: <code>IActivityMonitor m, IServiceProvider s, CK.Cris.KnownCommand c, object r</code>.
+            /// names: <code>IServiceProvider s, CK.Cris.KnownCommand c, object r</code>.
             /// <para>
             /// Async calls use await keyword.
             /// </para>
@@ -107,7 +107,7 @@ namespace CK.Setup.Cris
                 {
                     w.Append( "{" ).NewLine();
                     w.Append( "var h = (" ).Append( h.Key.ClassType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( h.Key.ClassType ).Append( ");" ).NewLine();
-                    foreach( var m in h )
+                    foreach( PostHandlerMethod m in h )
                     {
                         if( async ) w.Append( "await " );
 
@@ -118,11 +118,10 @@ namespace CK.Setup.Cris
                         else w.Append( "h." );
 
                         w.Append( m.Method.Name ).Append( "( " );
-                        foreach( var p in m.Parameters )
+                        foreach( ParameterInfo p in m.Parameters )
                         {
                             if( p.Position > 0 ) w.Append( ", " );
-                            if( typeof( IActivityMonitor ).IsAssignableFrom( p.ParameterType ) ) w.Append( "m" );
-                            else if( p == m.ResultParameter )
+                            if( p == m.ResultParameter )
                             {
                                 if( m.MustCastResultParameter )
                                 {

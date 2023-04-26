@@ -79,6 +79,7 @@ namespace CK.Cris.Executor.Tests
             var map = TestHelper.CompileAndLoadStObjMap( c ).Map;
             var reg = new StObjContextRoot.ServiceRegister( TestHelper.Monitor, new ServiceCollection() );
             reg.Register<IAuthenticationInfo>( s => authInfo, true, false );
+            reg.Register<IActivityMonitor>( s => TestHelper.Monitor, true, false );
             reg.AddStObjMap( map ).Should().BeTrue( "Service configuration succeed." );
 
             var appServices = reg.Services.BuildServiceProvider();
@@ -89,7 +90,7 @@ namespace CK.Cris.Executor.Tests
                 var executor = services.GetRequiredService<RawCommandExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<IAmbientValuesCollectCommand>>().Create();
 
-                var r = await executor.RawExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                var r = await executor.RawExecuteCommandAsync( services, cmd );
                 Debug.Assert( r != null );
                 var auth = (IAuthAmbientValues)r;
                 auth.ActorId.Should().Be( 3712 );

@@ -2,6 +2,7 @@ using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
@@ -17,12 +18,13 @@ namespace CK.Setup.Cris
             if( registry == null ) return CSCodeGenerationResult.Failed;
 
             Debug.Assert( nameof( RawCommandExecutor.RawExecuteCommandAsync ) == "RawExecuteCommandAsync" );
-            Debug.Assert( classType.GetMethod( nameof( RawCommandExecutor.RawExecuteCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( ICommand ) } ) != null );
+            Debug.Assert( classType.GetMethod( nameof( RawCommandExecutor.RawExecuteCommandAsync ), new[] { typeof( IServiceProvider ), typeof( ICommand ) } ) != null );
 
-            var mExecute = scope.CreateFunction( "public override Task<object> RawExecuteCommandAsync( IActivityMonitor m, IServiceProvider s, CK.Cris.ICommand c )" );
-            mExecute.Append( "return _handlers[c.CommandModel.CommandIdx]( m, s, c );" );
+            var mExecute = scope.CreateFunction( "public override Task<object> RawExecuteCommandAsync( IServiceProvider s, CK.Cris.ICommand c )" );
+            mExecute.GeneratedByComment().NewLine()
+                    .Append( "return _handlers[c.CommandModel.CommandIdx]( s, c );" );
 
-            const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.ICommand, Task<object>>";
+            const string funcSignature = "Func<IServiceProvider, CK.Cris.ICommand, Task<object>>";
             foreach( var e in registry.Commands )
             {
                 var h = e.Handler;
@@ -37,7 +39,7 @@ namespace CK.Setup.Cris
 
                     scope.Append( "static " );
                     if( isOverallAsync ) scope.Append( "async " );
-                    scope.Append( "Task<object> H" ).Append( e.CommandIdx ).Append( "( IActivityMonitor m, IServiceProvider s, CK.Cris.ICommand c )" ).NewLine()
+                    scope.Append( "Task<object> H" ).Append( e.CommandIdx ).Append( "( IServiceProvider s, CK.Cris.ICommand c )" ).NewLine()
                          .Append( "{" ).NewLine()
                          .GeneratedByComment().NewLine();
                     Debug.Assert( h.Method.DeclaringType != null );
@@ -55,11 +57,7 @@ namespace CK.Setup.Cris
                     foreach( var p in h.Parameters )
                     {
                         if( p.Position > 0 ) scope.Append( ", " );
-                        if( typeof( IActivityMonitor ).IsAssignableFrom( p.ParameterType ) )
-                        {
-                            scope.Append( "m" );
-                        }
-                        else if( p == h.CommandParameter )
+                        if( p == h.CommandParameter )
                         {
                             scope.Append( "(" ).Append( h.CommandParameter.ParameterType.ToCSharpName() ).Append( ")c" );
                         }
@@ -118,7 +116,7 @@ namespace CK.Setup.Cris
                  .NewLine();
             if( needNoHandler )
             {
-                scope.Append( "static readonly " ).Append( funcSignature ).Append( " NoHandler = ( m, s, c ) => throw new Exception( \"No Command handler found.\" );" ).NewLine();
+                scope.Append( "static readonly " ).Append( funcSignature ).Append( " NoHandler = ( s, c ) => Throw.CKException<Task<object>>( \"No Command handler found.\" );" ).NewLine();
             }
 
             return CSCodeGenerationResult.Success;

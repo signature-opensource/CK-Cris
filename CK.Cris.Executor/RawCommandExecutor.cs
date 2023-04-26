@@ -23,10 +23,10 @@ namespace CK.Cris
         /// closure of the command Poco (the ICommand interface that unifies all other ICommand and <see cref="ICommandPart"/>).
         /// Any exceptions are thrown (or more precisely are set on the returned <see cref="Task"/>).
         /// </summary>
-        /// <param name="monitor">The monitor to use. This </param>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to execute.</param>
+        /// 
         /// <returns>The result of the <see cref="ICommand{TResult}"/> if the command has a result.</returns>
-        public abstract Task<object?> RawExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, ICommand command );
+        public abstract Task<object?> RawExecuteCommandAsync( IServiceProvider services, ICommand command );
     }
 }

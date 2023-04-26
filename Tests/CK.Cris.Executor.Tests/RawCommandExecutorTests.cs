@@ -68,7 +68,7 @@ namespace CK.Cris.Executor.Tests
             public ValueTask HandleCommandAsync( ICmdTest cmd )
             {
                 CmdSyncHandler.Called = true;
-                return default; // Should be ValueTask.CompletedTask one day: https://github.com/dotnet/runtime/issues/27960
+                return ValueTask.CompletedTask;
             }
         }
 
@@ -86,7 +86,7 @@ namespace CK.Cris.Executor.Tests
                 _ => throw new NotImplementedException()
             } );
 
-            using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
+            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
@@ -95,7 +95,7 @@ namespace CK.Cris.Executor.Tests
 
                 CmdSyncHandler.Called = false;
 
-                var result = await executor.RawExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                var result = await executor.RawExecuteCommandAsync( services, cmd );
                 result.Should().BeNull();
                 CmdSyncHandler.Called.Should().BeTrue();
             }
@@ -153,7 +153,7 @@ namespace CK.Cris.Executor.Tests
                 _ => throw new NotImplementedException()
             } );
 
-            using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
+            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
@@ -162,7 +162,7 @@ namespace CK.Cris.Executor.Tests
 
                 CmdIntSyncHandler.Called = false;
 
-                var result = await executor.RawExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                var result = await executor.RawExecuteCommandAsync( services, cmd );
                 result.Should().Be( 3712 );
                 CmdIntSyncHandler.Called.Should().BeTrue();
             }
@@ -234,7 +234,7 @@ namespace CK.Cris.Executor.Tests
 
             static void CheckUniqueCommandHasNoHandler( Setup.StObjCollector c )
             {
-                using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
+                using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
                 using( var scope = appServices.CreateScope() )
                 {
                     var directory = scope.ServiceProvider.GetRequiredService<CommandDirectory>();
@@ -266,7 +266,7 @@ namespace CK.Cris.Executor.Tests
         public async Task calling_public_AutoService_implementation_Async()
         {
             var c = CreateRawExecutorCollector( typeof( ICmdTest ), typeof( CommandHandlerImpl ) );
-            using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
+            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
@@ -275,7 +275,7 @@ namespace CK.Cris.Executor.Tests
 
                 CommandHandlerImpl.Called = false;
 
-                var result = await executor.RawExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                var result = await executor.RawExecuteCommandAsync( services, cmd );
                 result.Should().BeNull();
 
                 CommandHandlerImpl.Called.Should().BeTrue();
@@ -302,7 +302,7 @@ namespace CK.Cris.Executor.Tests
         public async Task calling_explicit_AutoService_implementation_Async()
         {
             var c = CreateRawExecutorCollector( typeof( ICmdTest ), typeof( CommandHandlerExplicitImpl ) );
-            using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
+            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
@@ -311,7 +311,7 @@ namespace CK.Cris.Executor.Tests
 
                 CommandHandlerExplicitImpl.Called = false;
 
-                var result = await executor.RawExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                var result = await executor.RawExecuteCommandAsync( services, cmd );
                 result.Should().BeNull();
 
                 CommandHandlerExplicitImpl.Called.Should().BeTrue();
@@ -340,14 +340,14 @@ namespace CK.Cris.Executor.Tests
         public async Task calling_a_base_class_implementation_Async()
         {
             var c = CreateRawExecutorCollector( typeof( IIntResultCommand ), typeof( SpecializedBaseClassService ) );
-            using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
+            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
                 var executor = services.GetRequiredService<RawCommandExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<IIntResultCommand>>().Create();
 
-                var result = await executor.RawExecuteCommandAsync( TestHelper.Monitor, services, cmd );
+                var result = await executor.RawExecuteCommandAsync( services, cmd );
                 result.Should().Be( cmd.GetHashCode() );
             }
         }
