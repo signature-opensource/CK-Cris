@@ -2,6 +2,7 @@ using CK.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace CK.Cris
 {
@@ -10,10 +11,19 @@ namespace CK.Cris
     /// </summary>
     public sealed class ValidationResult
     {
-        ValidationResult( IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries, ICommand command, bool success )
+        /// <summary>
+        /// The success validation result: no error, no warning.
+        /// </summary>
+        public static readonly ValidationResult SuccessResult = new ValidationResult( Array.Empty<ActivityMonitorSimpleCollector.Entry>(), true );
+
+        /// <summary>
+        /// A successfully completed validation task: no error, no warning.
+        /// </summary>
+        public static readonly Task<ValidationResult> SuccessResultTask = Task.FromResult( SuccessResult );
+
+        ValidationResult( IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries, bool success )
         {
             AllEntries = entries;
-            Command = command;
             Success = success;
         }
 
@@ -21,25 +31,10 @@ namespace CK.Cris
         /// Initializes a new <see cref="ValidationResult"/>.
         /// </summary>
         /// <param name="entries">The logged entries.</param>
-        /// <param name="command">The command.</param>
-        public ValidationResult( IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries, ICommand command )
-                  : this( entries, command, entries.All( e => e.MaskedLevel < LogLevel.Error ) )
+        public ValidationResult( IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries )
+                  : this( entries, entries.All( e => e.MaskedLevel < LogLevel.Error ) )
         {
         }
-
-        /// <summary>
-        /// Initializes a new successful <see cref="ValidationResult"/> (no warning, no error).
-        /// <param name="command">The command.</param>
-        /// </summary>
-        public ValidationResult( ICommand command )
-            : this( Array.Empty<ActivityMonitorSimpleCollector.Entry>(), command, true )
-        {
-        }
-
-        /// <summary>
-        /// Gets the command.
-        /// </summary>
-        public ICommand Command { get; }
 
         /// <summary>
         /// Gets whether the command has been successfully validated. <see cref="Errors"/> is empty
@@ -66,7 +61,6 @@ namespace CK.Cris
         /// Gets all the available entries, regardless of their <see cref="ActivityMonitorSimpleCollector.Entry.MaskedLevel"/>.
         /// </summary>
         public IReadOnlyList<ActivityMonitorSimpleCollector.Entry> AllEntries { get; }
-
 
     }
 }

@@ -20,10 +20,18 @@ namespace CK.Setup.Cris
             Debug.Assert( validateMethod != null, "This is the signature of the central method." );
 
             var mValidate = scope.CreateSealedOverride( validateMethod );
-            if( registry.Commands.Any( e => e.Validators.Count > 0 ) )
+            if( !registry.Commands.Any( e => e.Validators.Count > 0 ) )
+            {
+                mValidate.Definition.Modifiers &= ~Modifiers.Async;
+                mValidate.GeneratedByComment().NewLine()
+                         .Append( "return CK.Cris.ValidationResult.SuccessResultTask;" );
+            }
+            else
             {
                 const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.ICommand, Task<CK.Cris.ValidationResult>>";
-                scope.Append( "static readonly " ).Append( funcSignature ).Append( " Success = ( m, s, c ) => Task.FromResult( new CK.Cris.ValidationResult( c ) );" )
+
+                scope.GeneratedByComment().NewLine()
+                     .Append( "static readonly " ).Append( funcSignature ).Append( " Success = ( m, s, c ) => CK.Cris.ValidationResult.SuccessResultTask;" )
                      .NewLine();
 
                 foreach( var e in registry.Commands )
@@ -52,7 +60,7 @@ namespace CK.Setup.Cris
                                 }
                                 if( validator.Method.DeclaringType != service.Key.ClassType )
                                 {
-                                    f.Append("((").Append( validator.Method.DeclaringType.ToCSharpName() ).Append( ")h)." );
+                                    f.Append( "((" ).Append( validator.Method.DeclaringType.ToCSharpName() ).Append( ")h)." );
                                 }
                                 else f.Append( "h." );
                                 f.Append( validator.Method.Name ).Append( "( " );
@@ -77,9 +85,12 @@ namespace CK.Setup.Cris
                             }
                             f.CloseBlock();
                         }
-                        f.Append( "return " ).Append( requiresAsync ? "new CK.Cris.ValidationResult( entries, c );" : "Task.FromResult( new CK.Cris.ValidationResult( entries, c ) );" )
-                         .CloseBlock();
                         if( requiresAsync ) f.Definition.Modifiers |= Modifiers.Async;
+                        f.Append( "if( entries.Count == 0 ) return CK.Cris.ValidationResult.SuccessResult" ).Append( requiresAsync ? null : "Task" ).Append( ";" ).NewLine();
+                        f.Append( "return " ).Append( requiresAsync
+                                                        ? "new CK.Cris.ValidationResult( entries );"
+                                                        : "Task.FromResult( new CK.Cris.ValidationResult( entries ) );" )
+                         .CloseBlock();
                     }
                 }
 
@@ -102,15 +113,8 @@ namespace CK.Setup.Cris
                 mValidate.GeneratedByComment().NewLine()
                          .Append( "return _validators[command.CommandModel.CommandIdx]( validationMonitor, services, command );" );
             }
-            else
-            {
-                mValidate.Definition.Modifiers &= ~Modifiers.Async;
-                mValidate.GeneratedByComment().NewLine()
-                         .Append( "return Task.FromResult<CK.Cris.ValidationResult>( new CK.Cris.ValidationResult( command ) );" );
-            }
             return CSCodeGenerationResult.Success;
         }
-
     }
 
 }
