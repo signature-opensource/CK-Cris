@@ -191,7 +191,7 @@ namespace CK.Setup.Cris
             bool success = true;
             var index = new Dictionary<IPocoRootInfo, Entry>();
             var commands = new List<Entry>();
-            if( pocoResult.OtherInterfaces.TryGetValue( typeof( ICommand ), out IReadOnlyList<IPocoRootInfo>? commandPocos ) )
+            if( pocoResult.OtherInterfaces.TryGetValue( typeof( IAbstractCommand ), out IReadOnlyList<IPocoRootInfo>? commandPocos ) )
             {
                 foreach( var poco in commandPocos )
                 {
@@ -205,7 +205,7 @@ namespace CK.Setup.Cris
                         monitor.Error( $"Ambiguous command handler '{hServices.Select( m => $"{m.Key!.ClassType.FullName}' implements '{m.Select( x => x.itf.FullName ).Concatenate( "' ,'" )}" )}': only one service can eventually handle a command." );
                         success = false;
                     }
-                    var entry = Entry.Create( monitor, pocoResult, poco, commands.Count, hServices.Length == 1 ? hServices[0].Key : null ) ;
+                    var entry = Entry.Create( monitor, pocoResult, poco, commands.Count, hServices.Length == 1 ? hServices[0].Key : null );
                     if( entry == null ) success = false;
                     else
                     {
@@ -275,7 +275,7 @@ namespace CK.Setup.Cris
             var parameters = m.GetParameters();
             var candidates = parameters.Select( p => (p, PocoResult.AllInterfaces.GetValueOrDefault( p.ParameterType )) )
                                                                     .Where( x => x.Item2 != null
-                                                                                && typeof( ICommand ).IsAssignableFrom( x.Item2.PocoInterface ) )
+                                                                                && typeof( IAbstractCommand ).IsAssignableFrom( x.Item2.PocoInterface ) )
                                                                     .ToArray();
             if( candidates.Length > 1 )
             {

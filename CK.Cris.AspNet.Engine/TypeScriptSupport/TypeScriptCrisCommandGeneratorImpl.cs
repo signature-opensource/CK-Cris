@@ -51,7 +51,7 @@ namespace CK.Setup
                     // If it's a IPoco, it will benefit from the same treatment as the command above.
                     // Some types are handled by default, but if there is eventually no generator for the
                     // type then the setup fails.
-                    if( cmd.ResultType != typeof( void ) && cmd.ResultType != typeof( ICrisEvent.NoWaitResult ) )
+                    if( cmd.ResultType != typeof( void ) )
                     {
                         g.DeclareTSType( monitor, cmd.ResultType );
                     }
@@ -86,7 +86,7 @@ namespace CK.Setup
         {
             Debug.Assert( _registry != null, "CS code generation ran. Implement (CSharp code) has necessarily been successfully called." );
 
-            if( typeof(ICommand).IsAssignableFrom( e.TypeFile.Type ) )
+            if( typeof(IAbstractCommand).IsAssignableFrom( e.TypeFile.Type ) )
             {
                 var cmd = _registry.Find( e.PocoClass.PocoRootInfo );
                 // A IPoco that supports ICommand should be a registered command.
@@ -106,7 +106,7 @@ namespace CK.Setup
                 EnsureCrisModel( e );
 
                 bool isVoidReturn = cmd.ResultType == typeof( void );
-                bool isFireAndForget = !isVoidReturn && cmd.ResultType == typeof( ICrisEvent.NoWaitResult );
+                bool isFireAndForget = isVoidReturn && typeof( ICrisEvent ).IsAssignableFrom( e.TypeFile.Type );
 
                 // Compute the (potentially) type name only once by caching the signature.
                 var b = e.PocoClass.Part;

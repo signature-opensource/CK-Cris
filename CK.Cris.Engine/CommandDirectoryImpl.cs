@@ -108,8 +108,9 @@ sealed class CRISCommandHandlerDesc : CK.Cris.ICommandModel.IHandler
                 f.Append( "public Type CommandType => PocoClassType;" ).NewLine()
                  .Append( "public int CommandIdx => " ).Append( e.CommandIdx ).Append( ";" ).NewLine()
                  .Append( "public string CommandName => Name;" ).NewLine()
+                 .Append( "public bool IsEvent => " ).Append( e.IsEvent ).Append( ";" ).NewLine()
                  .Append( "public Type ResultType => " ).AppendTypeOf( e.ResultType ).Append( ";" ).NewLine()
-                 .Append( "CK.Cris.ICommand CK.Cris.ICommandModel.Create() => (CK.Cris.ICommand)Create();" ).NewLine();
+                 .Append( "CK.Cris.IAbstractCommand CK.Cris.ICommandModel.Create() => (CK.Cris.IAbstractCommand)Create();" ).NewLine();
 
                 if( e.Handler == null )
                 {

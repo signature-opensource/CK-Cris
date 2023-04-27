@@ -41,6 +41,35 @@ namespace CK.Cris.Tests
             cmd.CommandModel.Should().BeSameAs( m );
         }
 
+        public interface ICmdTestSpec : ICmdTest, ICrisEvent
+        {
+        }
 
+        [Test]
+        public void ICrisEvent_cannot_be_a_ICommand()
+        {
+            using( TestHelper.Monitor.CollectTexts( out var texts ) )
+            {
+                var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICmdTestSpec ), typeof( AmbientValues.IAmbientValues ) );
+                TestHelper.GenerateCode( c, null ).Success.Should().BeFalse();
+                texts.Should().Contain( "Command 'Test' cannot be both a ICrisEvent and a ICommand." );
+            }
+        }
+
+        public interface ICmdNoWay : ICrisEvent, ICommand<int>
+        {
+        }
+
+        [Test]
+        public void ICrisEvent_cannot_be_a_ICommand_TResult()
+        {
+            using( TestHelper.Monitor.CollectTexts( out var texts ) )
+            {
+                var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICmdNoWay ), typeof( AmbientValues.IAmbientValues ) );
+                TestHelper.GenerateCode( c, null ).Success.Should().BeFalse();
+                texts.Should().Contain( "Command 'CK.Cris.Tests.CommandDirectoryTests+ICmdNoWay' cannot be both a ICrisEvent and a ICommand<TResult>." );
+            }
+        }
     }
 }
+

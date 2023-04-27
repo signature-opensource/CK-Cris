@@ -14,7 +14,7 @@ namespace CK.Setup.Cris
         /// <summary>
         /// Command model.
         /// </summary>
-        public partial class Entry
+        public sealed partial class Entry
         {
             readonly List<ValidatorMethod> _validators;
             readonly List<PostHandlerMethod> _postHandlers;
@@ -45,6 +45,11 @@ namespace CK.Setup.Cris
             public string CommandName => Command.Name;
 
             /// <summary>
+            /// Gets whether this command is a <see cref="ICrisEvent"/>.
+            /// </summary>
+            public bool IsEvent { get; }
+
+            /// <summary>
             /// Gets the name of this command.
             /// </summary>
             public IReadOnlyList<string> PreviousNames => Command.PreviousNames;
@@ -57,8 +62,7 @@ namespace CK.Setup.Cris
 
             /// <summary>
             /// Gets the final (most specialized) result type.
-            /// This is <c>typeof(void)</c> when the command is a <see cref="ICommand"/> that
-            /// is not a <see cref="ICommand{TResult}"/>.
+            /// This is <c>typeof(void)</c> when the command is a <see cref="ICommand"/> or a <see cref="ICrisEvent"/>.
             /// </summary>
             /// <remarks>
             /// This can be the special <c>typeof(NoWaitResult)</c> if the command is a
@@ -163,6 +167,7 @@ namespace CK.Setup.Cris
 
             Entry( IPocoRootInfo command,
                    int commandIdx,
+                   bool isEvent,
                    NullableTypeTree resultType,
                    IPocoInterfaceInfo? pocoResultType,
                    IStObjFinalClass? handlerService )
@@ -170,6 +175,7 @@ namespace CK.Setup.Cris
                 Command = command;
                 _validators = new List<ValidatorMethod>();
                 _postHandlers = new List<PostHandlerMethod>();
+                IsEvent = isEvent;
                 CommandIdx = commandIdx;
                 ResultNullableTypeTree = resultType;
                 PocoResultType = pocoResultType;
@@ -181,10 +187,10 @@ namespace CK.Setup.Cris
                 Type resultType;
                 IPocoInterfaceInfo? pocoResultType;
 
+
                 #region Handling TResult
                 static Type? ExtractTResult( Type i )
                 {
-                    if( !i.IsGenericType ) return null;
                     Type tG = i.GetGenericTypeDefinition();
                     if( tG != typeof( ICommand<> ) ) return null;
                     return i.GetGenericArguments()[0];
@@ -192,18 +198,45 @@ namespace CK.Setup.Cris
 
                 static PropertyInfo? ExtractResultInfo( Type i )
                 {
-                    if( !i.IsGenericType ) return null;
                     Type tG = i.GetGenericTypeDefinition();
                     if( tG != typeof( ICommand<> ) ) return null;
                     return i.GetProperty( "R", BindingFlags.Static | BindingFlags.NonPublic )!;
                 }
 
-                var resultTypes = command.OtherInterfaces.Select( i => ExtractTResult( i ) )
-                                                    .Where( r => r != null )
-                                                    .Select( t => t! )
-                                                    .ToList();
-                if( resultTypes.Count > 0 )
+                bool isEvent = false;
+                bool isCommand = false;
+                List<Type>? resultTypes = null;
+                foreach( var i in command.OtherInterfaces )
                 {
+                    if( i == typeof( ICommand ) ) isCommand = true;
+                    else if( i == typeof( ICrisEvent ) ) isEvent = true;
+                    else if( i.IsGenericType )
+                    {
+                        var r = ExtractTResult( i );
+                        if( r != null )
+                        {
+                            resultTypes ??= new List<Type>();
+                            resultTypes.Add( r );
+                        }
+                    }
+                }
+                if( isEvent )
+                {
+                    if( isCommand )
+                    {
+                        monitor.Error( $"Command '{command.Name}' cannot be both a ICrisEvent and a ICommand." );
+                        return null;
+                    }
+                    if( resultTypes != null )
+                    {
+                        monitor.Error( $"Command '{command.Name}' cannot be both a ICrisEvent and a ICommand<TResult>." );
+                        return null;
+                    }
+                }
+                if( resultTypes != null )
+                {
+                    Debug.Assert( resultTypes.Count > 0 );
+
                     for( int i = resultTypes.Count - 2; i >= 0; --i )
                     {
                         var x = resultTypes[resultTypes.Count - 1];
@@ -236,7 +269,7 @@ namespace CK.Setup.Cris
                 }
                 #endregion
 
-                return new Entry( command, commandIdx, resultType.GetNullableTypeTree(), pocoResultType, handlerService );
+                return new Entry( command, commandIdx, isEvent, resultType.GetNullableTypeTree(), pocoResultType, handlerService );
             }
 
             internal bool AddHandler( IActivityMonitor monitor,
@@ -256,7 +289,6 @@ namespace CK.Setup.Cris
                 var (unwrappedReturnType, isRefAsync, isValAsync) = GetReturnParameterInfo( method );
 
                 var expected = ResultType;
-                if( expected == typeof( ICrisEvent.NoWaitResult ) ) expected = typeof( void );
 
                 if( unwrappedReturnType != expected )
                 {
@@ -339,7 +371,7 @@ namespace CK.Setup.Cris
                                                                           || PocoResultType.Root.OtherInterfaces.Contains( t )) );
                     if( resultParameter != null ) mustCastResultParameter = true;
                 }
-                else if( ResultType != typeof( void ) && ResultType != typeof( ICrisEvent.NoWaitResult ) )
+                else if( ResultType != typeof( void ) )
                 {
                     // The result type is not a IPoco. The first parameter that can be assigned to the result type is fine. 
                     resultParameter = parameters.FirstOrDefault( p => p.ParameterType.IsAssignableFrom( ResultType ) );

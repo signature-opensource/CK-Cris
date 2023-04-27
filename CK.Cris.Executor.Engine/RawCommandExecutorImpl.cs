@@ -17,19 +17,18 @@ namespace CK.Setup.Cris
             if( registry == null ) return CSCodeGenerationResult.Failed;
 
             Debug.Assert( nameof( RawCommandExecutor.RawExecuteCommandAsync ) == "RawExecuteCommandAsync" );
-            Debug.Assert( classType.GetMethod( nameof( RawCommandExecutor.RawExecuteCommandAsync ), new[] { typeof( IServiceProvider ), typeof( ICommand ) } ) != null );
+            Debug.Assert( classType.GetMethod( nameof( RawCommandExecutor.RawExecuteCommandAsync ), new[] { typeof( IServiceProvider ), typeof( IAbstractCommand ) } ) != null );
 
-            var mExecute = scope.CreateFunction( "public override Task<object> RawExecuteCommandAsync( IServiceProvider s, CK.Cris.ICommand c )" );
+            var mExecute = scope.CreateFunction( "public override Task<object> RawExecuteCommandAsync( IServiceProvider s, CK.Cris.IAbstractCommand c )" );
             mExecute.GeneratedByComment().NewLine()
                     .Append( "return _handlers[c.CommandModel.CommandIdx]( s, c );" );
 
-            const string funcSignature = "Func<IServiceProvider, CK.Cris.ICommand, Task<object>>";
+            const string funcSignature = "Func<IServiceProvider, CK.Cris.IAbstractCommand, Task<object>>";
             foreach( var e in registry.Commands )
             {
                 var h = e.Handler;
                 if( h != null )
                 {
-                    Debug.Assert( h.UnwrappedReturnType != typeof( ICrisEvent.NoWaitResult ), "This has been checked before: NoWaitResult expects a void return." );
                     bool isVoidReturn = h.UnwrappedReturnType == typeof( void );
                     bool isHandlerAsync = h.IsRefAsync || h.IsValAsync;
                     bool isPostHandlerAsync = e.HasPostHandlerAsyncCall;
@@ -38,7 +37,7 @@ namespace CK.Setup.Cris
 
                     scope.Append( "static " );
                     if( isOverallAsync ) scope.Append( "async " );
-                    scope.Append( "Task<object> H" ).Append( e.CommandIdx ).Append( "( IServiceProvider s, CK.Cris.ICommand c )" ).NewLine()
+                    scope.Append( "Task<object> H" ).Append( e.CommandIdx ).Append( "( IServiceProvider s, CK.Cris.IAbstractCommand c )" ).NewLine()
                          .Append( "{" ).NewLine()
                          .GeneratedByComment().NewLine();
 

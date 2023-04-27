@@ -58,7 +58,7 @@ namespace CK.Cris.AspNet
             using( HandleIncomingCKDepToken( monitor, request ) )
             {
                 // If we cannot read the command, it is considered as a Code V (Validation error), hence a BadRequest status code.
-                (ICommand? cmd, ICrisResult? result) = await ReadCommandAsync( monitor, request );
+                (IAbstractCommand? cmd, ICrisResult? result) = await ReadCommandAsync( monitor, request );
                 if( result == null )
                 {
                     Debug.Assert( cmd != null );
@@ -87,7 +87,7 @@ namespace CK.Cris.AspNet
             }
         }
 
-        async Task<(ICommand?, ICrisResult?)> ReadCommandAsync( IActivityMonitor monitor, HttpRequest request )
+        async Task<(IAbstractCommand?, ICrisResult?)> ReadCommandAsync( IActivityMonitor monitor, HttpRequest request )
         {
             int length = -1;
             using( var buffer = (RecyclableMemoryStream)Util.RecyclableStreamManager.GetStream() )
@@ -141,12 +141,12 @@ namespace CK.Cris.AspNet
                 }
             }
 
-            static (ICommand?, string?) ReadCommand( IActivityMonitor monitor, PocoDirectory p, in ReadOnlySequence<byte> buffer )
+            static (IAbstractCommand?, string?) ReadCommand( IActivityMonitor monitor, PocoDirectory p, in ReadOnlySequence<byte> buffer )
             {
                 var reader = new Utf8JsonReader( buffer );
                 var poco = p.Read( ref reader );
                 if( poco == null ) return (null, "Received a null Poco." );
-                if( poco is not ICommand c )
+                if( poco is not IAbstractCommand c )
                 {
                     return (null, $"Received Poco is not a Command but a '{((IPocoGeneratedClass)poco).Factory.Name}'.");
                 }
@@ -168,7 +168,7 @@ namespace CK.Cris.AspNet
 
         }
 
-        async Task<ICrisResult?> GetValidationErrorAsync( IActivityMonitor monitor, IServiceProvider requestServices, ICommand cmd )
+        async Task<ICrisResult?> GetValidationErrorAsync( IActivityMonitor monitor, IServiceProvider requestServices, IAbstractCommand cmd )
         {
             try
             {
@@ -206,7 +206,7 @@ namespace CK.Cris.AspNet
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to execute.</param>
         /// <returns>The <see cref="ICrisResult"/>.</returns>
-        public async Task<ICrisResult> ExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, ICommand command )
+        public async Task<ICrisResult> ExecuteCommandAsync( IActivityMonitor monitor, IServiceProvider services, IAbstractCommand command )
         {
             try
             {

@@ -16,9 +16,14 @@ namespace CK.Cris
         Type CommandType { get; }
 
         /// <summary>
-        /// Creates a new command object.
+        /// Gets whether this command is a <see cref="ICrisEvent"/>.
         /// </summary>
-        ICommand Create();
+        bool IsEvent { get; }
+
+        /// <summary>
+        /// Creates a new <see cref="ICommand"/>, <see cref="ICommand{TResult}"/> or <see cref="ICrisEvent"/> instance.
+        /// </summary>
+        IAbstractCommand Create();
 
         /// <summary>
         /// Gets the command index.

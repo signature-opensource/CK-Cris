@@ -12,7 +12,7 @@ namespace CK.Cris.AspNet
     public class DefaultFrontCommandExceptionHandler : IFrontCommandExceptionHandler
     {
         /// <summary>
-        /// Handles the error by logging the exception, calling <see cref="DumpCommand(IActivityMonitor, IServiceProvider, ICommand)"/>
+        /// Handles the error by logging the exception, calling <see cref="DumpCommand(IActivityMonitor, IServiceProvider, IAbstractCommand)"/>
         /// to dump the command and setting <see cref="ICrisResult.Result"/> to the exception message.
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
@@ -21,7 +21,7 @@ namespace CK.Cris.AspNet
         /// <param name="command">The command that failed.</param>
         /// <param name="result">The command result (its <see cref="ICrisResult.Code"/> is already set to <see cref="VESACode.Error"/>).</param>
         /// <returns>The awaitable.</returns>
-        public virtual ValueTask OnErrorAsync( IActivityMonitor monitor, IServiceProvider services, Exception ex, ICommand command, ICrisResult result )
+        public virtual ValueTask OnErrorAsync( IActivityMonitor monitor, IServiceProvider services, Exception ex, IAbstractCommand command, ICrisResult result )
         {
             using( monitor.OpenError( $"While handling command '{command.CommandModel.CommandName}'.", ex ) )
             {
@@ -40,7 +40,7 @@ namespace CK.Cris.AspNet
         /// <param name="monitor">The monitor.</param>
         /// <param name="services">The services.</param>
         /// <param name="command">The command that failed.</param>
-        protected virtual void DumpCommand( IActivityMonitor monitor, IServiceProvider services, ICommand command )
+        protected virtual void DumpCommand( IActivityMonitor monitor, IServiceProvider services, IAbstractCommand command )
         {
             monitor.Trace( command.ToString()! );
         }

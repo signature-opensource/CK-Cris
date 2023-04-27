@@ -22,6 +22,6 @@ namespace CK.Cris.AspNet
         /// <param name="command">The command that failed.</param>
         /// <param name="result">The command result (its <see cref="ICrisResult.Code"/> is already set to <see cref="VESACode.Error"/>).</param>
         /// <returns>The awaitable.</returns>
-        ValueTask OnErrorAsync( IActivityMonitor monitor, IServiceProvider services, Exception ex, ICommand command, ICrisResult result );
+        ValueTask OnErrorAsync( IActivityMonitor monitor, IServiceProvider services, Exception ex, IAbstractCommand command, ICrisResult result );
     }
 }

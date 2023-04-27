@@ -24,9 +24,7 @@ namespace CK.Cris.AspNet
         ///   <item>
         ///     This is null when the command has been processed synchronously, successfully, and doesn't expect any result
         ///     (the command is not a <see cref="ICommand{TResult}"/>).
-        ///   </item>
-        ///   <item>
-        ///     This is also always null if the command is a <see cref="ICommand{TResult}"/> where TResult is <see cref="NoWaitResult"/>.
+        ///     This is also always null if the command is a <see cref="ICommand"/> or a <see cref="ICrisEvent"/>.
         ///   </item>
         ///   <item>
         ///     If the <see cref="Code"/> is <see cref="VESACode.Asynchronous"/> this may contain a command identifier or other correlation
