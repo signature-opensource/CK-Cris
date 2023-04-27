@@ -65,6 +65,12 @@ namespace CK.Cris
             string MethodName { get; }
 
             /// <summary>
+            /// Gets whether this handler requires the <see cref="ICrisEventSender"/> in its <see cref="Parameters"/>:
+            /// it can emit <see cref="ICrisEvent"/>.
+            /// </summary>
+            bool CanEmitEvents { get; }
+
+            /// <summary>
             /// Gets the parameter types of <see cref="MethodName"/>.
             /// <para>
             /// The array is exposed here to avoid a ToArray on a IReadOnlyList when using these

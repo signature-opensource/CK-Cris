@@ -30,52 +30,56 @@ namespace CK.Setup.Cris
             if( _registry == null ) return CSCodeGenerationResult.Failed;
 
             scope.Workspace.Global.FindOrCreateNamespace( "CK" ).Append( @"
-                sealed class CRISCommandHandlerDesc : CK.Cris.ICommandModel.IHandler
-                {
-                    // Waiting for ""StObj goes static"": the static fields of
-                    // GeneratedStObjContextRoot will expose the
-                    // static GFinalStObj[] _finalStObjs and services list so that the ""real""
-                    // GFinalStObj xor StObjServiceClassFactoryInfo can be used.
-                    public sealed class TEMPORARYStObjFinalClass : IStObjFinalClass
-                    {
-                        public TEMPORARYStObjFinalClass( Type classType,
-                                                         Type finalType,
-                                                         bool isScoped,
-                                                         IReadOnlyCollection<Type> multipleMappings,
-                                                         IReadOnlyCollection<Type> uniqueMappings )
-                        {
-                            ClassType = classType;
-                            FinalType = finalType;
-                            IsScoped = isScoped;
-                            MultipleMappings = multipleMappings;
-                            UniqueMappings = uniqueMappings;
-                        }
-                        public Type ClassType { get; }
+sealed class CRISCommandHandlerDesc : CK.Cris.ICommandModel.IHandler
+{
+    // Waiting for ""StObj goes static"": the static fields of
+    // GeneratedStObjContextRoot will expose the
+    // static GFinalStObj[] _finalStObjs and services list so that the ""real""
+    // GFinalStObj xor StObjServiceClassFactoryInfo can be used.
+    public sealed class TEMPORARYStObjFinalClass : IStObjFinalClass
+    {
+        public TEMPORARYStObjFinalClass( Type classType,
+                                            Type finalType,
+                                            bool isScoped,
+                                            IReadOnlyCollection<Type> multipleMappings,
+                                            IReadOnlyCollection<Type> uniqueMappings )
+        {
+            ClassType = classType;
+            FinalType = finalType;
+            IsScoped = isScoped;
+            MultipleMappings = multipleMappings;
+            UniqueMappings = uniqueMappings;
+        }
+        public Type ClassType { get; }
 
-                        public Type FinalType { get; }
+        public Type FinalType { get; }
 
-                        public bool IsScoped { get; }
+        public bool IsScoped { get; }
 
-                        public IReadOnlyCollection<Type> MultipleMappings { get; }
+        public IReadOnlyCollection<Type> MultipleMappings { get; }
 
-                        public IReadOnlyCollection<Type> UniqueMappings { get; }
-                    }
+        public IReadOnlyCollection<Type> UniqueMappings { get; }
+    }
 
-                    public CRISCommandHandlerDesc( TEMPORARYStObjFinalClass type,
-                                                   string methodName,
-                                                   Type[] parameters )
-                    {
-                        Type = type;
-                        MethodName = methodName;
-                        Parameters = parameters;
-                    }
+    public CRISCommandHandlerDesc( TEMPORARYStObjFinalClass type,
+                                    string methodName,
+                                    Type[] parameters,
+                                    bool canEmitEvents )
+    {
+        Type = type;
+        MethodName = methodName;
+        Parameters = parameters;
+        CanEmitEvents = canEmitEvents;
+  }
 
-                    public IStObjFinalClass Type { get; }
+    public IStObjFinalClass Type { get; }
 
-                    public string MethodName { get; }
+    public string MethodName { get; }
 
-                    public Type[] Parameters { get; }
-                }
+    public bool CanEmitEvents { get; }
+
+    public Type[] Parameters { get; }
+}
 " );
 
             scope.GeneratedByComment().NewLine()
@@ -122,8 +126,9 @@ namespace CK.Setup.Cris
 
                     f.Append( "static readonly CK.Cris.ICommandModel.IHandler _cmdHandlerDesc = new CK.CRISCommandHandlerDesc(" ).NewLine()
                      .Append( "_tempFinalClass," ).NewLine()
-                     .AppendSourceString( e.Handler.Method.Name ).Append(",").NewLine()
-                     .AppendArray( e.Handler.Parameters.Select( p => p.ParameterType )).Append(");").NewLine();
+                     .AppendSourceString( e.Handler.Method.Name ).Append( "," ).NewLine()
+                     .AppendArray( e.Handler.Parameters.Select( p => p.ParameterType ) ).Append( "," )
+                     .Append( e.Handler.Parameters.Any( p => p.ParameterType == typeof( ICrisEventSender ) ) ).Append( ");" ).NewLine();
 
                     f.Append( "public CK.Cris.ICommandModel.IHandler? Handler => _cmdHandlerDesc;" );
                 }

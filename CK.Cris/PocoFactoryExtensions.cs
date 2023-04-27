@@ -6,6 +6,9 @@ using System.Text;
 
 namespace CK.Cris
 {
+    /// <summary>
+    /// Extends Poco types.
+    /// </summary>
     public static class PocoFactoryExtensions
     {
         /// <summary>
@@ -13,7 +16,7 @@ namespace CK.Cris
         /// </summary>
         /// <param name="this">This factory.</param>
         /// <param name="firstError">The required first error. Must not be empty or whitespace.</param>
-        /// <param name="otherErrors">Optional other errors (nulls are skipped).</param>
+        /// <param name="otherErrors">Optional other errors (nulls are kindly skipped).</param>
         /// <returns>An error result.</returns>
         public static ICrisResultError Create( this IPocoFactory<ICrisResultError> @this, string firstError, params string?[] otherErrors )
         {

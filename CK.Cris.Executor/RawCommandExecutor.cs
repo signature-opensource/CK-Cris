@@ -22,10 +22,13 @@ namespace CK.Cris
         /// Executes a command by calling the ExecuteCommand or ExecuteCommandAsync method for the
         /// closure of the command Poco (the ICommand interface that unifies all other ICommand and <see cref="ICommandPart"/>).
         /// Any exceptions are thrown (or more precisely are set on the returned <see cref="Task"/>).
+        /// <para>
+        /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisEventSender"/> must be resolvable from
+        /// the <paramref name="services"/>.
+        /// </para>
         /// </summary>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to execute.</param>
-        /// 
         /// <returns>The result of the <see cref="ICommand{TResult}"/> if the command has a result.</returns>
         public abstract Task<object?> RawExecuteCommandAsync( IServiceProvider services, ICommand command );
     }

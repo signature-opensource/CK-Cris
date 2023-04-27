@@ -42,7 +42,10 @@ namespace CK.Cris
         /// Validates a command by calling all the ValidateCommand or ValidateCommandAsync methods for all the parts
         /// of the command (<see cref="ICommand"/> and <see cref="ICommandPart"/>).
         /// <para>
-        /// Exceptions are NOT handled by this method: a validator should never throw: exceptions must be handled by the caller.
+        /// Exceptions are NOT handled by this method: a validator should never throw, exceptions must be handled by the caller.
+        /// </para>
+        /// <para>
+        /// A <see cref="ICrisEventSender"/> must be resolvable from the <paramref name="services"/>.
         /// </para>
         /// </summary>
         /// <param name="validationMonitor">The validation monitor that collects validation results (warnings and errors).</param>
@@ -50,7 +53,7 @@ namespace CK.Cris
         /// <param name="command">The command to validate.</param>
         /// <returns>The validation result.</returns>
         public abstract Task<CommandValidationResult> ValidateCommandAsync( IActivityMonitor validationMonitor,
-                                                                     IServiceProvider services,
-                                                                     ICommand command );
+                                                                            IServiceProvider services,
+                                                                            ICommand command );
     }
 }
