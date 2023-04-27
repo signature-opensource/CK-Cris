@@ -88,8 +88,8 @@ namespace CK.Setup.Cris
                         if( requiresAsync ) f.Definition.Modifiers |= Modifiers.Async;
                         f.Append( "if( entries.Count == 0 ) return CK.Cris.CommandValidationResult.SuccessResult" ).Append( requiresAsync ? null : "Task" ).Append( ";" ).NewLine();
                         f.Append( "return " ).Append( requiresAsync
-                                                        ? "new CK.Cris.CommandValidationResult( entries );"
-                                                        : "Task.FromResult( new CK.Cris.CommandValidationResult( entries ) );" )
+                                                        ? "CK.Cris.CommandValidationResult.Create( entries );"
+                                                        : "Task.FromResult( CK.Cris.CommandValidationResult.Create( entries ) );" )
                          .CloseBlock();
                     }
                 }
