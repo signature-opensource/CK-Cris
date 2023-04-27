@@ -28,9 +28,36 @@ namespace CK.Cris
         /// <summary>
         /// A validation entry is a descriptive <see cref="Text"/> and whether this is an error or a warning. 
         /// </summary>
-        /// <param name="Text">The error or warning.</param>
-        /// <param name="IsError">True for an error, false for a warning.</param>
-        public readonly record struct Entry( string Text, bool IsError );
+        public readonly struct Entry
+        {
+            /// <summary>
+            /// The error or warning description.
+            /// </summary>
+            public readonly string Text;
+
+            /// <summary>
+            /// True for an error, false for a warning.
+            /// </summary>
+            public readonly bool IsError;
+
+            /// <summary>
+            /// Initializes a new entry.
+            /// </summary>
+            /// <param name="text">The error or warning description. Must not be null or empty.</param>
+            /// <param name="isError">True for an error, false for a warning.</param>
+            public Entry( string text, bool isError )
+            {
+                Throw.CheckNotNullOrEmptyArgument( text );
+                Text = text;
+                IsError = isError;
+            }
+
+            /// <summary>
+            /// Overridden to return this <see cref="Text"/>.
+            /// </summary>
+            /// <returns>The text.</returns>
+            public override string ToString() => Text;
+        }
 
         CommandValidationResult( IReadOnlyList<Entry> entries, bool success )
         {
