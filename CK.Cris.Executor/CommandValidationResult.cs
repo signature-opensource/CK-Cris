@@ -8,30 +8,33 @@ namespace CK.Cris
 {
     /// <summary>
     /// Captures the result of a command validation with potential warnings.
+    /// <para>
+    /// This is not simply named "ValidationResult" because of the existing <see cref="System.ComponentModel.DataAnnotations.ValidationResult"/>.
+    /// </para>
     /// </summary>
-    public sealed class ValidationResult
+    public sealed class CommandValidationResult
     {
         /// <summary>
         /// The success validation result: no error, no warning.
         /// </summary>
-        public static readonly ValidationResult SuccessResult = new ValidationResult( Array.Empty<ActivityMonitorSimpleCollector.Entry>(), true );
+        public static readonly CommandValidationResult SuccessResult = new CommandValidationResult( Array.Empty<ActivityMonitorSimpleCollector.Entry>(), true );
 
         /// <summary>
         /// A successfully completed validation task: no error, no warning.
         /// </summary>
-        public static readonly Task<ValidationResult> SuccessResultTask = Task.FromResult( SuccessResult );
+        public static readonly Task<CommandValidationResult> SuccessResultTask = Task.FromResult( SuccessResult );
 
-        ValidationResult( IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries, bool success )
+        CommandValidationResult( IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries, bool success )
         {
             AllEntries = entries;
             Success = success;
         }
 
         /// <summary>
-        /// Initializes a new <see cref="ValidationResult"/>.
+        /// Initializes a new <see cref="CommandValidationResult"/>.
         /// </summary>
         /// <param name="entries">The logged entries.</param>
-        public ValidationResult( IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries )
+        public CommandValidationResult( IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries )
                   : this( entries, entries.All( e => e.MaskedLevel < LogLevel.Error ) )
         {
         }

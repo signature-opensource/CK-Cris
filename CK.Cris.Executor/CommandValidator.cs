@@ -30,7 +30,7 @@ namespace CK.Cris
         /// </summary>
         /// <param name="v">The validation result.</param>
         /// <returns>Null or a simple validation result.</returns>
-        public ICrisResultError? CreateSimpleErrorResult( ValidationResult v )
+        public ICrisResultError? CreateSimpleErrorResult( CommandValidationResult v )
         {
             if( v.Success ) return null;
             var r = _simpleErrorResultFactory.Create();
@@ -49,7 +49,7 @@ namespace CK.Cris
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to validate.</param>
         /// <returns>The validation result.</returns>
-        public abstract Task<ValidationResult> ValidateCommandAsync( IActivityMonitor validationMonitor,
+        public abstract Task<CommandValidationResult> ValidateCommandAsync( IActivityMonitor validationMonitor,
                                                                      IServiceProvider services,
                                                                      ICommand command );
     }

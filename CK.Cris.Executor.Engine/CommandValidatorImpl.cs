@@ -24,14 +24,14 @@ namespace CK.Setup.Cris
             {
                 mValidate.Definition.Modifiers &= ~Modifiers.Async;
                 mValidate.GeneratedByComment().NewLine()
-                         .Append( "return CK.Cris.ValidationResult.SuccessResultTask;" );
+                         .Append( "return CK.Cris.CommandValidationResult.SuccessResultTask;" );
             }
             else
             {
-                const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.ICommand, Task<CK.Cris.ValidationResult>>";
+                const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.ICommand, Task<CK.Cris.CommandValidationResult>>";
 
                 scope.GeneratedByComment().NewLine()
-                     .Append( "static readonly " ).Append( funcSignature ).Append( " Success = ( m, s, c ) => CK.Cris.ValidationResult.SuccessResultTask;" )
+                     .Append( "static readonly " ).Append( funcSignature ).Append( " Success = ( m, s, c ) => CK.Cris.CommandValidationResult.SuccessResultTask;" )
                      .NewLine();
 
                 foreach( var e in registry.Commands )
@@ -39,7 +39,7 @@ namespace CK.Setup.Cris
                     if( e.Validators.Count > 0 )
                     {
                         bool requiresAsync = false;
-                        var f = scope.CreateFunction( "static Task<CK.Cris.ValidationResult> V" + e.CommandIdx + "( IActivityMonitor m, IServiceProvider s, CK.Cris.ICommand c )" );
+                        var f = scope.CreateFunction( "static Task<CK.Cris.CommandValidationResult> V" + e.CommandIdx + "( IActivityMonitor m, IServiceProvider s, CK.Cris.ICommand c )" );
 
                         f.GeneratedByComment().NewLine();
                         var cachedServices = new VariableCachedServices( f.CreatePart() );
@@ -86,10 +86,10 @@ namespace CK.Setup.Cris
                             f.CloseBlock();
                         }
                         if( requiresAsync ) f.Definition.Modifiers |= Modifiers.Async;
-                        f.Append( "if( entries.Count == 0 ) return CK.Cris.ValidationResult.SuccessResult" ).Append( requiresAsync ? null : "Task" ).Append( ";" ).NewLine();
+                        f.Append( "if( entries.Count == 0 ) return CK.Cris.CommandValidationResult.SuccessResult" ).Append( requiresAsync ? null : "Task" ).Append( ";" ).NewLine();
                         f.Append( "return " ).Append( requiresAsync
-                                                        ? "new CK.Cris.ValidationResult( entries );"
-                                                        : "Task.FromResult( new CK.Cris.ValidationResult( entries ) );" )
+                                                        ? "new CK.Cris.CommandValidationResult( entries );"
+                                                        : "Task.FromResult( new CK.Cris.CommandValidationResult( entries ) );" )
                          .CloseBlock();
                     }
                 }
