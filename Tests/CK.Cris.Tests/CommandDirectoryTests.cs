@@ -30,18 +30,18 @@ namespace CK.Cris.Tests
             var poco = services.GetRequiredService<PocoDirectory>();
 
             var d = services.GetRequiredService<CommandDirectory>();
-            d.Commands.Should().HaveCount( 1 );
-            var m = d.Commands[0];
+            d.CrisPocoModels.Should().HaveCount( 1 );
+            var m = d.CrisPocoModels[0];
             m.Handler.Should().BeNull();
-            m.CommandIdx.Should().Be( 0 );
-            m.CommandName.Should().Be( "Test" );
+            m.CrisPocoIndex.Should().Be( 0 );
+            m.PocoName.Should().Be( "Test" );
             m.PreviousNames.Should().BeEquivalentTo( "PreviousTest1", "PreviousTest2" );
             m.Should().BeSameAs( poco.Find( "PreviousTest1" ) ).And.BeSameAs( poco.Find( "PreviousTest2" ) );
             var cmd = m.Create();
-            cmd.CommandModel.Should().BeSameAs( m );
+            cmd.CrisPocoModel.Should().BeSameAs( m );
         }
 
-        public interface ICmdTestSpec : ICmdTest, ICrisEvent
+        public interface ICmdTestSpec : ICmdTest, IEvent
         {
         }
 
@@ -56,7 +56,7 @@ namespace CK.Cris.Tests
             }
         }
 
-        public interface ICmdNoWay : ICrisEvent, ICommand<int>
+        public interface ICmdNoWay : IEvent, ICommand<int>
         {
         }
 

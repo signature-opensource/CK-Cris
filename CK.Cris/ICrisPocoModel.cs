@@ -8,41 +8,41 @@ namespace CK.Cris
     /// <summary>
     /// Describes command properties and its unique and zero-based index in a context.
     /// </summary>
-    public interface ICommandModel
+    public interface ICrisPocoModel
     {
         /// <summary>
-        /// Gets the command type: this is the final type that implements the <see cref="IPoco"/> command.
+        /// Gets the command type: this is the final type that implements the <see cref="ICrisPoco"/> object.
         /// </summary>
         Type CommandType { get; }
 
         /// <summary>
-        /// Gets whether this command is a <see cref="ICrisEvent"/>.
+        /// Gets whether this is a <see cref="IEvent"/>.
         /// </summary>
         bool IsEvent { get; }
 
         /// <summary>
-        /// Creates a new <see cref="ICommand"/>, <see cref="ICommand{TResult}"/> or <see cref="ICrisEvent"/> instance.
+        /// Creates a new <see cref="ICommand"/>, <see cref="ICommand{TResult}"/> or <see cref="IEvent"/> instance.
         /// </summary>
-        IAbstractCommand Create();
+        ICrisPoco Create();
 
         /// <summary>
-        /// Gets the command index.
+        /// Gets a unique index of this modeld in the <see cref="CommandDirectory.CrisPocoModels"/>.
         /// </summary>
-        int CommandIdx { get; }
+        int CrisPocoIndex { get; }
 
         /// <summary>
-        /// Gets the command name.
+        /// Gets the command or event name.
         /// </summary>
-        string CommandName { get; }
+        string PocoName { get; }
 
         /// <summary>
-        /// Gets the command previous names if any.
+        /// Gets the command or event previous names if any.
         /// </summary>
         IReadOnlyList<string> PreviousNames { get; }
 
         /// <summary>
         /// Gets the final (most specialized) result type.
-        /// This is typeof(void) when no <see cref="ICommand{TResult}"/> exists.
+        /// This is typeof(void) for <see cref="ICommand"/> or <see cref="IEvent"/>.
         /// </summary>
         Type ResultType { get; }
 
@@ -71,7 +71,7 @@ namespace CK.Cris
 
             /// <summary>
             /// Gets whether this handler requires the <see cref="ICrisEventSender"/> in its <see cref="Parameters"/>:
-            /// it can emit <see cref="ICrisEvent"/>.
+            /// it can emit <see cref="IEvent"/>.
             /// </summary>
             bool CanEmitEvents { get; }
 

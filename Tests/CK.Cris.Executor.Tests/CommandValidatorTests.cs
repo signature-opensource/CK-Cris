@@ -28,7 +28,7 @@ namespace CK.Cris.Executor.Tests
             using var services = TestHelper.CreateAutomaticServices( c ).Services;
 
             var directory = services.GetRequiredService<CommandDirectory>();
-            var cmd = directory.Commands[0].Create();
+            var cmd = directory.CrisPocoModels[0].Create();
 
             var validator = services.GetRequiredService<CommandValidator>();
             var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
@@ -54,7 +54,7 @@ namespace CK.Cris.Executor.Tests
             using var services = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
 
             var directory = services.GetRequiredService<CommandDirectory>();
-            var cmd = directory.Commands[0].Create();
+            var cmd = directory.CrisPocoModels[0].Create();
 
             var validator = services.GetRequiredService<CommandValidator>();
             await validator.Awaiting( sut => sut.ValidateCommandAsync( TestHelper.Monitor, services, cmd ) )

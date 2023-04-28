@@ -21,8 +21,8 @@ namespace CK.Cris
         }
 
         /// <summary>
-        /// Gets or sets whether the <see cref="IAbstractCommand"/> that the method accepts doesn't
-        /// need to be a unified interface of all the interfaces that define the <see cref="IAbstractCommand"/>.
+        /// Gets or sets whether the <see cref="ICrisPoco"/> that the method accepts doesn't
+        /// need to be a unified interface of all the interfaces that define the <see cref="ICrisPoco"/>.
         /// Defaults to false: the "closed interface requirement" is the rule!
         /// </summary>
         public bool AllowUnclosedCommand { get; set; }

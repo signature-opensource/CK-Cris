@@ -8,20 +8,20 @@ using System.Windows.Input;
 namespace CK.Cris
 {
     /// <summary>
-    /// Command directory that contains all the available command in the context.
+    /// Command directory that contains all the available events and commands in the context.
     /// </summary>
     [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.CommandDirectoryImpl, CK.Cris.Engine" )]
     public abstract class CommandDirectory : ISingletonAutoService
     {
-        protected CommandDirectory( IReadOnlyList<ICommandModel> commands )
+        protected CommandDirectory( IReadOnlyList<ICrisPocoModel> models )
         {
-            Commands = commands;
+            CrisPocoModels = models;
         }
 
         /// <summary>
-        /// Gets all the commands indexed by their <see cref="ICommandModel.CommandIdx"/>.
+        /// Gets all the commands indexed by their <see cref="ICrisPocoModel.CrisPocoIndex"/>.
         /// </summary>
-        public IReadOnlyList<ICommandModel> Commands { get; }
+        public IReadOnlyList<ICrisPocoModel> CrisPocoModels { get; }
 
     }
 }

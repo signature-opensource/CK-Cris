@@ -17,13 +17,13 @@ namespace CK.Setup.Cris
             if( registry == null ) return CSCodeGenerationResult.Failed;
 
             Debug.Assert( nameof( RawCommandExecutor.RawExecuteCommandAsync ) == "RawExecuteCommandAsync" );
-            Debug.Assert( classType.GetMethod( nameof( RawCommandExecutor.RawExecuteCommandAsync ), new[] { typeof( IServiceProvider ), typeof( IAbstractCommand ) } ) != null );
+            Debug.Assert( classType.GetMethod( nameof( RawCommandExecutor.RawExecuteCommandAsync ), new[] { typeof( IServiceProvider ), typeof( ICrisPoco ) } ) != null );
 
-            var mExecute = scope.CreateFunction( "public override Task<object> RawExecuteCommandAsync( IServiceProvider s, CK.Cris.IAbstractCommand c )" );
+            var mExecute = scope.CreateFunction( "public override Task<object> RawExecuteCommandAsync( IServiceProvider s, CK.Cris.ICrisPoco c )" );
             mExecute.GeneratedByComment().NewLine()
-                    .Append( "return _handlers[c.CommandModel.CommandIdx]( s, c );" );
+                    .Append( "return _handlers[c.CrisPocoModel.CommandIdx]( s, c );" );
 
-            const string funcSignature = "Func<IServiceProvider, CK.Cris.IAbstractCommand, Task<object>>";
+            const string funcSignature = "Func<IServiceProvider, CK.Cris.ICrisPoco, Task<object>>";
             foreach( var e in registry.Commands )
             {
                 var h = e.Handler;
@@ -37,7 +37,7 @@ namespace CK.Setup.Cris
 
                     scope.Append( "static " );
                     if( isOverallAsync ) scope.Append( "async " );
-                    scope.Append( "Task<object> H" ).Append( e.CommandIdx ).Append( "( IServiceProvider s, CK.Cris.IAbstractCommand c )" ).NewLine()
+                    scope.Append( "Task<object> H" ).Append( e.CommandIdx ).Append( "( IServiceProvider s, CK.Cris.ICrisPoco c )" ).NewLine()
                          .Append( "{" ).NewLine()
                          .GeneratedByComment().NewLine();
 

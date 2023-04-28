@@ -30,7 +30,7 @@ namespace CK.Setup.Cris
             if( _registry == null ) return CSCodeGenerationResult.Failed;
 
             scope.Workspace.Global.FindOrCreateNamespace( "CK" ).Append( @"
-sealed class CRISCommandHandlerDesc : CK.Cris.ICommandModel.IHandler
+sealed class CRISCommandHandlerDesc : CK.Cris.ICrisPocoModel.IHandler
 {
     // Waiting for ""StObj goes static"": the static fields of
     // GeneratedStObjContextRoot will expose the
@@ -85,9 +85,9 @@ sealed class CRISCommandHandlerDesc : CK.Cris.ICommandModel.IHandler
             scope.GeneratedByComment().NewLine()
                  .Append( "public " ).Append( scope.Name ).Append( "() : base( CreateCommands() ) {}" ).NewLine();
 
-            scope.Append( "static IReadOnlyList<CK.Cris.ICommandModel> CreateCommands()" ).NewLine()
+            scope.Append( "static IReadOnlyList<CK.Cris.ICrisPocoModel> CreateCommands()" ).NewLine()
                  .OpenBlock()
-                 .Append( "var list = new CK.Cris.ICommandModel[]" ).NewLine()
+                 .Append( "var list = new CK.Cris.ICrisPocoModel[]" ).NewLine()
                  .Append( "{" ).NewLine();
             foreach( var e in _registry.Commands )
             {
@@ -104,17 +104,17 @@ sealed class CRISCommandHandlerDesc : CK.Cris.ICommandModel.IHandler
                     }
                 }
                 var f = c.Assembly.FindOrCreateAutoImplementedClass( monitor, e.Command.PocoFactoryClass );
-                f.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICommandModel" ) );
+                f.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICrisPocoModel" ) );
                 f.Append( "public Type CommandType => PocoClassType;" ).NewLine()
                  .Append( "public int CommandIdx => " ).Append( e.CommandIdx ).Append( ";" ).NewLine()
                  .Append( "public string CommandName => Name;" ).NewLine()
                  .Append( "public bool IsEvent => " ).Append( e.IsEvent ).Append( ";" ).NewLine()
                  .Append( "public Type ResultType => " ).AppendTypeOf( e.ResultType ).Append( ";" ).NewLine()
-                 .Append( "CK.Cris.IAbstractCommand CK.Cris.ICommandModel.Create() => (CK.Cris.IAbstractCommand)Create();" ).NewLine();
+                 .Append( "CK.Cris.ICrisPoco CK.Cris.ICrisPocoModel.Create() => (CK.Cris.ICrisPoco)Create();" ).NewLine();
 
                 if( e.Handler == null )
                 {
-                    f.Append( "public CK.Cris.ICommandModel.IHandler? Handler => null;" );
+                    f.Append( "public CK.Cris.ICrisPocoModel.IHandler? Handler => null;" );
                 }
                 else
                 {
@@ -125,19 +125,19 @@ sealed class CRISCommandHandlerDesc : CK.Cris.ICommandModel.IHandler
                         .AppendArray( e.Handler.Owner.MultipleMappings ).Append( ", " ).NewLine()
                         .AppendArray( e.Handler.Owner.UniqueMappings ).Append( " );" ).NewLine();
 
-                    f.Append( "static readonly CK.Cris.ICommandModel.IHandler _cmdHandlerDesc = new CK.CRISCommandHandlerDesc(" ).NewLine()
+                    f.Append( "static readonly CK.Cris.ICrisPocoModel.IHandler _cmdHandlerDesc = new CK.CRISCommandHandlerDesc(" ).NewLine()
                      .Append( "_tempFinalClass," ).NewLine()
                      .AppendSourceString( e.Handler.Method.Name ).Append( "," ).NewLine()
                      .AppendArray( e.Handler.Parameters.Select( p => p.ParameterType ) ).Append( "," )
                      .Append( e.Handler.Parameters.Any( p => p.ParameterType == typeof( ICrisEventSender ) ) ).Append( ");" ).NewLine();
 
-                    f.Append( "public CK.Cris.ICommandModel.IHandler? Handler => _cmdHandlerDesc;" );
+                    f.Append( "public CK.Cris.ICrisPocoModel.IHandler? Handler => _cmdHandlerDesc;" );
                 }
                 f.NewLine();
 
-                // The CommandModel is the _factory field.
+                // The CrisPocoModel is the _factory field.
                 var p = c.Assembly.FindOrCreateAutoImplementedClass( monitor, e.Command.PocoClass );
-                p.Append( "public CK.Cris.ICommandModel CommandModel => _factory;" ).NewLine();
+                p.Append( "public CK.Cris.ICrisPocoModel CrisPocoModel => _factory;" ).NewLine();
 
                 scope.Append( p.FullName ).Append( "._factory,").NewLine();
             }

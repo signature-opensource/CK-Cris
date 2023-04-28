@@ -69,7 +69,7 @@ namespace CK.Setup
         /// <list type="bullet">
         /// <item>
         /// We add the commandModel signature to all the IPoco interfaces and its implementation
-        /// on the Poco implementation. It is the CommandModel&lt;TResult&gt; that carries the
+        /// on the Poco implementation. It is the CrisPocoModel&lt;TResult&gt; that carries the
         /// command result type (if any) so that type inference can be used to type the return
         /// of the send method.
         /// </item>
@@ -86,7 +86,7 @@ namespace CK.Setup
         {
             Debug.Assert( _registry != null, "CS code generation ran. Implement (CSharp code) has necessarily been successfully called." );
 
-            if( typeof(IAbstractCommand).IsAssignableFrom( e.TypeFile.Type ) )
+            if( typeof(ICrisPoco).IsAssignableFrom( e.TypeFile.Type ) )
             {
                 var cmd = _registry.Find( e.PocoClass.PocoRootInfo );
                 // A IPoco that supports ICommand should be a registered command.
@@ -106,11 +106,11 @@ namespace CK.Setup
                 EnsureCrisModel( e );
 
                 bool isVoidReturn = cmd.ResultType == typeof( void );
-                bool isFireAndForget = isVoidReturn && typeof( ICrisEvent ).IsAssignableFrom( e.TypeFile.Type );
+                bool isFireAndForget = isVoidReturn && typeof( IEvent ).IsAssignableFrom( e.TypeFile.Type );
 
                 // Compute the (potentially) type name only once by caching the signature.
                 var b = e.PocoClass.Part;
-                string? signature = AppendCommandModelSignature( b, cmd, e );
+                string? signature = AppendCrisPocoModelSignature( b, cmd, e );
                 if( signature == null )
                 {
                     e.SetError();
@@ -176,9 +176,9 @@ namespace CK.Setup
             }
         }
 
-        static string? AppendCommandModelSignature( ITSCodePart code, CommandRegistry.Entry cmd, PocoGeneratingEventArgs e )
+        static string? AppendCrisPocoModelSignature( ITSCodePart code, CommandRegistry.Entry cmd, PocoGeneratingEventArgs e )
         {
-            var signature = "readonly " + (e.TypeFile.Context.Root.PascalCase ? "C" : "c") + "ommandModel: CommandModel<";
+            var signature = "readonly " + (e.TypeFile.Context.Root.PascalCase ? "C" : "c") + "risPocoModel: CrisPocoModel<";
             code.Append( signature );
             var typeName = code.AppendAndGetComplexTypeName( e.Monitor, e.TypeFile.Context, cmd.ResultNullableTypeTree );
             if( typeName == null ) return null;
@@ -195,7 +195,7 @@ namespace CK.Setup
             {
                 InitializeCrisModelFile( e.Monitor, fModel );
             }
-            e.TypeFile.File.Imports.EnsureImport( fModel, "CommandModel", "ICrisEndpoint" );
+            e.TypeFile.File.Imports.EnsureImport( fModel, "CrisPocoModel", "ICrisEndpoint" );
         }
 
         static void InitializeCrisModelFile( IActivityMonitor monitor, TypeScriptFile<TypeScriptContextRoot> fModel )
@@ -220,14 +220,14 @@ export type ICommandResult<T> = {
     correlationId?: string
 };
 
-export interface CommandModel<TResult> {
+export interface CrisPocoModel<TResult> {
     readonly commandName: string;
     readonly isFireAndForget: boolean;
     applyAmbientValues: (values: { [index: string]: any }, force?: boolean ) => void;
 }
 
 export interface Command<TResult = void> {
-  commandModel: CommandModel<TResult>;
+  commandModel: CrisPocoModel<TResult>;
 }
 
 export interface ICrisEndpoint {

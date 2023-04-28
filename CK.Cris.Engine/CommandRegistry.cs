@@ -191,7 +191,7 @@ namespace CK.Setup.Cris
             bool success = true;
             var index = new Dictionary<IPocoRootInfo, Entry>();
             var commands = new List<Entry>();
-            if( pocoResult.OtherInterfaces.TryGetValue( typeof( IAbstractCommand ), out IReadOnlyList<IPocoRootInfo>? commandPocos ) )
+            if( pocoResult.OtherInterfaces.TryGetValue( typeof( ICrisPoco ), out IReadOnlyList<IPocoRootInfo>? commandPocos ) )
             {
                 foreach( var poco in commandPocos )
                 {
@@ -275,7 +275,7 @@ namespace CK.Setup.Cris
             var parameters = m.GetParameters();
             var candidates = parameters.Select( p => (p, PocoResult.AllInterfaces.GetValueOrDefault( p.ParameterType )) )
                                                                     .Where( x => x.Item2 != null
-                                                                                && typeof( IAbstractCommand ).IsAssignableFrom( x.Item2.PocoInterface ) )
+                                                                                && typeof( ICrisPoco ).IsAssignableFrom( x.Item2.PocoInterface ) )
                                                                     .ToArray();
             if( candidates.Length > 1 )
             {

@@ -238,7 +238,7 @@ namespace CK.Cris.Executor.Tests
                 using( var scope = appServices.CreateScope() )
                 {
                     var directory = scope.ServiceProvider.GetRequiredService<CommandDirectory>();
-                    directory.Commands[0].Handler.Should().BeNull();
+                    directory.CrisPocoModels[0].Handler.Should().BeNull();
                 }
             }
         }

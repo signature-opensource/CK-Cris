@@ -27,7 +27,7 @@ namespace CK.Cris.Tests
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
 
             var d = s.GetRequiredService<CommandDirectory>();
-            d.Commands[0].ResultType.Should().Be( typeof( int ) );
+            d.CrisPocoModels[0].ResultType.Should().Be( typeof( int ) );
         }
 
         public interface ICIntButObject : ICInt, ICommand<object>
@@ -40,7 +40,7 @@ namespace CK.Cris.Tests
             var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ), typeof( ICIntButObject ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CommandDirectory>();
-            var cmdModel = d.Commands[0];
+            var cmdModel = d.CrisPocoModels[0];
             cmdModel.CommandType.Should().BeAssignableTo( typeof( ICIntButObject ) );
             cmdModel.ResultType.Should().Be( typeof( int ) );
         }
@@ -64,7 +64,7 @@ namespace CK.Cris.Tests
                 var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ), typeof( ICommandWithMorePocoResult ), typeof( IMoreResult ) );
                 using var s = TestHelper.CreateAutomaticServices( c ).Services;
                 var d = s.GetRequiredService<CommandDirectory>();
-                var cmdModel = d.Commands[0];
+                var cmdModel = d.CrisPocoModels[0];
                 cmdModel.CommandType.Should().BeAssignableTo( typeof( ICommandWithMorePocoResult ) );
                 cmdModel.ResultType.Should().BeAssignableTo( typeof( IMoreResult ) );
             }
@@ -72,7 +72,7 @@ namespace CK.Cris.Tests
                 var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ), typeof( ICommandWithAnotherPocoResult ), typeof( IAnotherResult ) );
                 using var s = TestHelper.CreateAutomaticServices( c ).Services;
                 var d = s.GetRequiredService<CommandDirectory>();
-                var cmdModel = d.Commands[0];
+                var cmdModel = d.CrisPocoModels[0];
                 cmdModel.CommandType.Should().BeAssignableTo( typeof( ICommandWithAnotherPocoResult ) );
                 cmdModel.ResultType.Should().BeAssignableTo( typeof( IAnotherResult ) );
             }
@@ -86,7 +86,7 @@ namespace CK.Cris.Tests
                 var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ), typeof( ICommandUnifiedWithTheResult ), typeof( IUnifiedResult ) );
                 using var s = TestHelper.CreateAutomaticServices( c ).Services;
                 var d = s.GetRequiredService<CommandDirectory>();
-                var cmdModel = d.Commands[0];
+                var cmdModel = d.CrisPocoModels[0];
                 cmdModel.CommandType.Should().BeAssignableTo( typeof( ICommandUnifiedWithTheResult ) );
                 cmdModel.ResultType.Should().BeAssignableTo( typeof( IUnifiedResult ) );
             }

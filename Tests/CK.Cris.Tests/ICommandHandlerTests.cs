@@ -57,7 +57,7 @@ namespace CK.Cris.Tests
             var d = s.GetRequiredService<CommandDirectory>();
 
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
-            var handler = cmd.CommandModel.Handler;
+            var handler = cmd.CrisPocoModel.Handler;
             Debug.Assert( handler != null );
             handler.Type.FinalType.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerOfBase ) );
         }
@@ -82,7 +82,7 @@ namespace CK.Cris.Tests
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
             cmd.Should().BeAssignableTo<ICommandWithMorePocoResult>();
 
-            var handler = cmd.CommandModel.Handler;
+            var handler = cmd.CrisPocoModel.Handler;
             Debug.Assert( handler != null );
             handler.Type.FinalType.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerWithMore ) );
         }
@@ -154,7 +154,7 @@ namespace CK.Cris.Tests
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
             cmd.Should().BeAssignableTo<ICommandUnifiedWithTheResult>();
 
-            var handler = cmd.CommandModel.Handler;
+            var handler = cmd.CrisPocoModel.Handler;
             Debug.Assert( handler != null );
             handler.Type.FinalType.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerUnified ) );
         }
@@ -189,7 +189,7 @@ namespace CK.Cris.Tests
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
             cmd.Should().BeAssignableTo<ICommandUnifiedWithTheResult>();
 
-            var model = cmd.CommandModel;
+            var model = cmd.CrisPocoModel;
             Debug.Assert( model.Handler != null );
 
             var handlerService = s.GetRequiredService<ICommandHandler<ICommandWithPocoResult>>();
@@ -221,8 +221,8 @@ namespace CK.Cris.Tests
                                                      typeof( BaseClassWithHandler ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CommandDirectory>();
-            d.Commands.Should().HaveCount( 1 );
-            d.Commands[0].Handler.Should().BeNull();
+            d.CrisPocoModels.Should().HaveCount( 1 );
+            d.CrisPocoModels[0].Handler.Should().BeNull();
         }
 
         public abstract class SpecializedBaseClassService : BaseClassWithHandler, IAutoService
@@ -237,8 +237,8 @@ namespace CK.Cris.Tests
                                                      typeof( SpecializedBaseClassService ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CommandDirectory>();
-            d.Commands.Should().HaveCount( 1 );
-            var handler = d.Commands[0].Handler;
+            d.CrisPocoModels.Should().HaveCount( 1 );
+            var handler = d.CrisPocoModels[0].Handler;
             Debug.Assert( handler != null );
             handler.Type.ClassType.Should().Be( typeof( SpecializedBaseClassService ) );
             handler.Type.FinalType.FullName.Should().Be( "CK.Cris.Tests.ICommandHandlerTests_SpecializedBaseClassService_CK" );

@@ -45,7 +45,7 @@ namespace CK.Setup.Cris
             public string CommandName => Command.Name;
 
             /// <summary>
-            /// Gets whether this command is a <see cref="ICrisEvent"/>.
+            /// Gets whether this command is a <see cref="IEvent"/>.
             /// </summary>
             public bool IsEvent { get; }
 
@@ -62,7 +62,7 @@ namespace CK.Setup.Cris
 
             /// <summary>
             /// Gets the final (most specialized) result type.
-            /// This is <c>typeof(void)</c> when the command is a <see cref="ICommand"/> or a <see cref="ICrisEvent"/>.
+            /// This is <c>typeof(void)</c> when the command is a <see cref="ICommand"/> or a <see cref="IEvent"/>.
             /// </summary>
             /// <remarks>
             /// This can be the special <c>typeof(NoWaitResult)</c> if the command is a
@@ -209,7 +209,7 @@ namespace CK.Setup.Cris
                 foreach( var i in command.OtherInterfaces )
                 {
                     if( i == typeof( ICommand ) ) isCommand = true;
-                    else if( i == typeof( ICrisEvent ) ) isEvent = true;
+                    else if( i == typeof( IEvent ) ) isEvent = true;
                     else if( i.IsGenericType )
                     {
                         var r = ExtractTResult( i );

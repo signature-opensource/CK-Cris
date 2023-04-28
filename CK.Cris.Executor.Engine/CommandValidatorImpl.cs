@@ -16,7 +16,7 @@ namespace CK.Setup.Cris
             var registry = CommandRegistry.FindOrCreate( monitor, c );
             if( registry == null ) return CSCodeGenerationResult.Failed;
 
-            var validateMethod = classType.GetMethod( nameof( CommandValidator.ValidateCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( IAbstractCommand ) } );
+            var validateMethod = classType.GetMethod( nameof( CommandValidator.ValidateCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( ICrisPoco ) } );
             Debug.Assert( validateMethod != null, "This is the signature of the central method." );
 
             var mValidate = scope.CreateSealedOverride( validateMethod );
@@ -28,7 +28,7 @@ namespace CK.Setup.Cris
             }
             else
             {
-                const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.IAbstractCommand, Task<CK.Cris.CommandValidationResult>>";
+                const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.ICrisPoco, Task<CK.Cris.CommandValidationResult>>";
 
                 scope.GeneratedByComment().NewLine()
                      .Append( "static readonly " ).Append( funcSignature ).Append( " Success = ( m, s, c ) => CK.Cris.CommandValidationResult.SuccessResultTask;" )
@@ -39,7 +39,7 @@ namespace CK.Setup.Cris
                     if( e.Validators.Count > 0 )
                     {
                         bool requiresAsync = false;
-                        var f = scope.CreateFunction( "static Task<CK.Cris.CommandValidationResult> V" + e.CommandIdx + "( IActivityMonitor m, IServiceProvider s, CK.Cris.IAbstractCommand c )" );
+                        var f = scope.CreateFunction( "static Task<CK.Cris.CommandValidationResult> V" + e.CommandIdx + "( IActivityMonitor m, IServiceProvider s, CK.Cris.ICrisPoco c )" );
 
                         f.GeneratedByComment().NewLine();
                         var cachedServices = new VariableCachedServices( f.CreatePart() );
@@ -111,7 +111,7 @@ namespace CK.Setup.Cris
                      .NewLine();
 
                 mValidate.GeneratedByComment().NewLine()
-                         .Append( "return _validators[command.CommandModel.CommandIdx]( validationMonitor, services, command );" );
+                         .Append( "return _validators[command.CrisPocoModel.CommandIdx]( validationMonitor, services, command );" );
             }
             return CSCodeGenerationResult.Success;
         }
