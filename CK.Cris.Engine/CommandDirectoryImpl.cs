@@ -89,7 +89,7 @@ sealed class CRISCommandHandlerDesc : CK.Cris.ICrisPocoModel.IHandler
                  .OpenBlock()
                  .Append( "var list = new CK.Cris.ICrisPocoModel[]" ).NewLine()
                  .Append( "{" ).NewLine();
-            foreach( var e in _registry.Commands )
+            foreach( var e in _registry.CrisPocoModels )
             {
                 // Registering non Poco result type (Poco are all registered by JsonSerializationCodeGen).
                 if( json != null
@@ -99,15 +99,15 @@ sealed class CRISCommandHandlerDesc : CK.Cris.ICrisPocoModel.IHandler
                 {
                     if( !json.AllowType( e.ResultNullableTypeTree ) )
                     {
-                        monitor.Error( $"Failed to allow returned type '{e.ResultNullableTypeTree}' in JSON for command '{e.CommandName}'." );
+                        monitor.Error( $"Failed to allow returned type '{e.ResultNullableTypeTree}' in JSON for command '{e.PocoName}'." );
                         return CSCodeGenerationResult.Failed;
                     }
                 }
                 var f = c.Assembly.FindOrCreateAutoImplementedClass( monitor, e.Command.PocoFactoryClass );
                 f.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICrisPocoModel" ) );
                 f.Append( "public Type CommandType => PocoClassType;" ).NewLine()
-                 .Append( "public int CommandIdx => " ).Append( e.CommandIdx ).Append( ";" ).NewLine()
-                 .Append( "public string CommandName => Name;" ).NewLine()
+                 .Append( "public int CrisPocoIndex => " ).Append( e.CrisPocoIndex ).Append( ";" ).NewLine()
+                 .Append( "public string PocoName => Name;" ).NewLine()
                  .Append( "public bool IsEvent => " ).Append( e.IsEvent ).Append( ";" ).NewLine()
                  .Append( "public Type ResultType => " ).AppendTypeOf( e.ResultType ).Append( ";" ).NewLine()
                  .Append( "CK.Cris.ICrisPoco CK.Cris.ICrisPocoModel.Create() => (CK.Cris.ICrisPoco)Create();" ).NewLine();
@@ -155,24 +155,24 @@ sealed class CRISCommandHandlerDesc : CK.Cris.ICrisPocoModel.IHandler
             Debug.Assert( _registry != null );
 
             CSCodeGenerationResult r = CSCodeGenerationResult.Success;
-            var missingHandlers = _registry.Commands.Where( c => c.Handler == null );
+            var missingHandlers = _registry.CrisPocoModels.Where( c => c.Handler == null );
             foreach( var c in missingHandlers )
             {
                 if( c.ExpectedHandlerService != null )
                 {
                     if( c.Command.ClosureInterface != null )
                     {
-                        monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType.FullName}' must implement a command handler method for closed command {c.CommandName} of the closing type {c.Command.ClosureInterface.FullName}." );
+                        monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType.FullName}' must implement a command handler method for closed command {c.PocoName} of the closing type {c.Command.ClosureInterface.FullName}." );
                     }
                     else
                     {
-                        monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType.FullName}' must implement a command handler method for unclosed command {c.CommandName} of primary type {c.Command.PrimaryInterface.FullName}." );
+                        monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType.FullName}' must implement a command handler method for unclosed command {c.PocoName} of primary type {c.Command.PrimaryInterface.FullName}." );
                     }
                     r = CSCodeGenerationResult.Failed;
                 }
                 else
                 {
-                    monitor.Warn( $"Command {c.CommandName} for primary type {c.Command.PrimaryInterface.FullName} has no associated handler." );
+                    monitor.Warn( $"Command {c.PocoName} for primary type {c.Command.PrimaryInterface.FullName} has no associated handler." );
                 }
             }
             return r;

@@ -8,7 +8,7 @@ namespace CK.Cris
     /// This is not intended to be used directly: <see cref="ICommand"/> and <see cref="ICommand{TResult}"/> must
     /// be used.
     /// </summary>
-    [CKTypeDefiner]
+    [CKTypeSuperDefiner]
     public interface IAbstractCommand : ICrisPoco
     {
     }

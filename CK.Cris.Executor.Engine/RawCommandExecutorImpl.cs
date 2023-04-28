@@ -21,10 +21,10 @@ namespace CK.Setup.Cris
 
             var mExecute = scope.CreateFunction( "public override Task<object> RawExecuteCommandAsync( IServiceProvider s, CK.Cris.ICrisPoco c )" );
             mExecute.GeneratedByComment().NewLine()
-                    .Append( "return _handlers[c.CrisPocoModel.CommandIdx]( s, c );" );
+                    .Append( "return _handlers[c.CrisPocoModel.CrisPocoIndex]( s, c );" );
 
             const string funcSignature = "Func<IServiceProvider, CK.Cris.ICrisPoco, Task<object>>";
-            foreach( var e in registry.Commands )
+            foreach( var e in registry.CrisPocoModels )
             {
                 var h = e.Handler;
                 if( h != null )
@@ -37,7 +37,7 @@ namespace CK.Setup.Cris
 
                     scope.Append( "static " );
                     if( isOverallAsync ) scope.Append( "async " );
-                    scope.Append( "Task<object> H" ).Append( e.CommandIdx ).Append( "( IServiceProvider s, CK.Cris.ICrisPoco c )" ).NewLine()
+                    scope.Append( "Task<object> H" ).Append( e.CrisPocoIndex ).Append( "( IServiceProvider s, CK.Cris.ICrisPoco c )" ).NewLine()
                          .Append( "{" ).NewLine()
                          .GeneratedByComment().NewLine();
 
@@ -99,10 +99,10 @@ namespace CK.Setup.Cris
             }
 
             bool needNoHandler = false;
-            scope.Append( "readonly " ).Append( funcSignature ).Append( "[] _handlers = new " ).Append( funcSignature ).Append( "[" ).Append( registry.Commands.Count ).Append( "]{" );
-            foreach( var e in registry.Commands )
+            scope.Append( "readonly " ).Append( funcSignature ).Append( "[] _handlers = new " ).Append( funcSignature ).Append( "[" ).Append( registry.CrisPocoModels.Count ).Append( "]{" );
+            foreach( var e in registry.CrisPocoModels )
             {
-                if( e.CommandIdx != 0 ) scope.Append( ", " );
+                if( e.CrisPocoIndex != 0 ) scope.Append( ", " );
                 if( e.Handler == null )
                 {
                     scope.Append( "NoHandler" );
@@ -110,7 +110,7 @@ namespace CK.Setup.Cris
                 }
                 else
                 {
-                    scope.Append( "H" ).Append( e.CommandIdx );
+                    scope.Append( "H" ).Append( e.CrisPocoIndex );
                 }
             }
             scope.Append( "};" )

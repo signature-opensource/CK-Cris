@@ -37,9 +37,9 @@ namespace CK.Setup
             // The ICrisResult and the ICrisErrorResult must be in TypeScript.
             g.DeclareTSType( monitor, typeof(ICrisResult) );
             g.DeclareTSType( monitor, typeof(ICrisResultError) );
-            using( monitor.OpenInfo( $"Declaring TypeScript support for {_registry.Commands.Count} commands." ) )
+            using( monitor.OpenInfo( $"Declaring TypeScript support for {_registry.CrisPocoModels.Count} commands." ) )
             {
-                foreach( var cmd in _registry.Commands )
+                foreach( var cmd in _registry.CrisPocoModels )
                 {
                     // Declares the IPoco and the command result.
                     // The TSIPocoCodeGenerator (in CK.StObj.TypeScript.Engine) generates all the
@@ -118,7 +118,7 @@ namespace CK.Setup
                 }
                 b.Append( " = " )
                     .OpenBlock()
-                        .Append( "commandName: " ).AppendSourceString( cmd.CommandName ).Append( "," ).NewLine()
+                        .Append( "commandName: " ).AppendSourceString( cmd.PocoName ).Append( "," ).NewLine()
                         .Append( "isFireAndForget: " ).Append( isFireAndForget ).Append( "," ).NewLine()
                         .Append( "applyAmbientValues: (values: { [index: string]: any }, force?: boolean ) => " )
                         .OpenBlock()

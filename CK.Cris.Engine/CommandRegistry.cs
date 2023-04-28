@@ -30,9 +30,9 @@ namespace CK.Setup.Cris
         public IPocoRootInfo AmbientValues { get; }
 
         /// <summary>
-        /// Gets all the discovered commands ordered by their <see cref="Entry.CommandIdx"/>.
+        /// Gets all the discovered commands ordered by their <see cref="Entry.CrisPocoIndex"/>.
         /// </summary>
-        public IReadOnlyList<Entry> Commands { get; }
+        public IReadOnlyList<Entry> CrisPocoModels { get; }
 
         /// <summary>
         /// Finds a command from its Poco definition.
@@ -52,7 +52,7 @@ namespace CK.Setup.Cris
                 allowUnclosed = p.GetCustomAttributes().Any( a => a.GetType().FindInterfaces( (i,n) => i.Name == (string?)n, nameof(IAllowUnclosedCommandAttribute) ).Length > 0 );
                 if( !allowUnclosed )
                 {
-                    monitor.Info( $"Method {MethodName( m, parameters )} cannot handle '{e.CommandName}' command because type {p.ParameterType.Name} doesn't represent the whole command." );
+                    monitor.Info( $"Method {MethodName( m, parameters )} cannot handle '{e.PocoName}' command because type {p.ParameterType.Name} doesn't represent the whole command." );
                     return true;
                 }
             }
@@ -181,7 +181,7 @@ namespace CK.Setup.Cris
         CommandRegistry( IReadOnlyDictionary<IPocoRootInfo, Entry> index, IReadOnlyList<Entry> commands, IPocoSupportResult poco, IPocoRootInfo ambientValues )
         {
             _indexedCommands = index;
-            Commands = commands;
+            CrisPocoModels = commands;
             PocoResult = poco;
             AmbientValues = ambientValues;
         }

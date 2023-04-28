@@ -42,7 +42,7 @@ namespace CK.Setup.Cris
             /// <summary>
             /// Gets the name of this command (this is the <see cref="IPocoRootInfo.Name"/>).
             /// </summary>
-            public string CommandName => Command.Name;
+            public string PocoName => Command.Name;
 
             /// <summary>
             /// Gets whether this command is a <see cref="IEvent"/>.
@@ -55,10 +55,10 @@ namespace CK.Setup.Cris
             public IReadOnlyList<string> PreviousNames => Command.PreviousNames;
 
             /// <summary>
-            /// Gets a unique, zero-based index that identifies this command among all
-            /// the <see cref="CommandRegistry.Commands"/>.
+            /// Gets a unique, zero-based index that identifies this Cris object among all
+            /// the <see cref="CrisPocoModels"/>.
             /// </summary>
-            public int CommandIdx { get; }
+            public int CrisPocoIndex { get; }
 
             /// <summary>
             /// Gets the final (most specialized) result type.
@@ -160,10 +160,10 @@ namespace CK.Setup.Cris
             }
 
             /// <summary>
-            /// Overridden to return the <see cref="CommandName"/>.
+            /// Overridden to return the <see cref="PocoName"/>.
             /// </summary>
             /// <returns>The name of this command.</returns>
-            public override string ToString() => CommandName;
+            public override string ToString() => PocoName;
 
             Entry( IPocoRootInfo command,
                    int commandIdx,
@@ -176,7 +176,7 @@ namespace CK.Setup.Cris
                 _validators = new List<ValidatorMethod>();
                 _postHandlers = new List<PostHandlerMethod>();
                 IsEvent = isEvent;
-                CommandIdx = commandIdx;
+                CrisPocoIndex = commandIdx;
                 ResultNullableTypeTree = resultType;
                 PocoResultType = pocoResultType;
                 ExpectedHandlerService = handlerService;
@@ -282,7 +282,7 @@ namespace CK.Setup.Cris
                 // If the Command is closed, we silently skip handlers of unclosed commands: we expect the final handler of the closure interface.
                 if( !isClosedHandler && Command.ClosureInterface != null )
                 {
-                    monitor.Info( $"Method {MethodName( method, parameters )} cannot handle '{CommandName}' command because type {parameter.ParameterType.Name} doesn't represent the whole command." );
+                    monitor.Info( $"Method {MethodName( method, parameters )} cannot handle '{PocoName}' command because type {parameter.ParameterType.Name} doesn't represent the whole command." );
                     return true;
                 }
 
@@ -316,7 +316,7 @@ namespace CK.Setup.Cris
                     {
                         if( isClosedHandler )
                         {
-                            monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{Handler}' handle '{CommandName}' command." );
+                            monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{Handler}' handle '{PocoName}' command." );
                             return false;
                         }
                         WarnUnclosedHandlerSkipped( monitor, method, parameters );
@@ -334,7 +334,7 @@ namespace CK.Setup.Cris
                         // - c1 is assignable form c2 => c2
                         // - c2 is assignable from c1 => c1
                         // - c1 independent of c2 => Ambiguity.
-                        monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{Handler}' handle '{CommandName}' command." );
+                        monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{Handler}' handle '{PocoName}' command." );
                         return false;
                     }
                 }

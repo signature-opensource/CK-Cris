@@ -20,7 +20,7 @@ namespace CK.Setup.Cris
             Debug.Assert( validateMethod != null, "This is the signature of the central method." );
 
             var mValidate = scope.CreateSealedOverride( validateMethod );
-            if( !registry.Commands.Any( e => e.Validators.Count > 0 ) )
+            if( !registry.CrisPocoModels.Any( e => e.Validators.Count > 0 ) )
             {
                 mValidate.Definition.Modifiers &= ~Modifiers.Async;
                 mValidate.GeneratedByComment().NewLine()
@@ -34,12 +34,12 @@ namespace CK.Setup.Cris
                      .Append( "static readonly " ).Append( funcSignature ).Append( " Success = ( m, s, c ) => CK.Cris.CommandValidationResult.SuccessResultTask;" )
                      .NewLine();
 
-                foreach( var e in registry.Commands )
+                foreach( var e in registry.CrisPocoModels )
                 {
                     if( e.Validators.Count > 0 )
                     {
                         bool requiresAsync = false;
-                        var f = scope.CreateFunction( "static Task<CK.Cris.CommandValidationResult> V" + e.CommandIdx + "( IActivityMonitor m, IServiceProvider s, CK.Cris.ICrisPoco c )" );
+                        var f = scope.CreateFunction( "static Task<CK.Cris.CommandValidationResult> V" + e.CrisPocoIndex + "( IActivityMonitor m, IServiceProvider s, CK.Cris.ICrisPoco c )" );
 
                         f.GeneratedByComment().NewLine();
                         var cachedServices = new VariableCachedServices( f.CreatePart() );
@@ -94,24 +94,24 @@ namespace CK.Setup.Cris
                     }
                 }
 
-                scope.Append( "readonly " ).Append( funcSignature ).Append( "[] _validators = new " ).Append( funcSignature ).Append( "[" ).Append( registry.Commands.Count ).Append( "]{" );
-                foreach( var e in registry.Commands )
+                scope.Append( "readonly " ).Append( funcSignature ).Append( "[] _validators = new " ).Append( funcSignature ).Append( "[" ).Append( registry.CrisPocoModels.Count ).Append( "]{" );
+                foreach( var e in registry.CrisPocoModels )
                 {
-                    if( e.CommandIdx != 0 ) scope.Append( ", " );
+                    if( e.CrisPocoIndex != 0 ) scope.Append( ", " );
                     if( e.Validators.Count == 0 )
                     {
                         scope.Append( "Success" );
                     }
                     else
                     {
-                        scope.Append( "V" ).Append( e.CommandIdx );
+                        scope.Append( "V" ).Append( e.CrisPocoIndex );
                     }
                 }
                 scope.Append( "};" )
                      .NewLine();
 
                 mValidate.GeneratedByComment().NewLine()
-                         .Append( "return _validators[command.CrisPocoModel.CommandIdx]( validationMonitor, services, command );" );
+                         .Append( "return _validators[command.CrisPocoModel.CrisPocoIndex]( validationMonitor, services, command );" );
             }
             return CSCodeGenerationResult.Success;
         }
