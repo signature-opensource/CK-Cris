@@ -18,7 +18,7 @@ using static CK.Testing.StObjEngineTestHelper;
 namespace CK.Cris.Executor.Tests
 {
     [TestFixture]
-    public class RawCommandExecutorTests
+    public class RawCrisExecutorTests
     {
         /// <summary>
         /// Default common types registration for RawCommandExecutor.
@@ -28,7 +28,7 @@ namespace CK.Cris.Executor.Tests
         public static StObjCollector CreateRawExecutorCollector( params Type[] types )
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( RawCommandExecutor ),
+                typeof( RawCrisExecutor ),
                 typeof( CommandDirectory ),
                 typeof( ICrisResultError ),
                 typeof( AmbientValues.IAmbientValues ) );
@@ -90,12 +90,12 @@ namespace CK.Cris.Executor.Tests
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<RawCommandExecutor>();
+                var executor = services.GetRequiredService<RawCrisExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<ICmdTest>>().Create();
 
                 CmdSyncHandler.Called = false;
 
-                var result = await executor.RawExecuteCommandAsync( services, cmd );
+                var result = await executor.RawExecuteAsync( services, cmd );
                 result.Should().BeNull();
                 CmdSyncHandler.Called.Should().BeTrue();
             }
@@ -157,12 +157,12 @@ namespace CK.Cris.Executor.Tests
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<RawCommandExecutor>();
+                var executor = services.GetRequiredService<RawCrisExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<ICmdIntTest>>().Create();
 
                 CmdIntSyncHandler.Called = false;
 
-                var result = await executor.RawExecuteCommandAsync( services, cmd );
+                var result = await executor.RawExecuteAsync( services, cmd );
                 result.Should().Be( 3712 );
                 CmdIntSyncHandler.Called.Should().BeTrue();
             }
@@ -270,12 +270,12 @@ namespace CK.Cris.Executor.Tests
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<RawCommandExecutor>();
+                var executor = services.GetRequiredService<RawCrisExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<ICmdTest>>().Create();
 
                 CommandHandlerImpl.Called = false;
 
-                var result = await executor.RawExecuteCommandAsync( services, cmd );
+                var result = await executor.RawExecuteAsync( services, cmd );
                 result.Should().BeNull();
 
                 CommandHandlerImpl.Called.Should().BeTrue();
@@ -306,12 +306,12 @@ namespace CK.Cris.Executor.Tests
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<RawCommandExecutor>();
+                var executor = services.GetRequiredService<RawCrisExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<ICmdTest>>().Create();
 
                 CommandHandlerExplicitImpl.Called = false;
 
-                var result = await executor.RawExecuteCommandAsync( services, cmd );
+                var result = await executor.RawExecuteAsync( services, cmd );
                 result.Should().BeNull();
 
                 CommandHandlerExplicitImpl.Called.Should().BeTrue();
@@ -344,10 +344,10 @@ namespace CK.Cris.Executor.Tests
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<RawCommandExecutor>();
+                var executor = services.GetRequiredService<RawCrisExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<IIntResultCommand>>().Create();
 
-                var result = await executor.RawExecuteCommandAsync( services, cmd );
+                var result = await executor.RawExecuteAsync( services, cmd );
                 result.Should().Be( cmd.GetHashCode() );
             }
         }

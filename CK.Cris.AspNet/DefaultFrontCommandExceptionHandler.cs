@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 namespace CK.Cris.AspNet
 {
     /// <summary>
-    /// Default <see cref="RawCommandExecutor"/> error handler.
+    /// Default <see cref="RawCrisExecutor"/> error handler.
     /// This is a template method that can be specialized but can also be totally replaced
     /// (see <see cref="ReplaceAutoServiceAttribute"/>).
     /// </summary>

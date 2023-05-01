@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace CK.Cris.AspNet
 {
     /// <summary>
-    /// Handles any exception that occurred during the handling of a command by the <see cref="RawCommandExecutor"/>.
+    /// Handles any exception that occurred during the handling of a command by the <see cref="RawCrisExecutor"/>.
     /// Default implementation is provided by <see cref="DefaultFrontCommandExceptionHandler"/>.
     /// </summary>
     public interface IFrontCommandExceptionHandler : IAutoService

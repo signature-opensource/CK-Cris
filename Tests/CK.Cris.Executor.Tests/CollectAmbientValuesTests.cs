@@ -67,7 +67,7 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task CommandPostHandler_fills_the_resulting_ambient_values_Async()
         {
-            var c = RawCommandExecutorTests.CreateRawExecutorCollector( typeof( IAmbientValuesCollectCommand ),
+            var c = RawCrisExecutorTests.CreateRawExecutorCollector( typeof( IAmbientValuesCollectCommand ),
                                                                            typeof( AmbientValuesService ),
                                                                            typeof( AuthService ),
                                                                            typeof( IAuthAmbientValues ),
@@ -87,10 +87,10 @@ namespace CK.Cris.Executor.Tests
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<RawCommandExecutor>();
+                var executor = services.GetRequiredService<RawCrisExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<IAmbientValuesCollectCommand>>().Create();
 
-                var r = await executor.RawExecuteCommandAsync( services, cmd );
+                var r = await executor.RawExecuteAsync( services, cmd );
                 Debug.Assert( r != null );
                 var auth = (IAuthAmbientValues)r;
                 auth.ActorId.Should().Be( 3712 );

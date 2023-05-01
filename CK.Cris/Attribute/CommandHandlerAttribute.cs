@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 namespace CK.Cris
 {
     /// <summary>
-    /// Decorates a method that is a command handler.
+    /// Decorates a method that is a <see cref="IAbstractCommand"/> handler.
     /// </summary>
     [AttributeUsage( AttributeTargets.Method, AllowMultiple = false, Inherited = false )]
     public class CommandHandlerAttribute : ContextBoundDelegationAttribute

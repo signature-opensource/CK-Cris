@@ -17,15 +17,15 @@ namespace CK.Cris.AspNet
 {
     public class CrisAspNetService : ISingletonAutoService
     {
-        readonly CommandValidator _validator;
-        readonly RawCommandExecutor _executor;
+        readonly RawCrisValidator _validator;
+        readonly RawCrisExecutor _executor;
         readonly PocoDirectory _poco;
         readonly IPocoFactory<ICrisResult> _resultFactory;
         readonly IPocoFactory<ICrisResultError> _errorResultFactory;
 
         public CrisAspNetService( PocoDirectory poco,
-                                  CommandValidator validator,
-                                  RawCommandExecutor executor,
+                                  RawCrisValidator validator,
+                                  RawCrisExecutor executor,
                                   IPocoFactory<ICrisResult> resultFactory,
                                   IPocoFactory<ICrisResultError> errorResultFactory )
         {
@@ -172,12 +172,12 @@ namespace CK.Cris.AspNet
         {
             try
             {
-                CrisValidationResult validation = await _validator.ValidateCommandAsync( monitor, requestServices, cmd );
+                CrisValidationResult validation = await _validator.ValidateCrisPocoAsync( monitor, requestServices, cmd );
                 if( !validation.Success )
                 {
                     ICrisResult result = _resultFactory.Create();
                     result.Code = VESACode.ValidationError;
-                    result.Result = _validator.CreateSimpleErrorResult( validation );
+                    result.Result = CreateErrorValidationResult( validation );
                     return result;
                 }
             }
@@ -186,6 +186,13 @@ namespace CK.Cris.AspNet
                 return CreateExceptionResult( "CommandValidator unexpected error.", ex, VESACode.Error );
             }
             return null;
+        }
+
+        ICrisResultError CreateErrorValidationResult( CrisValidationResult v )
+        {
+            var r = _errorResultFactory.Create();
+            r.Errors.AddRange( v.Errors );
+            return r;
         }
 
         ICrisResult CreateExceptionResult( string message, Exception? ex, VESACode code )
@@ -199,7 +206,7 @@ namespace CK.Cris.AspNet
 
         /// <summary>
         /// Executes a command by calling the ExecuteCommand or ExecuteCommandAsync method for the
-        /// closure of the command Poco (the ICommand interface that unifies all other ICommand and <see cref="ICommandPart"/>).
+        /// closure of the command Poco (the ICommand interface that unifies all other ICommand and <see cref="ICrisPocoPart"/>).
         /// Any exceptions are caught and sent to the <see cref="IFrontCommandExceptionHandler"/> service.
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
@@ -210,7 +217,7 @@ namespace CK.Cris.AspNet
         {
             try
             {
-                var o = await _executor.RawExecuteCommandAsync( services, command );
+                var o = await _executor.RawExecuteAsync( services, command );
                 return _resultFactory.Create( r => { r.Code = VESACode.Synchronous; r.Result = o; } );
             }
             catch( Exception ex )

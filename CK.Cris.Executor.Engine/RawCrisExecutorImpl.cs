@@ -8,18 +8,18 @@ using System.Linq;
 namespace CK.Setup.Cris
 {
 
-    public partial class RawCommandExecutorImpl : CSCodeGeneratorType
+    public partial class RawCrisExecutorImpl : CSCodeGeneratorType
     {
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
-            Throw.CheckState( "Applies only to the RawCommandExecutor class.", classType == typeof( RawCommandExecutor ) );
+            Throw.CheckState( "Applies only to the RawCrisExecutor class.", classType == typeof( RawCrisExecutor ) );
             var registry = CommandRegistry.FindOrCreate( monitor, c );
             if( registry == null ) return CSCodeGenerationResult.Failed;
 
-            Debug.Assert( nameof( RawCommandExecutor.RawExecuteCommandAsync ) == "RawExecuteCommandAsync" );
-            Debug.Assert( classType.GetMethod( nameof( RawCommandExecutor.RawExecuteCommandAsync ), new[] { typeof( IServiceProvider ), typeof( ICrisPoco ) } ) != null );
+            Debug.Assert( nameof( RawCrisExecutor.RawExecuteAsync ) == "RawExecuteAsync" );
+            Debug.Assert( classType.GetMethod( nameof( RawCrisExecutor.RawExecuteAsync ), new[] { typeof( IServiceProvider ), typeof( ICrisPoco ) } ) != null );
 
-            var mExecute = scope.CreateFunction( "public override Task<object> RawExecuteCommandAsync( IServiceProvider s, CK.Cris.ICrisPoco c )" );
+            var mExecute = scope.CreateFunction( "public override Task<object> RawExecuteAsync( IServiceProvider s, CK.Cris.ICrisPoco c )" );
             mExecute.GeneratedByComment().NewLine()
                     .Append( "return _handlers[c.CrisPocoModel.CrisPocoIndex]( s, c );" );
 

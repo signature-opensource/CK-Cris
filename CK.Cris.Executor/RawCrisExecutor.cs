@@ -15,12 +15,11 @@ namespace CK.Cris
     /// The concrete class implements all the generated code that routes the command to its handler.
     /// </para>
     /// </summary>
-    [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.RawCommandExecutorImpl, CK.Cris.Executor.Engine" )]
-    public abstract class RawCommandExecutor : ISingletonAutoService
+    [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.RawCrisExecutorImpl, CK.Cris.Executor.Engine" )]
+    public abstract class RawCrisExecutor : ISingletonAutoService
     {
         /// <summary>
-        /// Executes a command by calling the ExecuteCommand or ExecuteCommandAsync method for the
-        /// closure of the command Poco (the ICommand interface that unifies all other ICommand and <see cref="ICommandPart"/>).
+        /// Executes a command or an event by calling the discovered handlers and post handlers.
         /// Any exceptions are thrown (or more precisely are set on the returned <see cref="Task"/>).
         /// <para>
         /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisEventSender"/> must be resolvable from
@@ -28,8 +27,8 @@ namespace CK.Cris
         /// </para>
         /// </summary>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
-        /// <param name="command">The command to execute.</param>
+        /// <param name="command">The command or event to execute.</param>
         /// <returns>The result of the <see cref="ICommand{TResult}"/> if the command has a result.</returns>
-        public abstract Task<object?> RawExecuteCommandAsync( IServiceProvider services, ICrisPoco command );
+        public abstract Task<object?> RawExecuteAsync( IServiceProvider services, ICrisPoco o );
     }
 }

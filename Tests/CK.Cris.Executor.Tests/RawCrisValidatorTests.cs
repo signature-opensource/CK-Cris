@@ -10,7 +10,7 @@ using static CK.Testing.StObjEngineTestHelper;
 namespace CK.Cris.Executor.Tests
 {
     [TestFixture]
-    public class CommandValidatorTests
+    public class RawCrisValidatorTests
     {
         [ExternalName("Test")]
         public interface ICmdTest : ICommand
@@ -22,7 +22,7 @@ namespace CK.Cris.Executor.Tests
         public async Task when_there_is_no_validation_methods_the_validation_succeeds_Async()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
+                typeof( RawCrisValidator ), typeof( CommandDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
                 typeof( ICmdTest ) );
 
             using var services = TestHelper.CreateAutomaticServices( c ).Services;
@@ -30,8 +30,8 @@ namespace CK.Cris.Executor.Tests
             var directory = services.GetRequiredService<CommandDirectory>();
             var cmd = directory.CrisPocoModels[0].Create();
 
-            var validator = services.GetRequiredService<CommandValidator>();
-            var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+            var validator = services.GetRequiredService<RawCrisValidator>();
+            var result = await validator.ValidateCrisPocoAsync( TestHelper.Monitor, services, cmd );
             result.Success.Should().BeTrue();
         }
 
@@ -48,7 +48,7 @@ namespace CK.Cris.Executor.Tests
         public async Task exceptions_raised_by_validators_are_NOT_handled_by_the_CommandValidator_the_caller_MUST_handle_them_Async()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
+                typeof( RawCrisValidator ), typeof( CommandDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
                 typeof( ICmdTest ),
                 typeof( BuggyValidator ) );
             using var services = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
@@ -56,8 +56,8 @@ namespace CK.Cris.Executor.Tests
             var directory = services.GetRequiredService<CommandDirectory>();
             var cmd = directory.CrisPocoModels[0].Create();
 
-            var validator = services.GetRequiredService<CommandValidator>();
-            await validator.Awaiting( sut => sut.ValidateCommandAsync( TestHelper.Monitor, services, cmd ) )
+            var validator = services.GetRequiredService<RawCrisValidator>();
+            await validator.Awaiting( sut => sut.ValidateCrisPocoAsync( TestHelper.Monitor, services, cmd ) )
                            .Should().ThrowAsync<Exception>().WithMessage( "This should not happen!" );
         }
 
@@ -92,7 +92,7 @@ namespace CK.Cris.Executor.Tests
         [TestCase( true, true )]
         public async Task the_simplest_validation_is_held_by_a_dependency_free_service_and_is_synchronous_Async( bool scopedService, bool singletonService )
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
+            var c = TestHelper.CreateStObjCollector( typeof( RawCrisValidator ), typeof( CommandDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
                                                      typeof( ICmdTest ),
                                                      typeof( ICmdWithoutValidators ) );
             if( singletonService ) c.RegisterType( typeof( SimplestValidatorEverSingleton ) );
@@ -105,10 +105,10 @@ namespace CK.Cris.Executor.Tests
                 var services = scope.ServiceProvider; 
 
                 var directory = services.GetRequiredService<CommandDirectory>();
-                var validator = services.GetRequiredService<CommandValidator>();
+                var validator = services.GetRequiredService<RawCrisValidator>();
 
                 var cmd = services.GetRequiredService<IPocoFactory<ICmdTest>>().Create( c => c.Value = -1 );
-                var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+                var result = await validator.ValidateCrisPocoAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeFalse();
                 if( scopedService )
                 {
@@ -120,7 +120,7 @@ namespace CK.Cris.Executor.Tests
                 }
 
                 cmd.Value = 0;
-                result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+                result = await validator.ValidateCrisPocoAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeTrue();
                 result.HasWarnings.Should().BeTrue();
                 if( scopedService )
@@ -171,7 +171,7 @@ namespace CK.Cris.Executor.Tests
         public async Task part_with_parameter_injection_Async()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( CommandValidator ), typeof( CommandDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
+                typeof( RawCrisValidator ), typeof( CommandDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
                 typeof( ICmdTestSecure ),
                 typeof( AuthenticationValidator ),
                 typeof( SimplestValidatorEverScoped ),
@@ -192,26 +192,26 @@ namespace CK.Cris.Executor.Tests
                 var services = scope.ServiceProvider;
 
                 var directory = services.GetRequiredService<CommandDirectory>();
-                var validator = services.GetRequiredService<CommandValidator>();
+                var validator = services.GetRequiredService<RawCrisValidator>();
 
                 var cmd = services.GetRequiredService<IPocoFactory<ICmdTestSecure>>().Create( c => c.Value = 1 );
-                var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+                var result = await validator.ValidateCrisPocoAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeFalse();
                 result.Errors.Should().BeEquivalentTo( "Security error." );
 
                 cmd.ActorId = 3712;
-                result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+                result = await validator.ValidateCrisPocoAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeTrue();
                 result.HasWarnings.Should().BeFalse();
 
                 cmd.Value = 0;
-                result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+                result = await validator.ValidateCrisPocoAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeTrue();
                 result.HasWarnings.Should().BeTrue();
 
                 cmd.ActorId = 3712;
                 cmd.WarnByAsyncValidator = true;
-                result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+                result = await validator.ValidateCrisPocoAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeTrue();
                 result.HasWarnings.Should().BeTrue();
                 result.Warnings.Should().Contain( "AsyncValidator is not happy!" );

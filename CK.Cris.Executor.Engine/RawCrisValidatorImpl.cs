@@ -8,15 +8,15 @@ using System.Linq;
 
 namespace CK.Setup.Cris
 {
-    public class CommandValidatorImpl : CSCodeGeneratorType
+    public class RawCrisValidatorImpl : CSCodeGeneratorType
     {
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
-            Throw.CheckArgument( "Applies only to the CommandValidator class.", classType == typeof( CommandValidator ) );
+            Throw.CheckArgument( "Applies only to the RawCrisValidator class.", classType == typeof( RawCrisValidator ) );
             var registry = CommandRegistry.FindOrCreate( monitor, c );
             if( registry == null ) return CSCodeGenerationResult.Failed;
 
-            var validateMethod = classType.GetMethod( nameof( CommandValidator.ValidateCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( ICrisPoco ) } );
+            var validateMethod = classType.GetMethod( nameof( RawCrisValidator.ValidateCrisPocoAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( ICrisPoco ) } );
             Debug.Assert( validateMethod != null, "This is the signature of the central method." );
 
             var mValidate = scope.CreateSealedOverride( validateMethod );
@@ -111,7 +111,7 @@ namespace CK.Setup.Cris
                      .NewLine();
 
                 mValidate.GeneratedByComment().NewLine()
-                         .Append( "return _validators[command.CrisPocoModel.CrisPocoIndex]( validationMonitor, services, command );" );
+                         .Append( "return _validators[o.CrisPocoModel.CrisPocoIndex]( validationMonitor, services, o );" );
             }
             return CSCodeGenerationResult.Success;
         }

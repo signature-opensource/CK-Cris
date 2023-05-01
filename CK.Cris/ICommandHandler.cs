@@ -15,7 +15,7 @@ namespace CK.Cris
     /// </para>
     /// </summary>
     /// <typeparam name="T">The command type.</typeparam>
-    public interface ICommandHandler<in T> : IAutoService where T : ICrisPoco
+    public interface ICommandHandler<in T> : IAutoService where T : IAbstractCommand
     {
     }
 }
