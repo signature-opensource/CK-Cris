@@ -3,6 +3,7 @@ using CK.Setup;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace CK.Cris
 {
@@ -15,9 +16,13 @@ namespace CK.Cris
         /// <summary>
         /// Initializes a new <see cref="CommandHandlerAttribute"/>.
         /// </summary>
-        public CommandHandlerAttribute()
+        /// <param name="fileName">Captures the source file name of the handler definition.</param>
+        /// <param name="lineNumber">Captures the source line number of the handler definition.</param>
+        public CommandHandlerAttribute( [CallerFilePath]string? fileName = null, [CallerLineNumber] int lineNumber = 0 )
             : base( "CK.Setup.Cris.CommandHandlerAttributeImpl, CK.Cris.Engine" )
         {
+            FileName = fileName;
+            LineNumber = lineNumber;
         }
 
         /// <summary>
@@ -26,5 +31,15 @@ namespace CK.Cris
         /// Defaults to false: the "closed interface requirement" is the rule!
         /// </summary>
         public bool AllowUnclosedCommand { get; set; }
+
+        /// <summary>
+        /// Gets the file name that defines this handler.
+        /// </summary>
+        public string? FileName { get; }
+
+        /// <summary>
+        /// Gets the line number that defines this handler.
+        /// </summary>
+        public int LineNumber { get; }
     }
 }

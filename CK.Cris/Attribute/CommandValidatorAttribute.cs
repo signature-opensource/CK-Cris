@@ -3,6 +3,7 @@ using CK.Setup;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace CK.Cris
 {
@@ -15,9 +16,24 @@ namespace CK.Cris
         /// <summary>
         /// Initializes a new <see cref="CommandValidatorAttribute"/>.
         /// </summary>
-        public CommandValidatorAttribute()
+        /// <param name="fileName">Captures the source file name of the validator definition.</param>
+        /// <param name="lineNumber">Captures the source line number of the validator definition.</param>
+        public CommandValidatorAttribute( [CallerFilePath] string? fileName = null, [CallerLineNumber] int lineNumber = 0 )
             : base( "CK.Setup.Cris.CommandValidatorAttributeImpl, CK.Cris.Engine" )
         {
+            FileName = fileName;
+            LineNumber = lineNumber;
         }
+
+        /// <summary>
+        /// Gets the file name that defines this handler.
+        /// </summary>
+        public string? FileName { get; }
+
+        /// <summary>
+        /// Gets the line number that defines this handler.
+        /// </summary>
+        public int LineNumber { get; }
+
     }
 }
