@@ -8,22 +8,23 @@ using System.Threading.Tasks;
 namespace CK.Cris
 {
     /// <summary>
-    /// Captures the result of a command validation with potential warnings.
+    /// Captures the result of a <see cref="IEvent"/>, <see cref="ICommand"/> or <see cref="ICommand{TResult}"/>
+    /// validation with potential warnings.
     /// <para>
     /// This is not simply named "ValidationResult" because of the existing <see cref="System.ComponentModel.DataAnnotations.ValidationResult"/>.
     /// </para>
     /// </summary>
-    public sealed class CommandValidationResult
+    public sealed class CrisValidationResult
     {
         /// <summary>
         /// The success validation result: no error, no warning.
         /// </summary>
-        public static readonly CommandValidationResult SuccessResult = new CommandValidationResult( Array.Empty<Entry>(), true );
+        public static readonly CrisValidationResult SuccessResult = new CrisValidationResult( Array.Empty<Entry>(), true );
 
         /// <summary>
         /// A successfully completed validation task: no error, no warning.
         /// </summary>
-        public static readonly Task<CommandValidationResult> SuccessResultTask = Task.FromResult( SuccessResult );
+        public static readonly Task<CrisValidationResult> SuccessResultTask = Task.FromResult( SuccessResult );
 
         /// <summary>
         /// A validation entry is a descriptive <see cref="Text"/> and whether this is an error or a warning. 
@@ -59,19 +60,19 @@ namespace CK.Cris
             public override string ToString() => Text;
         }
 
-        CommandValidationResult( IReadOnlyList<Entry> entries, bool success )
+        CrisValidationResult( IReadOnlyList<Entry> entries, bool success )
         {
             AllEntries = entries;
             Success = success;
         }
 
         /// <summary>
-        /// Creates a <see cref="CommandValidationResult"/> from a <see cref="ActivityMonitorExtension.CollectEntries(IActivityMonitor, out IReadOnlyList{ActivityMonitorSimpleCollector.Entry}, LogLevelFilter, int)"/>
+        /// Creates a <see cref="CrisValidationResult"/> from a <see cref="ActivityMonitorExtension.CollectEntries(IActivityMonitor, out IReadOnlyList{ActivityMonitorSimpleCollector.Entry}, LogLevelFilter, int)"/>
         /// result. Only <see cref="LogLevel.Fatal"/>, <see cref="LogLevel.Error"/> and <see cref="LogLevel.Warn"/> are handled.
         /// </summary>
         /// <param name="entries">The log entries.</param>
         /// <returns>A command validator result.</returns>
-        public static CommandValidationResult Create( IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries )
+        public static CrisValidationResult Create( IReadOnlyList<ActivityMonitorSimpleCollector.Entry> entries )
         {
             if( entries.Count == 0 ) return SuccessResult;
             var result = new Entry[entries.Count];
@@ -83,15 +84,24 @@ namespace CK.Cris
                 hasError |= isError;
                 result[i] = new Entry( e.Text, isError );
             }
-            return new CommandValidationResult( result, !hasError );
+            return new CrisValidationResult( result, !hasError );
         }
 
         /// <summary>
-        /// Initializes a new <see cref="CommandValidationResult"/> from an existing list of <see cref="Entry"/>.
+        /// Initializes a new <see cref="CrisValidationResult"/> from an existing list of <see cref="Entry"/>.
         /// </summary>
         /// <param name="entries">The validation entries.</param>
-        public CommandValidationResult( IReadOnlyList<Entry> entries )
+        public CrisValidationResult( IReadOnlyList<Entry> entries )
                   : this( entries, entries.All( e => !e.IsError ) )
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new <see cref="CrisValidationResult"/> with an error.
+        /// </summary>
+        /// <param name="error">The validation error text.</param>
+        public CrisValidationResult( string error )
+                  : this( new[]{ new Entry( error, true ) }, false )
         {
         }
 

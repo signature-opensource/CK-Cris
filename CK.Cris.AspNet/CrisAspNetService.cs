@@ -172,7 +172,7 @@ namespace CK.Cris.AspNet
         {
             try
             {
-                CommandValidationResult validation = await _validator.ValidateCommandAsync( monitor, requestServices, cmd );
+                CrisValidationResult validation = await _validator.ValidateCommandAsync( monitor, requestServices, cmd );
                 if( !validation.Success )
                 {
                     ICrisResult result = _resultFactory.Create();
