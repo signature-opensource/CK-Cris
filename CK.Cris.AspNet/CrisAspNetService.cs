@@ -42,7 +42,7 @@ namespace CK.Cris.AspNet
             // Multiple tokens makes no real sense.
             foreach( var t in request.Headers["CKDepToken"] )
             {
-                if( ActivityMonitor.DependentToken.TryParse( t, out var token ) )
+                if( ActivityMonitor.Token.TryParse( t, out var token ) )
                 {
                     return monitor.StartDependentActivity( token );
                 }
@@ -75,7 +75,7 @@ namespace CK.Cris.AspNet
                 }
                 if( result.CorrelationId == null )
                 {
-                    result.CorrelationId = monitor.CreateDependentToken().ToString();
+                    result.CorrelationId = monitor.CreateToken().ToString();
                 }
                 using( var writer = new Utf8JsonWriter( response.BodyWriter ) )
                 {
