@@ -13,10 +13,10 @@ namespace CK.Setup.Cris
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
             Throw.CheckArgument( "Applies only to the RawCrisValidator class.", classType == typeof( RawCrisValidator ) );
-            var registry = CommandRegistry.FindOrCreate( monitor, c );
+            var registry = CrisRegistry.FindOrCreate( monitor, c );
             if( registry == null ) return CSCodeGenerationResult.Failed;
 
-            var validateMethod = classType.GetMethod( nameof( RawCrisValidator.ValidateCrisPocoAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( ICrisPoco ) } );
+            var validateMethod = classType.GetMethod( nameof( RawCrisValidator.ValidateCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( IAbstractCommand ) } );
             Debug.Assert( validateMethod != null, "This is the signature of the central method." );
 
             var mValidate = scope.CreateSealedOverride( validateMethod );
@@ -28,7 +28,7 @@ namespace CK.Setup.Cris
             }
             else
             {
-                const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.ICrisPoco, Task<CK.Cris.CrisValidationResult>>";
+                const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.IAbstractCommand, Task<CK.Cris.CrisValidationResult>>";
 
                 scope.GeneratedByComment().NewLine()
                      .Append( "static readonly " ).Append( funcSignature ).Append( " Success = ( m, s, c ) => CK.Cris.CrisValidationResult.SuccessResultTask;" )
@@ -39,7 +39,7 @@ namespace CK.Setup.Cris
                     if( e.Validators.Count > 0 )
                     {
                         bool requiresAsync = false;
-                        var f = scope.CreateFunction( "static Task<CK.Cris.CrisValidationResult> V" + e.CrisPocoIndex + "( IActivityMonitor m, IServiceProvider s, CK.Cris.ICrisPoco c )" );
+                        var f = scope.CreateFunction( "static Task<CK.Cris.CrisValidationResult> V" + e.CrisPocoIndex + "( IActivityMonitor m, IServiceProvider s, CK.Cris.IAbstractCommand c )" );
 
                         f.GeneratedByComment().NewLine();
                         var cachedServices = new VariableCachedServices( f.CreatePart() );
@@ -111,7 +111,7 @@ namespace CK.Setup.Cris
                      .NewLine();
 
                 mValidate.GeneratedByComment().NewLine()
-                         .Append( "return _validators[o.CrisPocoModel.CrisPocoIndex]( validationMonitor, services, o );" );
+                         .Append( "return _validators[command.CrisPocoModel.CrisPocoIndex]( validationMonitor, services, command );" );
             }
             return CSCodeGenerationResult.Success;
         }

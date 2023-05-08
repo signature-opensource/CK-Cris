@@ -33,7 +33,7 @@ namespace CK.Setup.Cris
             }
         }
 
-        protected (CommandRegistry? Registry, IStObjFinalClass? Impl, MethodInfo Method) Prepare( IActivityMonitor monitor,
+        protected (CrisRegistry? Registry, IStObjFinalClass? Impl, MethodInfo Method) Prepare( IActivityMonitor monitor,
                                                                                                   ICSCodeGenerationContext codeGenContext )
         {
             IStObjFinalClass? impl = codeGenContext.CurrentRun.EngineMap.Find( _type );
@@ -47,7 +47,7 @@ namespace CK.Setup.Cris
             }
             else
             {
-                return (CommandRegistry.FindOrCreate( monitor, codeGenContext ), impl, _method);
+                return (CrisRegistry.FindOrCreate( monitor, codeGenContext ), impl, _method);
             }
             return (null, null, _method);
         }

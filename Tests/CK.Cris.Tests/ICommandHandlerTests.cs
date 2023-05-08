@@ -26,7 +26,7 @@ namespace CK.Cris.Tests
         [Test]
         public void Command_method_handler_must_exist()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
                 typeof( ICommandUnifiedWithTheResult ),
                 typeof( IUnifiedResult),
                 typeof( CmdHandlerMissingHandler ) );
@@ -49,16 +49,15 @@ namespace CK.Cris.Tests
         [Test]
         public void ICommandHandler_has_the_priority()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
                 typeof( ICommandWithPocoResult ),
                 typeof( CmdHandlerOfBase ),
                 typeof( CmdHandlerAlternate ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
-            var d = s.GetRequiredService<CommandDirectory>();
+            var d = s.GetRequiredService<CrisDirectory>();
 
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
-            var handler = cmd.CrisPocoModel.Handler;
-            Debug.Assert( handler != null );
+            var handler = cmd.CrisPocoModel.Handlers.Single();
             handler.Type.FinalType.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerOfBase ) );
         }
 
@@ -72,18 +71,17 @@ namespace CK.Cris.Tests
         [Test]
         public void ICommandHandler_implementation_can_be_specialized_without_redefining_command_type()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
                 typeof( ICommandWithMorePocoResult ),
                 typeof( CmdHandlerWithMore ),
                 typeof( CmdHandlerAlternate ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
-            var d = s.GetRequiredService<CommandDirectory>();
+            var d = s.GetRequiredService<CrisDirectory>();
 
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
             cmd.Should().BeAssignableTo<ICommandWithMorePocoResult>();
 
-            var handler = cmd.CrisPocoModel.Handler;
-            Debug.Assert( handler != null );
+            var handler = cmd.CrisPocoModel.Handlers.Single();
             handler.Type.FinalType.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerWithMore ) );
         }
 
@@ -96,7 +94,7 @@ namespace CK.Cris.Tests
         [Test]
         public void Command_handler_service_must_be_unified_just_like_other_IAutoService()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
                 typeof( ICommandUnifiedWithTheResult ),
                 typeof( CmdHandlerWithMore ),
                 typeof( CmdHandlerWithAnother ),
@@ -116,7 +114,7 @@ namespace CK.Cris.Tests
         [Test]
         public void Command_method_handler_must_also_be_unified()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
                 typeof( ICommandUnifiedWithTheResult ),
                 typeof( CmdHandlerFailingUnified ),
                 typeof( CmdHandlerWithMore ),
@@ -142,20 +140,19 @@ namespace CK.Cris.Tests
         [Test]
         public void ICommandHandler_Service_AND_handler_method_must_be_unified()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
-                typeof( ICommandUnifiedWithTheResult ),
-                typeof( CmdHandlerUnified ),
-                typeof( CmdHandlerWithMore ),
-                typeof( CmdHandlerWithAnother ),
-                typeof( CmdHandlerAlternate ) );
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
+                                                     typeof( ICommandUnifiedWithTheResult ),
+                                                     typeof( CmdHandlerUnified ),
+                                                     typeof( CmdHandlerWithMore ),
+                                                     typeof( CmdHandlerWithAnother ),
+                                                     typeof( CmdHandlerAlternate ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
-            var d = s.GetRequiredService<CommandDirectory>();
+            var d = s.GetRequiredService<CrisDirectory>();
 
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
             cmd.Should().BeAssignableTo<ICommandUnifiedWithTheResult>();
 
-            var handler = cmd.CrisPocoModel.Handler;
-            Debug.Assert( handler != null );
+            var handler = cmd.CrisPocoModel.Handlers.Single();
             handler.Type.FinalType.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerUnified ) );
         }
 
@@ -179,21 +176,22 @@ namespace CK.Cris.Tests
         [Test]
         public void Handler_method_can_be_virtual()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
                                                      typeof( ICommandUnifiedWithTheResult ),
                                                      typeof( IUnifiedResult ),
                                                      typeof( CmdHandlerUnifiedSpecialized ), typeof( CmdHandlerWithMore ), typeof( CmdHandlerWithAnother ), typeof( CmdHandlerAlternate ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
-            var d = s.GetRequiredService<CommandDirectory>();
+            var d = s.GetRequiredService<CrisDirectory>();
 
             var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
             cmd.Should().BeAssignableTo<ICommandUnifiedWithTheResult>();
 
             var model = cmd.CrisPocoModel;
-            Debug.Assert( model.Handler != null );
+            model.Handlers.Should().NotBeEmpty();
+            var handler = model.Handlers.Single();
 
             var handlerService = s.GetRequiredService<ICommandHandler<ICommandWithPocoResult>>();
-            var method = handlerService.GetType().GetMethod( model.Handler.MethodName, model.Handler.Parameters.ToArray() );
+            var method = handlerService.GetType().GetMethod( handler.MethodName, handler.Parameters.ToArray() );
             Debug.Assert( method != null );
             var result = (IResult?)method.Invoke( handlerService, new[] { cmd } );
             Debug.Assert( result != null );
@@ -216,13 +214,13 @@ namespace CK.Cris.Tests
         [Test]
         public void Handler_method_on_regular_class_is_NOT_discovered()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
                                                      typeof( ICmdTest ),
                                                      typeof( BaseClassWithHandler ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
-            var d = s.GetRequiredService<CommandDirectory>();
+            var d = s.GetRequiredService<CrisDirectory>();
             d.CrisPocoModels.Should().HaveCount( 1 );
-            d.CrisPocoModels[0].Handler.Should().BeNull();
+            d.CrisPocoModels[0].Handlers.Should().BeEmpty();
         }
 
         public abstract class SpecializedBaseClassService : BaseClassWithHandler, IAutoService
@@ -232,13 +230,13 @@ namespace CK.Cris.Tests
         [Test]
         public void Handler_method_of_base_class_is_discovered_by_inheritance()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( AmbientValues.IAmbientValues ),
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( AmbientValues.IAmbientValues ),
                                                      typeof( ICmdTest ),
                                                      typeof( SpecializedBaseClassService ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
-            var d = s.GetRequiredService<CommandDirectory>();
+            var d = s.GetRequiredService<CrisDirectory>();
             d.CrisPocoModels.Should().HaveCount( 1 );
-            var handler = d.CrisPocoModels[0].Handler;
+            var handler = d.CrisPocoModels[0].Handlers.Single();
             Debug.Assert( handler != null );
             handler.Type.ClassType.Should().Be( typeof( SpecializedBaseClassService ) );
             handler.Type.FinalType.FullName.Should().Be( "CK.Cris.Tests.ICommandHandlerTests_SpecializedBaseClassService_CK" );

@@ -5,6 +5,7 @@ using System.Reflection;
 
 namespace CK.Cris
 {
+
     /// <summary>
     /// Describes command properties and its unique and zero-based index in a context.
     /// </summary>
@@ -16,9 +17,9 @@ namespace CK.Cris
         Type CommandType { get; }
 
         /// <summary>
-        /// Gets whether this is a <see cref="IEvent"/>.
+        /// Gets the kind of Cris Poco object.
         /// </summary>
-        bool IsEvent { get; }
+        CrisPocoKind Kind { get; }
 
         /// <summary>
         /// Creates a new <see cref="ICommand"/>, <see cref="ICommand{TResult}"/> or <see cref="IEvent"/> instance.
@@ -26,7 +27,7 @@ namespace CK.Cris
         ICrisPoco Create();
 
         /// <summary>
-        /// Gets a unique index of this modeld in the <see cref="CommandDirectory.CrisPocoModels"/>.
+        /// Gets a unique index of this model in the <see cref="CrisDirectory.CrisPocoModels"/>.
         /// </summary>
         int CrisPocoIndex { get; }
 
@@ -47,7 +48,14 @@ namespace CK.Cris
         Type ResultType { get; }
 
         /// <summary>
-        /// Exposes the description of the method that handles a command.
+        /// Gets whether this command or event is handled: <see cref="Handlers"/> is not empty.
+        /// A <see cref="CrisPocoKind.Event"/> (a <see cref="IEvent"/> without [RoutedEventAttribute]
+        /// is never handled.
+        /// </summary>
+        bool IsHandled { get; }
+
+        /// <summary>
+        /// Exposes the description of a method that handles a command or routed event.
         /// <para>
         /// This should expose the documentation of the method (from Xml generated).
         /// </para>
@@ -70,28 +78,22 @@ namespace CK.Cris
             string MethodName { get; }
 
             /// <summary>
-            /// Gets whether this handler requires the <see cref="ICrisEventSender"/> in its <see cref="Parameters"/>:
-            /// it can emit <see cref="IEvent"/>.
+            /// Gets this handler kind.
             /// </summary>
-            bool CanEmitEvents { get; }
+            CrisHandlerKind Kind { get; }
 
             /// <summary>
             /// Gets the parameter types of <see cref="MethodName"/>.
-            /// <para>
-            /// The array is exposed here to avoid a ToArray on a IReadOnlyList when using these
-            /// parameters to find a MethodInfo on a type (that should be this <see cref="Type"/>).
-            /// This is a low level API and, of course, the array content must not be
-            /// altered.
-            /// </para>
             /// </summary>
-            Type[] Parameters { get; }
+            IReadOnlyList<Type> Parameters { get; }
         }
 
         /// <summary>
-        /// Gets the <see cref="IHandler"/> for this command.
-        /// When null, no handler has been found and the command cannot be executed in this process.
+        /// Gets all the <see cref="IHandler"/> for this command or event.
+        /// When empty, no handler has been found and the command or events cannot
+        /// be executed in this process.
         /// </summary>
-        IHandler? Handler { get; }
+        IReadOnlyList<IHandler> Handlers { get; }
     }
 
 }

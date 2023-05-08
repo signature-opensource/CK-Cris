@@ -27,9 +27,9 @@ namespace CK.Cris.AspNet
         /// Handles the command on "/.cris" path.
         /// </summary>
         /// <param name="ctx">The current context.</param>
-        /// <param name="m">The request scoped monitor.</param>
+        /// <param name="monitor">The request scoped monitor.</param>
         /// <returns>The awaitable.</returns>
-        public async Task InvokeAsync( HttpContext ctx, IActivityMonitor m )
+        public async Task InvokeAsync( HttpContext ctx, IActivityMonitor monitor )
         {
             if( ctx.Request.Path.StartsWithSegments( _crisPath, out PathString remainder ) )
             {
@@ -39,7 +39,7 @@ namespace CK.Cris.AspNet
                 }
                 else
                 {
-                    await _service.HandleRequestAsync( m, ctx.RequestServices, ctx.Request, ctx.Response );
+                    await _service.HandleRequestAsync( monitor, ctx.RequestServices, ctx.Request, ctx.Response );
                 }
             }
             else

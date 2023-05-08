@@ -22,7 +22,7 @@ namespace CK.Cris
         /// Executes a command or an event by calling the discovered handlers and post handlers.
         /// Any exceptions are thrown (or more precisely are set on the returned <see cref="Task"/>).
         /// <para>
-        /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisEventSender"/> must be resolvable from
+        /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisCallContext"/> must be resolvable from
         /// the <paramref name="services"/>.
         /// </para>
         /// </summary>

@@ -15,7 +15,7 @@ namespace CK.Setup.Cris
     /// Holds the set of <see cref="Entry"/> that have been discovered and index them by
     /// <see cref="IPocoRootInfo"/>.
     /// </summary>
-    public partial class CommandRegistry
+    public partial class CrisRegistry
     {
         readonly IReadOnlyDictionary<IPocoRootInfo, Entry> _indexedCommands;
 
@@ -46,7 +46,7 @@ namespace CK.Setup.Cris
             (Entry? e, ParameterInfo[]? parameters, ParameterInfo? p) = GetCommandEntry( monitor, "Handler", m );
             if( e == null ) return false;
             Debug.Assert( parameters != null && p != null );
-            bool isClosedHandler = p.ParameterType == e.Command.ClosureInterface;
+            bool isClosedHandler = p.ParameterType == e.CrisPocoInfo.ClosureInterface;
             if( !isClosedHandler && !allowUnclosed )
             {
                 allowUnclosed = p.GetCustomAttributes().Any( a => a.GetType().FindInterfaces( (i,n) => i.Name == (string?)n, nameof(IAllowUnclosedCommandAttribute) ).Length > 0 );
@@ -134,27 +134,27 @@ namespace CK.Setup.Cris
         }
 
         /// <summary>
-        /// Gets a <see cref="CommandRegistry"/> for a <see cref="ICodeGenerationContext"/> (it has been created
+        /// Gets a <see cref="CrisRegistry"/> for a <see cref="ICodeGenerationContext"/> (it has been created
         /// by <see cref="FindOrCreate"/> during the CSharp code generation phase).
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="c">The code generation context.</param>
         /// <returns>The registry or null if it has been created yet.</returns>
-        public static CommandRegistry? Find( IActivityMonitor monitor, ICodeGenerationContext c )
+        public static CrisRegistry? Find( IActivityMonitor monitor, ICodeGenerationContext c )
         {
-            c.CurrentRun.Memory.TryGetCachedInstance<CommandRegistry>( out var r );
+            c.CurrentRun.Memory.TryGetCachedInstance<CrisRegistry>( out var r );
             return r;
         }
 
         /// <summary>
-        /// Gets or builds a <see cref="CommandRegistry"/> for the current run of a <see cref="ICodeGenerationContext"/>.
+        /// Gets or builds a <see cref="CrisRegistry"/> for the current run of a <see cref="ICodeGenerationContext"/>.
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="c">The generated path.</param>
         /// <returns>The directory or null on error.</returns>
-        public static CommandRegistry? FindOrCreate( IActivityMonitor monitor, ICodeGenerationContext c )
+        public static CrisRegistry? FindOrCreate( IActivityMonitor monitor, ICodeGenerationContext c )
         {
-            if( !c.CurrentRun.Memory.TryGetCachedInstance<CommandRegistry>( out var result ) )
+            if( !c.CurrentRun.Memory.TryGetCachedInstance<CrisRegistry>( out var result ) )
             {
                 var pocoResult = c.CurrentRun.ServiceContainer.GetRequiredService<IPocoSupportResult>();
                 var (index,commands) = CreateCommandMap( monitor, c.CurrentRun.EngineMap, pocoResult );
@@ -169,7 +169,7 @@ namespace CK.Setup.Cris
                     }
                     else
                     {
-                        result = new CommandRegistry( index, commands, pocoResult, av.Root );
+                        result = new CrisRegistry( index, commands, pocoResult, av.Root );
                     }
                 }
                 c.CurrentRun.Memory.AddCachedInstance( result );
@@ -178,7 +178,7 @@ namespace CK.Setup.Cris
         }
 
 
-        CommandRegistry( IReadOnlyDictionary<IPocoRootInfo, Entry> index, IReadOnlyList<Entry> commands, IPocoSupportResult poco, IPocoRootInfo ambientValues )
+        CrisRegistry( IReadOnlyDictionary<IPocoRootInfo, Entry> index, IReadOnlyList<Entry> commands, IPocoSupportResult poco, IPocoRootInfo ambientValues )
         {
             _indexedCommands = index;
             CrisPocoModels = commands;
@@ -190,10 +190,10 @@ namespace CK.Setup.Cris
         {
             bool success = true;
             var index = new Dictionary<IPocoRootInfo, Entry>();
-            var commands = new List<Entry>();
-            if( pocoResult.OtherInterfaces.TryGetValue( typeof( ICrisPoco ), out IReadOnlyList<IPocoRootInfo>? commandPocos ) )
+            var entries = new List<Entry>();
+            if( pocoResult.OtherInterfaces.TryGetValue( typeof( ICrisPoco ), out IReadOnlyList<IPocoRootInfo>? crisPocos ) )
             {
-                foreach( var poco in commandPocos )
+                foreach( var poco in crisPocos )
                 {
                     var hServices = poco.Interfaces.Select( i => typeof( ICommandHandler<> ).MakeGenericType( i.PocoInterface ) )
                                                         .Select( gI => (itf: gI, impl: services.Find( gI )) )
@@ -202,19 +202,19 @@ namespace CK.Setup.Cris
                                                         .ToArray();
                     if( hServices.Length > 1 )
                     {
-                        monitor.Error( $"Ambiguous command handler '{hServices.Select( m => $"{m.Key!.ClassType.FullName}' implements '{m.Select( x => x.itf.FullName ).Concatenate( "' ,'" )}" )}': only one service can eventually handle a command." );
+                        monitor.Error( $"Ambiguous command handler '{hServices.Select( m => $"{m.Key!.ClassType:C}' implements '{m.Select( x => x.itf.ToCSharpName() ).Concatenate( "' ,'" )}" )}': only one service can eventually handle a command." );
                         success = false;
                     }
-                    var entry = Entry.Create( monitor, pocoResult, poco, commands.Count, hServices.Length == 1 ? hServices[0].Key : null );
+                    var entry = Entry.Create( monitor, pocoResult, poco, entries.Count, hServices.Length == 1 ? hServices[0].Key : null );
                     if( entry == null ) success = false;
                     else
                     {
-                        commands.Add( entry );
-                        index.Add( entry.Command, entry );
+                        entries.Add( entry );
+                        index.Add( entry.CrisPocoInfo, entry );
                     }
                 }
             }
-            return success ? (index, commands) : (null, null);
+            return success ? (index, entries) : (null, null);
         }
 
         static string MethodName( MethodInfo m, ParameterInfo[]? parameters = null ) => $"{m.DeclaringType!.Name}.{m.Name}( {(parameters ?? m.GetParameters()).Select( p => p.ParameterType.Name + " " + p.Name ).Concatenate()} )";

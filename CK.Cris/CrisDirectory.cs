@@ -8,12 +8,12 @@ using System.Windows.Input;
 namespace CK.Cris
 {
     /// <summary>
-    /// Command directory that contains all the available events and commands in the context.
+    /// Directory that contains all the available events and commands in the context.
     /// </summary>
-    [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.CommandDirectoryImpl, CK.Cris.Engine" )]
-    public abstract class CommandDirectory : ISingletonAutoService
+    [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.CrisDirectoryImpl, CK.Cris.Engine" )]
+    public abstract class CrisDirectory : ISingletonAutoService
     {
-        protected CommandDirectory( IReadOnlyList<ICrisPocoModel> models )
+        protected CrisDirectory( IReadOnlyList<ICrisPocoModel> models )
         {
             CrisPocoModels = models;
         }

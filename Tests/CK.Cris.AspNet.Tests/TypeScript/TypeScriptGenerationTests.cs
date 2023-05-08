@@ -21,7 +21,7 @@ namespace CK.Cris.TypeScript.Tests
         public void DiamondResultAndCommand_works()
         {
             var output = TypeScriptTestHelper.GenerateTSCode( nameof( DiamondResultAndCommand_works ),
-                                                              typeof( CommandDirectory ),
+                                                              typeof( CrisDirectory ),
                                                               typeof( ICrisResult ),
                                                               typeof( ICrisResultError ),
                                                               typeof( AmbientValues.IAmbientValues ),
@@ -69,7 +69,7 @@ namespace CK.Cris.TypeScript.Tests
         public void beautiful_colored_command_with_ambient_values()
         {
             var output = TypeScriptTestHelper.GenerateTSCode( nameof( beautiful_colored_command_with_ambient_values ),
-                                                              typeof( CommandDirectory ),
+                                                              typeof( CrisDirectory ),
                                                               // By registering the IBeautifulCommand first,
                                                               // we use (and test!) the fact that the OnPocoGenerating calls EnsurePoco
                                                               // on the IAmbientValues so that the ambient values are known when handling

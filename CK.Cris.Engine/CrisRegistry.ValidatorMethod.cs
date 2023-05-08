@@ -1,16 +1,17 @@
 using CK.Core;
+using CK.Cris;
+using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace CK.Setup.Cris
 {
-    public partial class CommandRegistry
+    public partial class CrisRegistry
     {
-        public class ValidatorMethod
+
+        public sealed class ValidatorMethod : BaseHandler
         {
-            public readonly Entry Command;
-            public readonly IStObjFinalClass Owner;
-            public readonly MethodInfo Method;
-            public readonly ParameterInfo[] Parameters;
+            public override CrisHandlerKind Kind => CrisHandlerKind.CommandValidator;
             public readonly ParameterInfo CmdOrPartParameter;
             public readonly bool IsRefAsync;
             public readonly bool IsValAsync;
@@ -22,17 +23,12 @@ namespace CK.Setup.Cris
                                       ParameterInfo cmdOrPartParameter,
                                       bool isRefAsync,
                                       bool isValAsync )
+                : base( command, owner, method, parameters ) 
             {
-                Command = command;
-                Owner = owner;
-                Method = method;
-                Parameters = parameters;
                 CmdOrPartParameter = cmdOrPartParameter;
                 IsRefAsync = isRefAsync;
                 IsValAsync = isValAsync;
             }
         }
-
     }
-
 }

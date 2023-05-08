@@ -9,7 +9,8 @@ using System.Reflection;
 
 namespace CK.Setup.Cris
 {
-    public partial class CommandRegistry
+
+    public partial class CrisRegistry
     {
         /// <summary>
         /// Command model.
@@ -18,41 +19,59 @@ namespace CK.Setup.Cris
         {
             readonly List<ValidatorMethod> _validators;
             readonly List<PostHandlerMethod> _postHandlers;
+            readonly List<EventHandlerMethod> _eventHandlers;
 
             /// <summary>
-            /// Gets the command root poco.
+            /// Gets the Cris Poco descriptor.
             /// </summary>
-            public readonly IPocoRootInfo Command;
+            public readonly IPocoRootInfo CrisPocoInfo;
 
             /// <summary>
             /// Gets the handler method.
+            /// Can be not null only for <see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/>.
             /// </summary>
             public HandlerMethod? Handler { get; private set; }
 
             /// <summary>
+            /// Gets whether this command or event is handled: a command must have a <see cref="Handler"/> and
+            /// an event must have at least one <see cref="EventHandlers"/>. A <see cref="IEvent"/> that is not routed
+            /// (has no [RoutedEventAttribute] is never handled.
+            /// </summary>
+            public bool IsHandled => Handler != null || _eventHandlers.Count > 0;
+
+            /// <summary>
             /// Gets the validator methods.
+            /// Can be non empty only for <see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/>.
             /// </summary>
             public IReadOnlyList<ValidatorMethod> Validators => _validators;
 
             /// <summary>
             /// Gets the post handler methods.
+            /// Can be non empty only for <see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/>.
             /// </summary>
             public IReadOnlyList<PostHandlerMethod> PostHandlers => _postHandlers;
 
             /// <summary>
-            /// Gets the name of this command (this is the <see cref="IPocoRootInfo.Name"/>).
+            /// Gets the event handlers methods.
+            /// Non empty only for <see cref="CrisPocoKind.RoutedEventDeferred"/>, <see cref="CrisPocoKind.RoutedEventImmediate"/>
+            /// and <see cref="CrisPocoKind.RoutedEventOnSuccess"/>.
             /// </summary>
-            public string PocoName => Command.Name;
+            public IReadOnlyList<EventHandlerMethod> EventHandlers => _eventHandlers;
+
+            /// <summary>
+            /// Gets the name of this command or event (this is the <see cref="IPocoRootInfo.Name"/>).
+            /// </summary>
+            public string PocoName => CrisPocoInfo.Name;
 
             /// <summary>
             /// Gets whether this command is a <see cref="IEvent"/>.
             /// </summary>
-            public bool IsEvent { get; }
+            public CrisPocoKind Kind { get; }
 
             /// <summary>
             /// Gets the name of this command.
             /// </summary>
-            public IReadOnlyList<string> PreviousNames => Command.PreviousNames;
+            public IReadOnlyList<string> PreviousNames => CrisPocoInfo.PreviousNames;
 
             /// <summary>
             /// Gets a unique, zero-based index that identifies this Cris object among all
@@ -165,28 +184,33 @@ namespace CK.Setup.Cris
             /// <returns>The name of this command.</returns>
             public override string ToString() => PocoName;
 
-            Entry( IPocoRootInfo command,
-                   int commandIdx,
-                   bool isEvent,
+            Entry( IPocoRootInfo pocoInfo,
+                   int crisPocoIdx,
                    NullableTypeTree resultType,
                    IPocoInterfaceInfo? pocoResultType,
-                   IStObjFinalClass? handlerService )
+                   IStObjFinalClass? handlerService,
+                   CrisPocoKind kind )
             {
-                Command = command;
+                CrisPocoInfo = pocoInfo;
                 _validators = new List<ValidatorMethod>();
                 _postHandlers = new List<PostHandlerMethod>();
-                IsEvent = isEvent;
-                CrisPocoIndex = commandIdx;
+                _eventHandlers = new List<EventHandlerMethod>();
+                Kind = kind;
+                CrisPocoIndex = crisPocoIdx;
                 ResultNullableTypeTree = resultType;
                 PocoResultType = pocoResultType;
                 ExpectedHandlerService = handlerService;
             }
 
-            internal static Entry? Create( IActivityMonitor monitor, IPocoSupportResult pocoSupportResult, IPocoRootInfo command, int commandIdx, IStObjFinalClass? handlerService )
+            internal static Entry? Create( IActivityMonitor monitor,
+                                           IPocoSupportResult pocoSupportResult,
+                                           IPocoRootInfo command,
+                                           int crisPocoIdx,
+                                           IStObjFinalClass? handlerService )
             {
                 Type resultType;
                 IPocoInterfaceInfo? pocoResultType;
-
+                CrisPocoKind kind;
 
                 #region Handling TResult
                 static Type? ExtractTResult( Type i )
@@ -224,16 +248,20 @@ namespace CK.Setup.Cris
                 {
                     if( isCommand )
                     {
-                        monitor.Error( $"Command '{command.Name}' cannot be both a ICrisEvent and a ICommand." );
+                        monitor.Error( $"Command '{command.Name}' cannot be both a IEvent and a ICommand." );
                         return null;
                     }
                     if( resultTypes != null )
                     {
-                        monitor.Error( $"Command '{command.Name}' cannot be both a ICrisEvent and a ICommand<TResult>." );
+                        monitor.Error( $"Command '{command.Name}' cannot be both a IEvent and a ICommand<TResult>." );
                         return null;
                     }
+                    // TODO: Analyze the RoutedEventAttribute.
+                    kind = CrisPocoKind.Event;
+                    resultType = typeof( void );
+                    pocoResultType = null;
                 }
-                if( resultTypes != null )
+                else if( resultTypes != null )
                 {
                     Debug.Assert( resultTypes.Count > 0 );
 
@@ -261,15 +289,17 @@ namespace CK.Setup.Cris
                         monitor.Error( $"Invalid command Result type for '{command.Name}': result types '{resultTypes.Select( t => t.Name ).Concatenate( "', '" )}' must resolve to a common most specific type." );
                         return null;
                     }
+                    kind = CrisPocoKind.CommandWithResult;
                 }
                 else
                 {
                     resultType = typeof( void );
                     pocoResultType = null;
+                    kind = CrisPocoKind.Command;
                 }
                 #endregion
 
-                return new Entry( command, commandIdx, isEvent, resultType.GetNullableTypeTree(), pocoResultType, handlerService );
+                return new Entry( command, crisPocoIdx, resultType.GetNullableTypeTree(), pocoResultType, handlerService, kind );
             }
 
             internal bool AddHandler( IActivityMonitor monitor,
@@ -280,7 +310,7 @@ namespace CK.Setup.Cris
                                       bool isClosedHandler )
             {
                 // If the Command is closed, we silently skip handlers of unclosed commands: we expect the final handler of the closure interface.
-                if( !isClosedHandler && Command.ClosureInterface != null )
+                if( !isClosedHandler && CrisPocoInfo.ClosureInterface != null )
                 {
                     monitor.Info( $"Method {MethodName( method, parameters )} cannot handle '{PocoName}' command because type {parameter.ParameterType.Name} doesn't represent the whole command." );
                     return true;

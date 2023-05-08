@@ -31,7 +31,7 @@ namespace CK.Cris.TypeScript.Tests
 
             public MonoCollectorResolver( IEnumerable<Type> types )
             {
-                _types = types.Append( typeof( CommandDirectory ) )
+                _types = types.Append( typeof( CrisDirectory ) )
                               .Append( typeof( TypeScriptCrisCommandGenerator ) )
                               .Append( typeof( CK.Core.PocoJsonSerializer ) )
                               .ToArray();

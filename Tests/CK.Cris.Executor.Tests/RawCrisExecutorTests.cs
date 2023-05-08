@@ -29,7 +29,7 @@ namespace CK.Cris.Executor.Tests
         {
             var c = TestHelper.CreateStObjCollector(
                 typeof( RawCrisExecutor ),
-                typeof( CommandDirectory ),
+                typeof( CrisDirectory ),
                 typeof( ICrisResultError ),
                 typeof( AmbientValues.IAmbientValues ) );
             c.RegisterTypes( types );
@@ -237,8 +237,8 @@ namespace CK.Cris.Executor.Tests
                 using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
                 using( var scope = appServices.CreateScope() )
                 {
-                    var directory = scope.ServiceProvider.GetRequiredService<CommandDirectory>();
-                    directory.CrisPocoModels[0].Handler.Should().BeNull();
+                    var directory = scope.ServiceProvider.GetRequiredService<CrisDirectory>();
+                    directory.CrisPocoModels[0].Handlers.Should().BeEmpty();
                 }
             }
         }
@@ -283,7 +283,6 @@ namespace CK.Cris.Executor.Tests
         }
 
         #endregion
-
 
         #region [CommandHandler] on IAutoService explicitly implemented.
 

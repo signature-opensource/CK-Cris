@@ -13,7 +13,7 @@ namespace CK.Setup.Cris
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
             Throw.CheckState( "Applies only to the RawCrisExecutor class.", classType == typeof( RawCrisExecutor ) );
-            var registry = CommandRegistry.FindOrCreate( monitor, c );
+            var registry = CrisRegistry.FindOrCreate( monitor, c );
             if( registry == null ) return CSCodeGenerationResult.Failed;
 
             Debug.Assert( nameof( RawCrisExecutor.RawExecuteAsync ) == "RawExecuteAsync" );

@@ -4,6 +4,11 @@
     <Nullable>enable</Nullable>
     <RootNamespace>CK.Cris</RootNamespace>
   </PropertyGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="CK.PerfectEvent" Version="19.0.1--0020-develop" />
+  </ItemGroup>
+  
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
   </ItemGroup>

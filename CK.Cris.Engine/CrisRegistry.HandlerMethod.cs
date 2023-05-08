@@ -1,17 +1,15 @@
 using CK.Core;
+using CK.Cris;
 using System;
 using System.Reflection;
 
 namespace CK.Setup.Cris
 {
-    public partial class CommandRegistry
+    public partial class CrisRegistry
     {
-        public class HandlerMethod
+        public sealed class HandlerMethod : BaseHandler
         {
-            public readonly Entry Command;
-            public readonly IStObjFinalClass Owner;
-            public readonly MethodInfo Method;
-            public readonly ParameterInfo[] Parameters;
+            public override CrisHandlerKind Kind => CrisHandlerKind.CommandHandler;
             public readonly ParameterInfo CommandParameter;
             public readonly Type UnwrappedReturnType;
             public readonly bool IsRefAsync;
@@ -27,11 +25,8 @@ namespace CK.Setup.Cris
                                   bool isRefAsync,
                                   bool isValAsync,
                                   bool isClosedHandler )
+                : base( command, owner, method, parameters )
             {
-                Command = command;
-                Owner = owner;
-                Method = method;
-                Parameters = parameters;
                 CommandParameter = commandParameter;
                 UnwrappedReturnType = unwrappedReturnType;
                 IsRefAsync = isRefAsync;

@@ -6,16 +6,24 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 
 namespace CK.Setup.Cris
 {
     /// <summary>
-    /// Code generator of the <see cref="CommandDirectory"/> service.
+    /// Code generator of the <see cref="CrisDirectory"/> service.
     /// </summary>
-    public partial class CommandDirectoryImpl : CSCodeGeneratorType
+    public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextBoundInitializer
     {
+
+        // Auto registers IAmbientValues so that tests don't have to register it explicitly: registering CrisDirectory is enough.
+        void IAttributeContextBoundInitializer.Initialize( IActivityMonitor monitor, ITypeAttributesCache owner, MemberInfo m, Action<Type> alsoRegister )
+        {
+            alsoRegister( typeof( CK.Cris.AmbientValues.IAmbientValues ) );
+        }
+
         // We keep a reference instead of using CommandRegistry.FindOrCreate each time (for TypeScript).
-        CommandRegistry? _registry;
+        CrisRegistry? _registry;
 
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
@@ -25,8 +33,8 @@ namespace CK.Setup.Cris
 
         CSCodeGenerationResult DoImplement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope, JsonSerializationCodeGen? json = null )
         { 
-            Throw.CheckState( "Applies only to the CommandDirectory class.", classType == typeof( CommandDirectory ) );
-            _registry = CommandRegistry.FindOrCreate( monitor, c );
+            Throw.CheckState( "Applies only to the CrisDirectory class.", classType == typeof( CrisDirectory ) );
+            _registry = CrisRegistry.FindOrCreate( monitor, c );
             if( _registry == null ) return CSCodeGenerationResult.Failed;
 
             scope.Workspace.Global.FindOrCreateNamespace( "CK" ).Append( @"
@@ -64,28 +72,47 @@ sealed class CRISCommandHandlerDesc : CK.Cris.ICrisPocoModel.IHandler
     public CRISCommandHandlerDesc( TEMPORARYStObjFinalClass type,
                                     string methodName,
                                     Type[] parameters,
-                                    bool canEmitEvents )
+                                    CK.Cris.CrisHandlerKind kind )
     {
         Type = type;
         MethodName = methodName;
         Parameters = parameters;
-        CanEmitEvents = canEmitEvents;
+        Kind = kind;
   }
 
     public IStObjFinalClass Type { get; }
 
     public string MethodName { get; }
 
-    public bool CanEmitEvents { get; }
+    public CK.Cris.CrisHandlerKind Kind { get; }
 
-    public Type[] Parameters { get; }
+    public IReadOnlyList<Type> Parameters { get; }
 }
 " );
 
             scope.GeneratedByComment().NewLine()
                  .Append( "public " ).Append( scope.Name ).Append( "() : base( CreateCommands() ) {}" ).NewLine();
 
-            scope.Append( "static IReadOnlyList<CK.Cris.ICrisPocoModel> CreateCommands()" ).NewLine()
+            // Temporary. Waiting for "StObj goes Static".
+            Dictionary<IStObjFinalClass,string> stObjStatic = new Dictionary<IStObjFinalClass,string>();
+
+            static string GetStObjFinalStatic( ITypeScopePart f, IStObjFinalClass c, Dictionary<IStObjFinalClass, string> stObjStatic )
+            {
+                if( !stObjStatic.TryGetValue( c, out var result ) )
+                {
+                    result = $"_tempStObj{stObjStatic.Count}";
+                    f.Append( "static readonly CK.CRISCommandHandlerDesc.TEMPORARYStObjFinalClass " ).Append( result ).Append( " = new CK.CRISCommandHandlerDesc.TEMPORARYStObjFinalClass(" ).NewLine()
+                     .AppendTypeOf( c.ClassType ).Append( ", " ).NewLine()
+                     .AppendTypeOf( c.FinalType ).Append( ", " ).NewLine()
+                     .Append( c.IsScoped ).Append( ", " ).NewLine()
+                     .AppendArray( c.MultipleMappings ).Append( ", " ).NewLine()
+                     .AppendArray( c.UniqueMappings ).Append( " );" ).NewLine();
+                    stObjStatic.Add( c, result );
+                }
+                return result;
+            }
+
+            scope.Append( "static IReadOnlyList<CK.Cris.ICrisPocoModel> CreateCommands()" )
                  .OpenBlock()
                  .Append( "var list = new CK.Cris.ICrisPocoModel[]" ).NewLine()
                  .Append( "{" ).NewLine();
@@ -103,40 +130,46 @@ sealed class CRISCommandHandlerDesc : CK.Cris.ICrisPocoModel.IHandler
                         return CSCodeGenerationResult.Failed;
                     }
                 }
-                var f = c.Assembly.FindOrCreateAutoImplementedClass( monitor, e.Command.PocoFactoryClass );
+                var f = c.Assembly.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoInfo.PocoFactoryClass );
                 f.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICrisPocoModel" ) );
                 f.Append( "public Type CommandType => PocoClassType;" ).NewLine()
                  .Append( "public int CrisPocoIndex => " ).Append( e.CrisPocoIndex ).Append( ";" ).NewLine()
                  .Append( "public string PocoName => Name;" ).NewLine()
-                 .Append( "public bool IsEvent => " ).Append( e.IsEvent ).Append( ";" ).NewLine()
+                 .Append( "public CrisPocoKind Kind => " ).Append( e.Kind ).Append( ";" ).NewLine()
                  .Append( "public Type ResultType => " ).AppendTypeOf( e.ResultType ).Append( ";" ).NewLine()
                  .Append( "CK.Cris.ICrisPoco CK.Cris.ICrisPocoModel.Create() => (CK.Cris.ICrisPoco)Create();" ).NewLine();
 
-                if( e.Handler == null )
+                if( !e.IsHandled )
                 {
-                    f.Append( "public CK.Cris.ICrisPocoModel.IHandler? Handler => null;" );
+                    f.Append( "public bool IsHandled => false;" ).NewLine()
+                     .Append( "public IReadOnlyList<CK.Cris.ICrisPocoModel.IHandler> Handlers => Array.Empty<CK.Cris.ICrisPocoModel.IHandler>();" );
                 }
                 else
                 {
-                    f.Append( "static readonly CK.CRISCommandHandlerDesc.TEMPORARYStObjFinalClass _tempFinalClass = new CK.CRISCommandHandlerDesc.TEMPORARYStObjFinalClass(" ).NewLine()
-                        .AppendTypeOf( e.Handler.Owner.ClassType ).Append( ", " ).NewLine()
-                        .AppendTypeOf( e.Handler.Owner.FinalType ).Append( ", " ).NewLine()
-                        .Append( e.Handler.Owner.IsScoped ).Append( ", " ).NewLine()
-                        .AppendArray( e.Handler.Owner.MultipleMappings ).Append( ", " ).NewLine()
-                        .AppendArray( e.Handler.Owner.UniqueMappings ).Append( " );" ).NewLine();
+                    var allHandlers = e.Handler != null
+                                        ? ((IEnumerable<CrisRegistry.BaseHandler>)e.Validators).Append( e.Handler ).Concat( e.PostHandlers )
+                                        : e.EventHandlers;
+                    Debug.Assert( allHandlers.Any() );
 
-                    f.Append( "static readonly CK.Cris.ICrisPocoModel.IHandler _cmdHandlerDesc = new CK.CRISCommandHandlerDesc(" ).NewLine()
-                     .Append( "_tempFinalClass," ).NewLine()
-                     .AppendSourceString( e.Handler.Method.Name ).Append( "," ).NewLine()
-                     .AppendArray( e.Handler.Parameters.Select( p => p.ParameterType ) ).Append( "," )
-                     .Append( e.Handler.Parameters.Any( p => p.ParameterType == typeof( ICrisEventSender ) ) ).Append( ");" ).NewLine();
+                    var staticStObjPart = f.CreatePart().Append( "// Temporary" ).NewLine();
+                    f.Append( "static readonly CK.Cris.ICrisPocoModel.IHandler[] _handlers = new CK.CRISCommandHandlerDesc[] {" ).NewLine();
+                    foreach( var handler in allHandlers )
+                    {
+                        f.Append( "new CK.CRISCommandHandlerDesc(" ).NewLine()
+                         .Append( GetStObjFinalStatic( staticStObjPart, handler.Owner, stObjStatic ) ).Append( "," ).NewLine()
+                         .AppendSourceString( handler.Method.Name ).Append( "," ).NewLine()
+                         .AppendArray( handler.Parameters.Select( p => p.ParameterType ) ).Append( "," )
+                         .Append( handler.Kind ).Append( ")," ).NewLine();
+                    }
+                    f.Append( "};" ).NewLine();
 
-                    f.Append( "public CK.Cris.ICrisPocoModel.IHandler? Handler => _cmdHandlerDesc;" );
+                    f.Append( "public bool IsHandled => true;" ).NewLine()
+                     .Append( "public IReadOnlyList<CK.Cris.ICrisPocoModel.IHandler> Handlers => _handlers;" );
                 }
                 f.NewLine();
 
                 // The CrisPocoModel is the _factory field.
-                var p = c.Assembly.FindOrCreateAutoImplementedClass( monitor, e.Command.PocoClass );
+                var p = c.Assembly.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoInfo.PocoClass );
                 p.Append( "public CK.Cris.ICrisPocoModel CrisPocoModel => _factory;" ).NewLine();
 
                 scope.Append( p.FullName ).Append( "._factory,").NewLine();
@@ -160,23 +193,22 @@ sealed class CRISCommandHandlerDesc : CK.Cris.ICrisPocoModel.IHandler
             {
                 if( c.ExpectedHandlerService != null )
                 {
-                    if( c.Command.ClosureInterface != null )
+                    if( c.CrisPocoInfo.ClosureInterface != null )
                     {
-                        monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType.FullName}' must implement a command handler method for closed command {c.PocoName} of the closing type {c.Command.ClosureInterface.FullName}." );
+                        monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType.FullName}' must implement a command handler method for closed command {c.PocoName} of the closing type {c.CrisPocoInfo.ClosureInterface.FullName}." );
                     }
                     else
                     {
-                        monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType.FullName}' must implement a command handler method for unclosed command {c.PocoName} of primary type {c.Command.PrimaryInterface.FullName}." );
+                        monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType.FullName}' must implement a command handler method for unclosed command {c.PocoName} of primary type {c.CrisPocoInfo.PrimaryInterface.FullName}." );
                     }
                     r = CSCodeGenerationResult.Failed;
                 }
                 else
                 {
-                    monitor.Warn( $"Command {c.PocoName} for primary type {c.Command.PrimaryInterface.FullName} has no associated handler." );
+                    monitor.Warn( $"Command {c.PocoName} for primary type {c.CrisPocoInfo.PrimaryInterface.FullName} has no associated handler." );
                 }
             }
             return r;
         }
-
     }
 }

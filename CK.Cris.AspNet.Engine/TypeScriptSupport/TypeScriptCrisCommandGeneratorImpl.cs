@@ -16,7 +16,7 @@ namespace CK.Setup
 {
     public class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerator
     {
-        CommandRegistry? _registry;
+        CrisRegistry? _registry;
 
         bool ITSCodeGenerator.ConfigureTypeScriptAttribute( IActivityMonitor monitor, ITSTypeFileBuilder builder, TypeScriptAttribute a )
         {
@@ -25,7 +25,7 @@ namespace CK.Setup
         }
         bool ITSCodeGenerator.Initialize( IActivityMonitor monitor, TypeScriptContext context )
         {
-            _registry = CommandRegistry.Find( monitor, context.CodeContext );
+            _registry = CrisRegistry.Find( monitor, context.CodeContext );
             Debug.Assert( _registry != null, "CSharp code implementation has necessarily been successfully called." );
             context.PocoCodeGenerator.PocoGenerating += OnPocoGenerating;
             return true;
@@ -45,7 +45,7 @@ namespace CK.Setup
                     // The TSIPocoCodeGenerator (in CK.StObj.TypeScript.Engine) generates all the
                     // interfaces and the final class implementation in the same file (file and class
                     // is the PrimaryInterface name without the I).
-                    g.DeclareTSType( monitor, cmd.Command.PrimaryInterface );
+                    g.DeclareTSType( monitor, cmd.CrisPocoInfo.PrimaryInterface );
 
                     // Declares the command result, whatever it is.
                     // If it's a IPoco, it will benefit from the same treatment as the command above.
@@ -176,7 +176,7 @@ namespace CK.Setup
             }
         }
 
-        static string? AppendCrisPocoModelSignature( ITSCodePart code, CommandRegistry.Entry cmd, PocoGeneratingEventArgs e )
+        static string? AppendCrisPocoModelSignature( ITSCodePart code, CrisRegistry.Entry cmd, PocoGeneratingEventArgs e )
         {
             var signature = "readonly " + (e.TypeFile.Context.Root.PascalCase ? "C" : "c") + "risPocoModel: CrisPocoModel<";
             code.Append( signature );
