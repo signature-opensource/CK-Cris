@@ -5,18 +5,18 @@ using System.Runtime.CompilerServices;
 namespace CK.Cris
 {
     /// <summary>
-    /// Decorates a method that is a command or command part validator.
+    /// Decorates a method that is a <see cref="IEvent"/> handler.
     /// </summary>
     [AttributeUsage( AttributeTargets.Method, AllowMultiple = false, Inherited = false )]
-    public sealed class CommandValidatorAttribute : ContextBoundDelegationAttribute
+    public sealed class RoutedEventHandlerAttribute : ContextBoundDelegationAttribute
     {
         /// <summary>
-        /// Initializes a new <see cref="CommandValidatorAttribute"/>.
+        /// Initializes a new <see cref="RoutedEventHandlerAttribute"/>.
         /// </summary>
-        /// <param name="fileName">Captures the source file name of the validator definition.</param>
-        /// <param name="lineNumber">Captures the source line number of the validator definition.</param>
-        public CommandValidatorAttribute( [CallerFilePath] string? fileName = null, [CallerLineNumber] int lineNumber = 0 )
-            : base( "CK.Setup.Cris.CommandValidatorAttributeImpl, CK.Cris.Engine" )
+        /// <param name="fileName">Captures the source file name of the handler definition.</param>
+        /// <param name="lineNumber">Captures the source line number of the handler definition.</param>
+        public RoutedEventHandlerAttribute( [CallerFilePath] string? fileName = null, [CallerLineNumber] int lineNumber = 0 )
+            : base( "CK.Setup.Cris.RoutedEventHandlerAttributeImpl, CK.Cris.Engine" )
         {
             FileName = fileName;
             LineNumber = lineNumber;

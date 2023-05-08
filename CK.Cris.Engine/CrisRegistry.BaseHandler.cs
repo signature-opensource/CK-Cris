@@ -16,15 +16,19 @@ namespace CK.Setup.Cris
             public readonly IStObjFinalClass Owner;
             public readonly MethodInfo Method;
             public readonly ParameterInfo[] Parameters;
+            public readonly string FileName;
+            public readonly int LineNumber;
 
             public abstract CrisHandlerKind Kind { get; }
 
-            protected BaseHandler( Entry command, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters )
+            protected BaseHandler( Entry command, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, string? fileName, int lineNumber )
             {
                 Command = command;
                 Owner = owner;
                 Method = method;
                 Parameters = parameters;
+                FileName = fileName ?? string.Empty;
+                LineNumber = lineNumber;
             }
         }
 

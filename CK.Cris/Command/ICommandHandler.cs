@@ -10,7 +10,7 @@ namespace CK.Cris
     /// it handles the <typeparamref name="T"/> command: a method marked with [<see cref="CommandHandlerAttribute"/>] 
     /// must exist.
     /// <para>
-    /// This interface is not required: when used it enables its command handler method to benefit of the <see cref="IAutoService"/>
+    /// This interface is not required but when used it enables its command handler method to benefit of the <see cref="IAutoService"/>
     /// substitutability.
     /// </para>
     /// </summary>

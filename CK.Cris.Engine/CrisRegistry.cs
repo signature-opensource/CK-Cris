@@ -17,7 +17,7 @@ namespace CK.Setup.Cris
     /// </summary>
     public partial class CrisRegistry
     {
-        readonly IReadOnlyDictionary<IPocoRootInfo, Entry> _indexedCommands;
+        readonly IReadOnlyDictionary<IPocoRootInfo, Entry> _indexedEntries;
 
         /// <summary>
         /// Gets the root information on all available Poco.
@@ -35,15 +35,15 @@ namespace CK.Setup.Cris
         public IReadOnlyList<Entry> CrisPocoModels { get; }
 
         /// <summary>
-        /// Finds a command from its Poco definition.
+        /// Finds a command or event entry from its Poco definition.
         /// </summary>
         /// <param name="poco">The poco definition.</param>
-        /// <returns>The command or null.</returns>
-        public Entry? Find( IPocoRootInfo poco ) => _indexedCommands.GetValueOrDefault( poco );
+        /// <returns>The entry or null.</returns>
+        public Entry? Find( IPocoRootInfo poco ) => _indexedEntries.GetValueOrDefault( poco );
 
-        internal bool RegisterHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, bool allowUnclosed )
+        internal bool RegisterHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, bool allowUnclosed, string? fileName, int lineNumber )
         {
-            (Entry? e, ParameterInfo[]? parameters, ParameterInfo? p) = GetCommandEntry( monitor, "Handler", m );
+            (Entry? e, ParameterInfo[]? parameters, ParameterInfo? p) = GetSingleCommandEntry( monitor, "Handler", m );
             if( e == null ) return false;
             Debug.Assert( parameters != null && p != null );
             bool isClosedHandler = p.ParameterType == e.CrisPocoInfo.ClosureInterface;
@@ -56,36 +56,36 @@ namespace CK.Setup.Cris
                     return true;
                 }
             }
-            return e.AddHandler( monitor, impl, m, parameters, p, isClosedHandler );
+            return e.AddHandler( monitor, impl, m, parameters, p, isClosedHandler, fileName, lineNumber );
         }
 
-        internal bool RegisterPostHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m )
+        internal bool RegisterPostHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber )
         {
-            (Entry? e, ParameterInfo[]? parameters, ParameterInfo? p) = GetCommandEntry( monitor, "PostHandler", m );
+            (Entry? e, ParameterInfo[]? parameters, ParameterInfo? p) = GetSingleCommandEntry( monitor, "PostHandler", m );
             if( e == null ) return false;
             Debug.Assert( parameters != null && p != null );
-            return e.AddPostHandler( monitor, impl, m, parameters, p );
+            return e.AddPostHandler( monitor, impl, m, parameters, p, fileName, lineNumber );
         }
 
-        internal bool RegisterValidator( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m )
+        internal bool RegisterValidator( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber )
         {
-            (ParameterInfo[]? parameters, ParameterInfo? p, IReadOnlyList<IPocoRootInfo>? commands) = GetImpactedCommands( monitor, impl, m );
+            (ParameterInfo[]? parameters, ParameterInfo? p, IReadOnlyList<IPocoRootInfo>? families) = GetImpactedFamilies( monitor, impl, m, expectCommands: true );
             if( p != null )
             {
                 Debug.Assert( parameters != null );
                 bool success = true;
-                Debug.Assert( commands != null, "p == null <==> commands == null" );
-                if( commands.Count == 0 )
+                Debug.Assert( families != null, "p == null <==> families == null" );
+                if( families.Count == 0 )
                 {
                     monitor.Trace( $"Method {MethodName(m,parameters)} is unused since no command match the '{p.Name}' parameter." );
                 }
                 else
                 {
-                    foreach( var command in commands )
+                    foreach( var family in families )
                     {
-                        Debug.Assert( _indexedCommands.ContainsKey( command ), "Since parameters are filtered by registered Poco." );
-                        var e = _indexedCommands[command];
-                        success &= e.AddValidator( monitor, impl, m, parameters, p );
+                        Debug.Assert( _indexedEntries.ContainsKey( family ), "Since parameters are filtered by registered Poco." );
+                        var e = _indexedEntries[family];
+                        success &= e.AddValidator( monitor, impl, m, parameters, p, fileName, lineNumber );
                     }
                 }
                 return success;
@@ -94,41 +94,54 @@ namespace CK.Setup.Cris
         }
 
 
-        (ParameterInfo[]? Parameters, ParameterInfo? Param, IReadOnlyList<IPocoRootInfo>? Commands) GetImpactedCommands( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m )
+        internal bool RegisterRoutedEvent( IActivityMonitor monitor, IStObjFinalClass stObjFinalClass, MethodInfo method, string? fileName, int lineNumber )
         {
-            (ParameterInfo[]? parameters, ParameterInfo? p, IPocoInterfaceInfo? commandInterface) = GetCommandCandidate( monitor, m );
+            throw new NotImplementedException();
+        }
+
+        (ParameterInfo[]? Parameters, ParameterInfo? Param, IReadOnlyList<IPocoRootInfo>? Families) GetImpactedFamilies( IActivityMonitor monitor,
+                                                                                                                         IStObjFinalClass impl,
+                                                                                                                         MethodInfo m,
+                                                                                                                         bool expectCommands )
+        {
+            (ParameterInfo[]? parameters, ParameterInfo? p, IPocoInterfaceInfo? pocoInterface) = GetSingleOrDefaultConcreteCandidate( monitor, m, expectCommands );
             if( parameters == null ) return (null, null, null);
             if( p != null )
             {
-                Debug.Assert( commandInterface != null, "Since we have a ICommand parameter." );
-                return (parameters, p, new IPocoRootInfo[] { commandInterface.Root });
+                Debug.Assert( pocoInterface != null, "Since we have a concrete IAbstractCommand or IEvent parameter." );
+                return (parameters, p, new IPocoRootInfo[] { pocoInterface.Root });
             }
-            // Looking for command parts.
-            var (param, commands) = GetCommandsFromPart( monitor, m, parameters );
+            // Looking for parts.
+            var (param, families) = GetFamiliesFromPart( monitor, m, parameters, expectCommands );
             if( param != null )
             {
-                return (parameters, param, commands);
+                return (parameters, param, families);
             }
             return (parameters, null, null);
         }
 
-        (ParameterInfo? Parameter, IReadOnlyList<IPocoRootInfo>? Commands) GetCommandsFromPart( IActivityMonitor monitor, MethodInfo m, ParameterInfo[] parameters )
+        (ParameterInfo? Parameter, IReadOnlyList<IPocoRootInfo>? Families) GetFamiliesFromPart( IActivityMonitor monitor,
+                                                                                                MethodInfo m,
+                                                                                                ParameterInfo[] parameters,
+                                                                                                bool expectCommands )
         {
-            var candidates = parameters.Where( param => typeof( ICommandPart ).IsAssignableFrom( param.ParameterType ) )
-                                        .Select( param => (param, commandPartsList: PocoResult.OtherInterfaces.GetValueOrDefault( param.ParameterType, Array.Empty<IPocoRootInfo>() )! ) )
+            var tPart = expectCommands ? typeof( ICommandPart ) : typeof( IEventPart );
+            var candidates = parameters.Where( param => tPart.IsAssignableFrom( param.ParameterType ) )
+                                        .Select( param => (param, partsList: PocoResult.OtherInterfaces.GetValueOrDefault( param.ParameterType, Array.Empty<IPocoRootInfo>() )! ) )
                                         .ToArray();
+            if( candidates.Length == 1 )
+            {
+                Debug.Assert( candidates[0].partsList != null, "Nulls have been filtered out." );
+                return (candidates[0].param, candidates[0].partsList);
+            }
+            var expected = expectCommands ? "ICommand, ICommand<TResult> or ICommandPart" : "IEvent or IEventPart";
             if( candidates.Length > 1 )
             {
-                monitor.Error( $"Method {MethodName( m, parameters )} cannot have more than one ICommand or ICommandPart parameter." );
+                monitor.Error( $"Method {MethodName( m, parameters )} cannot have more than one {expected} parameter." );
             }
             else if( candidates.Length == 0 )
             {
-                monitor.Error( $"Method {MethodName( m, parameters )}: no ICommand nor ICommandPart parameter detected." );
-            }
-            else
-            {
-                Debug.Assert( candidates[0].commandPartsList != null, "Nulls have been filtered out." );
-                return (candidates[0].param, candidates[0].commandPartsList);
+                monitor.Error( $"Method {MethodName( m, parameters )}: missing a {expected} parameter." );
             }
             return (null, null);
         }
@@ -157,11 +170,11 @@ namespace CK.Setup.Cris
             if( !c.CurrentRun.Memory.TryGetCachedInstance<CrisRegistry>( out var result ) )
             {
                 var pocoResult = c.CurrentRun.ServiceContainer.GetRequiredService<IPocoSupportResult>();
-                var (index,commands) = CreateCommandMap( monitor, c.CurrentRun.EngineMap, pocoResult );
-                if( commands != null )
+                var (index,entries) = CreateAllEntries( monitor, c.CurrentRun.EngineMap, pocoResult );
+                if( entries != null )
                 {
-                    Debug.Assert( index != null, "Since commands is not null." );
-                    monitor.Info( $"{commands.Count} commands detected." );
+                    Debug.Assert( index != null, "Since entries is not null." );
+                    monitor.Info( $"{entries.Count} commands or events detected." );
                     var av = pocoResult.Find( typeof( CK.Cris.AmbientValues.IAmbientValues ) );
                     if( av == null )
                     {
@@ -169,7 +182,7 @@ namespace CK.Setup.Cris
                     }
                     else
                     {
-                        result = new CrisRegistry( index, commands, pocoResult, av.Root );
+                        result = new CrisRegistry( index, entries, pocoResult, av.Root );
                     }
                 }
                 c.CurrentRun.Memory.AddCachedInstance( result );
@@ -178,34 +191,35 @@ namespace CK.Setup.Cris
         }
 
 
-        CrisRegistry( IReadOnlyDictionary<IPocoRootInfo, Entry> index, IReadOnlyList<Entry> commands, IPocoSupportResult poco, IPocoRootInfo ambientValues )
+        CrisRegistry( IReadOnlyDictionary<IPocoRootInfo, Entry> index, IReadOnlyList<Entry> entries, IPocoSupportResult poco, IPocoRootInfo ambientValues )
         {
-            _indexedCommands = index;
-            CrisPocoModels = commands;
+            _indexedEntries = index;
+            CrisPocoModels = entries;
             PocoResult = poco;
             AmbientValues = ambientValues;
         }
 
-        static (Dictionary<IPocoRootInfo, Entry>?,IReadOnlyList<Entry>?) CreateCommandMap( IActivityMonitor monitor, IStObjEngineMap services, IPocoSupportResult pocoResult )
+        static (Dictionary<IPocoRootInfo, Entry>?,IReadOnlyList<Entry>?) CreateAllEntries( IActivityMonitor monitor, IStObjEngineMap services, IPocoSupportResult pocoResult )
         {
             bool success = true;
             var index = new Dictionary<IPocoRootInfo, Entry>();
             var entries = new List<Entry>();
+            // Kindly handle the fact that no ICrisPoco exist. This should not happen since IAmbientValues at least should be registered.
             if( pocoResult.OtherInterfaces.TryGetValue( typeof( ICrisPoco ), out IReadOnlyList<IPocoRootInfo>? crisPocos ) )
             {
                 foreach( var poco in crisPocos )
                 {
                     var hServices = poco.Interfaces.Select( i => typeof( ICommandHandler<> ).MakeGenericType( i.PocoInterface ) )
-                                                        .Select( gI => (itf: gI, impl: services.Find( gI )) )
-                                                        .Where( m => m.impl != null )
-                                                        .GroupBy( m => m.impl )
-                                                        .ToArray();
+                                                   .Select( gI => (itf: gI, impl: services.Find( gI )) )
+                                                   .Where( m => m.impl != null )
+                                                   .GroupBy( m => m.impl )
+                                                   .ToArray();
                     if( hServices.Length > 1 )
                     {
                         monitor.Error( $"Ambiguous command handler '{hServices.Select( m => $"{m.Key!.ClassType:C}' implements '{m.Select( x => x.itf.ToCSharpName() ).Concatenate( "' ,'" )}" )}': only one service can eventually handle a command." );
                         success = false;
                     }
-                    var entry = Entry.Create( monitor, pocoResult, poco, entries.Count, hServices.Length == 1 ? hServices[0].Key : null );
+                    var entry = Entry.Create( monitor, pocoResult, poco, entries.Count, services );
                     if( entry == null ) success = false;
                     else
                     {
@@ -250,9 +264,9 @@ namespace CK.Setup.Cris
         }
 
 
-        (Entry? e, ParameterInfo[]? parameters, ParameterInfo? p) GetCommandEntry( IActivityMonitor monitor, string kind, MethodInfo m )
+        (Entry? e, ParameterInfo[]? parameters, ParameterInfo? p) GetSingleCommandEntry( IActivityMonitor monitor, string kind, MethodInfo m )
         {
-            (ParameterInfo[]? parameters, ParameterInfo? p, IPocoInterfaceInfo? commandInterface) = GetCommandCandidate( monitor, m );
+            (ParameterInfo[]? parameters, ParameterInfo? p, IPocoInterfaceInfo? commandInterface) = GetSingleOrDefaultConcreteCandidate( monitor, m, expectCommand: true );
             if( parameters != null )
             {
                 if( p == null )
@@ -263,14 +277,16 @@ namespace CK.Setup.Cris
                 {
                     Debug.Assert( commandInterface != null, "Since we have a parameter." );
                     Debug.Assert( parameters != null );
-                    Debug.Assert( _indexedCommands.ContainsKey( commandInterface.Root ), "Since parameters are filtered by registered Poco." );
-                    return (_indexedCommands[commandInterface.Root], parameters, p);
+                    Debug.Assert( _indexedEntries.ContainsKey( commandInterface.Root ), "Since parameters are filtered by registered Poco." );
+                    return (_indexedEntries[commandInterface.Root], parameters, p);
                 }
             }
             return (null, null, null);
         }
 
-        (ParameterInfo[]? Parameters, ParameterInfo? Param, IPocoInterfaceInfo? ParamInterface) GetCommandCandidate( IActivityMonitor monitor, MethodInfo m )
+        (ParameterInfo[]? Parameters, ParameterInfo? Param, IPocoInterfaceInfo? ParamInterface) GetSingleOrDefaultConcreteCandidate( IActivityMonitor monitor,
+                                                                                                                                     MethodInfo m,
+                                                                                                                                     bool expectCommand )
         {
             var parameters = m.GetParameters();
             var candidates = parameters.Select( p => (p, PocoResult.AllInterfaces.GetValueOrDefault( p.ParameterType )) )
@@ -279,15 +295,30 @@ namespace CK.Setup.Cris
                                                                     .ToArray();
             if( candidates.Length > 1 )
             {
-                monitor.Error( $"Method {MethodName( m, parameters )} cannot have more than one ICommand parameter." );
+                string tooMuch = candidates.Select( c => $"{c.p.ParameterType.ToCSharpName()} {c.p.Name}" ).Concatenate();
+                monitor.Error( $"Method {MethodName( m, parameters )} cannot have more than one concrete command or event parameter. Found: {tooMuch}." );
                 return (null, null, null);
             }
             if( candidates.Length == 0 )
             {
                 return (parameters, null, null);
             }
-            Debug.Assert( candidates[0].Item2 != null && candidates[0].p.ParameterType == candidates[0].Item2!.PocoInterface );
-            return (parameters, candidates[0].p, candidates[0].Item2);
+            var paramInfo = candidates[0].p;
+            Debug.Assert( candidates[0].Item2 != null && paramInfo.ParameterType == candidates[0].Item2!.PocoInterface );
+            bool isCommand = typeof( ICrisPoco ).IsAssignableFrom( paramInfo.ParameterType );
+            if( isCommand != expectCommand )
+            {
+                if( expectCommand )
+                {
+                    monitor.Error( $"Method {MethodName( m, parameters )} must have a ICommand or ICommand<TResult> parameter. Parameter '{paramInfo.Name}' is a IEvent." );
+                }
+                else
+                {
+                    monitor.Error( $"Method {MethodName( m, parameters )} must have a IEvent parameter. Parameter '{paramInfo.Name}' is a ICommand or ICommand<TResult>." );
+                }
+                return (null, null, null);
+            }
+            return (parameters, paramInfo, candidates[0].Item2);
         }
 
         static void CheckSyncAsyncMethodName( IActivityMonitor monitor, MethodInfo method, ParameterInfo[] parameters, bool isAsyncRet )

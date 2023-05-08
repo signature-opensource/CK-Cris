@@ -86,6 +86,16 @@ namespace CK.Cris
             /// Gets the parameter types of <see cref="MethodName"/>.
             /// </summary>
             IReadOnlyList<Type> Parameters { get; }
+
+            /// <summary>
+            /// Gets the name of the file that implements the handler.
+            /// </summary>
+            string FileName { get; }
+
+            /// <summary>
+            /// Gets the line number in <see cref="FileName"/>.
+            /// </summary>
+            int LineNumber { get; }
         }
 
         /// <summary>

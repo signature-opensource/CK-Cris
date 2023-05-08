@@ -20,12 +20,14 @@ namespace CK.Setup.Cris
                                   IStObjFinalClass owner,
                                   MethodInfo method,
                                   ParameterInfo[] parameters,
+                                  string? fileName,
+                                  int lineNumber,
                                   ParameterInfo commandParameter,
                                   Type unwrappedReturnType,
                                   bool isRefAsync,
                                   bool isValAsync,
                                   bool isClosedHandler )
-                : base( command, owner, method, parameters )
+                : base( command, owner, method, parameters, fileName, lineNumber )
             {
                 CommandParameter = commandParameter;
                 UnwrappedReturnType = unwrappedReturnType;

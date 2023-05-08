@@ -29,22 +29,22 @@ namespace CK.Cris
 
         /// <summary>
         /// A <see cref="IEvent"/> that is immediately routed to all routed
-        /// event handlers that can handle it.
+        /// event handlers that can handle it. See <see cref="EventRoutingMode.Immediate"/>.
         /// </summary>
         RoutedEventImmediate,
 
         /// <summary>
         /// A <see cref="IEvent"/> that will be routed to all routed
-        /// event handlers that can handle it once the source command
+        /// event handlers that can handle it once the command
         /// has been successfully executed.
         /// </summary>
-        RoutedEventOnSuccess,
+        RoutedEventOnCommandSuccess,
 
         /// <summary>
         /// A <see cref="IEvent"/> that will be routed to all routed
-        /// event handlers that can handle it once the source command
+        /// event handlers that can handle it once the command
         /// has been executed even if the execution fails at some point.
         /// </summary>
-        RoutedEventDeferred,
+        RoutedEventOnCommandCompletion,
     }
 }

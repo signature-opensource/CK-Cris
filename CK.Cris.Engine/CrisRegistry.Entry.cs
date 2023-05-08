@@ -19,7 +19,7 @@ namespace CK.Setup.Cris
         {
             readonly List<ValidatorMethod> _validators;
             readonly List<PostHandlerMethod> _postHandlers;
-            readonly List<EventHandlerMethod> _eventHandlers;
+            readonly List<RoutedEventHandlerMethod> _eventHandlers;
 
             /// <summary>
             /// Gets the Cris Poco descriptor.
@@ -53,10 +53,10 @@ namespace CK.Setup.Cris
 
             /// <summary>
             /// Gets the event handlers methods.
-            /// Non empty only for <see cref="CrisPocoKind.RoutedEventDeferred"/>, <see cref="CrisPocoKind.RoutedEventImmediate"/>
-            /// and <see cref="CrisPocoKind.RoutedEventOnSuccess"/>.
+            /// Non empty only for <see cref="CrisPocoKind.RoutedEventOnCommandCompletion"/>, <see cref="CrisPocoKind.RoutedEventImmediate"/>
+            /// and <see cref="CrisPocoKind.RoutedEventOnCommandSuccess"/>.
             /// </summary>
-            public IReadOnlyList<EventHandlerMethod> EventHandlers => _eventHandlers;
+            public IReadOnlyList<RoutedEventHandlerMethod> EventHandlers => _eventHandlers;
 
             /// <summary>
             /// Gets the name of this command or event (this is the <see cref="IPocoRootInfo.Name"/>).
@@ -194,7 +194,7 @@ namespace CK.Setup.Cris
                 CrisPocoInfo = pocoInfo;
                 _validators = new List<ValidatorMethod>();
                 _postHandlers = new List<PostHandlerMethod>();
-                _eventHandlers = new List<EventHandlerMethod>();
+                _eventHandlers = new List<RoutedEventHandlerMethod>();
                 Kind = kind;
                 CrisPocoIndex = crisPocoIdx;
                 ResultNullableTypeTree = resultType;
@@ -204,9 +204,9 @@ namespace CK.Setup.Cris
 
             internal static Entry? Create( IActivityMonitor monitor,
                                            IPocoSupportResult pocoSupportResult,
-                                           IPocoRootInfo command,
+                                           IPocoRootInfo poco,
                                            int crisPocoIdx,
-                                           IStObjFinalClass? handlerService )
+                                           IStObjEngineMap services )
             {
                 Type resultType;
                 IPocoInterfaceInfo? pocoResultType;
@@ -230,7 +230,7 @@ namespace CK.Setup.Cris
                 bool isEvent = false;
                 bool isCommand = false;
                 List<Type>? resultTypes = null;
-                foreach( var i in command.OtherInterfaces )
+                foreach( var i in poco.OtherInterfaces )
                 {
                     if( i == typeof( ICommand ) ) isCommand = true;
                     else if( i == typeof( IEvent ) ) isEvent = true;
@@ -248,12 +248,12 @@ namespace CK.Setup.Cris
                 {
                     if( isCommand )
                     {
-                        monitor.Error( $"Command '{command.Name}' cannot be both a IEvent and a ICommand." );
+                        monitor.Error( $"Command '{poco.Name}' cannot be both a IEvent and a ICommand." );
                         return null;
                     }
                     if( resultTypes != null )
                     {
-                        monitor.Error( $"Command '{command.Name}' cannot be both a IEvent and a ICommand<TResult>." );
+                        monitor.Error( $"Command '{poco.Name}' cannot be both a IEvent and a ICommand<TResult>." );
                         return null;
                     }
                     // TODO: Analyze the RoutedEventAttribute.
@@ -286,7 +286,7 @@ namespace CK.Setup.Cris
                     }
                     else
                     {
-                        monitor.Error( $"Invalid command Result type for '{command.Name}': result types '{resultTypes.Select( t => t.Name ).Concatenate( "', '" )}' must resolve to a common most specific type." );
+                        monitor.Error( $"Invalid command Result type for '{poco.Name}': result types '{resultTypes.Select( t => t.Name ).Concatenate( "', '" )}' must resolve to a common most specific type." );
                         return null;
                     }
                     kind = CrisPocoKind.CommandWithResult;
@@ -299,7 +299,24 @@ namespace CK.Setup.Cris
                 }
                 #endregion
 
-                return new Entry( command, crisPocoIdx, resultType.GetNullableTypeTree(), pocoResultType, handlerService, kind );
+                // If it's a Command, tries to fin a non ambiguous ICommandHandler<> AutoService for it.
+                IStObjFinalClass? commandHandlerService = null;
+                if( kind == CrisPocoKind.Command || kind == CrisPocoKind.CommandWithResult )
+                {
+                    var hServices = poco.Interfaces.Select( i => typeof( ICommandHandler<> ).MakeGenericType( i.PocoInterface ) )
+                               .Select( gI => (itf: gI, impl: services.Find( gI )) )
+                               .Where( m => m.impl != null )
+                               .GroupBy( m => m.impl )
+                               .ToArray();
+                    if( hServices.Length > 1 )
+                    {
+                        monitor.Error( $"Ambiguous command handler '{hServices.Select( m => $"{m.Key!.ClassType:C}' implements '{m.Select( x => x.itf.ToCSharpName() ).Concatenate( "' ,'" )}" )}': only one service can eventually handle a command." );
+                        return null;
+                    }
+                    commandHandlerService = hServices.Length == 1 ? hServices[0].Key : null;
+                }
+
+                return new Entry( poco, crisPocoIdx, resultType.GetNullableTypeTree(), pocoResultType, commandHandlerService, kind );
             }
 
             internal bool AddHandler( IActivityMonitor monitor,
@@ -307,7 +324,9 @@ namespace CK.Setup.Cris
                                       MethodInfo method,
                                       ParameterInfo[] parameters,
                                       ParameterInfo parameter,
-                                      bool isClosedHandler )
+                                      bool isClosedHandler,
+                                      string? fileName,
+                                      int lineNumber )
             {
                 // If the Command is closed, we silently skip handlers of unclosed commands: we expect the final handler of the closure interface.
                 if( !isClosedHandler && CrisPocoInfo.ClosureInterface != null )
@@ -368,7 +387,7 @@ namespace CK.Setup.Cris
                         return false;
                     }
                 }
-                Handler = new HandlerMethod( this, owner, method, parameters, parameter, unwrappedReturnType, isRefAsync, isValAsync, isClosedHandler );
+                Handler = new HandlerMethod( this, owner, method, parameters, fileName, lineNumber, parameter, unwrappedReturnType, isRefAsync, isValAsync, isClosedHandler );
                 CheckSyncAsyncMethodName( monitor, method, parameters, Handler.IsRefAsync || Handler.IsValAsync );
                 return true;
 
@@ -378,14 +397,26 @@ namespace CK.Setup.Cris
                 }
             }
 
-            internal bool AddValidator( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, ParameterInfo commandParameter )
+            internal bool AddValidator( IActivityMonitor monitor,
+                                        IStObjFinalClass owner,
+                                        MethodInfo method,
+                                        ParameterInfo[] parameters,
+                                        ParameterInfo commandParameter,
+                                        string? fileName,
+                                        int lineNumber )
             {
                 if( !CheckVoidReturn( monitor, "Validator", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
-                _validators.Add( new ValidatorMethod( this, owner, method, parameters, commandParameter, isRefAsync, isValAsync ) );
+                _validators.Add( new ValidatorMethod( this, owner, method, parameters, fileName, lineNumber, commandParameter, isRefAsync, isValAsync ) );
                 return true;
             }
 
-            internal bool AddPostHandler( IActivityMonitor monitor, IStObjFinalClass owner, MethodInfo method, ParameterInfo[] parameters, ParameterInfo commandParameter )
+            internal bool AddPostHandler( IActivityMonitor monitor,
+                                          IStObjFinalClass owner,
+                                          MethodInfo method,
+                                          ParameterInfo[] parameters,
+                                          ParameterInfo commandParameter,
+                                          string? fileName,
+                                          int lineNumber )
             {
                 if( !CheckVoidReturn( monitor, "PostHandler", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
 
@@ -414,6 +445,8 @@ namespace CK.Setup.Cris
                                                           owner,
                                                           method,
                                                           parameters,
+                                                          fileName,
+                                                          lineNumber,
                                                           commandParameter,
                                                           resultParameter,
                                                           mustCastResultParameter,

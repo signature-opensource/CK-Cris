@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -9,7 +8,7 @@ namespace CK.Cris
     /// a command or by a routed handler method.
     /// <para>
     /// By default, only the source command execution context can observe the events.
-    /// The event must be decorated with [<see cref="RoutedEventAttribute"/>] to be handled by
+    /// The event must be decorated with [<see cref="RoutedEventHandlerAttribute"/>] to be handled by
     /// <see cref="RoutedEventHandlerAttribute"/> methods.
     /// </para>
     /// <para>

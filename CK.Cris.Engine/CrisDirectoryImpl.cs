@@ -37,9 +37,9 @@ namespace CK.Setup.Cris
             _registry = CrisRegistry.FindOrCreate( monitor, c );
             if( _registry == null ) return CSCodeGenerationResult.Failed;
 
-            scope.Workspace.Global.FindOrCreateNamespace( "CK" ).Append( @"
-sealed class CRISCommandHandlerDesc : CK.Cris.ICrisPocoModel.IHandler
-{
+            var handlerDescTypeScope = scope.Workspace.Global.FindOrCreateNamespace( "CK.Cris" ).CreateType( "sealed class CrisHandlerDescriptor : CK.Cris.ICrisPocoModel.IHandler" );
+
+            handlerDescTypeScope.Append( @"
     // Waiting for ""StObj goes static"": the static fields of
     // GeneratedStObjContextRoot will expose the
     // static GFinalStObj[] _finalStObjs and services list so that the ""real""
@@ -47,10 +47,10 @@ sealed class CRISCommandHandlerDesc : CK.Cris.ICrisPocoModel.IHandler
     public sealed class TEMPORARYStObjFinalClass : IStObjFinalClass
     {
         public TEMPORARYStObjFinalClass( Type classType,
-                                            Type finalType,
-                                            bool isScoped,
-                                            IReadOnlyCollection<Type> multipleMappings,
-                                            IReadOnlyCollection<Type> uniqueMappings )
+                                         Type finalType,
+                                         bool isScoped,
+                                         IReadOnlyCollection<Type> multipleMappings,
+                                         IReadOnlyCollection<Type> uniqueMappings )
         {
             ClassType = classType;
             FinalType = finalType;
@@ -69,16 +69,20 @@ sealed class CRISCommandHandlerDesc : CK.Cris.ICrisPocoModel.IHandler
         public IReadOnlyCollection<Type> UniqueMappings { get; }
     }
 
-    public CRISCommandHandlerDesc( TEMPORARYStObjFinalClass type,
+    public CrisHandlerDescriptor( TEMPORARYStObjFinalClass type,
                                     string methodName,
                                     Type[] parameters,
-                                    CK.Cris.CrisHandlerKind kind )
+                                    CK.Cris.CrisHandlerKind kind,
+                                    string fileName,
+                                    int lineNumber )
     {
         Type = type;
         MethodName = methodName;
         Parameters = parameters;
         Kind = kind;
-  }
+        FileName = fileName;
+        LineNumber = lineNumber;
+    }
 
     public IStObjFinalClass Type { get; }
 
@@ -87,7 +91,10 @@ sealed class CRISCommandHandlerDesc : CK.Cris.ICrisPocoModel.IHandler
     public CK.Cris.CrisHandlerKind Kind { get; }
 
     public IReadOnlyList<Type> Parameters { get; }
-}
+
+    public string FileName { get; }
+
+    public int LineNumber { get; }
 " );
 
             scope.GeneratedByComment().NewLine()
@@ -96,12 +103,12 @@ sealed class CRISCommandHandlerDesc : CK.Cris.ICrisPocoModel.IHandler
             // Temporary. Waiting for "StObj goes Static".
             Dictionary<IStObjFinalClass,string> stObjStatic = new Dictionary<IStObjFinalClass,string>();
 
-            static string GetStObjFinalStatic( ITypeScopePart f, IStObjFinalClass c, Dictionary<IStObjFinalClass, string> stObjStatic )
+            static string GetStObjFinalStatic( ITypeScope f, IStObjFinalClass c, Dictionary<IStObjFinalClass, string> stObjStatic )
             {
                 if( !stObjStatic.TryGetValue( c, out var result ) )
                 {
                     result = $"_tempStObj{stObjStatic.Count}";
-                    f.Append( "static readonly CK.CRISCommandHandlerDesc.TEMPORARYStObjFinalClass " ).Append( result ).Append( " = new CK.CRISCommandHandlerDesc.TEMPORARYStObjFinalClass(" ).NewLine()
+                    f.Append( "public static readonly TEMPORARYStObjFinalClass " ).Append( result ).Append( " = new TEMPORARYStObjFinalClass(" ).NewLine()
                      .AppendTypeOf( c.ClassType ).Append( ", " ).NewLine()
                      .AppendTypeOf( c.FinalType ).Append( ", " ).NewLine()
                      .Append( c.IsScoped ).Append( ", " ).NewLine()
@@ -109,7 +116,7 @@ sealed class CRISCommandHandlerDesc : CK.Cris.ICrisPocoModel.IHandler
                      .AppendArray( c.UniqueMappings ).Append( " );" ).NewLine();
                     stObjStatic.Add( c, result );
                 }
-                return result;
+                return $"{f.FullName}.{result}";
             }
 
             scope.Append( "static IReadOnlyList<CK.Cris.ICrisPocoModel> CreateCommands()" )
@@ -135,7 +142,7 @@ sealed class CRISCommandHandlerDesc : CK.Cris.ICrisPocoModel.IHandler
                 f.Append( "public Type CommandType => PocoClassType;" ).NewLine()
                  .Append( "public int CrisPocoIndex => " ).Append( e.CrisPocoIndex ).Append( ";" ).NewLine()
                  .Append( "public string PocoName => Name;" ).NewLine()
-                 .Append( "public CrisPocoKind Kind => " ).Append( e.Kind ).Append( ";" ).NewLine()
+                 .Append( "public CK.Cris.CrisPocoKind Kind => " ).Append( e.Kind ).Append( ";" ).NewLine()
                  .Append( "public Type ResultType => " ).AppendTypeOf( e.ResultType ).Append( ";" ).NewLine()
                  .Append( "CK.Cris.ICrisPoco CK.Cris.ICrisPocoModel.Create() => (CK.Cris.ICrisPoco)Create();" ).NewLine();
 
@@ -151,15 +158,17 @@ sealed class CRISCommandHandlerDesc : CK.Cris.ICrisPocoModel.IHandler
                                         : e.EventHandlers;
                     Debug.Assert( allHandlers.Any() );
 
-                    var staticStObjPart = f.CreatePart().Append( "// Temporary" ).NewLine();
-                    f.Append( "static readonly CK.Cris.ICrisPocoModel.IHandler[] _handlers = new CK.CRISCommandHandlerDesc[] {" ).NewLine();
+                    f.Append( "static readonly CK.Cris.ICrisPocoModel.IHandler[] _handlers = new [] {" ).NewLine();
                     foreach( var handler in allHandlers )
                     {
-                        f.Append( "new CK.CRISCommandHandlerDesc(" ).NewLine()
-                         .Append( GetStObjFinalStatic( staticStObjPart, handler.Owner, stObjStatic ) ).Append( "," ).NewLine()
+                        f.Append( "new CK.Cris.CrisHandlerDescriptor(" ).NewLine()
+                         .Append( GetStObjFinalStatic( handlerDescTypeScope, handler.Owner, stObjStatic ) ).Append( "," ).NewLine()
                          .AppendSourceString( handler.Method.Name ).Append( "," ).NewLine()
                          .AppendArray( handler.Parameters.Select( p => p.ParameterType ) ).Append( "," )
-                         .Append( handler.Kind ).Append( ")," ).NewLine();
+                         .Append( handler.Kind ).Append( "," )
+                         .AppendSourceString( handler.FileName ).Append( "," )
+                         .Append( handler.LineNumber )
+                         .Append( ")," ).NewLine();
                     }
                     f.Append( "};" ).NewLine();
 

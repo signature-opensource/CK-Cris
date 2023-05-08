@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Waiting for v8.0.0 -->
+    <PackageReference Include="CK.CodeGen" Version="7.0.1--0019-develop" />
     <PackageReference Include="CK.StObj.Runtime" Version="23.0.1--0028-develop" />
   </ItemGroup>
   <ItemGroup>

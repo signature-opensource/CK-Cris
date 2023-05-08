@@ -1,8 +1,5 @@
-using CK.Core;
 using CK.Setup;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace CK.Cris
@@ -11,7 +8,7 @@ namespace CK.Cris
     /// Decorates a method that is a command (or command part) post handler.
     /// </summary>
     [AttributeUsage( AttributeTargets.Method, AllowMultiple = false, Inherited = false )]
-    public class CommandPostHandlerAttribute : ContextBoundDelegationAttribute
+    public sealed class CommandPostHandlerAttribute : ContextBoundDelegationAttribute
     {
         /// <summary>
         /// Initializes a new <see cref="CommandPostHandlerAttribute"/>.

@@ -19,12 +19,14 @@ namespace CK.Setup.Cris
                                         IStObjFinalClass owner,
                                         MethodInfo method,
                                         ParameterInfo[] parameters,
+                                        string? fileName,
+                                        int lineNumber,
                                         ParameterInfo cmdOrPartParameter,
                                         ParameterInfo? resultParameter,
                                         bool mustCastResultParameter,
                                         bool isRefAsync,
                                         bool isValAsync )
-                : base( command, owner, method, parameters )
+                : base( command, owner, method, parameters, fileName, lineNumber )
             {
                 CmdOrPartParameter = cmdOrPartParameter;
                 ResultParameter = resultParameter;

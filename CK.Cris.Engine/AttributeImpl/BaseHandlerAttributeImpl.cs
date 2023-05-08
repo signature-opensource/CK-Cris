@@ -1,23 +1,20 @@
 using CK.Core;
-using CK.Cris;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace CK.Setup.Cris
 {
     /// <summary>
-    /// Base class for CommandValidatorAttributeImpl, CommandHandlerAttributeImpl and CommandPostHandlerAttributeImpl.
+    /// Base class for CommandValidatorAttributeImpl, CommandHandlerAttributeImpl, CommandPostHandlerAttributeImpl
+    /// and RoutedEventHandlerAttributeImpl.
     /// </summary>
-    abstract class CommandAttributeImpl
+    abstract class BaseHandlerAttributeImpl
     {
         readonly Type _type;
         readonly MethodInfo _method;
 
-        public CommandAttributeImpl( Type t, MethodInfo m )
+        public BaseHandlerAttributeImpl( Type t, MethodInfo m )
         {
             _type = t;
             _method = m;
@@ -34,7 +31,7 @@ namespace CK.Setup.Cris
         }
 
         protected (CrisRegistry? Registry, IStObjFinalClass? Impl, MethodInfo Method) Prepare( IActivityMonitor monitor,
-                                                                                                  ICSCodeGenerationContext codeGenContext )
+                                                                                               ICSCodeGenerationContext codeGenContext )
         {
             IStObjFinalClass? impl = codeGenContext.CurrentRun.EngineMap.Find( _type );
             if( !_method.IsPublic )
