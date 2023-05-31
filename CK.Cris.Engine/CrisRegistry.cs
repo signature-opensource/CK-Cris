@@ -210,7 +210,7 @@ namespace CK.Setup.Cris
                 foreach( var poco in crisPocos )
                 {
                     var hServices = poco.Interfaces.Select( i => typeof( ICommandHandler<> ).MakeGenericType( i.PocoInterface ) )
-                                                   .Select( gI => (itf: gI, impl: services.Find( gI )) )
+                                                   .Select( gI => (itf: gI, impl: services.ToLeaf( gI )) )
                                                    .Where( m => m.impl != null )
                                                    .GroupBy( m => m.impl )
                                                    .ToArray();
