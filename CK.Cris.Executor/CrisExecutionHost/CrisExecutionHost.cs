@@ -8,31 +8,21 @@ using System.Threading.Tasks;
 
 namespace CK.Cris
 {
-
-    [EndpointDefinition]
-    public abstract class CrisEndpointDefinition : EndpointDefinition<CrisAsyncJob>
-    {
-        public override void ConfigureEndpointServices( IServiceCollection services,
-                                                        Func<IServiceProvider,CrisAsyncJob> scopeData,
-                                                        IServiceProviderIsService globalServiceExists )
-        {
-            services.AddScoped( sp => scopeData( sp )._runnerMonitor! );
-        }
-    }
-
     /// <summary>
     /// Non generic base class for <see cref="CrisExecutor{T}"/> that
-    /// implements <see cref="ICrisAsyncExecutor"/> interface.
+    /// implements <see cref="ICrisExecutionHost"/> interface.
     /// </summary>
     [CKTypeSuperDefiner]
     [Setup.AlsoRegisterType( typeof( ICrisJobResult ) )]
-    public abstract partial class CrisAsyncExecutor : ICrisAsyncExecutor
+    public sealed partial class CrisExecutionHost : ICrisExecutionHost
     {
         readonly IPocoFactory<ICrisJobResult> _resultFactory;
         readonly IPocoFactory<ICrisResultError> _errorResultFactory;
-        readonly IEndpointType<CrisAsyncJob> _endpoint;
+        readonly PocoDirectory _pocoDirectory;
+        readonly RawCrisValidator _commandValidator;
+        readonly RawCrisExecutor _commandExecutor;
 
-        readonly PerfectEventSender<ICrisAsyncExecutor> _parallelRunnerCountChanged;
+        readonly PerfectEventSender<ICrisExecutionHost> _parallelRunnerCountChanged;
         // We use null as the close signal for runners and push int values to regulate the count of
         // runners.
         // The _channel is used as the lock to manage runners.
@@ -71,14 +61,15 @@ namespace CK.Cris
             object? Result { get; set; }
         }
 
-        private protected CrisAsyncExecutor( IServiceProvider serviceProvider )
+        public CrisExecutionHost( PocoDirectory pocoDirectory, RawCrisValidator validator, RawCrisExecutor executor )
         {
-            _resultFactory = serviceProvider.GetRequiredService<IPocoFactory<ICrisJobResult>>();
-            _errorResultFactory = serviceProvider.GetRequiredService<IPocoFactory<ICrisResultError>>();
-            _endpoint = serviceProvider.GetRequiredService<IEndpointType<CrisAsyncJob>>();
-
+            _pocoDirectory = pocoDirectory;
+            _resultFactory = pocoDirectory.Find<ICrisJobResult>()!;
+            _errorResultFactory = pocoDirectory.Find<ICrisResultError>()!;
+            _commandValidator = validator;
+            _commandExecutor = executor;
             _channel = Channel.CreateUnbounded<object?>();
-            _parallelRunnerCountChanged = new PerfectEventSender<ICrisAsyncExecutor>();
+            _parallelRunnerCountChanged = new PerfectEventSender<ICrisExecutionHost>();
             _runnerCount = 1;
             _plannedRunnerCount = 1;
             _last = new Runner( this, 0, null );
@@ -99,69 +90,63 @@ namespace CK.Cris
         }
 
         /// <inheritdoc />
-        public PerfectEvent<ICrisAsyncExecutor> ParallelRunnerCountChanged => _parallelRunnerCountChanged.PerfectEvent;
+        public PerfectEvent<ICrisExecutionHost> ParallelRunnerCountChanged => _parallelRunnerCountChanged.PerfectEvent;
+
+        sealed record class ExecuteJob( TheTruc Truc, CrisJob Job );
+
+        public void BackgroundExecute( TheTruc truc, IAbstractCommand command, ActivityMonitor.Token issuerToken )
+        {
+            Throw.CheckNotNullArgument( truc );
+            Throw.CheckNotNullArgument( command );
+            Throw.CheckNotNullArgument( issuerToken );
+            Push( new ExecuteJob( truc, truc.CreateJob( command, issuerToken ) ) );
+        }
 
         private protected void Push( object job ) => _channel.Writer.TryWrite( job );
 
         private protected virtual ValueTask ExecuteTypedJobAsync( IActivityMonitor monitor, object job )
         {
-            if( job is int count )
-            {
-                return HandleSetRunnerCountAsync( monitor, count );
-            }
-            monitor.Error( $"Unhandled job type '{job.GetType()}'." );
-            return default;
+            if( job is ExecuteJob eJob ) return HandleCommandAsync( monitor, eJob );
+            return HandleSetRunnerCountAsync( monitor, (int)job );
         }
 
-        async ValueTask HandleCommandAsync( IActivityMonitor monitor, CrisAsyncJob c )
+        async ValueTask HandleCommandAsync( IActivityMonitor monitor, ExecuteJob eJob )
         {
-            using var log = monitor.StartDependentActivity( c.IssuerToken );
+            using var log = monitor.StartDependentActivity( eJob.Job.IssuerToken );
 
             // Creates the scoped services.
-            // Sets the runner monitor on the job: it will be the monitor used
-            // by validation and execution.
-            c._runnerMonitor = monitor;
+            // Sets the runner monitor on the job: it will be the monitor used by validation and execution.
+            eJob.Job._runnerMonitor = monitor;
+            // Initializes the root execution context.
+            eJob.Job._executionContext = new ExecutionContext( monitor, this, eJob.Truc, eJob.Job.Command );
 
-            AsyncServiceScope scoped;
+            AsyncServiceScope scoped = default;
+            bool isScopedCreated = false;
 
-            // TODO: This should be code generated for 2 reasons:
-            // - The warnings of the ConfigureServices will appear in the validation result (currently they are lost).
-            // - The services would be resolved only once across the Validation and Execution methods.
-            var step = "configuring services for";
+            // TODO: This should be code generated for the services to be resolved only once across the Validation and Execution methods.
+            var step = "validating";
             try
             {
-                scoped = _endpoint.GetContainer().CreateAsyncScope( c );
-                using( monitor.CollectEntries( out var entries, LogLevelFilter.Warn, 200 ) )
-                {
-                    c.Endpoint.ConfigureServices( monitor, c.Request, services );
-                    var v = CrisValidationResult.Create( entries );
-                    if( !v.Success )
-                    {
-                        // At least one error occurred while configuring the services.
-                        // Send the faulted validation result and we are done.
-                        c.Endpoint.ReturnCrisValidationResult( monitor, c.Request, v );
-                        return;
-                    }
-                }
-                step = "validating";
-                var validation = await _commandValidator.ValidateCrisPocoAsync( monitor, services, c.Request.Payload );
+                scoped = eJob.Truc.CreateAsyncScope( eJob.Job );
+                isScopedCreated = true;
+                var validation = await _commandValidator.ValidateCommandAsync( monitor, scoped.ServiceProvider, eJob.Job.Command );
                 // Always send the CrisValidationResult even if it is successful: this is the "execution started" signal.
-                c.Endpoint.ReturnCrisValidationResult( monitor, c.Request, validation );
+                await eJob.Truc.ReturnCrisValidationResultAsync( monitor, eJob.Job, validation );
                 // If validation fails, we are done.
                 if( !validation.Success ) return;
                 // Executing the command (handlers and post handlers).
                 step = "executing";
-                var result = await _commandExecutor.RawExecuteAsync( services, c.Request.Payload );
+                var result = await _commandExecutor.RawExecuteAsync( scoped.ServiceProvider, eJob.Job.Command );
                 // Send the result. We are done.
                 var r = _resultFactory.Create();
                 r.Result = result;
-                c.Endpoint.ReturnCommandResult( monitor, c.Request, r );
+                await eJob.Truc.ReturnCommandResultAsync( monitor, eJob.Job, r );
             }
             catch( Exception ex )
             {
-                using( monitor.OpenError( $"While {step} command '{c.Request.Payload.CrisPocoModel.PocoName}'." ) )
+                using( monitor.OpenError( $"While {step} command '{eJob.Job.Command.CrisPocoModel.PocoName}'." ) )
                 {
-                    monitor.Error( c.Request.Payload.ToString()!, ex );
+                    monitor.Error( eJob.Job.Command.ToString()!, ex );
                 }
                 // Send the error. We are done.
                 var error = _errorResultFactory.Create( e => e.Errors.Add( ex.Message ) );
@@ -169,15 +154,14 @@ namespace CK.Cris
                 // log by the Runner), we want to dispose the services.
                 var r = _resultFactory.Create();
                 r.Result = error;
-                c.Endpoint.ReturnCommandResult( monitor, c.Request, r );
+                await eJob.Truc.ReturnCommandResultAsync( monitor, eJob.Job, r );
             }
             finally
             {
-                await scoped.DisposeAsync();
+                if( isScopedCreated ) await scoped.DisposeAsync();
             }
         }
 
     }
-
 
 }

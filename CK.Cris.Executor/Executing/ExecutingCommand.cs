@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 
 namespace CK.Cris
 {
+    /// <summary>
+    /// Non generic base class for <see cref="IExecutingCommand{T}"/> implementation.
+    /// </summary>
     public class ExecutingCommand : IExecutingCommand
     {
         readonly IAbstractCommand _payload;
