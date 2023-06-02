@@ -78,7 +78,7 @@ namespace CK.Cris.Executor.Tests
             var authInfo = authTypeSystem.AuthenticationInfo.Create( authTypeSystem.UserInfo.Create( 3712, "John" ), DateTime.UtcNow.AddDays( 1 ) );
             var map = TestHelper.CompileAndLoadStObjMap( c ).Map;
             var reg = new StObjContextRoot.ServiceRegister( TestHelper.Monitor, new ServiceCollection() );
-            reg.Register<IAuthenticationInfo>( s => authInfo, true, false );
+            reg.Register<IAuthenticationInfo>( s => authInfo, isScoped: true, allowMultipleRegistration: false );
             reg.Register<IActivityMonitor>( s => TestHelper.Monitor, true, false );
             reg.AddStObjMap( map ).Should().BeTrue( "Service configuration succeed." );
 

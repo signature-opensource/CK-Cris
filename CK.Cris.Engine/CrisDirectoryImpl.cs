@@ -16,10 +16,11 @@ namespace CK.Setup.Cris
     public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextBoundInitializer
     {
 
-        // Auto registers IAmbientValues so that tests don't have to register it explicitly: registering CrisDirectory is enough.
+        // Auto registers IAmbientValues and ICrisResultError so that tests don't have to register them explicitly: registering CrisDirectory is enough.
         void IAttributeContextBoundInitializer.Initialize( IActivityMonitor monitor, ITypeAttributesCache owner, MemberInfo m, Action<Type> alsoRegister )
         {
             alsoRegister( typeof( CK.Cris.AmbientValues.IAmbientValues ) );
+            alsoRegister( typeof( ICrisResultError ) );
         }
 
         // We keep a reference instead of using CommandRegistry.FindOrCreate each time (for TypeScript).

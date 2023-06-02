@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CK.Cris</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CK.Auth.Cris\CK.Auth.Cris.csproj" />
+    <ProjectReference Include="..\CK.Cris.Executor\CK.Cris.Executor.csproj" />
+  </ItemGroup>
+
+</Project>

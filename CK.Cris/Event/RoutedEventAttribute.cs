@@ -6,6 +6,9 @@ namespace CK.Cris
     /// Defines the <see cref="EventRoutingMode"/> of a concrete <see cref="IEvent"/>.
     /// This can decorate only the concrete <see cref="IEvent"/> root, not a <see cref="IEventPart"/>
     /// nor an extension.
+    /// <para>
+    /// Without this attribute, an event is only observable from its caller (<see cref="CrisPocoKind.Event"/>
+    /// </para>
     /// </summary>
     [AttributeUsage( AttributeTargets.Interface, AllowMultiple = false, Inherited = false )]
     public sealed class RoutedEventAttribute : Attribute

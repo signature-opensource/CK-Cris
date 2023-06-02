@@ -29,9 +29,7 @@ namespace CK.Cris.Executor.Tests
         {
             var c = TestHelper.CreateStObjCollector(
                 typeof( RawCrisExecutor ),
-                typeof( CrisDirectory ),
-                typeof( ICrisResultError ),
-                typeof( AmbientValues.IAmbientValues ) );
+                typeof( CrisDirectory ) );
             c.RegisterTypes( types );
             return c;
         }

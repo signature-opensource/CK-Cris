@@ -10,7 +10,7 @@ namespace CK.Cris
     /// Since this is a <see cref="IPoco"/>, it can easily be extended.
     /// <para>
     /// You can use the helper <see cref="PocoFactoryExtensions.Create(IPocoFactory{ICrisResultError}, string, string?[])"/> extension
-    /// method.
+    /// method to create a error from error messages.
     /// </para>
     /// </summary>
     [ExternalName( "CrisResultError" )]

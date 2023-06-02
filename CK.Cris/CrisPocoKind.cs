@@ -38,13 +38,6 @@ namespace CK.Cris
         /// event handlers that can handle it once the command
         /// has been successfully executed.
         /// </summary>
-        RoutedEventOnCommandSuccess,
-
-        /// <summary>
-        /// A <see cref="IEvent"/> that will be routed to all routed
-        /// event handlers that can handle it once the command
-        /// has been executed even if the execution fails at some point.
-        /// </summary>
-        RoutedEventOnCommandCompletion,
+        RoutedEventOnCommandSuccess
     }
 }

@@ -19,15 +19,15 @@ namespace CK.Cris
         {
             /// <summary>
             /// Gets a task that is completed with a successful result or with an exception
-            /// if <see cref="IExecutingCommand.RequestCompletion"/> is a <see cref="ICrisResultError"/>.
+            /// if <see cref="IExecutingCommand.Completion"/> is a <see cref="ICrisResultError"/>.
             /// </summary>
             Task<TResult> Result { get; }
         }
 
         /// <summary>
-        /// Gets the command.
+        /// Gets the command that is executing.
         /// </summary>
-        T Command { get; }
+        new T Command { get; }
     }
 }
 

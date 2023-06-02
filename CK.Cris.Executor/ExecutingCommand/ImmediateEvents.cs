@@ -7,32 +7,29 @@ using System.Threading.Tasks;
 
 namespace CK.Cris
 {
-
-    sealed class Collector<TEmitter, T> : ICollector<TEmitter, T> where T : class
+    /// <summary>
+    /// Exposes a live collection of immediate <see cref="IEvent"/>: the <see cref="Added"/> event can be used
+    /// to react to new events.
+    /// </summary>
+    public sealed class ImmediateEvents : IReadOnlyCollection<IEvent>
     {
         Node? _first;
         Node? _last;
-        readonly PerfectEventSender<TEmitter, T> _added;
-        IBridge? _eventBridge;
+        internal readonly PerfectEventSender<IEvent> _immediate;
         int _count;
 
-        internal Collector( PerfectEventSender<TEmitter, T>? onEventRelay )
+        internal ImmediateEvents()
         {
-            _added = new PerfectEventSender<TEmitter, T>();
-            if( onEventRelay != null )
-            {
-                _eventBridge = _added.CreateRelay( onEventRelay );
-            }
+            _immediate = new PerfectEventSender<IEvent>();
         }
 
-        public void Close() => _eventBridge?.Dispose();
-
         /// <summary>
-        /// Non thread safe: this must NOT be called concurrently,
-        /// but the collection is safe: the enumerator traverse the linked list that can
-        /// only grow at the end.
+        /// Raised whenever a <see cref="CrisPocoKind.RoutedEventImmediate"/> is raised by the executing command (or
+        /// recursively called commands).
         /// </summary>
-        internal Task AddAsync( IActivityMonitor monitor, TEmitter c, T v )
+        public PerfectEvent<IEvent> Added => _immediate.PerfectEvent;
+
+        internal Task AddAndRaiseAsync( IActivityMonitor monitor, IEvent v )
         {
             var n = new Node( v );
             if( _first == null )
@@ -46,34 +43,53 @@ namespace CK.Cris
                 _last.Next = n;
             }
             ++_count;
-            return _added.SafeRaiseAsync( monitor, c, v );
+            return _immediate.SafeRaiseAsync( monitor, v );
         }
 
-        public PerfectEvent<TEmitter, T> Added => _added.PerfectEvent;
+        /// <summary>
+        /// Non thread safe: this must NOT be called concurrently,
+        /// but the collection is safe: the enumerator traverse the linked list that can
+        /// only grow at the end.
+        /// </summary>
+        internal void Add( IEvent v )
+        {
+            var n = new Node( v );
+            if( _first == null )
+            {
+                _first = n;
+                _last = n;
+            }
+            else
+            {
+                Debug.Assert( _last != null );
+                _last.Next = n;
+            }
+            ++_count;
+        }
 
         public int Count => _count;
 
         sealed class Node
         {
-            public readonly T Value;
+            public readonly IEvent Value;
             public Node? Next;
 
-            public Node( T v )
+            public Node( IEvent v )
             {
                 Value = v;
             }
         }
 
-        public struct Enumerator : IEnumerator<T>
+        public struct Enumerator : IEnumerator<IEvent>
         {
             Node? _current;
 
-            internal Enumerator( Collector<TEmitter, T> s )
+            internal Enumerator( ImmediateEvents s )
             {
                 _current = s._first;
             }
 
-            public T Current
+            public IEvent Current
             {
                 get
                 {
@@ -99,7 +115,7 @@ namespace CK.Cris
 
         public Enumerator GetEnumerator() => new Enumerator( this );
 
-        IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+        IEnumerator<IEvent> IEnumerable<IEvent>.GetEnumerator() => GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }

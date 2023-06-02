@@ -4,12 +4,15 @@ using System.Threading.Tasks;
 namespace CK.Cris
 {
     /// <summary>
-    /// This interface can appear in any command handler or post handler or in routed
-    /// event handler method parameters.
+    /// This interface can appear in any command handler or post handler parameters.
     /// <para>
     /// It is not available in command validator methods: a validator cannot send events
     /// or execute commands and is given a validation monitor to emit its errors and
     /// warnings.
+    /// </para>
+    /// <para>
+    /// It is not available in event handler methods: an event handler cannot send events,
+    /// only commands can.
     /// </para>
     /// </summary>
     public interface ICrisExecutionContext : ICrisCallContext

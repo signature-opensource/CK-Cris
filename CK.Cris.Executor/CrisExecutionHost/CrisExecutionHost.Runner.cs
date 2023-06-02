@@ -7,38 +7,37 @@ using System.Threading.Tasks;
 
 namespace CK.Cris
 {
-
     public sealed partial class CrisExecutionHost
     {
-        ValueTask HandleSetRunnerCountAsync( IActivityMonitor monitor, int count )
+        async ValueTask HandleSetRunnerCountAsync( IActivityMonitor monitor, int count )
         {
             int delta;
+            int previousPlanned;
             lock( _channel )
             {
-                if( _plannedRunnerCount == 0 )
+                previousPlanned = _plannedRunnerCount;
+                if( previousPlanned == 0 )
                 {
                     if( count != 0 ) monitor.Warn( $"BackgroundExecutor is stopping: cannot change the active runner count." );
-                    return default;
+                    return;
                 }
-                delta = count - _plannedRunnerCount;
+                delta = count - previousPlanned;
                 _plannedRunnerCount = count;
             }
             if( delta < 0 )
             {
-
-                monitor.Info( $"Decreasing active runners count from {_plannedRunnerCount} to {count} ({_runnerCount} running). Stopping {-delta} runners." );
-                while( ++delta <= 0 ) _channel.Writer.TryWrite( null );
+                monitor.Info( $"Decreasing active runners count from {previousPlanned} to {count} ({_runnerCount} running). Stopping {-delta} runners." );
+                while( ++delta <= 0 ) await _channel.Writer.WriteAsync( null );
             }
             else if( delta == 0 )
             {
-                monitor.Warn( $"There is already {_plannedRunnerCount} activated runners ({_runnerCount} running)." );
+                monitor.Warn( $"There is already {previousPlanned} activated runners ({_runnerCount} running)." );
             }
             else
             {
-                monitor.Info( $"Increasing active runners count from {_plannedRunnerCount} to {count} ({_runnerCount} running). Creating {delta} runners." );
-                while( --delta >= 0 ) _channel.Writer.TryWrite( null );
+                monitor.Info( $"Increasing active runners count from {previousPlanned} to {count} ({_runnerCount} running). Creating {delta} runners." );
+                while( --delta >= 0 ) await _channel.Writer.WriteAsync( null );
             }
-            return default;
         }
 
         bool RunnerShouldDie( IActivityMonitor monitor, Runner runner, out bool shouldRaiseCountChanged )
@@ -49,7 +48,6 @@ namespace CK.Cris
                 int delta = _plannedRunnerCount - _runnerCount;
                 if( delta == 0 )
                 {
-                    Debug.Fail( $"RunnerShouldDie called and _plannedRunnerCount == _runnerCount ({_runnerCount}). This should not happen." );
                     return false;
                 }
                 if( delta < 0 )
@@ -71,6 +69,7 @@ namespace CK.Cris
                         Debug.Assert( (_last == null) == (_runnerCount == 0 && _plannedRunnerCount == 0) );
                     }
                     shouldRaiseCountChanged = _plannedRunnerCount > 0 && _runnerCount == _plannedRunnerCount;
+                    monitor.Info( $"Stopping runner n°{_runnerNumber}" );
                     return true;
                 }
                 Debug.Assert( delta > 0 );
@@ -106,7 +105,6 @@ namespace CK.Cris
 
             async Task RunAsync()
             {
-                Interlocked.Increment( ref _executor._runnerCount );
                 for(; ; )
                 {
                     var o = await _reader.ReadAsync();
@@ -130,7 +128,6 @@ namespace CK.Cris
                     }
                 }
                 _monitor.MonitorEnd();
-                Interlocked.Decrement( ref _executor._runnerCount );
             }
         }
     }
