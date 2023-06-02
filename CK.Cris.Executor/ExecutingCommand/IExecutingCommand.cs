@@ -54,7 +54,7 @@ namespace CK.Cris
         /// Gets a live collection of events emitted by the command execution.
         /// <para>
         /// This is a thread safe collection that is updated during the execution.
-        /// The <see cref="ImmediateEvents.Added"/> event is raised only for <see cref="CrisPocoKind.RoutedEventImmediate"/> event.
+        /// The <see cref="ImmediateEvents.Added"/> event is raised only for <see cref="CrisPocoKind.RoutedImmediateEvent"/> event.
         /// (see <see cref="ICrisPoco.CrisPocoModel"/>.<see cref="ICrisPocoModel.Kind">Kind</see>).
         /// </para>
         /// </summary>

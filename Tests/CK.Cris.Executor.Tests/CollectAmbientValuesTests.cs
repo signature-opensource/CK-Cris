@@ -67,7 +67,7 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task CommandPostHandler_fills_the_resulting_ambient_values_Async()
         {
-            var c = RawCrisExecutorTests.CreateRawExecutorCollector( typeof( IAmbientValuesCollectCommand ),
+            var c = RawCrisExecutorCommandTests.CreateRawExecutorCollector( typeof( IAmbientValuesCollectCommand ),
                                                                            typeof( AmbientValuesService ),
                                                                            typeof( AuthService ),
                                                                            typeof( IAuthAmbientValues ),

@@ -20,7 +20,7 @@ namespace CK.Setup.Cris
         {
             var (registry, impl, method) = Prepare( monitor, codeGenContext );
             Debug.Assert( registry == null || impl != null, "registry available => final implementation of the class that implements the method exists." );
-            return registry != null && registry.RegisterRoutedEvent( monitor, impl!, method, _a.FileName, _a.LineNumber )
+            return registry != null && registry.RegisterRoutedEventHandler( monitor, impl!, method, _a.FileName, _a.LineNumber )
                     ? CSCodeGenerationResult.Success
                     : CSCodeGenerationResult.Failed;
         }

@@ -1,24 +1,17 @@
-using CK.Auth;
 using CK.Core;
 using CK.Setup;
-using CK.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
 
-#nullable enable
-
 namespace CK.Cris.Executor.Tests
 {
+
     [TestFixture]
-    public class RawCrisExecutorTests
+    public class RawCrisExecutorCommandTests
     {
         /// <summary>
         /// Default common types registration for RawCommandExecutor.
@@ -35,7 +28,7 @@ namespace CK.Cris.Executor.Tests
         }
 
 
-        public interface ICmdTest : ICommand
+        public interface ITestCommand : ICommand
         {
         }
 
@@ -44,7 +37,7 @@ namespace CK.Cris.Executor.Tests
             public static bool Called;
 
             [CommandHandler]
-            public void HandleCommand( ICmdTest cmd )
+            public void HandleCommand( ITestCommand cmd )
             {
                 Called = true;
             }
@@ -53,7 +46,7 @@ namespace CK.Cris.Executor.Tests
         public class CmdRefAsyncHandler : IAutoService
         {
             [CommandHandler( AllowUnclosedCommand = true )]
-            public Task HandleCommandAsync( ICmdTest cmd )
+            public Task HandleCommandAsync( ITestCommand cmd )
             {
                 CmdSyncHandler.Called = true;
                 return Task.CompletedTask;
@@ -63,7 +56,7 @@ namespace CK.Cris.Executor.Tests
         public class CmdValAsyncHandler : IAutoService
         {
             [CommandHandler]
-            public ValueTask HandleCommandAsync( ICmdTest cmd )
+            public ValueTask HandleCommandAsync( ITestCommand cmd )
             {
                 CmdSyncHandler.Called = true;
                 return ValueTask.CompletedTask;
@@ -75,7 +68,7 @@ namespace CK.Cris.Executor.Tests
         [TestCase( "ValAsync" )]
         public async Task basic_handling_of_void_returns_Async( string kind )
         {
-            StObjCollector c = CreateRawExecutorCollector( typeof( ICmdTest ) );
+            StObjCollector c = CreateRawExecutorCollector( typeof( ITestCommand ) );
             c.RegisterType( kind switch
             {
                 "RefAsync" => typeof( CmdRefAsyncHandler ),
@@ -89,7 +82,7 @@ namespace CK.Cris.Executor.Tests
             {
                 var services = scope.ServiceProvider;
                 var executor = services.GetRequiredService<RawCrisExecutor>();
-                var cmd = services.GetRequiredService<IPocoFactory<ICmdTest>>().Create();
+                var cmd = services.GetRequiredService<IPocoFactory<ITestCommand>>().Create();
 
                 CmdSyncHandler.Called = false;
 
@@ -99,7 +92,7 @@ namespace CK.Cris.Executor.Tests
             }
         }
 
-        public interface ICmdIntTest : ICommand<int>
+        public interface IIntTestCommand : ICommand<int>
         {
         }
 
@@ -108,7 +101,7 @@ namespace CK.Cris.Executor.Tests
             public static bool Called;
 
             [CommandHandler]
-            public int HandleCommand( ICmdIntTest cmd )
+            public int HandleCommand( IIntTestCommand cmd )
             {
                 Called = true;
                 return 3712;
@@ -118,7 +111,7 @@ namespace CK.Cris.Executor.Tests
         public class CmdIntRefAsyncHandler : IAutoService
         {
             [CommandHandler]
-            public Task<int> HandleCommandAsync( ICmdIntTest cmd )
+            public Task<int> HandleCommandAsync( IIntTestCommand cmd )
             {
                 CmdIntSyncHandler.Called = true;
                 return Task.FromResult( 3712 );
@@ -130,7 +123,7 @@ namespace CK.Cris.Executor.Tests
             public static bool Called;
 
             [CommandHandler]
-            public ValueTask<int> HandleCommandAsync( ICmdIntTest cmd )
+            public ValueTask<int> HandleCommandAsync( IIntTestCommand cmd )
             {
                 CmdIntValAsyncHandler.Called = CmdIntSyncHandler.Called = true;
                 return new ValueTask<int>( 3712 );
@@ -142,7 +135,7 @@ namespace CK.Cris.Executor.Tests
         [TestCase( "ValAsync" )]
         public async Task basic_handling_with_returned_type_Async( string kind )
         {
-            var c = CreateRawExecutorCollector( typeof( ICmdIntTest ) );
+            var c = CreateRawExecutorCollector( typeof( IIntTestCommand ) );
             c.RegisterType( kind switch
             {
                 "RefAsync" => typeof( CmdIntRefAsyncHandler ),
@@ -156,7 +149,7 @@ namespace CK.Cris.Executor.Tests
             {
                 var services = scope.ServiceProvider;
                 var executor = services.GetRequiredService<RawCrisExecutor>();
-                var cmd = services.GetRequiredService<IPocoFactory<ICmdIntTest>>().Create();
+                var cmd = services.GetRequiredService<IPocoFactory<IIntTestCommand>>().Create();
 
                 CmdIntSyncHandler.Called = false;
 
@@ -169,11 +162,11 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public void ambiguous_handler_detection()
         {
-            var c = CreateRawExecutorCollector( typeof( ICmdIntTest ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandler ) );
+            var c = CreateRawExecutorCollector( typeof( IIntTestCommand ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandler ) );
             TestHelper.GenerateCode( c, engineConfigurator: null ).Success.Should().BeFalse();
         }
 
-        public class CmdIntValAsyncHandlerService : CmdIntValAsyncHandler, ICommandHandler<ICmdIntTest>
+        public class CmdIntValAsyncHandlerService : CmdIntValAsyncHandler, ICommandHandler<IIntTestCommand>
         {
         }
 
@@ -182,7 +175,7 @@ namespace CK.Cris.Executor.Tests
         public void ambiguous_handler_resolution_thanks_to_the_ICommanHandlerT_marker()
         {
             CmdIntValAsyncHandler.Called = false;
-            var c = CreateRawExecutorCollector( typeof( ICmdIntTest ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandlerService ) );
+            var c = CreateRawExecutorCollector( typeof( IIntTestCommand ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandlerService ) );
             TestHelper.GenerateCode( c, engineConfigurator: null ).Success.Should().BeTrue();
         }
 
@@ -190,7 +183,7 @@ namespace CK.Cris.Executor.Tests
         public class CmdIntSyncHandlerWithBadReturnType1 : IAutoService
         {
             [CommandHandler]
-            public string HandleCommand( ICmdIntTest cmd )
+            public string HandleCommand( IIntTestCommand cmd )
             {
                 return "Won't compile.";
             }
@@ -199,7 +192,7 @@ namespace CK.Cris.Executor.Tests
         public class CmdIntSyncHandlerWithBadReturnType2 : IAutoService
         {
             [CommandHandler]
-            public void HandleCommand( ICmdIntTest cmd )
+            public void HandleCommand( IIntTestCommand cmd )
             {
                 // Won't compile
             }
@@ -208,7 +201,7 @@ namespace CK.Cris.Executor.Tests
         public class CmdIntSyncHandlerWithBadReturnType3 : IAutoService
         {
             [CommandHandler]
-            public object HandleCommand( ICmdIntTest cmd )
+            public object HandleCommand( IIntTestCommand cmd )
             {
                 return "Won't compile, even if object generalize int: the EXACT result type must be returned.";
             }
@@ -218,15 +211,15 @@ namespace CK.Cris.Executor.Tests
         public void return_type_mismatch_detection()
         {
             {
-                var c = CreateRawExecutorCollector( typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType1 ) );
+                var c = CreateRawExecutorCollector( typeof( IIntTestCommand ), typeof( CmdIntSyncHandlerWithBadReturnType1 ) );
                 CheckUniqueCommandHasNoHandler( c );
             }
             {
-                var c = CreateRawExecutorCollector( typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType2 ) );
+                var c = CreateRawExecutorCollector( typeof( IIntTestCommand ), typeof( CmdIntSyncHandlerWithBadReturnType2 ) );
                 CheckUniqueCommandHasNoHandler( c );
             }
             {
-                var c = CreateRawExecutorCollector( typeof( ICmdIntTest ), typeof( CmdIntSyncHandlerWithBadReturnType3 ) );
+                var c = CreateRawExecutorCollector( typeof( IIntTestCommand ), typeof( CmdIntSyncHandlerWithBadReturnType3 ) );
                 CheckUniqueCommandHasNoHandler( c );
             }
 
@@ -246,14 +239,14 @@ namespace CK.Cris.Executor.Tests
         public interface ICommandHandler : IAutoService
         {
             [CommandHandler]
-            void Handle( IActivityMonitor m, ICmdTest c );
+            void Handle( IActivityMonitor m, ITestCommand c );
         }
 
         public class CommandHandlerImpl : ICommandHandler
         {
             public static bool Called;
 
-            public void Handle( IActivityMonitor m, ICmdTest c )
+            public void Handle( IActivityMonitor m, ITestCommand c )
             {
                 Called = true;
                 m.Info( "Hop!" );
@@ -263,13 +256,13 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task calling_public_AutoService_implementation_Async()
         {
-            var c = CreateRawExecutorCollector( typeof( ICmdTest ), typeof( CommandHandlerImpl ) );
+            var c = CreateRawExecutorCollector( typeof( ITestCommand ), typeof( CommandHandlerImpl ) );
             using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
                 var executor = services.GetRequiredService<RawCrisExecutor>();
-                var cmd = services.GetRequiredService<IPocoFactory<ICmdTest>>().Create();
+                var cmd = services.GetRequiredService<IPocoFactory<ITestCommand>>().Create();
 
                 CommandHandlerImpl.Called = false;
 
@@ -288,7 +281,7 @@ namespace CK.Cris.Executor.Tests
         {
             public static bool Called;
 
-            void ICommandHandler.Handle( IActivityMonitor m, ICmdTest c )
+            void ICommandHandler.Handle( IActivityMonitor m, ITestCommand c )
             {
                 Called = true;
                 m.Info( "Explicit Hop!" );
@@ -298,13 +291,13 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task calling_explicit_AutoService_implementation_Async()
         {
-            var c = CreateRawExecutorCollector( typeof( ICmdTest ), typeof( CommandHandlerExplicitImpl ) );
+            var c = CreateRawExecutorCollector( typeof( ITestCommand ), typeof( CommandHandlerExplicitImpl ) );
             using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
                 var executor = services.GetRequiredService<RawCrisExecutor>();
-                var cmd = services.GetRequiredService<IPocoFactory<ICmdTest>>().Create();
+                var cmd = services.GetRequiredService<IPocoFactory<ITestCommand>>().Create();
 
                 CommandHandlerExplicitImpl.Called = false;
 

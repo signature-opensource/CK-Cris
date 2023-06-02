@@ -23,9 +23,14 @@ namespace CK.Cris
         }
 
         /// <summary>
-        /// Gets or sets whether the <see cref="ICrisPoco"/> that the method accepts doesn't
-        /// need to be a unified interface of all the interfaces that define the <see cref="ICrisPoco"/>.
-        /// Defaults to false: the "closed interface requirement" is the rule!
+        /// Gets or sets whether the <see cref="IAbstractCommand"/> that the method accepts doesn't
+        /// need to be a unified interface of all the interfaces that define the <see cref="IAbstractCommand"/>.
+        /// Defaults to false: the "closed interface requirement" is the rule but if the handler is able
+        /// to adapt its behavior to the actual type of the command, this can be set to true.
+        /// <para>
+        /// An example of such handlers are the [SqlProcedure] implementation (CK.DB.SqlServer packages) that generates
+        /// code based on the <see cref="ICrisPoco.CrisPocoModel"/> of the type.
+        /// </para>
         /// </summary>
         public bool AllowUnclosedCommand { get; set; }
 

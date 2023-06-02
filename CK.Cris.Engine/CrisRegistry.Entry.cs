@@ -35,7 +35,7 @@ namespace CK.Setup.Cris
             /// <summary>
             /// Gets whether this command or event is handled: a command must have a <see cref="Handler"/> and
             /// an event must have at least one <see cref="EventHandlers"/>. A <see cref="IEvent"/> that is not routed
-            /// (has no [RoutedEventAttribute] is never handled.
+            /// (has no [RoutedEvent] attribute is never handled.
             /// </summary>
             public bool IsHandled => Handler != null || _eventHandlers.Count > 0;
 
@@ -53,8 +53,7 @@ namespace CK.Setup.Cris
 
             /// <summary>
             /// Gets the event handlers methods.
-            /// Non empty only for <see cref="CrisPocoKind.RoutedEventOnCommandCompletion"/>, <see cref="CrisPocoKind.RoutedEventImmediate"/>
-            /// and <see cref="CrisPocoKind.RoutedEventOnCommandSuccess"/>.
+            /// Non empty only for <see cref="CrisPocoKind.RoutedImmediateEvent"/> and <see cref="CrisPocoKind.RoutedEvent"/>.
             /// </summary>
             public IReadOnlyList<RoutedEventHandlerMethod> EventHandlers => _eventHandlers;
 
@@ -83,10 +82,6 @@ namespace CK.Setup.Cris
             /// Gets the final (most specialized) result type.
             /// This is <c>typeof(void)</c> when the command is a <see cref="ICommand"/> or a <see cref="IEvent"/>.
             /// </summary>
-            /// <remarks>
-            /// This can be the special <c>typeof(NoWaitResult)</c> if the command is a
-            /// fire &amp; forget command.
-            /// </remarks>
             public Type ResultType => ResultNullableTypeTree.Type;
 
             /// <summary>
@@ -256,8 +251,10 @@ namespace CK.Setup.Cris
                         monitor.Error( $"Command '{poco.Name}' cannot be both a IEvent and a ICommand<TResult>." );
                         return null;
                     }
-                    // TODO: Analyze the RoutedEventAttribute.
-                    kind = CrisPocoKind.Event;
+                    if( !GetKindFromAttributesAndCheckOtherInterfaces( monitor, poco, out kind ) )
+                    {
+                        return null;
+                    }
                     resultType = typeof( void );
                     pocoResultType = null;
                 }
@@ -317,6 +314,30 @@ namespace CK.Setup.Cris
                 }
 
                 return new Entry( poco, crisPocoIdx, resultType.GetNullableTypeTree(), pocoResultType, commandHandlerService, kind );
+
+                static bool GetKindFromAttributesAndCheckOtherInterfaces( IActivityMonitor monitor, IPocoRootInfo poco, out CrisPocoKind kind )
+                {
+                    bool isRouted = poco.PrimaryInterface.GetCustomAttribute<RoutedEventAttribute>() != null;
+                    bool isImmediate = poco.PrimaryInterface.GetCustomAttribute<ImmediateEventAttribute>() != null;
+                    kind = isRouted
+                            ? (isImmediate ? CrisPocoKind.RoutedImmediateEvent : CrisPocoKind.RoutedEvent)
+                            : (isImmediate ? CrisPocoKind.CallerOnlyImmediateEvent : CrisPocoKind.CallerOnlyEvent);
+                    bool success = true;
+                    foreach( var i in poco.Interfaces.Select( pI => pI.PocoInterface ).Concat( poco.OtherInterfaces ) )
+                    {
+                        if( i.GetCustomAttribute<RoutedEventAttribute>() != null )
+                        {
+                            monitor.Error( $"Interface '{i:C}' cannot be decorated with [RoutedEvent]. Only a primary IEvent interface can use this attribute." );
+                            success = false;
+                        }
+                        if( i.GetCustomAttribute<ImmediateEventAttribute>() != null )
+                        {
+                            monitor.Error( $"Interface '{i:C}' cannot be decorated with [ImmediateEvent]. Only a primary IEvent interface can use this attribute." );
+                            success = false;
+                        }
+                    }
+                    return success;
+                }
             }
 
             internal bool AddHandler( IActivityMonitor monitor,
@@ -380,7 +401,7 @@ namespace CK.Setup.Cris
                     {
                         // Two unclosed handlers. Should we use the two command Parameter types?
                         // - c1 == c2 => Ambiguity.
-                        // - c1 is assignable form c2 => c2
+                        // - c1 is assignable from c2 => c2
                         // - c2 is assignable from c1 => c1
                         // - c1 independent of c2 => Ambiguity.
                         monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{Handler}' handle '{PocoName}' command." );
@@ -407,6 +428,19 @@ namespace CK.Setup.Cris
             {
                 if( !CheckVoidReturn( monitor, "Validator", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
                 _validators.Add( new ValidatorMethod( this, owner, method, parameters, fileName, lineNumber, commandParameter, isRefAsync, isValAsync ) );
+                return true;
+            }
+
+            internal bool AddRoutedEventHandler( IActivityMonitor monitor,
+                                                 IStObjFinalClass owner,
+                                                 MethodInfo method,
+                                                 ParameterInfo[] parameters,
+                                                 ParameterInfo commandParameter,
+                                                 string? fileName,
+                                                 int lineNumber )
+            {
+                if( !CheckVoidReturn( monitor, "EventHandler", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
+                _eventHandlers.Add( new RoutedEventHandlerMethod( this, owner, method, parameters, fileName, lineNumber, commandParameter, isRefAsync, isValAsync ) );
                 return true;
             }
 

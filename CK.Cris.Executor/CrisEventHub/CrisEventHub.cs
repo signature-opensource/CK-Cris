@@ -16,6 +16,7 @@ namespace CK.Cris
         }
 
         public PerfectEvent<IEvent> Immediate => _immediate.PerfectEvent;
+
         public PerfectEvent<IEvent> AllEvent => _allEvent.PerfectEvent;
     }
 

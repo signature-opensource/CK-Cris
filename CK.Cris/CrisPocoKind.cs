@@ -25,19 +25,25 @@ namespace CK.Cris
         /// A <see cref="IEvent"/> that can be observed only
         /// by the source command execution context.
         /// </summary>
-        Event,
+        CallerOnlyEvent,
+
+        /// <summary>
+        /// An immediate <see cref="IEvent"/> that can be observed only
+        /// by the source command execution context.
+        /// </summary>
+        CallerOnlyImmediateEvent,
 
         /// <summary>
         /// A <see cref="IEvent"/> that is immediately routed to all routed
-        /// event handlers that can handle it. See <see cref="EventRoutingMode.Immediate"/>.
+        /// event handlers that can handle it.
         /// </summary>
-        RoutedEventImmediate,
+        RoutedImmediateEvent,
 
         /// <summary>
         /// A <see cref="IEvent"/> that will be routed to all routed
         /// event handlers that can handle it once the command
         /// has been successfully executed.
         /// </summary>
-        RoutedEventOnCommandSuccess
+        RoutedEvent
     }
 }

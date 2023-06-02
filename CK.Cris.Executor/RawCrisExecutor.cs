@@ -22,12 +22,12 @@ namespace CK.Cris
         /// Executes a command or an event by calling the discovered handlers and post handlers.
         /// Any exceptions are thrown (or more precisely are set on the returned <see cref="Task"/>).
         /// <para>
-        /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisCallContext"/> must be resolvable from
-        /// the <paramref name="services"/>.
+        /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisExecutionContext"/> (that is
+        /// a <see cref="ICrisCallContext"/>) must be resolvable from the <paramref name="services"/>.
         /// </para>
         /// </summary>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
-        /// <param name="command">The command or event to execute.</param>
+        /// <param name="o">The command or event to execute.</param>
         /// <returns>The result of the <see cref="ICommand{TResult}"/> if the command has a result.</returns>
         public abstract Task<object?> RawExecuteAsync( IServiceProvider services, ICrisPoco o );
     }

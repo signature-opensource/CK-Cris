@@ -52,10 +52,12 @@ namespace CK.Cris
             {
                 ref var frame = ref StackPeek();
                 if( e is IEventWithCommand c ) c.SourceCommand = frame.Command;
+                // This is not right...
+                // The party is an ambient value, endpoint service, just like the authentication info.
                 if( e is IEventRestrictedParty d ) d.PartyFullName = CoreApplicationIdentity.IsInitialized
                                                                 ? CoreApplicationIdentity.Instance.FullName
                                                                 : $"{CoreApplicationIdentity.DefaultDomainName}/{CoreApplicationIdentity.DefaultEnvironmentName}/{CoreApplicationIdentity.DefaultPartyName}";
-                if( e.CrisPocoModel.Kind == CrisPocoKind.RoutedEventImmediate )
+                if( e.CrisPocoModel.Kind == CrisPocoKind.RoutedImmediateEvent || e.CrisPocoModel.Kind == CrisPocoKind.CallerOnlyImmediateEvent )
                 {
                     return _job._executor.RaiseImmediateEventAsync( _monitor, _job, e );
                 }

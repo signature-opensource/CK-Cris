@@ -69,7 +69,17 @@ namespace CK.Setup.Cris
 
         internal bool RegisterValidator( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber )
         {
-            (ParameterInfo[]? parameters, ParameterInfo? p, IReadOnlyList<IPocoRootInfo>? families) = GetImpactedFamilies( monitor, impl, m, expectCommands: true );
+            return RegisterValidatorOrRoutedEventHandler( monitor, impl, m, fileName, lineNumber, isValidator: true );
+        }
+
+        internal bool RegisterRoutedEventHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber )
+        {
+            return RegisterValidatorOrRoutedEventHandler( monitor, impl, m, fileName, lineNumber, isValidator: false );
+        }
+
+        bool RegisterValidatorOrRoutedEventHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber, bool isValidator )
+        {
+            (ParameterInfo[]? parameters, ParameterInfo? p, IReadOnlyList<IPocoRootInfo>? families) = GetImpactedFamilies( monitor, impl, m, expectCommands: isValidator );
             if( p != null )
             {
                 Debug.Assert( parameters != null );
@@ -77,7 +87,7 @@ namespace CK.Setup.Cris
                 Debug.Assert( families != null, "p == null <==> families == null" );
                 if( families.Count == 0 )
                 {
-                    monitor.Trace( $"Method {MethodName(m,parameters)} is unused since no command match the '{p.Name}' parameter." );
+                    monitor.Trace( $"Method {MethodName( m, parameters )} is unused since no {(isValidator ? "command" : "event")} match the '{p.Name}' parameter." );
                 }
                 else
                 {
@@ -85,18 +95,14 @@ namespace CK.Setup.Cris
                     {
                         Debug.Assert( _indexedEntries.ContainsKey( family ), "Since parameters are filtered by registered Poco." );
                         var e = _indexedEntries[family];
-                        success &= e.AddValidator( monitor, impl, m, parameters, p, fileName, lineNumber );
+                        success &= isValidator
+                                    ? e.AddValidator( monitor, impl, m, parameters, p, fileName, lineNumber )
+                                    : e.AddRoutedEventHandler( monitor, impl, m, parameters, p, fileName, lineNumber );
                     }
                 }
                 return success;
             }
             return false;
-        }
-
-
-        internal bool RegisterRoutedEvent( IActivityMonitor monitor, IStObjFinalClass stObjFinalClass, MethodInfo method, string? fileName, int lineNumber )
-        {
-            throw new NotImplementedException();
         }
 
         (ParameterInfo[]? Parameters, ParameterInfo? Param, IReadOnlyList<IPocoRootInfo>? Families) GetImpactedFamilies( IActivityMonitor monitor,

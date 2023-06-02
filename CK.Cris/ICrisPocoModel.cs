@@ -49,7 +49,7 @@ namespace CK.Cris
 
         /// <summary>
         /// Gets whether this command or event is handled: <see cref="Handlers"/> is not empty.
-        /// A <see cref="CrisPocoKind.Event"/> (a <see cref="IEvent"/> without [RoutedEventAttribute]
+        /// A <see cref="CrisPocoKind.CallerOnlyEvent"/> (a <see cref="IEvent"/> without [RoutedEventAttribute]
         /// is never handled.
         /// </summary>
         bool IsHandled { get; }

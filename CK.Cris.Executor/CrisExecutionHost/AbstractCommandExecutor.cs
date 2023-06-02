@@ -47,7 +47,7 @@ namespace CK.Cris
         {
             foreach( var e in events )
             {
-                Debug.Assert( e != null && e.CrisPocoModel.Kind != CrisPocoKind.RoutedEventImmediate );
+                Debug.Assert( e != null && (e.CrisPocoModel.Kind != CrisPocoKind.CallerOnlyImmediateEvent && e.CrisPocoModel.Kind != CrisPocoKind.RoutedImmediateEvent) );
                 await _hub.AllEventSender.SafeRaiseAsync( monitor, e );
             }
             await OnFinalResultAsync( monitor, job, events, r );

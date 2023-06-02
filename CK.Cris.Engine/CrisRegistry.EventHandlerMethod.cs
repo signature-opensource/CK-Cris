@@ -14,14 +14,14 @@ namespace CK.Setup.Cris
             public readonly bool IsValAsync;
 
             internal RoutedEventHandlerMethod( Entry command,
-                                         IStObjFinalClass owner,
-                                         MethodInfo method,
-                                         ParameterInfo[] parameters,
-                                         string? fileName,
-                                         int lineNumber,
-                                         ParameterInfo cmdOrPartParameter,
-                                         bool isRefAsync,
-                                         bool isValAsync )
+                                               IStObjFinalClass owner,
+                                               MethodInfo method,
+                                               ParameterInfo[] parameters,
+                                               string? fileName,
+                                               int lineNumber,
+                                               ParameterInfo cmdOrPartParameter,
+                                               bool isRefAsync,
+                                               bool isValAsync )
                 : base( command, owner, method, parameters, fileName, lineNumber )
             {
                 CmdOrPartParameter = cmdOrPartParameter;
