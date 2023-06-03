@@ -108,8 +108,8 @@ namespace CK.Setup.Cris
                     }
                     else
                     {
-                        var allHandlers = e.Handler != null
-                                            ? ((IEnumerable<CrisRegistry.BaseHandler>)e.Validators).Append( e.Handler ).Concat( e.PostHandlers )
+                        var allHandlers = e.CommandHandler != null
+                                            ? ((IEnumerable<CrisRegistry.BaseHandler>)e.Validators).Append( e.CommandHandler ).Concat( e.PostHandlers )
                                             : e.EventHandlers;
                         Debug.Assert( allHandlers.Any() );
 
@@ -154,7 +154,7 @@ namespace CK.Setup.Cris
             Debug.Assert( _registry != null );
 
             CSCodeGenerationResult r = CSCodeGenerationResult.Success;
-            var missingHandlers = _registry.CrisPocoModels.Where( c => c.Handler == null );
+            var missingHandlers = _registry.CrisPocoModels.Where( c => c.CommandHandler == null );
             foreach( var c in missingHandlers )
             {
                 if( c.ExpectedHandlerService != null )

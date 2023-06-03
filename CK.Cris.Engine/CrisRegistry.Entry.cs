@@ -30,14 +30,14 @@ namespace CK.Setup.Cris
             /// Gets the handler method.
             /// Can be not null only for <see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/>.
             /// </summary>
-            public HandlerMethod? Handler { get; private set; }
+            public HandlerMethod? CommandHandler { get; private set; }
 
             /// <summary>
-            /// Gets whether this command or event is handled: a command must have a <see cref="Handler"/> and
+            /// Gets whether this command or event is handled: a command must have a <see cref="CommandHandler"/> and
             /// an event must have at least one <see cref="EventHandlers"/>. A <see cref="IEvent"/> that is not routed
             /// (has no [RoutedEvent] attribute is never handled.
             /// </summary>
-            public bool IsHandled => Handler != null || _eventHandlers.Count > 0;
+            public bool IsHandled => CommandHandler != null || _eventHandlers.Count > 0;
 
             /// <summary>
             /// Gets the validator methods.
@@ -109,7 +109,7 @@ namespace CK.Setup.Cris
 
             /// <summary>
             /// Generates all the synchronous and asynchronous (if any) calls required based on these variable
-            /// names: <code>IServiceProvider s, CK.Cris.KnownCommand c, object r</code> and the variables
+            /// names: <code>IServiceProvider s, ICrisPoco c, object r</code> and the variables
             /// in <paramref name="cachedServices"/>.
             /// <para>
             /// Async calls use await keyword.
@@ -119,28 +119,28 @@ namespace CK.Setup.Cris
             /// <param name="cachedServices">GetService cache.</param>
             public void GeneratePostHandlerCallCode( ICodeWriter w, VariableCachedServices cachedServices )
             {
-                w.GeneratedByComment().NewLine();
+                using var region = w.Region();
                 foreach( var h in _postHandlers.Where( h => !h.IsRefAsync && !h.IsValAsync ).GroupBy( h => h.Owner ) )
                 {
-                    GenerateCode( w, h, false, cachedServices );
+                    CreateOwnerCalls( w, h, false, cachedServices );
                 }
                 foreach( var h in _postHandlers.Where( h => h.IsRefAsync || h.IsValAsync ).GroupBy( h => h.Owner ) )
                 {
-                    GenerateCode( w, h, true, cachedServices );
+                    CreateOwnerCalls( w, h, true, cachedServices );
                 }
 
-                static void GenerateCode( ICodeWriter w,
-                                          IGrouping<IStObjFinalClass, PostHandlerMethod> h,
-                                          bool async,
-                                          VariableCachedServices cachedServices )
+                static void CreateOwnerCalls( ICodeWriter w,
+                                              IGrouping<IStObjFinalClass, PostHandlerMethod> oH,
+                                              bool async,
+                                              VariableCachedServices cachedServices )
                 {
                     w.Append( "{" ).NewLine();
-                    w.Append( "var h = (" ).Append( h.Key.ClassType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( h.Key.ClassType ).Append( ");" ).NewLine();
-                    foreach( PostHandlerMethod m in h )
+                    w.Append( "var h = (" ).Append( oH.Key.ClassType.ToGlobalTypeName() ).Append( ")s.GetService(" ).AppendTypeOf( oH.Key.ClassType ).Append( ");" ).NewLine();
+                    foreach( PostHandlerMethod m in oH )
                     {
                         if( async ) w.Append( "await " );
 
-                        if( m.Method.DeclaringType != h.Key.ClassType )
+                        if( m.Method.DeclaringType != oH.Key.ClassType )
                         {
                             w.Append( "((" ).Append( m.Method.DeclaringType!.ToCSharpName() ).Append( ")h)." );
                         }
@@ -380,13 +380,13 @@ namespace CK.Setup.Cris
                     monitor.Warn( $"Handler method '{MethodName( method, parameters )}' is skipped (the command handler is implemented by '{ExpectedHandlerService.ClassType.FullName}')." );
                     return true;
                 }
-                if( Handler != null )
+                if( CommandHandler != null )
                 {
-                    if( Handler.IsClosedHandler )
+                    if( CommandHandler.IsClosedHandler )
                     {
                         if( isClosedHandler )
                         {
-                            monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{Handler}' handle '{PocoName}' command." );
+                            monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{CommandHandler}' handle '{PocoName}' command." );
                             return false;
                         }
                         WarnUnclosedHandlerSkipped( monitor, method, parameters );
@@ -395,7 +395,7 @@ namespace CK.Setup.Cris
                     // Current handler is an unclosed one.
                     if( isClosedHandler )
                     {
-                        WarnUnclosedHandlerSkipped( monitor, Handler.Method, Handler.Parameters );
+                        WarnUnclosedHandlerSkipped( monitor, CommandHandler.Method, CommandHandler.Parameters );
                     }
                     else
                     {
@@ -404,12 +404,12 @@ namespace CK.Setup.Cris
                         // - c1 is assignable from c2 => c2
                         // - c2 is assignable from c1 => c1
                         // - c1 independent of c2 => Ambiguity.
-                        monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{Handler}' handle '{PocoName}' command." );
+                        monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{CommandHandler}' handle '{PocoName}' command." );
                         return false;
                     }
                 }
-                Handler = new HandlerMethod( this, owner, method, parameters, fileName, lineNumber, parameter, unwrappedReturnType, isRefAsync, isValAsync, isClosedHandler );
-                CheckSyncAsyncMethodName( monitor, method, parameters, Handler.IsRefAsync || Handler.IsValAsync );
+                CommandHandler = new HandlerMethod( this, owner, method, parameters, fileName, lineNumber, parameter, unwrappedReturnType, isRefAsync, isValAsync, isClosedHandler );
+                CheckSyncAsyncMethodName( monitor, method, parameters, CommandHandler.IsRefAsync || CommandHandler.IsValAsync );
                 return true;
 
                 static void WarnUnclosedHandlerSkipped( IActivityMonitor monitor, MethodInfo method, ParameterInfo[] parameters )
@@ -428,19 +428,6 @@ namespace CK.Setup.Cris
             {
                 if( !CheckVoidReturn( monitor, "Validator", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
                 _validators.Add( new ValidatorMethod( this, owner, method, parameters, fileName, lineNumber, commandParameter, isRefAsync, isValAsync ) );
-                return true;
-            }
-
-            internal bool AddRoutedEventHandler( IActivityMonitor monitor,
-                                                 IStObjFinalClass owner,
-                                                 MethodInfo method,
-                                                 ParameterInfo[] parameters,
-                                                 ParameterInfo commandParameter,
-                                                 string? fileName,
-                                                 int lineNumber )
-            {
-                if( !CheckVoidReturn( monitor, "EventHandler", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
-                _eventHandlers.Add( new RoutedEventHandlerMethod( this, owner, method, parameters, fileName, lineNumber, commandParameter, isRefAsync, isValAsync ) );
                 return true;
             }
 
@@ -486,6 +473,19 @@ namespace CK.Setup.Cris
                                                           mustCastResultParameter,
                                                           isRefAsync,
                                                           isValAsync ) );
+                return true;
+            }
+
+            internal bool AddRoutedEventHandler( IActivityMonitor monitor,
+                                     IStObjFinalClass owner,
+                                     MethodInfo method,
+                                     ParameterInfo[] parameters,
+                                     ParameterInfo commandParameter,
+                                     string? fileName,
+                                     int lineNumber )
+            {
+                if( !CheckVoidReturn( monitor, "EventHandler", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
+                _eventHandlers.Add( new RoutedEventHandlerMethod( this, owner, method, parameters, fileName, lineNumber, commandParameter, isRefAsync, isValAsync ) );
                 return true;
             }
 

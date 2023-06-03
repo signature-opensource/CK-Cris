@@ -211,9 +211,9 @@ namespace CK.Setup.Cris
             var index = new Dictionary<IPocoRootInfo, Entry>();
             var entries = new List<Entry>();
             // Kindly handle the fact that no ICrisPoco exist. This should not happen since IAmbientValues at least should be registered.
-            if( pocoResult.OtherInterfaces.TryGetValue( typeof( ICrisPoco ), out IReadOnlyList<IPocoRootInfo>? crisPocos ) )
+            if( pocoResult.OtherInterfaces.TryGetValue( typeof( IAbstractCommand ), out IReadOnlyList<IPocoRootInfo>? commands ) )
             {
-                foreach( var poco in crisPocos )
+                foreach( var poco in commands )
                 {
                     var hServices = poco.Interfaces.Select( i => typeof( ICommandHandler<> ).MakeGenericType( i.PocoInterface ) )
                                                    .Select( gI => (itf: gI, impl: services.ToLeaf( gI )) )
@@ -225,6 +225,19 @@ namespace CK.Setup.Cris
                         monitor.Error( $"Ambiguous command handler '{hServices.Select( m => $"{m.Key!.ClassType:C}' implements '{m.Select( x => x.itf.ToCSharpName() ).Concatenate( "' ,'" )}" )}': only one service can eventually handle a command." );
                         success = false;
                     }
+                    var entry = Entry.Create( monitor, pocoResult, poco, entries.Count, services );
+                    if( entry == null ) success = false;
+                    else
+                    {
+                        entries.Add( entry );
+                        index.Add( entry.CrisPocoInfo, entry );
+                    }
+                }
+            }
+            if( pocoResult.OtherInterfaces.TryGetValue( typeof( IEvent ), out IReadOnlyList<IPocoRootInfo>? events ) )
+            {
+                foreach( var poco in events )
+                {
                     var entry = Entry.Create( monitor, pocoResult, poco, entries.Count, services );
                     if( entry == null ) success = false;
                     else
@@ -311,7 +324,7 @@ namespace CK.Setup.Cris
             }
             var paramInfo = candidates[0].p;
             Debug.Assert( candidates[0].Item2 != null && paramInfo.ParameterType == candidates[0].Item2!.PocoInterface );
-            bool isCommand = typeof( ICrisPoco ).IsAssignableFrom( paramInfo.ParameterType );
+            bool isCommand = typeof( IAbstractCommand ).IsAssignableFrom( paramInfo.ParameterType );            
             if( isCommand != expectCommand )
             {
                 if( expectCommand )
