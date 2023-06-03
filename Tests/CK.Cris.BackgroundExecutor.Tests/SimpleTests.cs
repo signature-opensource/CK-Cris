@@ -6,6 +6,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -17,7 +18,8 @@ namespace CK.Cris.BackgroundExecutor.Tests
     public class SimpleTests
     {
         static readonly List<string> Traces = new List<string>();
-        ServiceProvider? _services;
+        [AllowNull]
+        ServiceProvider _services;
 
         static public string SafeTrace( string t )
         {

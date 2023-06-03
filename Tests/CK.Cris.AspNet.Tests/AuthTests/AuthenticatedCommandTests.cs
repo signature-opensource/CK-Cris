@@ -38,7 +38,7 @@ namespace CK.Cris.AspNet.Tests.AuthTests
         [Test]
         public async Task ICommandAuthUnsafe_cannot_be_fooled_on_its_ActorId_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( IUnsafeCommand ), typeof( UnsafeHandler ) );
+            var c = TestHelper.CreateStObjCollector( typeof( IUnsafeCommand ), typeof( UnsafeHandler ), typeof( CrisExecutionContext ) );
             using( var s = new CrisTestServer( c, true ) )
             {
                 {

@@ -89,7 +89,8 @@ namespace CK.Cris.AspNet
                 Debug.Assert( cmd != null );
                 try
                 {
-                    var o = await _executor.RawExecuteAsync( requestServices, cmd );
+                    var execContext = requestServices.GetRequiredService<CrisExecutionContext>();
+                    var (o, _) = await execContext.ExecuteAsync( cmd );
                     return _resultFactory.Create( r => { r.Code = VESACode.Synchronous; r.Result = o; } );
                 }
                 catch( Exception ex )

@@ -49,7 +49,7 @@ namespace CK.Cris
         /// </summary>
         /// <param name="rootCommand">The command to execute.</param>
         /// <returns>The command result (if any) and the final non immediate events that have been emitted by the command execution.</returns>
-        public async Task<(object? Result, IReadOnlyList<IEvent> FinalEvents)> ExecuteAsync( IAbstractCommand rootCommand, bool dispatchFinalEvents = true )
+        public async Task<(object? Result, IReadOnlyList<IEvent> FinalEvents)> ExecuteAsync( IAbstractCommand rootCommand )
         {
             Throw.CheckNotNullArgument( rootCommand );
             Throw.CheckState( !IsExecutingCommand );
@@ -58,14 +58,11 @@ namespace CK.Cris
             {
                 var result = await _rawExecutor.RawExecuteAsync( _serviceProvider, rootCommand );
                 var finalEvents = (IReadOnlyList<IEvent>?)StackPeek().Events ?? Array.Empty<IEvent>();
-                if( dispatchFinalEvents )
+                foreach( var e in finalEvents )
                 {
-                    foreach( var e in finalEvents )
+                    if( e.CrisPocoModel.IsHandled )
                     {
-                        if( e.CrisPocoModel.IsHandled )
-                        {
-                            await _rawExecutor.DispatchEventAsync( _serviceProvider, e );
-                        }
+                        await _rawExecutor.DispatchEventAsync( _serviceProvider, e );
                     }
                 }
                 return (result, finalEvents);

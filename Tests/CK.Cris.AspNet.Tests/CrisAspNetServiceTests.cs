@@ -58,7 +58,7 @@ namespace CK.Cris.AspNet.Tests
         [Test]
         public async Task basic_call_to_a_command_handler_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( ICmdTest ), typeof( TestHandler ) );
+            var c = TestHelper.CreateStObjCollector( typeof( ICmdTest ), typeof( TestHandler ), typeof( CrisExecutionContext ) );
             using( var s = new CrisTestServer( c ) )
             {
                 // Value: 3712 is fine (it must be positive).
