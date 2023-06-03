@@ -125,23 +125,10 @@ namespace CK.Cris
             // Building a strongly typed result: we check that the actual result type (that is
             // the most precise type among the different ICommand<TResult> TResult types) is
             // compatible with the requested TResult.
-            CheckResultType<TResult>( base.Command.CrisPocoModel );
+            ExecutedCommand<T>.CheckResultType<TResult>( base.Command.CrisPocoModel );
             return new ResultAdapter<TResult>( this );
         }
 
-        internal static void CheckResultType<TResult>( ICrisPocoModel model )
-        {
-            var requestedType = typeof( TResult );
-            if( !requestedType.IsAssignableFrom( model.ResultType ) )
-            {
-                if( model.ResultType == typeof( void ) )
-                {
-                    Throw.ArgumentException( $"Command '{model.PocoName}' is a ICommand (without any result)." );
-                }
-                Throw.ArgumentException( $"Command '{model.PocoName}' is a 'ICommand<{model.ResultType.ToCSharpName()}>'." +
-                                         $" This type of result is not compatible with '{requestedType.ToCSharpName()}'." );
-            }
-        }
     }
 
 }

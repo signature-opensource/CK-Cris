@@ -20,6 +20,9 @@ namespace CK.Setup.Cris
             readonly List<ValidatorMethod> _validators;
             readonly List<PostHandlerMethod> _postHandlers;
             readonly List<RoutedEventHandlerMethod> _eventHandlers;
+            readonly IPocoInterfaceInfo? _pocoResultType;
+            readonly CrisPocoKind _kind;
+            readonly int _crisPocoIndex;
 
             /// <summary>
             /// Gets the Cris Poco descriptor.
@@ -65,7 +68,7 @@ namespace CK.Setup.Cris
             /// <summary>
             /// Gets whether this command is a <see cref="IEvent"/>.
             /// </summary>
-            public CrisPocoKind Kind { get; }
+            public CrisPocoKind Kind => _kind;
 
             /// <summary>
             /// Gets the name of this command.
@@ -76,7 +79,7 @@ namespace CK.Setup.Cris
             /// Gets a unique, zero-based index that identifies this Cris object among all
             /// the <see cref="CrisPocoModels"/>.
             /// </summary>
-            public int CrisPocoIndex { get; }
+            public int CrisPocoIndex => _crisPocoIndex;
 
             /// <summary>
             /// Gets the final (most specialized) result type.
@@ -93,7 +96,7 @@ namespace CK.Setup.Cris
             /// <summary>
             /// Gets the <see cref="ResultType"/> as the <see cref="IPocoInterfaceInfo"/> if it is a IPoco.
             /// </summary>
-            public IPocoInterfaceInfo? PocoResultType { get; }
+            public IPocoInterfaceInfo? PocoResultType => _pocoResultType;
 
             /// <summary>
             /// Gets whether there are asynchronous post handlers to call.
@@ -142,7 +145,7 @@ namespace CK.Setup.Cris
 
                         if( m.Method.DeclaringType != oH.Key.ClassType )
                         {
-                            w.Append( "((" ).Append( m.Method.DeclaringType!.ToCSharpName() ).Append( ")h)." );
+                            w.Append( "((" ).Append( m.Method.DeclaringType!.ToGlobalTypeName() ).Append( ")h)." );
                         }
                         else w.Append( "h." );
 
@@ -190,10 +193,10 @@ namespace CK.Setup.Cris
                 _validators = new List<ValidatorMethod>();
                 _postHandlers = new List<PostHandlerMethod>();
                 _eventHandlers = new List<RoutedEventHandlerMethod>();
-                Kind = kind;
-                CrisPocoIndex = crisPocoIdx;
+                _kind = kind;
+                _crisPocoIndex = crisPocoIdx;
                 ResultNullableTypeTree = resultType;
-                PocoResultType = pocoResultType;
+                _pocoResultType = pocoResultType;
                 ExpectedHandlerService = handlerService;
             }
 
@@ -323,7 +326,7 @@ namespace CK.Setup.Cris
                             ? (isImmediate ? CrisPocoKind.RoutedImmediateEvent : CrisPocoKind.RoutedEvent)
                             : (isImmediate ? CrisPocoKind.CallerOnlyImmediateEvent : CrisPocoKind.CallerOnlyEvent);
                     bool success = true;
-                    foreach( var i in poco.Interfaces.Select( pI => pI.PocoInterface ).Concat( poco.OtherInterfaces ) )
+                    foreach( var i in poco.Interfaces.Skip( 1 ).Select( pI => pI.PocoInterface ).Concat( poco.OtherInterfaces ) )
                     {
                         if( i.GetCustomAttribute<RoutedEventAttribute>() != null )
                         {
@@ -477,15 +480,22 @@ namespace CK.Setup.Cris
             }
 
             internal bool AddRoutedEventHandler( IActivityMonitor monitor,
-                                     IStObjFinalClass owner,
-                                     MethodInfo method,
-                                     ParameterInfo[] parameters,
-                                     ParameterInfo commandParameter,
-                                     string? fileName,
-                                     int lineNumber )
+                                                 IStObjFinalClass owner,
+                                                 MethodInfo method,
+                                                 ParameterInfo[] parameters,
+                                                 ParameterInfo commandParameter,
+                                                 string? fileName,
+                                                 int lineNumber )
             {
                 if( !CheckVoidReturn( monitor, "EventHandler", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
-                _eventHandlers.Add( new RoutedEventHandlerMethod( this, owner, method, parameters, fileName, lineNumber, commandParameter, isRefAsync, isValAsync ) );
+                if( _kind != CrisPocoKind.RoutedImmediateEvent && _kind != CrisPocoKind.RoutedEvent )
+                {
+                    monitor.Warn( $"Method '{MethodName( method, parameters )}' will never be called: event '{PocoName}' is not decorated with [RoutedEvent] attribute (it can only be observed by the caller)." );
+                }
+                else
+                {
+                    _eventHandlers.Add( new RoutedEventHandlerMethod( this, owner, method, parameters, fileName, lineNumber, commandParameter, isRefAsync, isValAsync ) );
+                }
                 return true;
             }
 

@@ -38,7 +38,7 @@ namespace CK.Cris
             await OnImmediateEventAsync( monitor, job, e );
         }
 
-        internal protected virtual Task SetFinalResultAsync( IActivityMonitor monitor, CrisJob job, IReadOnlyList<IEvent> events, CrisExecutionHost.ICrisJobResult r )
+        internal Task SetFinalResultAsync( IActivityMonitor monitor, CrisJob job, IReadOnlyList<IEvent> events, CrisExecutionHost.ICrisJobResult r )
         {
             return events.Count > 0 ? FinalWithEventsAsync( monitor, job, events, r ) : OnFinalResultAsync( monitor, job, events, r );
         }

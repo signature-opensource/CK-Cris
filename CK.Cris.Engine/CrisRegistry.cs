@@ -87,10 +87,27 @@ namespace CK.Setup.Cris
                 Debug.Assert( families != null, "p == null <==> families == null" );
                 if( families.Count == 0 )
                 {
-                    monitor.Trace( $"Method {MethodName( m, parameters )} is unused since no {(isValidator ? "command" : "event")} match the '{p.Name}' parameter." );
+                    monitor.Info( $"Method {MethodName( m, parameters )} is unused since no {(isValidator ? "command" : "event")} match the '{p.Name}' parameter." );
                 }
                 else
                 {
+                    var execContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisExecutionContext ) );
+                    if( execContext != null )
+                    {
+                        monitor.Error( $"Invalid parameter '{execContext.Name}' in method '{MethodName( m, parameters )}': ICrisExecutionContext cannot " +
+                                       $"be used in a {(isValidator ? "command validator" : "routed event handler")} since they cannot execute commands or send events." );
+                        success = false;
+                    }
+                    if( isValidator )
+                    {
+                        var callContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisCallContext ) );
+                        if( callContext != null )
+                        {
+                            monitor.Error( $"Invalid parameter '{callContext.Name}' in method '{MethodName( m, parameters )}': ICrisCallContext cannot " +
+                                           $"be used in a command validator since validators cannot execute commands." );
+                            success = false;
+                        }
+                    }
                     foreach( var family in families )
                     {
                         Debug.Assert( _indexedEntries.ContainsKey( family ), "Since parameters are filtered by registered Poco." );

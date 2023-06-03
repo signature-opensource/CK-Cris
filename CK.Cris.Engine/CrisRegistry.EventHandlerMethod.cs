@@ -9,7 +9,7 @@ namespace CK.Setup.Cris
         public sealed class RoutedEventHandlerMethod : BaseHandler
         {
             public override CrisHandlerKind Kind => CrisHandlerKind.RoutedEventHandler;
-            public readonly ParameterInfo CmdOrPartParameter;
+            public readonly ParameterInfo EventOrPartParameter;
             public readonly bool IsRefAsync;
             public readonly bool IsValAsync;
 
@@ -19,12 +19,12 @@ namespace CK.Setup.Cris
                                                ParameterInfo[] parameters,
                                                string? fileName,
                                                int lineNumber,
-                                               ParameterInfo cmdOrPartParameter,
+                                               ParameterInfo eventOrPartParameter,
                                                bool isRefAsync,
                                                bool isValAsync )
                 : base( command, owner, method, parameters, fileName, lineNumber )
             {
-                CmdOrPartParameter = cmdOrPartParameter;
+                EventOrPartParameter = eventOrPartParameter;
                 IsRefAsync = isRefAsync;
                 IsValAsync = isValAsync;
             }

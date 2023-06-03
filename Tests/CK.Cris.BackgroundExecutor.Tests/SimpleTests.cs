@@ -55,7 +55,8 @@ namespace CK.Cris.BackgroundExecutor.Tests
             var c = TestHelper.CreateStObjCollector( typeof( CrisBackgroundExecutor ),
                                                      typeof( StdAuthenticationTypeSystem ),
                                                      typeof( IDelayCommand ),
-                                                     typeof( StupidHandlers ) );
+                                                     typeof( StupidHandlers ),
+                                                     typeof( CrisExecutionContext ) );
             _services = await TestHelper.StartHostedServicesAsync( TestHelper.CreateAutomaticServices( c ).Services );
             _services.GetRequiredService<CrisExecutionHost>().ParallelRunnerCount = 1;
         }

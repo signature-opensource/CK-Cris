@@ -30,8 +30,9 @@ namespace CK.Setup.Cris
         {
             if( !_cached.TryGetValue( serviceType, out var name ) )
             {
+                if( _cached.Count == 0 ) _variablesPart.GeneratedByComment( "Cached services variables" );
                 name = $"cs{_cached.Count}";
-                var typeName = serviceType.ToCSharpName();
+                var typeName = serviceType.ToGlobalTypeName();
                 _variablesPart.Append( "var " ).Append( name )
                               .Append( " = (" )
                               .Append( typeName )

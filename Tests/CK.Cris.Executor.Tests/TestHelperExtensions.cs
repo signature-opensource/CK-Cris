@@ -12,7 +12,11 @@ namespace CK.Cris.Executor.Tests
         public static AutomaticServicesResult CreateAutomaticServicesWithMonitor( this IStObjEngineTestHelperCore h, StObjCollector c )
         {
             return h.CreateAutomaticServices( c,
-                                              configureServices: r => r.Services.AddScoped( s => ((IMonitorTestHelper)h).Monitor ) );
+                                              configureServices: r =>
+                                              {
+                                                  r.Services.AddScoped( sp => ((IMonitorTestHelper)h).Monitor );
+                                                  r.Services.AddScoped( sp => ((IMonitorTestHelper)h).Monitor.ParallelLogger );
+                                              } );
         }
     }
 }

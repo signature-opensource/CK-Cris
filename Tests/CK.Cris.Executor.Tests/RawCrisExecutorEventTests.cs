@@ -11,18 +11,18 @@ namespace CK.Cris.Executor.Tests
     [TestFixture]
     public class RawCrisExecutorEventTests
     {
+        [RoutedEvent]
         public interface ITestEvent : IEvent
         {
+            public static int CallCount;
         }
 
         public class EventSyncHandler : IAutoService
         {
-            public static bool Called;
-
             [RoutedEventHandler]
             public void HandleEvent( ITestEvent e )
             {
-                Called = true;
+                ++ITestEvent.CallCount;
             }
         }
 
@@ -31,7 +31,7 @@ namespace CK.Cris.Executor.Tests
             [RoutedEventHandler]
             public Task HandleEventAsync( ITestEvent e )
             {
-                EventSyncHandler.Called = true;
+                ++ITestEvent.CallCount;
                 return Task.CompletedTask;
             }
         }
@@ -41,7 +41,7 @@ namespace CK.Cris.Executor.Tests
             [RoutedEventHandler]
             public ValueTask HandleEventAsync( ITestEvent e )
             {
-                EventSyncHandler.Called = true;
+                ++ITestEvent.CallCount;
                 return ValueTask.CompletedTask;
             }
         }
@@ -49,7 +49,7 @@ namespace CK.Cris.Executor.Tests
         [TestCase( "Sync" )]
         [TestCase( "RefAsync" )]
         [TestCase( "ValAsync" )]
-        public async Task executing_an_event_Async( string kind )
+        public async Task dispatching_an_event_Async( string kind )
         {
             var c = TestHelper.CreateStObjCollector( typeof( RawCrisExecutor ),
                                                      typeof( CrisDirectory ),
@@ -66,14 +66,35 @@ namespace CK.Cris.Executor.Tests
             {
                 var services = scope.ServiceProvider;
                 var executor = services.GetRequiredService<RawCrisExecutor>();
-                var cmd = services.GetRequiredService<IPocoFactory<ITestEvent>>().Create();
+                var e = services.GetRequiredService<IPocoFactory<ITestEvent>>().Create();
 
-                EventSyncHandler.Called = false;
-                var result = await executor.RawExecuteAsync( services, cmd );
-                result.Should().BeNull();
-                EventSyncHandler.Called.Should().BeTrue();
+                ITestEvent.CallCount = 0;
+                await executor.DispatchEventAsync( services, e );
+                ITestEvent.CallCount.Should().Be( 1 );
             }
 
+        }
+
+        [Test]
+        public async Task dispatching_an_event_to_3_handlers_Async()
+        {
+            var c = TestHelper.CreateStObjCollector( typeof( RawCrisExecutor ),
+                                                     typeof( CrisDirectory ),
+                                                     typeof( ITestEvent ),
+                                                     typeof( EventAsyncHandler ),
+                                                     typeof( EventValueTaskAsyncHandler ),
+                                                     typeof( EventSyncHandler ) );
+            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
+            using( var scope = appServices.CreateScope() )
+            {
+                var services = scope.ServiceProvider;
+                var executor = services.GetRequiredService<RawCrisExecutor>();
+                var e = services.GetRequiredService<IPocoFactory<ITestEvent>>().Create();
+
+                ITestEvent.CallCount = 0;
+                await executor.DispatchEventAsync( services, e );
+                ITestEvent.CallCount.Should().Be( 3 );
+            }
         }
     }
 }

@@ -1,3 +1,4 @@
+using CK.Core;
 using System.Collections.Generic;
 using System.Text;
 
@@ -16,6 +17,7 @@ namespace CK.Cris
     /// and end with "Event".
     /// </para>
     /// </summary>
+    [CKTypeDefiner]
     public interface IEvent : ICrisPoco
     {
     }

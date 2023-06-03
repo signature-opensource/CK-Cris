@@ -26,7 +26,7 @@ namespace CK.Cris
         readonly IPocoFactory<ICrisJobResult> _resultFactory;
         readonly IPocoFactory<ICrisResultError> _errorResultFactory;
         readonly RawCrisValidator _commandValidator;
-        internal readonly RawCrisExecutor _commandExecutor;
+        internal readonly RawCrisExecutor _rawExecutor;
         readonly PocoDirectory _pocoDirectory;
 
         readonly PerfectEventSender<ICrisExecutionHost> _parallelRunnerCountChanged;
@@ -83,7 +83,7 @@ namespace CK.Cris
             _resultFactory = pocoDirectory.Find<ICrisJobResult>()!;
             _errorResultFactory = pocoDirectory.Find<ICrisResultError>()!;
             _commandValidator = validator;
-            _commandExecutor = executor;
+            _rawExecutor = executor;
             _channel = Channel.CreateUnbounded<object?>();
             _parallelRunnerCountChanged = new PerfectEventSender<ICrisExecutionHost>();
             _plannedRunnerCount = 1;
@@ -138,10 +138,6 @@ namespace CK.Cris
         {
             using var log = monitor.StartDependentActivity( job.IssuerToken );
 
-            // Initializes the root execution context.
-            var rootContext = new CrisJob.ExecutionContext( job, monitor, this );
-            job._executionContext = rootContext;
-
             AsyncServiceScope scoped = default;
             bool isScopedCreated = false;
 
@@ -153,8 +149,13 @@ namespace CK.Cris
             {
                 scoped = job._executor.CreateAsyncScope( job );
                 isScopedCreated = true;
-                // The execution context can handle recursive commands.
-                rootContext._scoped = scoped;
+                // Configure the data for the DI endpoint: the monitor
+                // is the one of the calling runner and the ExecutionContext
+                // is bound to the new scoped service.
+                job._runnerMonitor = monitor;
+                var rootContext = new CrisJob.ExecutionContext( job, monitor, scoped.ServiceProvider, _pocoDirectory, _rawExecutor );
+                // This ExecutionContext is now available in the DI container. Work can start.
+                job._executionContext = rootContext;
 
                 CrisValidationResult validation;
                 if( job._skipValidation )
@@ -174,12 +175,11 @@ namespace CK.Cris
 
                 // Executing the command (handlers and post handlers).
                 step = "executing";
-                var result = await _commandExecutor.RawExecuteAsync( scoped.ServiceProvider, job.Command );
-                var events = rootContext.FinalEvents;
-                job._executingCommand?.DarkSide.SetResult( events, result );
+                var (result,finalEvents) = await rootContext.ExecuteAsync( job.Command );
+                job._executingCommand?.DarkSide.SetResult( finalEvents, result );
                 // Send the result. We are done.
                 crisResult.Result = result;
-                await job._executor.SetFinalResultAsync( monitor, job, events, crisResult );
+                await job._executor.SetFinalResultAsync( monitor, job, finalEvents, crisResult );
             }
             catch( Exception ex )
             {
@@ -208,6 +208,7 @@ namespace CK.Cris
         public static void ConfigureEndpoint( IServiceCollection services, Func<IServiceProvider, CrisJob> scopeData )
         {
             services.AddScoped( sp => scopeData( sp )._runnerMonitor! );
+            services.AddScoped( sp => scopeData( sp )._runnerMonitor!.ParallelLogger );
             services.AddScoped( sp => scopeData( sp )._executionContext! );
             services.AddScoped<ICrisCallContext>( sp => scopeData( sp )._executionContext! );
         }
