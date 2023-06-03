@@ -12,6 +12,7 @@ namespace CK.Cris
     /// warnings.
     /// </para>
     /// </summary>
+    [EndpointScopedService]
     public interface ICrisCallContext : IScopedAutoService
     {
         /// <summary>
