@@ -134,8 +134,8 @@ namespace CK.Setup.Cris
                                               bool async,
                                               VariableCachedServices cachedServices )
                 {
-                    w.Append( "{" ).NewLine();
-                    w.Append( "var h = (" ).Append( oH.Key.ClassType.ToGlobalTypeName() ).Append( ")s.GetService(" ).AppendTypeOf( oH.Key.ClassType ).Append( ");" ).NewLine();
+                    w.OpenBlock()
+                     .Append( "var h = (" ).Append( oH.Key.ClassType.ToGlobalTypeName() ).Append( ")s.GetService(" ).AppendTypeOf( oH.Key.ClassType ).Append( ");" ).NewLine();
                     foreach( PostHandlerMethod m in oH )
                     {
                         if( async ) w.Append( "await " );
@@ -169,7 +169,7 @@ namespace CK.Setup.Cris
                         }
                         w.Append( " );" ).NewLine();
                     }
-                    w.Append( "}" ).NewLine();
+                    w.CloseBlock();
                 }
             }
 

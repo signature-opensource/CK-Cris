@@ -65,6 +65,8 @@ namespace CK.Setup.Cris
 
         static void CreateEventHandler( ITypeScope scope, CrisRegistry.Entry e )
         {
+            scope.GeneratedByComment().Append( "static " );
+            if( isOverallAsync ) scope.Append( "async " );
             scope.Append( "Task<object> H" ).Append( e.CrisPocoIndex ).Append( "( IServiceProvider s, CK.Cris.ICrisPoco c )" ).NewLine()
                  .Append( "{" ).NewLine()
                  .GeneratedByComment().NewLine();
