@@ -20,14 +20,14 @@ namespace CK.Cris
     /// </summary>
     [Setup.AlsoRegisterType( typeof( ICrisJobResult ) )]
     [Setup.AlsoRegisterType( typeof( RawCrisValidator ) )]
-    [Setup.AlsoRegisterType( typeof( RawCrisExecutor ) )]
+    [Setup.AlsoRegisterType( typeof( CrisExecutionContext ) )]
     public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAutoService
     {
         readonly IPocoFactory<ICrisJobResult> _resultFactory;
         readonly IPocoFactory<ICrisResultError> _errorResultFactory;
+        readonly DarkSideCrisEventHub _eventHub;
         readonly RawCrisValidator _commandValidator;
         internal readonly RawCrisExecutor _rawExecutor;
-        readonly PocoDirectory _pocoDirectory;
 
         readonly PerfectEventSender<ICrisExecutionHost> _parallelRunnerCountChanged;
         // We use null as the close signal for runners and push int values to regulate the count of
@@ -74,14 +74,14 @@ namespace CK.Cris
         /// <param name="pocoDirectory">The Poco directory.</param>
         /// <param name="validator">The command validator.</param>
         /// <param name="executor">The command executor.</param>
-        public CrisExecutionHost( PocoDirectory pocoDirectory, RawCrisValidator validator, RawCrisExecutor executor )
+        public CrisExecutionHost( DarkSideCrisEventHub eventHub, RawCrisValidator validator, RawCrisExecutor executor )
         {
-            Throw.CheckNotNullArgument( pocoDirectory );
+            Throw.CheckNotNullArgument( eventHub );
             Throw.CheckNotNullArgument( validator );
             Throw.CheckNotNullArgument( executor );
-            _pocoDirectory = pocoDirectory;
-            _resultFactory = pocoDirectory.Find<ICrisJobResult>()!;
-            _errorResultFactory = pocoDirectory.Find<ICrisResultError>()!;
+            _resultFactory = eventHub.PocoDirectory.Find<ICrisJobResult>()!;
+            _errorResultFactory = eventHub.PocoDirectory.Find<ICrisResultError>()!;
+            _eventHub = eventHub;
             _commandValidator = validator;
             _rawExecutor = executor;
             _channel = Channel.CreateUnbounded<object?>();
@@ -104,11 +104,6 @@ namespace CK.Cris
                 Push( value );
             }
         }
-
-        /// <summary>
-        /// Gets the <see cref="PocoDirectory"/>.
-        /// </summary>
-        public PocoDirectory PocoDirectory => _pocoDirectory;
 
         /// <summary>
         /// Raised whenever the <see cref="ParallelRunnerCount"/> changes.
@@ -153,7 +148,7 @@ namespace CK.Cris
                 // is the one of the calling runner and the ExecutionContext
                 // is bound to the new scoped service.
                 job._runnerMonitor = monitor;
-                var rootContext = new CrisJob.ExecutionContext( job, monitor, scoped.ServiceProvider, _pocoDirectory, _rawExecutor );
+                var rootContext = new CrisJob.ExecutionContext( job, monitor, scoped.ServiceProvider, _eventHub, _rawExecutor );
                 // This ExecutionContext is now available in the DI container. Work can start.
                 job._executionContext = rootContext;
 

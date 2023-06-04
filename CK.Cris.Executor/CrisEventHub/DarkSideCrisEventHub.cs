@@ -7,15 +7,22 @@ namespace CK.Cris
     public sealed class DarkSideCrisEventHub : ISingletonAutoService
     {
         readonly CrisEventHub _hub;
+        readonly PocoDirectory _pocoDirectory;
 
-        public DarkSideCrisEventHub( CrisEventHub hub )
+        public DarkSideCrisEventHub( CrisEventHub hub, PocoDirectory pocoDirectory )
         {
             _hub = hub;
+            _pocoDirectory = pocoDirectory;
         }
 
         /// <summary>
+        /// Gets the poco directory.
+        /// </summary>
+        public PocoDirectory PocoDirectory => _pocoDirectory;
+
+        /// <summary>
         /// Gets the immediate event sender.
-        /// This sender automatically relays its events to the <see cref="AllEventSender"/> (see
+        /// This sender automatically relays its events to the <see cref="AllSender"/> (see
         /// <see cref="PerfectEventSender{TEvent}.CreateRelay(PerfectEventSender{TEvent}, bool)"/>).
         /// </summary>
         public PerfectEventSender<IEvent> ImmediateSender => _hub._immediate;
@@ -23,7 +30,8 @@ namespace CK.Cris
         /// <summary>
         /// Gets the sender of all events.
         /// </summary>
-        public PerfectEventSender<IEvent> AllEventSender => _hub._allEvent;
+        public PerfectEventSender<IEvent> AllSender => _hub._all;
+
     }
 
 }

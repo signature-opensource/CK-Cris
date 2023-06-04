@@ -1,6 +1,7 @@
 using CK.Core;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
@@ -14,13 +15,13 @@ namespace CK.Cris
     /// or deferred executors), a dedicated specialization is used. 
     /// </para>
     /// </summary>
-    [Setup.AlsoRegisterType( typeof( CrisDirectory ) )]
     [Setup.AlsoRegisterType( typeof( RawCrisExecutor ) )]
+    [Setup.AlsoRegisterType( typeof( DarkSideCrisEventHub ) )]
     public class CrisExecutionContext : ICrisExecutionContext
     {
         readonly IServiceProvider _serviceProvider;
+        readonly DarkSideCrisEventHub _eventHub;
         readonly IActivityMonitor _monitor;
-        readonly PocoDirectory _pocoDirectory;
         readonly RawCrisExecutor _rawExecutor;
 
         /// <summary>
@@ -28,15 +29,15 @@ namespace CK.Cris
         /// </summary>
         /// <param name="monitor">The monitor that must be same as the one resolvable from the provided <paramref name="serviceProvider"/>.</param>
         /// <param name="serviceProvider">The scoped provider. There is unfortunately no safe way to ensure that this provider is a scoped one, so be cautious.</param>
-        /// <param name="pocoDirectory">The Poco directory singleton.</param>
+        /// <param name="eventHub">The event hub (sender side).</param>
         /// <param name="rawExecutor">The raw executor singleton.</param>
         public CrisExecutionContext( IActivityMonitor monitor,
                                      IServiceProvider serviceProvider,
-                                     PocoDirectory pocoDirectory,
+                                     DarkSideCrisEventHub eventHub,
                                      RawCrisExecutor rawExecutor )
         {
             _serviceProvider = serviceProvider;
-            _pocoDirectory = pocoDirectory;
+            _eventHub = eventHub;
             _rawExecutor = rawExecutor;
             _monitor = monitor;
             _stack = new List<StackFrame>();
@@ -58,11 +59,18 @@ namespace CK.Cris
             {
                 var result = await _rawExecutor.RawExecuteAsync( _serviceProvider, rootCommand );
                 var finalEvents = (IReadOnlyList<IEvent>?)StackPeek().Events ?? Array.Empty<IEvent>();
-                foreach( var e in finalEvents )
+                for( int i = 0; i < finalEvents.Count; ++i )
                 {
-                    if( e.CrisPocoModel.IsHandled )
+                    var e = finalEvents[i];
+                    Debug.Assert( e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent || e.CrisPocoModel.Kind == CrisPocoKind.CallerOnlyEvent, "No immediate event here." );
+                    Debug.Assert( !e.CrisPocoModel.IsHandled || e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent, "If it is handled then it is a route event." );
+                    if( e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent )
                     {
-                        await _rawExecutor.DispatchEventAsync( _serviceProvider, e );
+                        await _eventHub.AllSender.SafeRaiseAsync( _monitor, e );
+                        if( e.CrisPocoModel.IsHandled )
+                        {
+                            await _rawExecutor.DispatchEventAsync( _serviceProvider, e );
+                        }
                     }
                 }
                 return (result, finalEvents);
@@ -74,13 +82,31 @@ namespace CK.Cris
         }
 
         /// <summary>
-        /// Must be implemented to call whatever is needed to signal the event to the external world.
+        /// Must be overridden to call whatever is needed to signal the event to the external world.
+        /// This default implementation sends the event to the <see cref="CrisEventHub"/>: this must be called by overriding
+        /// implementation.
+        /// </summary>
+        /// <param name="monitor">The monitor to use.</param>
+        /// <param name="routedImmediateEvent">The immediate event emitted by the current execution.</param>
+        /// <returns>The awaitable.</returns>
+        protected virtual Task RaiseImmediateEventAsync( IActivityMonitor monitor, IEvent routedImmediateEvent )
+        {
+            Debug.Assert( routedImmediateEvent.CrisPocoModel.Kind == CrisPocoKind.RoutedImmediateEvent );
+            return _eventHub.ImmediateSender.SafeRaiseAsync( _monitor, routedImmediateEvent );
+        }
+
+        /// <summary>
+        /// Must be implemented to call whatever is needed to signal the immediate event to the caller.
         /// Does nothing by default.
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
-        /// <param name="e">The immediate event emitted by the current execution.</param>
+        /// <param name="callerImmediateEvent">The immediate event emitted by the current execution.</param>
         /// <returns>The awaitable.</returns>
-        protected virtual Task RaiseImmediateEventAsync( IActivityMonitor monitor, IEvent e ) => Task.CompletedTask;
+        protected virtual Task RaiseCallerOnlyImmediateEventAsync( IActivityMonitor monitor, IEvent callerImmediateEvent )
+        {
+            Debug.Assert( callerImmediateEvent.CrisPocoModel.Kind == CrisPocoKind.CallerOnlyImmediateEvent );
+            return Task.CompletedTask;
+        }
 
         // Stack is mutable struct based with ref access of the head.
         record struct StackFrame( IAbstractCommand Command, List<IEvent>? Events );
@@ -96,13 +122,13 @@ namespace CK.Cris
 
         IActivityMonitor ICrisCallContext.Monitor => _monitor;
 
-        Task<object?> ICrisCallContext.ExecuteCommandAsync<T>( Action<T> configure )  => DoExecuteCommandAsync( _pocoDirectory.Create<T>( configure ) );
+        Task<object?> ICrisCallContext.ExecuteCommandAsync<T>( Action<T> configure )  => DoExecuteCommandAsync( _eventHub.PocoDirectory.Create<T>( configure ) );
 
         Task<object?> ICrisCallContext.ExecuteCommandAsync( IAbstractCommand command ) => DoExecuteCommandAsync( command );
 
         Task<IExecutedCommand<T>> ICrisCallContext.ExecuteAsync<T>( T command, bool stopEventPropagation ) => DoExecuteAsync( command, stopEventPropagation );
 
-        Task<IExecutedCommand<T>> ICrisCallContext.ExecuteAsync<T>( Action<T> configure, bool stopEventPropagation ) => DoExecuteAsync( _pocoDirectory.Create<T>( configure ), stopEventPropagation );
+        Task<IExecutedCommand<T>> ICrisCallContext.ExecuteAsync<T>( Action<T> configure, bool stopEventPropagation ) => DoExecuteAsync( _eventHub.PocoDirectory.Create<T>( configure ), stopEventPropagation );
 
         async Task<object?> DoExecuteCommandAsync( IAbstractCommand command )
         {
@@ -133,7 +159,7 @@ namespace CK.Cris
 
         Task ICrisExecutionContext.EmitEventAsync( IEvent e ) => DoEmitEventAsync( e );
 
-        Task ICrisExecutionContext.EmitEventAsync<T>( Action<T> configure ) => DoEmitEventAsync( _pocoDirectory.Create( configure ) );
+        Task ICrisExecutionContext.EmitEventAsync<T>( Action<T> configure ) => DoEmitEventAsync( _eventHub.PocoDirectory.Create( configure ) );
 
         Task DoEmitEventAsync( IEvent e )
         {
@@ -154,7 +180,7 @@ namespace CK.Cris
             }
             else if( e.CrisPocoModel.Kind == CrisPocoKind.CallerOnlyImmediateEvent )
             {
-                return RaiseImmediateEventAsync( _monitor, e );
+                return RaiseCallerOnlyImmediateEventAsync( _monitor, e );
             }
             frame.Events ??= new List<IEvent>();
             frame.Events.Add( e );
@@ -163,7 +189,7 @@ namespace CK.Cris
 
         async Task HandleRoutedImmediateEventAsync( IEvent e )
         {
-            await _rawExecutor.DispatchEventAsync(_serviceProvider, e);
+            await _rawExecutor.DispatchEventAsync( _serviceProvider, e );
             await RaiseImmediateEventAsync( _monitor, e );
         }
     }

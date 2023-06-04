@@ -4,8 +4,8 @@ using CK.PerfectEvent;
 namespace CK.Cris
 {
     /// <summary>
-    /// A Cris execution host handles <see cref="CrisJob"/> in the background in
-    /// thanks to a variable count of parallel runners.
+    /// A Cris execution host handles <see cref="CrisJob"/> in the background
+    /// thanks to a variable number of parallel runners.
     /// </summary>
     [IsMultiple]
     public interface ICrisExecutionHost

@@ -16,16 +16,22 @@ namespace CK.Cris
             public ExecutionContext( CrisJob job,
                                      IActivityMonitor monitor,
                                      IServiceProvider serviceProvider,
-                                     PocoDirectory pocoDirectory,
+                                     DarkSideCrisEventHub eventHub,
                                      RawCrisExecutor rawExecutor )
-                : base( monitor, serviceProvider, pocoDirectory, rawExecutor )
+                : base( monitor, serviceProvider, eventHub, rawExecutor )
             {
                 _job = job;
             }
 
-            protected override Task RaiseImmediateEventAsync( IActivityMonitor monitor, IEvent e )
+            protected override async Task RaiseImmediateEventAsync( IActivityMonitor monitor, IEvent routedImmediateEvent )
             {
-                return _job._executor.RaiseImmediateEventAsync( monitor, _job, e );
+                await base.RaiseImmediateEventAsync( monitor, routedImmediateEvent );
+                await _job._executor.RaiseImmediateEventAsync( monitor, _job, routedImmediateEvent );
+            }
+
+            protected override Task RaiseCallerOnlyImmediateEventAsync( IActivityMonitor monitor, IEvent callerImmediateEvent )
+            {
+                return _job._executor.RaiseImmediateEventAsync( monitor, _job, callerImmediateEvent );
             }
         }
     }

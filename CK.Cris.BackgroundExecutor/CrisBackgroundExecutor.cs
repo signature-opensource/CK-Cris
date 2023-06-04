@@ -12,9 +12,7 @@ namespace CK.Cris
     ///     <item>The <see cref="IExecutingCommand{T}"/> returned instance to track the execution.</item>
     /// </list>
     /// </summary>
-    [Setup.AlsoRegisterType( typeof( CrisDirectory ) )]
     [Setup.AlsoRegisterType( typeof( CrisExecutionHost ) )]
-    [Setup.AlsoRegisterType( typeof( DarkSideCrisEventHub ) )]
     [Setup.AlsoRegisterType( typeof( CrisBackgroundEndpointDefinition ) )]
     public class CrisBackgroundExecutor : AbstractCommandExecutor, ISingletonAutoService
     {
@@ -23,10 +21,8 @@ namespace CK.Cris
         readonly IAuthenticationTypeSystem _authenticationTypeSystem;
 
         public CrisBackgroundExecutor( CrisExecutionHost executionHost,
-                                       DarkSideCrisEventHub eventHub,
                                        IEndpointType<CrisBackgroundJob> endpoint,
                                        IAuthenticationTypeSystem authenticationTypeSystem )
-            : base( eventHub )
         {
             _executionHost = executionHost;
             _endpoint = endpoint;

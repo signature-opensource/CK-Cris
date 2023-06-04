@@ -3,21 +3,24 @@ using CK.PerfectEvent;
 
 namespace CK.Cris
 {
+    /// <summary>
+    /// Exposes the routed events to anyone.
+    /// </summary>
     public sealed class CrisEventHub : ISingletonAutoService
     {
         internal PerfectEventSender<IEvent> _immediate;
-        internal PerfectEventSender<IEvent> _allEvent;
+        internal PerfectEventSender<IEvent> _all;
 
         public CrisEventHub()
         {
             _immediate = new PerfectEventSender<IEvent>();
-            _allEvent = new PerfectEventSender<IEvent>();
-            _immediate.CreateRelay( _allEvent );
+            _all = new PerfectEventSender<IEvent>();
+            _immediate.CreateRelay( _all );
         }
 
         public PerfectEvent<IEvent> Immediate => _immediate.PerfectEvent;
 
-        public PerfectEvent<IEvent> AllEvent => _allEvent.PerfectEvent;
+        public PerfectEvent<IEvent> All => _all.PerfectEvent;
     }
 
 }

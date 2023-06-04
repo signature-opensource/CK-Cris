@@ -4,5 +4,3 @@ using System;
 [assembly: CK.Setup.RequiredSetupDependency( "CK.Cris.AspNet.Engine" )]
 [assembly: CK.Core.PreserveAssemblyReference( typeof( CK.Cris.TypeScriptCrisCommandGenerator ))]
 
-WIP
-

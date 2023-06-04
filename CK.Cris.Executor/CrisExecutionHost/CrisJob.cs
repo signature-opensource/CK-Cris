@@ -51,5 +51,10 @@ namespace CK.Cris
         /// Gets the correlation identifier: a token that identifies the initialization of this job.
         /// </summary>
         public ActivityMonitor.Token IssuerToken { get; }
+
+        /// <summary>
+        /// Gets whether an executing command has been provided to this job.
+        /// </summary>
+        public bool HasExecutingCommand => _executingCommand != null;
     }
 }

@@ -24,33 +24,10 @@ namespace CK.Cris
     [CKTypeDefiner]
     public abstract class AbstractCommandExecutor : ISingletonAutoService
     {
-        readonly DarkSideCrisEventHub _hub;
-
-        public AbstractCommandExecutor( DarkSideCrisEventHub hub )
-        {
-            _hub = hub;
-        }
-
         internal async Task RaiseImmediateEventAsync( IActivityMonitor monitor, CrisJob job, IEvent e )
         {
             if( job._executingCommand != null ) await job._executingCommand.DarkSide.AddImmediateEventAsync( monitor, e );
-            await _hub.ImmediateSender.SafeRaiseAsync( monitor, e );
             await OnImmediateEventAsync( monitor, job, e );
-        }
-
-        internal Task SetFinalResultAsync( IActivityMonitor monitor, CrisJob job, IReadOnlyList<IEvent> events, CrisExecutionHost.ICrisJobResult r )
-        {
-            return events.Count > 0 ? FinalWithEventsAsync( monitor, job, events, r ) : OnFinalResultAsync( monitor, job, events, r );
-        }
-
-        async Task FinalWithEventsAsync( IActivityMonitor monitor, CrisJob job, IReadOnlyList<IEvent> events, CrisExecutionHost.ICrisJobResult r )
-        {
-            foreach( var e in events )
-            {
-                Debug.Assert( e != null && (e.CrisPocoModel.Kind != CrisPocoKind.CallerOnlyImmediateEvent && e.CrisPocoModel.Kind != CrisPocoKind.RoutedImmediateEvent) );
-                await _hub.AllEventSender.SafeRaiseAsync( monitor, e );
-            }
-            await OnFinalResultAsync( monitor, job, events, r );
         }
 
         /// <summary>
@@ -74,8 +51,9 @@ namespace CK.Cris
         internal protected virtual Task OnCrisValidationResultAsync( IActivityMonitor monitor, CrisJob job, CrisValidationResult validation ) => Task.CompletedTask;
 
         /// <summary>
-        /// Extension point called when a command emits an immediate event.
-        /// Note that all local impacts have been already handled: the <see cref="CrisEventHub"/> has already raised the event.
+        /// Extension point called when a command emits an immediate event (routed or caller only events).
+        /// Note that all local impacts have been already handled: the <see cref="CrisEventHub"/> has already raised the event
+        /// and if <see cref="CrisJob.HasExecutingCommand"/> is true, the <see cref="IExecutingCommand.Events"/> have been updated.
         /// </summary>
         /// <param name="monitor">The monitor.</param>
         /// <param name="job">The executing job.</param>
@@ -92,7 +70,7 @@ namespace CK.Cris
         /// <param name="events">Non empty events raised by the command execution.</param>
         /// <param name="r">The final command result.</param>
         /// <returns>The awaitable.</returns>
-        protected virtual Task OnFinalResultAsync( IActivityMonitor monitor, CrisJob job, IReadOnlyList<IEvent> events, CrisExecutionHost.ICrisJobResult r ) => Task.CompletedTask;
+        internal protected virtual Task SetFinalResultAsync( IActivityMonitor monitor, CrisJob job, IReadOnlyList<IEvent> events, CrisExecutionHost.ICrisJobResult r ) => Task.CompletedTask;
 
     }
 

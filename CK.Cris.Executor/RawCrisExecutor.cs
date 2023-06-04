@@ -18,6 +18,7 @@ namespace CK.Cris
     /// The concrete class implements all the generated code that routes the command to its handler.
     /// </para>
     /// </summary>
+    [Setup.AlsoRegisterType( typeof( CrisDirectory ) )]
     [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.RawCrisExecutorImpl, CK.Cris.Executor.Engine" )]
     public abstract class RawCrisExecutor : ISingletonAutoService
     {
