@@ -12,7 +12,6 @@ namespace CK.Cris
         {
             _hub = hub;
         }
-        WIP
 
         /// <summary>
         /// Gets the immediate event sender.

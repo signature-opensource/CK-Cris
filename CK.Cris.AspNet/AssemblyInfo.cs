@@ -2,5 +2,7 @@ using System;
 
 [assembly: CK.Setup.IsModel()]
 [assembly: CK.Setup.RequiredSetupDependency( "CK.Cris.AspNet.Engine" )]
+[assembly: CK.Core.PreserveAssemblyReference( typeof( CK.Cris.TypeScriptCrisCommandGenerator ))]
 
-[assembly: PreserveAssemblyReference( typeof( CK.Cris.TypeScriptCrisCommandGenerator ))]
+WIP
+
