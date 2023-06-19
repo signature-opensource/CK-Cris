@@ -11,7 +11,7 @@ namespace CK.Cris
                                                         Func<IServiceProvider, CrisBackgroundJob> scopeData,
                                                         IServiceProviderIsService globalServiceExists )
         {
-            CrisExecutionHost.ConfigureEndpoint( services, scopeData );
+            CrisExecutionHost.StandardConfigureEndpoint( services, scopeData );
             services.AddScoped( sp => scopeData( sp )._authenticationInfo );
         }
     }

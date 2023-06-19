@@ -15,7 +15,7 @@ namespace CK.Cris
     /// only commands can.
     /// </para>
     /// </summary>
-    public interface ICrisExecutionContext : ICrisCallContext
+    public interface ICrisCommandContext : ICrisEventContext
     {
         /// <summary>
         /// Emits an event.

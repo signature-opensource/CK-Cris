@@ -16,7 +16,7 @@ namespace CK.Cris
         internal readonly bool _skipValidation;
         internal readonly ExecutingCommand? _executingCommand;
         internal IActivityMonitor? _runnerMonitor;
-        internal ICrisExecutionContext? _executionContext;
+        internal ICrisCommandContext? _executionContext;
 
         /// <summary>
         /// Initializes a new <see cref="CrisJob"/>.

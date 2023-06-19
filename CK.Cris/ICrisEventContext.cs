@@ -13,7 +13,7 @@ namespace CK.Cris
     /// </para>
     /// </summary>
     [EndpointScopedService]
-    public interface ICrisCallContext : IScopedAutoService
+    public interface ICrisEventContext : IScopedAutoService
     {
         /// <summary>
         /// Gets the monitor that can be used to log activities.

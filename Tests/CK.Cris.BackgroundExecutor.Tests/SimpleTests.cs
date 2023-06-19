@@ -78,7 +78,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
                 var poco = scope.ServiceProvider.GetRequiredService<PocoDirectory>();
                 var back = scope.ServiceProvider.GetRequiredService<CrisBackgroundExecutor>();
                 var commands = Enumerable.Range( 0, 20 )
-                                         .Select( i => back.Execute( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ) ) );
+                                         .Select( i => back.Start( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ) ) );
                 TestHelper.Monitor.Info( "Waiting for commands to be executed." );
                 await Task.WhenAll( commands.Select( c => c.Completion ) );
                 var all = Traces.Concatenate();
@@ -104,7 +104,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
                 await Task.Delay( 15 );
 
                 var commands = Enumerable.Range( 0, 20 )
-                                         .Select( i => back.Execute( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ) ) );
+                                         .Select( i => back.Start( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ) ) );
                 TestHelper.Monitor.Info( "Waiting for the commands to be executed." );
                 await Task.WhenAll( commands.Select( c => c.Completion ) );
                 Traces.Should().HaveCount( 2 * 20 );
@@ -128,7 +128,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
                 back.ExecutionHost.ParallelRunnerCount = 4;
 
                 var commands = Enumerable.Range( 0, 20 )
-                                         .Select( i => back.Execute( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ) ) );
+                                         .Select( i => back.Start( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ) ) );
                 TestHelper.Monitor.Info( "Waiting for the commands to be executed." );
                 await Task.WhenAll( commands.Select( c => c.Completion ) );
                 Traces.Should().HaveCount( 2 * 20 );
@@ -177,7 +177,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
                 {
                     for( int i = 0; i < countChange; i++ )
                     {
-                        await back.Execute( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ) ).Completion;
+                        await back.Start( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ) ).Completion;
                     }
                     back.ExecutionHost.ParallelRunnerCount = eventualRunnerCount;
                 } );

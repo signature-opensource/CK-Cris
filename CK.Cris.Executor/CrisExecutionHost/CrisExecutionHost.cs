@@ -14,8 +14,8 @@ namespace CK.Cris
     /// A Cris execution host handles <see cref="CrisJob"/> (submitted by <see cref="AbstractCommandExecutor"/>)
     /// in the background in thanks to a variable count of parallel runners.
     /// <para>
-    /// This is a <see cref="ISingletonAutoService"/>: the default instance is available in the DI containers
-    /// but nothing prevents other host to be instantiated and used independently.
+    /// This is a <see cref="ISingletonAutoService"/>: the default instance is available in all the DI containers
+    /// (but nothing prevents other host to be instantiated and used independently).
     /// </para>
     /// </summary>
     [Setup.AlsoRegisterType( typeof( ICrisJobResult ) )]
@@ -115,7 +115,7 @@ namespace CK.Cris
         /// and will be executed in the background.
         /// </summary>
         /// <param name="job">The job to execute.</param>
-        public void Execute( CrisJob job )
+        public void StartJob( CrisJob job )
         {
             Throw.CheckNotNullArgument( job );
             Push( job );
@@ -200,12 +200,12 @@ namespace CK.Cris
         /// </summary>
         /// <param name="services">The service collection to configure.</param>
         /// <param name="scopeData">The scope data accessor.</param>
-        public static void ConfigureEndpoint( IServiceCollection services, Func<IServiceProvider, CrisJob> scopeData )
+        public static void StandardConfigureEndpoint( IServiceCollection services, Func<IServiceProvider, CrisJob> scopeData )
         {
             services.AddScoped( sp => scopeData( sp )._runnerMonitor! );
             services.AddScoped( sp => scopeData( sp )._runnerMonitor!.ParallelLogger );
             services.AddScoped( sp => scopeData( sp )._executionContext! );
-            services.AddScoped<ICrisCallContext>( sp => scopeData( sp )._executionContext! );
+            services.AddScoped<ICrisEventContext>( sp => scopeData( sp )._executionContext! );
         }
 
     }

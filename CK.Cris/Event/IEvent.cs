@@ -17,7 +17,6 @@ namespace CK.Cris
     /// and end with "Event".
     /// </para>
     /// </summary>
-    [CKTypeDefiner]
     public interface IEvent : ICrisPoco
     {
     }

@@ -91,7 +91,7 @@ namespace CK.Setup.Cris
                 }
                 else
                 {
-                    var execContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisExecutionContext ) );
+                    var execContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisCommandContext ) );
                     if( execContext != null )
                     {
                         monitor.Error( $"Invalid parameter '{execContext.Name}' in method '{MethodName( m, parameters )}': ICrisExecutionContext cannot " +
@@ -100,7 +100,7 @@ namespace CK.Setup.Cris
                     }
                     if( isValidator )
                     {
-                        var callContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisCallContext ) );
+                        var callContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisEventContext ) );
                         if( callContext != null )
                         {
                             monitor.Error( $"Invalid parameter '{callContext.Name}' in method '{MethodName( m, parameters )}': ICrisCallContext cannot " +

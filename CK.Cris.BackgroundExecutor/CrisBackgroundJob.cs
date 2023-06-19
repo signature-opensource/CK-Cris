@@ -5,7 +5,6 @@ namespace CK.Cris
 {
     public sealed class CrisBackgroundJob : CrisJob
     {
-        internal readonly ExecutingCommand _command;
         internal readonly IAuthenticationInfo _authenticationInfo;
 
         internal CrisBackgroundJob( CrisBackgroundExecutor executor,
@@ -14,7 +13,6 @@ namespace CK.Cris
                                     IAuthenticationInfo authenticationInfo )
             : base( executor, command.Command, command.IssuerToken, skipValidation, command )
         {
-            _command = command;
             _authenticationInfo = authenticationInfo;
         }
 

@@ -26,8 +26,8 @@ namespace CK.Cris
         /// Executes a command by calling the discovered handler and post handlers.
         /// Any exceptions are thrown (or more precisely are set on the returned <see cref="Task"/>).
         /// <para>
-        /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisExecutionContext"/> (that is
-        /// a <see cref="ICrisCallContext"/>) must be resolvable from the <paramref name="services"/>.
+        /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisCommandContext"/> (that is
+        /// a <see cref="ICrisEventContext"/>) must be resolvable from the <paramref name="services"/>.
         /// </para>
         /// </summary>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
@@ -39,8 +39,8 @@ namespace CK.Cris
         /// Dispatches an event by calling the discovered routed event handlers.
         /// Any exceptions are thrown (or more precisely are set on the returned <see cref="Task"/>).
         /// <para>
-        /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisExecutionContext"/> (that is
-        /// a <see cref="ICrisCallContext"/>) must be resolvable from the <paramref name="services"/>.
+        /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisCommandContext"/> (that is
+        /// a <see cref="ICrisEventContext"/>) must be resolvable from the <paramref name="services"/>.
         /// (The execution context cannot be used directly by an event handler, it may be used by the commands that
         /// an event handler can execute).
         /// </para>
@@ -54,8 +54,8 @@ namespace CK.Cris
         /// Dispatches an event by calling the discovered routed event handlers.
         /// Exceptions are caught and logged and false is returned.
         /// <para>
-        /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisExecutionContext"/> (that is
-        /// a <see cref="ICrisCallContext"/>) must be resolvable from the <paramref name="services"/>.
+        /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisCommandContext"/> (that is
+        /// a <see cref="ICrisEventContext"/>) must be resolvable from the <paramref name="services"/>.
         /// (The execution context cannot be used directly by an event handler, it may be used by the commands that
         /// an event handler can execute).
         /// </para>

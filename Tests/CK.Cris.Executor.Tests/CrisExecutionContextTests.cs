@@ -30,6 +30,10 @@ namespace CK.Cris.Executor.Tests
             public static int CallCount;
         }
 
+        public interface ICallerOnlyFinalEvent : IEvent
+        {
+        }
+
         public interface IStupidCommand : ICommand<int>
         {
             public static int CallCount;
@@ -37,10 +41,15 @@ namespace CK.Cris.Executor.Tests
             string Message { get; set; }
         }
 
+        public interface IFinalCommand : ICommand
+        {
+            public static int CallCount;
+        }
+
         public class Handlers : ISingletonAutoService
         {
             [CommandHandler]
-            public async Task<int> HandleStupidCommandAsync( IActivityMonitor monitor, ICrisExecutionContext ctx, IStupidCommand e )
+            public async Task<int> HandleStupidCommandAsync( IActivityMonitor monitor, ICrisCommandContext ctx, IStupidCommand e )
             {
                 using( monitor.OpenInfo( $"Stupid command called. Message = {e.Message}" ) )
                 {
@@ -55,7 +64,7 @@ namespace CK.Cris.Executor.Tests
             }
 
             [RoutedEventHandler]
-            public async Task OnIRoutedImmediateEventCallStupidCommandAsync( ICrisCallContext ctx, IRoutedImmediateEvent e )
+            public async Task OnIRoutedImmediateEventCallStupidCommandAsync( ICrisEventContext ctx, IRoutedImmediateEvent e )
             {
                 ++IRoutedImmediateEvent.CallCount;
                 using( ctx.Monitor.OpenTrace( $"IRoutedImmediateEvent => StupidCommand" ) )
@@ -72,7 +81,7 @@ namespace CK.Cris.Executor.Tests
             }
 
             [RoutedEventHandler]
-            public async Task OnIRoutedEventAsync( ICrisCallContext ctx, IRoutedEvent e )
+            public async Task OnIRoutedEventAsync( ICrisEventContext ctx, IRoutedEvent e )
             {
                 ++IRoutedEvent.CallCount;
                 ctx.Monitor.Trace( $"IRoutedEvent called. Executing IFinalCommand." );
@@ -80,19 +89,10 @@ namespace CK.Cris.Executor.Tests
             }
         }
 
-        public interface IFinalCommand : ICommand
-        {
-            public static int CallCount;
-        }
-
-        public interface ICallerOnlyFinalEvent : IEvent
-        {
-        }
-
         public class FinalHandler : ISingletonAutoService
         {
             [CommandHandler]
-            public async Task HandleFinalCommandAsync( ICrisExecutionContext ctx, IFinalCommand f )
+            public async Task HandleFinalCommandAsync( ICrisCommandContext ctx, IFinalCommand f )
             {
                 ++IFinalCommand.CallCount;
                 ctx.Monitor.Info( $"Final called." );

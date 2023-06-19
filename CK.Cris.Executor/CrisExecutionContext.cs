@@ -17,7 +17,7 @@ namespace CK.Cris
     /// </summary>
     [Setup.AlsoRegisterType( typeof( RawCrisExecutor ) )]
     [Setup.AlsoRegisterType( typeof( DarkSideCrisEventHub ) )]
-    public class CrisExecutionContext : ICrisExecutionContext
+    public class CrisExecutionContext : ICrisCommandContext
     {
         readonly IServiceProvider _serviceProvider;
         readonly DarkSideCrisEventHub _eventHub;
@@ -120,15 +120,15 @@ namespace CK.Cris
             return e;
         }
 
-        IActivityMonitor ICrisCallContext.Monitor => _monitor;
+        IActivityMonitor ICrisEventContext.Monitor => _monitor;
 
-        Task<object?> ICrisCallContext.ExecuteCommandAsync<T>( Action<T> configure )  => DoExecuteCommandAsync( _eventHub.PocoDirectory.Create<T>( configure ) );
+        Task<object?> ICrisEventContext.ExecuteCommandAsync<T>( Action<T> configure )  => DoExecuteCommandAsync( _eventHub.PocoDirectory.Create<T>( configure ) );
 
-        Task<object?> ICrisCallContext.ExecuteCommandAsync( IAbstractCommand command ) => DoExecuteCommandAsync( command );
+        Task<object?> ICrisEventContext.ExecuteCommandAsync( IAbstractCommand command ) => DoExecuteCommandAsync( command );
 
-        Task<IExecutedCommand<T>> ICrisCallContext.ExecuteAsync<T>( T command, bool stopEventPropagation ) => DoExecuteAsync( command, stopEventPropagation );
+        Task<IExecutedCommand<T>> ICrisEventContext.ExecuteAsync<T>( T command, bool stopEventPropagation ) => DoExecuteAsync( command, stopEventPropagation );
 
-        Task<IExecutedCommand<T>> ICrisCallContext.ExecuteAsync<T>( Action<T> configure, bool stopEventPropagation ) => DoExecuteAsync( _eventHub.PocoDirectory.Create<T>( configure ), stopEventPropagation );
+        Task<IExecutedCommand<T>> ICrisEventContext.ExecuteAsync<T>( Action<T> configure, bool stopEventPropagation ) => DoExecuteAsync( _eventHub.PocoDirectory.Create<T>( configure ), stopEventPropagation );
 
         async Task<object?> DoExecuteCommandAsync( IAbstractCommand command )
         {
@@ -157,9 +157,9 @@ namespace CK.Cris
             else f.Events.AddRange( events );
         }
 
-        Task ICrisExecutionContext.EmitEventAsync( IEvent e ) => DoEmitEventAsync( e );
+        Task ICrisCommandContext.EmitEventAsync( IEvent e ) => DoEmitEventAsync( e );
 
-        Task ICrisExecutionContext.EmitEventAsync<T>( Action<T> configure ) => DoEmitEventAsync( _eventHub.PocoDirectory.Create( configure ) );
+        Task ICrisCommandContext.EmitEventAsync<T>( Action<T> configure ) => DoEmitEventAsync( _eventHub.PocoDirectory.Create( configure ) );
 
         Task DoEmitEventAsync( IEvent e )
         {
