@@ -15,7 +15,7 @@ namespace CK.Cris
     ///   </item>
     ///   <item>
     ///   Expose the execution impacts to the external world thanks to: <see cref="OnCrisValidationResultAsync"/>, <see cref="OnImmediateEventAsync"/>
-    ///   and <see cref="OnFinalResultAsync"/> extension points.
+    ///   and <see cref="SetFinalResultAsync"/> extension points.
     ///   </item>
     /// </list>
     /// A concrete executor must be bound to a <see cref="EndpointDefinition"/>. It uses a specialized <see cref="CrisJob"/> to both

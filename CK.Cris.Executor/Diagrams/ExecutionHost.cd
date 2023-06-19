@@ -14,14 +14,14 @@
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
     <NestedTypes>
-      <Class Name="CK.Cris.CrisJob.ExecutionContext" Collapsed="true">
+      <Class Name="CK.Cris.CrisJob.JobExecutionContext" Collapsed="true">
         <TypeIdentifier>
           <NewMemberFileName>CrisExecutionHost\CrisJob.ExecutionContext.cs</NewMemberFileName>
         </TypeIdentifier>
       </Class>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AAgIAAAAAAAAAAAAAAAABAEAAAAAgABAAAAEAIAAAAA=</HashCode>
+      <HashCode>AAgIAAAAEAAAAAAAAAQABAEAAAAAgABAAAAEAJAAAAE=</HashCode>
       <FileName>CrisExecutionHost\CrisJob.cs</FileName>
     </TypeIdentifier>
   </Class>

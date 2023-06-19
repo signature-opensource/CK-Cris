@@ -10,4 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="BackgroundExecutor\" />
+  </ItemGroup>
 </Project>

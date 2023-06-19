@@ -148,7 +148,7 @@ namespace CK.Cris
                 // is the one of the calling runner and the ExecutionContext
                 // is bound to the new scoped service.
                 job._runnerMonitor = monitor;
-                var rootContext = new CrisJob.ExecutionContext( job, monitor, scoped.ServiceProvider, _eventHub, _rawExecutor );
+                var rootContext = new CrisJob.JobExecutionContext( job, monitor, scoped.ServiceProvider, _eventHub, _rawExecutor );
                 // This ExecutionContext is now available in the DI container. Work can start.
                 job._executionContext = rootContext;
 
@@ -192,20 +192,6 @@ namespace CK.Cris
             {
                 if( isScopedCreated ) await scoped.DisposeAsync();
             }
-        }
-
-        /// <summary>
-        /// Configures the basic services that a DI endpoint that handle Cris commands execution
-        /// must support.
-        /// </summary>
-        /// <param name="services">The service collection to configure.</param>
-        /// <param name="scopeData">The scope data accessor.</param>
-        public static void StandardConfigureEndpoint( IServiceCollection services, Func<IServiceProvider, CrisJob> scopeData )
-        {
-            services.AddScoped( sp => scopeData( sp )._runnerMonitor! );
-            services.AddScoped( sp => scopeData( sp )._runnerMonitor!.ParallelLogger );
-            services.AddScoped( sp => scopeData( sp )._executionContext! );
-            services.AddScoped<ICrisEventContext>( sp => scopeData( sp )._executionContext! );
         }
 
     }

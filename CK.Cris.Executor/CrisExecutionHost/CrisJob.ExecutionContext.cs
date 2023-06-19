@@ -7,17 +7,17 @@ using System.Threading.Tasks;
 
 namespace CK.Cris
 {
-    public abstract partial class CrisJob
+    public sealed partial class CrisJob
     {
-        internal sealed class ExecutionContext : CrisExecutionContext
+        internal sealed class JobExecutionContext : CrisExecutionContext
         {
             readonly CrisJob _job;
 
-            public ExecutionContext( CrisJob job,
-                                     IActivityMonitor monitor,
-                                     IServiceProvider serviceProvider,
-                                     DarkSideCrisEventHub eventHub,
-                                     RawCrisExecutor rawExecutor )
+            public JobExecutionContext( CrisJob job,
+                                        IActivityMonitor monitor,
+                                        IServiceProvider serviceProvider,
+                                        DarkSideCrisEventHub eventHub,
+                                        RawCrisExecutor rawExecutor )
                 : base( monitor, serviceProvider, eventHub, rawExecutor )
             {
                 _job = job;

@@ -77,8 +77,9 @@ namespace CK.Cris.BackgroundExecutor.Tests
                 Traces.Clear();
                 var poco = scope.ServiceProvider.GetRequiredService<PocoDirectory>();
                 var back = scope.ServiceProvider.GetRequiredService<CrisBackgroundExecutor>();
+                var ubiq = scope.ServiceProvider.GetRequiredService<EndpointUbiquitousInfo>();
                 var commands = Enumerable.Range( 0, 20 )
-                                         .Select( i => back.Start( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ) ) );
+                                         .Select( i => back.Start( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ) );
                 TestHelper.Monitor.Info( "Waiting for commands to be executed." );
                 await Task.WhenAll( commands.Select( c => c.Completion ) );
                 var all = Traces.Concatenate();
@@ -97,6 +98,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
                 Traces.Clear();
                 var poco = _services.GetRequiredService<PocoDirectory>();
                 var back = _services.GetRequiredService<CrisBackgroundExecutor>();
+                var ubiq = scope.ServiceProvider.GetRequiredService<EndpointUbiquitousInfo>();
                 back.ExecutionHost.ParallelRunnerCount = 2;
 
                 // The runner count is done asynchronously. The second runner may not kick in
@@ -104,7 +106,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
                 await Task.Delay( 15 );
 
                 var commands = Enumerable.Range( 0, 20 )
-                                         .Select( i => back.Start( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ) ) );
+                                         .Select( i => back.Start( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ) );
                 TestHelper.Monitor.Info( "Waiting for the commands to be executed." );
                 await Task.WhenAll( commands.Select( c => c.Completion ) );
                 Traces.Should().HaveCount( 2 * 20 );
@@ -125,10 +127,11 @@ namespace CK.Cris.BackgroundExecutor.Tests
                 Traces.Clear();
                 var poco = _services.GetRequiredService<PocoDirectory>();
                 var back = _services.GetRequiredService<CrisBackgroundExecutor>();
+                var ubiq = scope.ServiceProvider.GetRequiredService<EndpointUbiquitousInfo>();
                 back.ExecutionHost.ParallelRunnerCount = 4;
 
                 var commands = Enumerable.Range( 0, 20 )
-                                         .Select( i => back.Start( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ) ) );
+                                         .Select( i => back.Start( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ) );
                 TestHelper.Monitor.Info( "Waiting for the commands to be executed." );
                 await Task.WhenAll( commands.Select( c => c.Completion ) );
                 Traces.Should().HaveCount( 2 * 20 );
@@ -177,7 +180,8 @@ namespace CK.Cris.BackgroundExecutor.Tests
                 {
                     for( int i = 0; i < countChange; i++ )
                     {
-                        await back.Start( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ) ).Completion;
+                        var ubiq = scope.ServiceProvider.GetRequiredService<EndpointUbiquitousInfo>();
+                        await back.Start( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ).Completion;
                     }
                     back.ExecutionHost.ParallelRunnerCount = eventualRunnerCount;
                 } );
