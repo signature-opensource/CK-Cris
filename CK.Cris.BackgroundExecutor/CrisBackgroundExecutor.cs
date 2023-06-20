@@ -8,30 +8,19 @@ namespace CK.Cris
     /// <summary>
     /// Background execution of <see cref="IAbstractCommand"/>. The interface is limited to:
     /// <list type="bullet">
-    ///     <item>The <see cref="Start{T}(IActivityMonitor, T, bool, ActivityMonitor.Token?)"/> method to submit a command.</item>
+    ///     <item>The <see cref="Start{T}(IActivityMonitor, T, EndpointUbiquitousInfo, bool, ActivityMonitor.Token?)"/> method to submit a command.</item>
     ///     <item>The <see cref="IExecutingCommand{T}"/> returned instance to track the execution.</item>
     /// </list>
     /// </summary>
     [Setup.AlsoRegisterType( typeof( CrisExecutionHost ) )]
     [Setup.AlsoRegisterType( typeof( CrisBackgroundEndpointDefinition ) )]
-    public class CrisBackgroundExecutor : AbstractCommandExecutor, ISingletonAutoService
+    public class CrisBackgroundExecutor : EndpointCommandExecutor<CrisBackgroundEndpointDefinition.Data>, ISingletonAutoService
     {
-        readonly CrisExecutionHost _executionHost;
-        readonly IEndpointType<CrisBackgroundEndpointDefinition.Data> _endpoint;
-
         public CrisBackgroundExecutor( CrisExecutionHost executionHost,
                                        IEndpointType<CrisBackgroundEndpointDefinition.Data> endpoint )
+            : base( executionHost, endpoint )
         {
-            _executionHost = executionHost;
-            _endpoint = endpoint;
         }
-
-        /// <summary>
-        /// Gets the execution host that is used by this executor.
-        /// The same execution host can be used by multiple executors at the same time since 
-        /// host's responsibility is only to manage the runners.
-        /// </summary>
-        public ICrisExecutionHost ExecutionHost => _executionHost;
 
         /// <summary>
         /// Submits <see cref="ICommand"/> or <see cref="ICommand{TResult}"/> command.
@@ -53,15 +42,10 @@ namespace CK.Cris
             issuerToken ??= monitor.CreateToken( $"CrisBackgroundExecutor handling '{command.CrisPocoModel.PocoName}' command." );
             var cmd = new ExecutingCommand<T>( command, issuerToken );
             var scopedData = new CrisBackgroundEndpointDefinition.Data( ubiquitousInfo );
-            var job = new CrisJob( this, command, issuerToken, skipValidation, cmd, scopedData );
+            var job = new CrisJob( this, scopedData, command, issuerToken, skipValidation, cmd );
             scopedData._job = job;
-            _executionHost.StartJob( job );
+            ExecutionHost.StartJob( job );
             return cmd;
-        }
-
-        protected override AsyncServiceScope CreateAsyncScope( CrisJob job )
-        {
-            return _endpoint.GetContainer().CreateAsyncScope( Unsafe.As<CrisBackgroundEndpointDefinition.Data>( job.ScopedData! ) );
         }
 
     }

@@ -11,7 +11,7 @@ using static Microsoft.IO.RecyclableMemoryStreamManager;
 namespace CK.Cris
 {
     /// <summary>
-    /// A Cris execution host handles <see cref="CrisJob"/> (submitted by <see cref="AbstractCommandExecutor"/>)
+    /// A Cris execution host handles <see cref="CrisJob"/> (submitted by <see cref="EndpointCommandExecutor"/>)
     /// in the background thanks to a variable count of parallel runners.
     /// <para>
     /// This is a <see cref="ISingletonAutoService"/>: the default instance is available in all the DI containers
@@ -91,10 +91,7 @@ namespace CK.Cris
             _last = new Runner( this, 0, null );
         }
 
-        /// <summary>
-        /// Gets or sets the number of parallel runners that handle the requests.
-        /// It must be between 1 and 1000.
-        /// </summary>
+        /// <inheritdoc />
         public int ParallelRunnerCount
         {
             get => _runnerCount;
@@ -105,9 +102,7 @@ namespace CK.Cris
             }
         }
 
-        /// <summary>
-        /// Raised whenever the <see cref="ParallelRunnerCount"/> changes.
-        /// </summary>
+        /// <inheritdoc />
         public PerfectEvent<ICrisExecutionHost> ParallelRunnerCountChanged => _parallelRunnerCountChanged.PerfectEvent;
 
         /// <summary>

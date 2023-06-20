@@ -8,7 +8,8 @@ using System.Threading.Tasks;
 namespace CK.Cris
 {
     /// <summary>
-    /// Base class for command executors. A <see cref="CrisExecutionHost"/> relies on an executor to:
+    /// Non generic base class for <see cref="EndpointCommandExecutor{T}"/>.
+    /// A <see cref="CrisExecutionHost"/> relies on an executor to:
     /// <list type="bullet">
     ///   <item>
     ///   Create a <see cref="AsyncServiceScope"/> to handle command validation and command execution.
@@ -18,12 +19,13 @@ namespace CK.Cris
     ///   and <see cref="SetFinalResultAsync"/> extension points.
     ///   </item>
     /// </list>
-    /// A concrete executor must be bound to a <see cref="EndpointDefinition"/>. It uses a specialized <see cref="CrisJob"/> to both
-    /// configure the execution DI container and to capture specific data that can be used to send execution results back to a caller.
     /// </summary>
-    [CKTypeDefiner]
-    public abstract class AbstractCommandExecutor : ISingletonAutoService
+    public abstract class EndpointCommandExecutor
     {
+        internal EndpointCommandExecutor() { }
+
+        internal abstract AsyncServiceScope CreateAsyncScope( CrisJob job );
+
         internal async Task RaiseImmediateEventAsync( IActivityMonitor monitor, CrisJob job, IEvent e )
         {
             if( job._executingCommand != null ) await job._executingCommand.DarkSide.AddImmediateEventAsync( monitor, e );
@@ -31,15 +33,11 @@ namespace CK.Cris
         }
 
         /// <summary>
-        /// Must provide a scoped context into which the commands will be validated and executed.
-        /// </summary>
-        /// <param name="job">The job that will be executed.</param>
-        /// <returns>A scope context.</returns>
-        internal protected abstract AsyncServiceScope CreateAsyncScope( CrisJob job );
-
-        /// <summary>
         /// Extension point called when a command has been validated.
         /// This is always called: this signals the start of a command handling.
+        /// <para>
+        /// Does nothing by default.
+        /// </para>
         /// </summary>
         /// <param name="monitor">The monitor.</param>
         /// <param name="job">The executing job.</param>
@@ -54,6 +52,9 @@ namespace CK.Cris
         /// Extension point called when a command emits an immediate event (routed or caller only events).
         /// Note that all local impacts have been already handled: the <see cref="CrisEventHub"/> has already raised the event
         /// and if <see cref="CrisJob.HasExecutingCommand"/> is true, the <see cref="IExecutingCommand.Events"/> have been updated.
+        /// <para>
+        /// Does nothing by default.
+        /// </para>
         /// </summary>
         /// <param name="monitor">The monitor.</param>
         /// <param name="job">The executing job.</param>
@@ -64,6 +65,9 @@ namespace CK.Cris
         /// <summary>
         /// Extension point called once a command has been executed.
         /// Note that all local impacts have been already handled: the <see cref="CrisEventHub"/> has already raised all the events.
+        /// <para>
+        /// Does nothing by default.
+        /// </para>
         /// </summary>
         /// <param name="monitor">The monitor.</param>
         /// <param name="job">The executed job.</param>

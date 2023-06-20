@@ -8,7 +8,7 @@ namespace CK.Cris
     [EndpointDefinition( EndpointKind.Back )]
     public abstract class CrisBackgroundEndpointDefinition : EndpointDefinition<CrisBackgroundEndpointDefinition.Data>
     {
-        public sealed class Data : ScopedData
+        public sealed class Data : BackScopedData
         {
             [AllowNull]
             internal CrisJob _job;
