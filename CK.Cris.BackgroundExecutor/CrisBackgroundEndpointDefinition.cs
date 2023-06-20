@@ -26,7 +26,7 @@ namespace CK.Cris
         {
             services.AddScoped( sp => scopeData( sp )._job.RunnerMonitor! );
             services.AddScoped( sp => scopeData( sp )._job.RunnerMonitor!.ParallelLogger );
-            services.AddScoped( sp => scopeData(sp)._job.ExecutionContext! );
+            services.AddScoped( sp => scopeData( sp )._job.ExecutionContext! );
             services.AddScoped<ICrisEventContext>( sp => scopeData( sp )._job.ExecutionContext! );
         }
     }

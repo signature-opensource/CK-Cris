@@ -12,7 +12,7 @@ namespace CK.Cris
 {
     /// <summary>
     /// A Cris execution host handles <see cref="CrisJob"/> (submitted by <see cref="AbstractCommandExecutor"/>)
-    /// in the background in thanks to a variable count of parallel runners.
+    /// in the background thanks to a variable count of parallel runners.
     /// <para>
     /// This is a <see cref="ISingletonAutoService"/>: the default instance is available in all the DI containers
     /// (but nothing prevents other host to be instantiated and used independently).

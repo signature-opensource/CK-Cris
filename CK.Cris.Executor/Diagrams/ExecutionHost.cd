@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1" MembersFormat="FullSignature">
   <Class Name="CK.Cris.CrisJob">
-    <Position X="8" Y="0.5" Width="3" />
+    <Position X="8" Y="0.5" Width="3.75" />
     <Members>
       <Field Name="_executingCommand" Hidden="true" />
       <Field Name="_executionContext" Hidden="true" />
@@ -14,14 +14,14 @@
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
     <NestedTypes>
-      <Class Name="CK.Cris.CrisJob.JobExecutionContext" Collapsed="true">
+      <Class Name="CK.Cris.CrisJob.JobExecutionContext">
         <TypeIdentifier>
           <NewMemberFileName>CrisExecutionHost\CrisJob.ExecutionContext.cs</NewMemberFileName>
         </TypeIdentifier>
       </Class>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AAgIAAAAEAAAAAAAAAQABAEAAAAAgABAAAAEAJAAAAE=</HashCode>
+      <HashCode>AAgIAAAAGAAAAAAAAAQABAEAAAAAgABAAAAEAJAAAAE=</HashCode>
       <FileName>CrisExecutionHost\CrisJob.cs</FileName>
     </TypeIdentifier>
   </Class>
@@ -61,7 +61,7 @@
       </Class>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AEAAAAAAAEAAAAAAIAAYAAACAiAgAAACyAQFAARACAA=</HashCode>
+      <HashCode>AEAAAAAAAEAAAAAAIAAYAAACAiAAAAACyAQFAARACAA=</HashCode>
       <FileName>CrisExecutionHost\CrisExecutionHost.cs</FileName>
     </TypeIdentifier>
     <Lollipop Position="0.2" />
