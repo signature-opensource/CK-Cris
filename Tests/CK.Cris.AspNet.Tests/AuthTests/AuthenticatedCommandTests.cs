@@ -39,7 +39,7 @@ namespace CK.Cris.AspNet.Tests.AuthTests
         public async Task ICommandAuthUnsafe_cannot_be_fooled_on_its_ActorId_Async()
         {
             var c = TestHelper.CreateStObjCollector( typeof( IUnsafeCommand ), typeof( UnsafeHandler ), typeof( CrisExecutionContext ) );
-            using( var s = new CrisTestServer( c, true ) )
+            using( var s = new CrisTestServer( c, withAuthentication: true ) )
             {
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""YES"",""ActorId"":0}]" );

@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 
 namespace CK.Cris.AspNet
 {
+    [EndpointSingletonService]
     public partial class CrisAspNetService : ISingletonAutoService
     {
         readonly RawCrisValidator _validator;

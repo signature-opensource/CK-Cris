@@ -30,11 +30,10 @@ namespace CK.Cris.AspNet.Tests
         {
             collector.RegisterTypes( new[] {
                 typeof( RawCrisExecutor ),
+                typeof( RawCrisValidator ),
                 typeof( DefaultFrontCommandExceptionHandler ),
-                typeof( CrisDirectory ),
                 typeof( ICrisResult ),
                 typeof( ICrisResultError ),
-                typeof( RawCrisValidator ),
                 typeof( PocoJsonSerializer ),
                 typeof( CrisAspNetService ),
                 typeof( AmbientValues.IAmbientValues ),
@@ -48,6 +47,7 @@ namespace CK.Cris.AspNet.Tests
                     typeof( StdAuthenticationTypeSystem ),
                     typeof( FakeWebFrontLoginService ),
                     typeof( CrisAuthenticationService ),
+                    typeof( AuthenticationInfoTokenService ),
                     typeof( IAuthAmbientValues ),
                     typeof( ICommandAuthUnsafe ),
                     typeof( ICommandAuthNormal ),

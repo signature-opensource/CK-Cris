@@ -45,7 +45,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.TypeScript", "CK.Cr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.BackgroundExecutor", "CK.Cris.BackgroundExecutor\CK.Cris.BackgroundExecutor.csproj", "{1A53444A-2220-4539-858D-2CA88902D32C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CK.Cris.BackgroundExecutor.Tests", "Tests\CK.Cris.BackgroundExecutor.Tests\CK.Cris.BackgroundExecutor.Tests.csproj", "{30AAD169-49F5-4B14-A638-F5825F148DF7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.BackgroundExecutor.Tests", "Tests\CK.Cris.BackgroundExecutor.Tests\CK.Cris.BackgroundExecutor.Tests.csproj", "{30AAD169-49F5-4B14-A638-F5825F148DF7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentation", "{0525F8A8-6C51-4A5A-80E2-0F3A96FD7515}"
+	ProjectSection(SolutionItems) = preProject
+		Documentation\AuthenticatedCommands.png = Documentation\AuthenticatedCommands.png
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -118,6 +123,7 @@ Global
 		{79A461A3-5F21-4D9C-ADDD-3A46A1C60B90} = {4D3EF9AD-5153-461D-8538-F321B6EF7121}
 		{9626283D-CAC7-4B78-94AA-86441AA3DBDA} = {4D3EF9AD-5153-461D-8538-F321B6EF7121}
 		{30AAD169-49F5-4B14-A638-F5825F148DF7} = {4D3EF9AD-5153-461D-8538-F321B6EF7121}
+		{0525F8A8-6C51-4A5A-80E2-0F3A96FD7515} = {CED4973A-F35D-4D85-B2A4-081D7E8E98E6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {228BD9A5-6AA5-4F89-A2AE-FCE153B1FC03}
