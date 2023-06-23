@@ -202,7 +202,7 @@ namespace CK.Setup
         {
             fModel.EnsureImport( monitor, typeof( VESACode ), typeof( ICrisResultError ), typeof(ICrisResult) );
             fModel.Imports.EnsureImportFromLibrary( new LibraryImport( "axios", "^1.2.3", DependencyKind.Dependency ),
-                "Axios", "AxiosHeaders", "RawAxiosRequestConfig" );
+                "AxiosInstance", "AxiosHeaders", "RawAxiosRequestConfig" );
             fModel.Body.Append( @"
 
 export type ICommandResult<T> = {
@@ -246,7 +246,7 @@ const defaultCrisAxiosConfig: RawAxiosRequestConfig = {
 export class HttpCrisEndpoint implements ICrisEndpoint {
   public axiosConfig: RawAxiosRequestConfig; // Allow user replace
 
-  constructor(private readonly axios: Axios, private readonly crisEndpointUrl: string) {
+  constructor(private readonly axios: AxiosInstance, private readonly crisEndpointUrl: string) {
     this.axiosConfig = defaultCrisAxiosConfig;
   }
 
