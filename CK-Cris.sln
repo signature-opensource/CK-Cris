@@ -49,6 +49,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.BackgroundExecutor.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentation", "{0525F8A8-6C51-4A5A-80E2-0F3A96FD7515}"
 	ProjectSection(SolutionItems) = preProject
+		Documentation\Abstractions.png = Documentation\Abstractions.png
 		Documentation\AuthenticatedCommands.png = Documentation\AuthenticatedCommands.png
 	EndProjectSection
 EndProject

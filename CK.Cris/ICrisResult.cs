@@ -6,9 +6,15 @@ namespace CK.Cris.AspNet
 {
     /// <summary>
     /// Describes the final result of a command.
+    /// <para>
     /// The result's type of a command is not constrained (the TResult in <see cref="ICommand{TResult}"/> can be anything),
     /// this represents the final result of the handling of a command with its <see cref="VESACode"/> and any errors or correlation
     /// information.
+    /// </para>
+    /// <para>
+    /// This is for "API adaptation" of ASPNet endpoint that has no available back channel and can be called by agnostic
+    /// process.
+    /// </para>
     /// </summary>
     [ExternalName( "CrisResult" )]
     public interface ICrisResult : IPoco
