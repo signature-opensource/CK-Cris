@@ -35,7 +35,7 @@ namespace CK.Cris
                 _command = command;
             }
 
-            public new TResult Result => (TResult)_command.Result!;
+            public TResult Result => (TResult)_command.Result!;
 
             public T Command => _command.Command;
 

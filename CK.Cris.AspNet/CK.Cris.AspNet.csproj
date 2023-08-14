@@ -7,6 +7,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="CK.Globalization" Version="0.0.0--04hwo1z-develop" />
     <ProjectReference Include="..\CK.Cris.Executor\CK.Cris.Executor.csproj" />
     <ProjectReference Include="..\CK.Cris.TypeScript\CK.Cris.TypeScript.csproj" />
   </ItemGroup>
