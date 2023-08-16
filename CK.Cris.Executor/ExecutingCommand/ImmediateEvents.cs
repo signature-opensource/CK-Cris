@@ -24,8 +24,8 @@ namespace CK.Cris
         }
 
         /// <summary>
-        /// Raised whenever a <see cref="CrisPocoKind.RoutedImmediateEvent"/> is raised by the executing command (or
-        /// recursively called commands).
+        /// Raised whenever a <see cref="CrisPocoKind.RoutedImmediateEvent"/> or <see cref="CrisPocoKind.CallerOnlyImmediateEvent"/> is raised
+        /// by the executing command (or recursively called commands).
         /// </summary>
         public PerfectEvent<IEvent> Added => _immediate.PerfectEvent;
 

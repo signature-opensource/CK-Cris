@@ -15,15 +15,15 @@ namespace CK.Cris
         /// Creates a <see cref="ICrisResultError"/> with at least one error.
         /// </summary>
         /// <param name="this">This factory.</param>
-        /// <param name="firstError">The required first error. Must not be empty or whitespace.</param>
-        /// <param name="otherErrors">Optional other errors (nulls are kindly skipped).</param>
+        /// <param name="first">The required first message. Must be <see cref="ResultMessage.IsValid"/>.</param>
+        /// <param name="others">Optional other messages.</param>
         /// <returns>An error result.</returns>
-        public static ICrisResultError Create( this IPocoFactory<ICrisResultError> @this, string firstError, params string?[] otherErrors )
+        public static ICrisResultError Create( this IPocoFactory<ICrisResultError> @this, ResultMessage first, params ResultMessage[] others )
         {
-            Throw.CheckNotNullOrWhiteSpaceArgument( firstError );
+            Throw.CheckArgument( first.IsValid );
             var r = @this.Create();
-            r.Errors.Add( firstError );
-            r.Errors.AddRange( otherErrors.Where( e => e != null ).Select( e => e! ) );
+            r.UserMessages.Add( first );
+            r.UserMessages.AddRange( others );
             return r;
         }
     }
