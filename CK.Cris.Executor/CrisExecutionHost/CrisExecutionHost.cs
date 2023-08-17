@@ -173,13 +173,15 @@ namespace CK.Cris
             }
             catch( Exception ex )
             {
-                using( monitor.OpenError( $"While {step} command '{job.Command.CrisPocoModel.PocoName}'." ) )
-                {
-                    monitor.Error( job.Command.ToString()!, ex );
-                }
+                using var g = monitor.OpenError( $"While {step} command '{job.Command.CrisPocoModel.PocoName}'." );
+                monitor.Error( job.Command.ToString()!, ex );
                 // Send the error. We are done.
                 job._executingCommand?.DarkSide.SetException( ex );
-                var error = _errorResultFactory.Create( e => e.Errors.Add( ex.Message ) );
+
+                var error = ex is MCException mEx
+                            ? _errorResultFactory.Create( mEx.AsUserMessage() )
+                            : _errorResultFactory.Create( UserMessage.Error( "An unhandled error occurred.", "Error.Unhandled" ) );
+                error.UnhandledErrorLogKey = g.GetLogKey();
                 crisResult.Result = error;
                 await job._executor.SetFinalResultAsync( monitor, job, Array.Empty<IEvent>(), crisResult );
             }
