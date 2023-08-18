@@ -18,15 +18,20 @@ namespace CK.Cris
     public interface ICrisResultError : IPoco
     {
         /// <summary>
+        /// Gets or sets whether the command failed during validation or execution.
+        /// </summary>
+        bool IsValidationError { get; set; }
+
+        /// <summary>
         /// Gets the list of user messages.
         /// At least one of them should be a <see cref="UserMessageLevel.Error"/> but this is not checked.
         /// </summary>
         List<UserMessage> UserMessages { get; }
 
         /// <summary>
-        /// When an unhandled error has been caught while validating or executing the command, this contains <see cref="IDisposableGroup.GetLogKey()"/>
-        /// of the group that logged the error.
+        /// Gets or sets a <see cref="ActivityMonitor.LogKey"/> that enables to locate the logs of the command execution.
+        /// It may not always be available.
         /// </summary>
-        string? UnhandledErrorLogKey { get; set; }
+        public string? LogKey { get; set; }
     }
 }

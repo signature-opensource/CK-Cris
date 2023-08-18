@@ -38,9 +38,7 @@ namespace CK.Cris.AspNet
         ///     and some extra data is required).
         ///   </item>
         ///   <item>
-        ///     On error (<see cref="VESACode.Error"/> or <see cref="VESACode.ValidationError"/>), this should contain a description of
-        ///     the error, typically a <see cref="ICrisResultError"/>, a simple string, a value tuple, or any combination of
-        ///     types that are easily serializable.
+        ///     On error (<see cref="VESACode.Error"/> or <see cref="VESACode.ValidationError"/>), this contains a <see cref="ICrisResultError"/>.
         ///   </item>
         /// </list>
         /// </summary>

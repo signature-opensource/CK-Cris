@@ -16,19 +16,26 @@ namespace CK.Setup.Cris
             var registry = CrisRegistry.FindOrCreate( monitor, c );
             if( registry == null ) return CSCodeGenerationResult.Failed;
 
-            var validateMethod = classType.GetMethod( nameof( RawCrisValidator.ValidateCommandAsync ), new[] { typeof( IActivityMonitor ), typeof( IServiceProvider ), typeof( IAbstractCommand ) } );
-            Debug.Assert( validateMethod != null, "This is the signature of the central method." );
+            // DoValidateCommandAsync is protected, we cannot use nameof() here.
+            var validateMethod = classType.GetMethod( "DoValidateCommandAsync", new[]
+            {
+                typeof( IActivityMonitor ),
+                typeof( UserMessageCollector ),
+                typeof( IServiceProvider ),
+                typeof( IAbstractCommand )
+            } );
+            Throw.DebugAssert( validateMethod != null, "This is the signature of the central method." );
 
             var mValidate = scope.CreateSealedOverride( validateMethod );
             if( !registry.CrisPocoModels.Any( e => e.Validators.Count > 0 ) )
             {
                 mValidate.Definition.Modifiers &= ~Modifiers.Async;
                 mValidate.GeneratedByComment().NewLine()
-                         .Append( "return CK.Cris.CrisValidationResult.SuccessResultTask;" );
+                         .Append( "return Task.CompletedTask;" );
             }
             else
             {
-                const string funcSignature = "Func<IActivityMonitor, IServiceProvider, CK.Cris.IAbstractCommand, Task<CK.Cris.CrisValidationResult>>";
+                const string funcSignature = "Func<IActivityMonitor, UserMessageCollector, IServiceProvider, CK.Cris.IAbstractCommand, Task>";
 
                 scope.GeneratedByComment().NewLine()
                      .Append( "static readonly " ).Append( funcSignature ).Append( " Success = ( m, s, c ) => CK.Cris.CrisValidationResult.SuccessResultTask;" )
@@ -39,18 +46,15 @@ namespace CK.Setup.Cris
                     if( e.Validators.Count > 0 )
                     {
                         bool requiresAsync = false;
-                        var f = scope.CreateFunction( "static Task<CK.Cris.CrisValidationResult> V" + e.CrisPocoIndex + "( IActivityMonitor m, IServiceProvider s, CK.Cris.IAbstractCommand c )" );
+                        var f = scope.CreateFunction( "static Task V" + e.CrisPocoIndex + "( IActivityMonitor m, UserMessageCollector v, IServiceProvider s, CK.Cris.IAbstractCommand c )" );
 
                         f.GeneratedByComment().NewLine();
                         var cachedServices = new VariableCachedServices( f.CreatePart() );
-                        f.Append( "using( m.CollectEntries( out var entries, LogLevelFilter.Warn ) )" ).NewLine()
-                         .OpenBlock()
-                         .Append( "m.MinimalFilter = new LogFilter( LogLevelFilter.Warn, LogLevelFilter.Warn );" ).NewLine();
 
                         foreach( var service in e.Validators.GroupBy( v => v.Owner ) )
                         {
                             f.OpenBlock()
-                             .Append( "var h = (" ).Append( service.Key.ClassType.ToCSharpName() ).Append( ")s.GetService(" ).AppendTypeOf( service.Key.ClassType ).Append( ");" ).NewLine();
+                             .Append( "var h = (" ).AppendGlobalTypeName( service.Key.ClassType ).Append( ")s.GetService(" ).AppendTypeOf( service.Key.ClassType ).Append( ");" ).NewLine();
                             foreach( var validator in service )
                             {
                                 if( validator.IsRefAsync || validator.IsValAsync )
@@ -60,7 +64,7 @@ namespace CK.Setup.Cris
                                 }
                                 if( validator.Method.DeclaringType != service.Key.ClassType )
                                 {
-                                    f.Append( "((" ).Append( validator.Method.DeclaringType.ToCSharpName() ).Append( ")h)." );
+                                    f.Append( "((" ).AppendGlobalTypeName( validator.Method.DeclaringType ).Append( ")h)." );
                                 }
                                 else f.Append( "h." );
                                 f.Append( validator.Method.Name ).Append( "( " );
@@ -74,7 +78,11 @@ namespace CK.Setup.Cris
                                     }
                                     else if( p == validator.CmdOrPartParameter )
                                     {
-                                        f.Append( "(" ).Append( validator.CmdOrPartParameter.ParameterType.ToCSharpName() ).Append( ")c" );
+                                        f.Append( "(" ).AppendGlobalTypeName( validator.CmdOrPartParameter.ParameterType ).Append( ")c" );
+                                    }
+                                    else if( p == validator.ValidationContextParameter )
+                                    {
+                                        f.Append( "v" );
                                     }
                                     else
                                     {
@@ -85,12 +93,14 @@ namespace CK.Setup.Cris
                             }
                             f.CloseBlock();
                         }
-                        if( requiresAsync ) f.Definition.Modifiers |= Modifiers.Async;
-                        f.Append( "if( entries.Count == 0 ) return CK.Cris.CrisValidationResult.SuccessResult" ).Append( requiresAsync ? null : "Task" ).Append( ";" ).NewLine();
-                        f.Append( "return " ).Append( requiresAsync
-                                                        ? "CK.Cris.CrisValidationResult.Create( entries );"
-                                                        : "Task.FromResult( CK.Cris.CrisValidationResult.Create( entries ) );" )
-                         .CloseBlock();
+                        if( requiresAsync )
+                        {
+                            f.Definition.Modifiers |= Modifiers.Async;
+                        }
+                        else
+                        {
+                            f.Append( "return Task.CompletedTask;" ).NewLine();
+                        }
                     }
                 }
 

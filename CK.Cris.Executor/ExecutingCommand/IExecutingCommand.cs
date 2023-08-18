@@ -34,7 +34,7 @@ namespace CK.Cris
         /// <summary>
         /// Gets the validation result of the executing command.
         /// When this <see cref="CrisValidationResult.Success"/> is false,
-        /// the <see cref="Completion"/> contains a <see cref="ICrisResultError"/> with the <see cref="CrisValidationResult.Errors"/>
+        /// the <see cref="Completion"/> contains a <see cref="ICrisResultError"/> with the <see cref="CrisValidationResult.Messages"/>
         /// lines. 
         /// </summary>
         Task<CrisValidationResult> ValidationResult { get; }
@@ -45,7 +45,7 @@ namespace CK.Cris
         /// <list type="bullet">
         ///  <item>A <see cref="ICrisResultError"/> on validation or execution error.</item>
         ///  <item>A successful null result on success when <see cref="Command"/> is a <see cref="ICommand"/>.</item>
-        ///  <item>A successful result object this command is a <see cref="ICommand{TResult}"/>.</item>
+        ///  <item>A successful result object when this command is a <see cref="ICommand{TResult}"/>.</item>
         /// </list>
         /// </summary>
         Task<object?> Completion { get; }

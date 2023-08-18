@@ -426,11 +426,12 @@ namespace CK.Setup.Cris
                                         MethodInfo method,
                                         ParameterInfo[] parameters,
                                         ParameterInfo commandParameter,
+                                        ParameterInfo validationContextParameter,
                                         string? fileName,
                                         int lineNumber )
             {
                 if( !CheckVoidReturn( monitor, "Validator", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
-                _validators.Add( new ValidatorMethod( this, owner, method, parameters, fileName, lineNumber, commandParameter, isRefAsync, isValAsync ) );
+                _validators.Add( new ValidatorMethod( this, owner, method, parameters, fileName, lineNumber, commandParameter, validationContextParameter, isRefAsync, isValAsync ) );
                 return true;
             }
 

@@ -23,7 +23,7 @@ namespace CK.Cris
     [Setup.AlsoRegisterType( typeof( CrisExecutionContext ) )]
     public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAutoService
     {
-        readonly IPocoFactory<ICrisJobResult> _resultFactory;
+        readonly IPocoFactory<ICrisJobResult> _jobResultFactory;
         readonly IPocoFactory<ICrisResultError> _errorResultFactory;
         readonly DarkSideCrisEventHub _eventHub;
         readonly RawCrisValidator _commandValidator;
@@ -79,7 +79,7 @@ namespace CK.Cris
             Throw.CheckNotNullArgument( eventHub );
             Throw.CheckNotNullArgument( validator );
             Throw.CheckNotNullArgument( executor );
-            _resultFactory = eventHub.PocoDirectory.Find<ICrisJobResult>()!;
+            _jobResultFactory = eventHub.PocoDirectory.Find<ICrisJobResult>()!;
             _errorResultFactory = eventHub.PocoDirectory.Find<ICrisResultError>()!;
             _eventHub = eventHub;
             _commandValidator = validator;
@@ -126,15 +126,16 @@ namespace CK.Cris
 
         async ValueTask HandleCommandAsync( IActivityMonitor monitor, CrisJob job )
         {
-            using var log = monitor.StartDependentActivity( job.IssuerToken );
+            using var gLog = monitor.StartDependentActivityGroup( job.IssuerToken );
 
             AsyncServiceScope scoped = default;
             bool isScopedCreated = false;
 
             // Should the path with validation be code generated for the services to be resolved only
             // once across the Validation and Execution methods?
-            var crisResult = _resultFactory.Create();
-            var step = "validating";
+
+            // This is null until validation is done.
+            ICrisJobResult? crisResult = null;
             try
             {
                 scoped = job._executor.CreateAsyncScope( job );
@@ -154,18 +155,34 @@ namespace CK.Cris
                 }
                 else
                 {
-                    validation = await _commandValidator.ValidateCommandAsync( monitor, scoped.ServiceProvider, job.Command );
+                    validation = await _commandValidator.ValidateCommandAsync( monitor, scoped.ServiceProvider, job.Command, gLog );
                 }
-                job._executingCommand?.DarkSide.SetValidationResult( _errorResultFactory, validation );
+                // Sets the validation result on the executing command if there is one.
+                if( job._executingCommand != null )
+                {
+                    if( !validation.Success )
+                    {
+                        var error = _errorResultFactory.Create();
+                        error.UserMessages.AddRange( validation.Messages );
+                        error.LogKey = validation.LogKey;
+                        error.IsValidationError = true;
+                        job._executingCommand.DarkSide.SetValidationResult( validation, error );
+                    }
+                    else
+                    {
+                        job._executingCommand.DarkSide.SetValidationResult( validation, null );
+                    }
+                }
                 // Always call OnCrisValidationResultAsync even if it is successful: this is
                 // the "execution started" signal for the executor.
                 await job._executor.OnCrisValidationResultAsync( monitor, job, validation );
                 // If validation fails, we are done.
                 if( !validation.Success ) return;
 
+                crisResult = _jobResultFactory.Create();
                 // Executing the command (handlers and post handlers).
-                step = "executing";
                 var (result,finalEvents) = await rootContext.ExecuteAsync( job.Command );
+                // Sets the result on the executing command if there is one.
                 job._executingCommand?.DarkSide.SetResult( finalEvents, result );
                 // Send the result. We are done.
                 crisResult.Result = result;
@@ -173,16 +190,21 @@ namespace CK.Cris
             }
             catch( Exception ex )
             {
-                using var g = monitor.OpenError( $"While {step} command '{job.Command.CrisPocoModel.PocoName}'." );
-                monitor.Error( job.Command.ToString()!, ex );
-                // Send the error. We are done.
+                // Sets the exception on the executing command if there is one.
                 job._executingCommand?.DarkSide.SetException( ex );
-
-                var error = ex is MCException mEx
-                            ? _errorResultFactory.Create( mEx.AsUserMessage() )
-                            : _errorResultFactory.Create( UserMessage.Error( "An unhandled error occurred.", "Error.Unhandled" ) );
-                error.UnhandledErrorLogKey = g.GetLogKey();
+                // Ensures that the crisResult exists and sets its Result to a ICrisErrorResult.
+                var currentCulture = isScopedCreated ? scoped.ServiceProvider.GetService<CurrentCultureInfo>() : null;
+                PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, true, ex, job.Command, out var genericError );
+                crisResult ??= _jobResultFactory.Create();
+                var error = _errorResultFactory.Create();
                 crisResult.Result = error;
+                if( ex is MCException mc )
+                {
+                    error.UserMessages.Add( mc.AsUserMessage() );
+                }
+                error.UserMessages.Add( genericError );
+                error.LogKey = gLog.GetLogKeyString();
+                // Send the error. We are done.
                 await job._executor.SetFinalResultAsync( monitor, job, Array.Empty<IEvent>(), crisResult );
             }
             finally

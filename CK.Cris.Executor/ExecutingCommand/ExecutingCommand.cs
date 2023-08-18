@@ -81,15 +81,13 @@ namespace CK.Cris
         /// </summary>
         public IDarkSideExecutingCommand DarkSide => this;
 
-        bool IDarkSideExecutingCommand.SetValidationResult( IPocoFactory<ICrisResultError> errorFactory, CrisValidationResult v )
+        void IDarkSideExecutingCommand.SetValidationResult( CrisValidationResult v, ICrisResultError? validationError )
         {
             _validation.SetResult( v );
-            if( !v.Success )
+            if( validationError != null )
             {
-                DarkSide.SetResult( Array.Empty<IEvent>(), errorFactory.Create( e => e.Errors.AddRange( v.Errors ) ) );
-                return true;
+                DarkSide.SetResult( Array.Empty<IEvent>(), validationError );
             }
-            return false;
         }
 
         Task IDarkSideExecutingCommand.AddImmediateEventAsync( IActivityMonitor monitor, IEvent e )

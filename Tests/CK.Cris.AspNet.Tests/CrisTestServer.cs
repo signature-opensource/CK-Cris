@@ -31,7 +31,6 @@ namespace CK.Cris.AspNet.Tests
             collector.RegisterTypes( new[] {
                 typeof( RawCrisExecutor ),
                 typeof( RawCrisValidator ),
-                typeof( DefaultFrontCommandExceptionHandler ),
                 typeof( ICrisResult ),
                 typeof( ICrisResultError ),
                 typeof( PocoJsonSerializer ),

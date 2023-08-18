@@ -13,6 +13,7 @@ namespace CK.Setup.Cris
         {
             public override CrisHandlerKind Kind => CrisHandlerKind.CommandValidator;
             public readonly ParameterInfo CmdOrPartParameter;
+            public readonly ParameterInfo ValidationContextParameter;
             public readonly bool IsRefAsync;
             public readonly bool IsValAsync;
 
@@ -23,11 +24,13 @@ namespace CK.Setup.Cris
                                       string? fileName,
                                       int lineNumber,
                                       ParameterInfo cmdOrPartParameter,
+                                      ParameterInfo validationContextParameter,
                                       bool isRefAsync,
                                       bool isValAsync )
                 : base( command, owner, method, parameters, fileName, lineNumber )
             {
                 CmdOrPartParameter = cmdOrPartParameter;
+                ValidationContextParameter = validationContextParameter;
                 IsRefAsync = isRefAsync;
                 IsValAsync = isValAsync;
             }

@@ -98,6 +98,7 @@ namespace CK.Setup.Cris
                                        $"be used in a {(isValidator ? "command validator" : "routed event handler")} since they cannot execute commands or send events." );
                         success = false;
                     }
+                    ParameterInfo? validatorUserMessageCollector = null;
                     if( isValidator )
                     {
                         var callContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisEventContext ) );
@@ -107,14 +108,24 @@ namespace CK.Setup.Cris
                                            $"be used in a command validator since validators cannot execute commands." );
                             success = false;
                         }
+                        validatorUserMessageCollector = parameters.FirstOrDefault( p => p.ParameterType == typeof( UserMessageCollector ) );
+                        if( validatorUserMessageCollector == null )
+                        {
+                            monitor.Error( $"Command validator method '{MethodName( m, parameters )}' must take a 'UserMessageCollector validationContext' parameter " +
+                                           $"to collect validation errors, warnings and informations." );
+                            success = false;
+                        }
                     }
-                    foreach( var family in families )
+                    if( success )
                     {
-                        Debug.Assert( _indexedEntries.ContainsKey( family ), "Since parameters are filtered by registered Poco." );
-                        var e = _indexedEntries[family];
-                        success &= isValidator
-                                    ? e.AddValidator( monitor, impl, m, parameters, p, fileName, lineNumber )
-                                    : e.AddRoutedEventHandler( monitor, impl, m, parameters, p, fileName, lineNumber );
+                        foreach( var family in families )
+                        {
+                            Debug.Assert( _indexedEntries.ContainsKey( family ), "Since parameters are filtered by registered Poco." );
+                            var e = _indexedEntries[family];
+                            success &= isValidator
+                                        ? e.AddValidator( monitor, impl, m, parameters, p, validatorUserMessageCollector!, fileName, lineNumber )
+                                        : e.AddRoutedEventHandler( monitor, impl, m, parameters, p, fileName, lineNumber );
+                        }
                     }
                 }
                 return success;

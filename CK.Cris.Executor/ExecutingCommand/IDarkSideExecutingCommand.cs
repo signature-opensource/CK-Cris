@@ -7,18 +7,18 @@ namespace CK.Cris
 {
     /// <summary>
     /// Is the name clear enough? This is the internal side of a <see cref="IExecutedCommand"/> that
-    /// must be used by command executor to translate the execution steps on the command.
+    /// must be used by command executor to applies the execution steps on the command.
     /// </summary>
     public interface IDarkSideExecutingCommand
     {
         /// <summary>
         /// Sets the validation result of a command. There is no "TrySetValidationResult": the validation result must be set once and only once.
-        /// If the validation fails, this immediately completes the request and this returns true.
+        /// If <see cref="CrisValidationResult.Success"/> is false, a non nul <paramref name="validationError"/> is provided and
+        /// this immediately completes the execution.
         /// </summary>
-        /// <param name="errorFactory">The factory for error.</param>
         /// <param name="v">The validation result.</param>
-        /// <returns>True if the validation failed: this command is completed.</returns>
-        bool SetValidationResult( IPocoFactory<ICrisResultError> errorFactory, CrisValidationResult v );
+        /// <param name="validationError">The <see cref="ICrisResultError"/> built from the validation result or null if the command is valid.</param>
+        void SetValidationResult( CrisValidationResult v, ICrisResultError? validationError );
 
         /// <summary>
         /// Adds an immediate event to the <see cref="IExecutedCommand.ImmediateEvents"/> collector.
