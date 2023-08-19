@@ -163,7 +163,7 @@ namespace CK.Cris
                     if( !validation.Success )
                     {
                         var error = _errorResultFactory.Create();
-                        error.UserMessages.AddRange( validation.Messages );
+                        error.Messages.AddRange( validation.Messages );
                         error.LogKey = validation.LogKey;
                         error.IsValidationError = true;
                         job._executingCommand.DarkSide.SetValidationResult( validation, error );
@@ -200,9 +200,9 @@ namespace CK.Cris
                 crisResult.Result = error;
                 if( ex is MCException mc )
                 {
-                    error.UserMessages.Add( mc.AsUserMessage() );
+                    error.Messages.Add( mc.AsUserMessage() );
                 }
-                error.UserMessages.Add( genericError );
+                error.Messages.Add( genericError );
                 error.LogKey = gLog.GetLogKeyString();
                 // Send the error. We are done.
                 await job._executor.SetFinalResultAsync( monitor, job, Array.Empty<IEvent>(), crisResult );

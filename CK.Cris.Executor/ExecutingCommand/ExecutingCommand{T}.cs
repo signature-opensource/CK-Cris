@@ -53,7 +53,7 @@ namespace CK.Cris
                 else
                 {
                     // If the completion is a ICrisResultError, resolves the result task with an exception.
-                    var r = c.Result;
+                    object? r = c.Result;
                     // The completion is null or an instance of some type (the most precise type among
                     // the different ICommand<TResult> TResult types. It may be a ICrisResultError and if
                     // the TResult is a ICrisResultError this is fine:
@@ -65,7 +65,7 @@ namespace CK.Cris
                     else if( r is ICrisResultError error )
                     {
                         // The result is a ICrisResultError: we set an exception on the Task.
-                        var ex = new CKException( $"Request failed with {error.Errors.Count} errors." );
+                        var ex = new CKException( $"Command failed with {error.Messages.Count} messages." );
                         result.SetException( ex );
                     }
                     else

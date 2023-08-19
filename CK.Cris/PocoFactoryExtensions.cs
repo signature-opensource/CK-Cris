@@ -23,8 +23,8 @@ namespace CK.Cris
         {
             Throw.CheckArgument( first.IsValid );
             var r = @this.Create();
-            r.UserMessages.Add( first );
-            r.UserMessages.AddRange( others );
+            r.Messages.Add( first );
+            r.Messages.AddRange( others );
             return r;
         }
 
@@ -46,12 +46,8 @@ namespace CK.Cris
                                                out UserMessage genericError )
         {
             genericError = isExecuting
-                            ? (currentCulture != null
-                                ? UserMessage.Error( currentCulture, $"An unhandled error occurred while executing command '{cmd.CrisPocoModel.PocoName}'.", "Cris.UnhandledExecutionError" )
-                                : UserMessage.Error( $"An unhandled error occurred while executing command '{cmd.CrisPocoModel.PocoName}'.", "Cris.UnhandledExecutionError" ))
-                            : (currentCulture != null
-                                ? UserMessage.Error( currentCulture, $"An unhandled error occurred while validating command '{cmd.CrisPocoModel.PocoName}'.", "Cris.UnhandledValidationError" )
-                                : UserMessage.Error( $"An unhandled error occurred while validating command '{cmd.CrisPocoModel.PocoName}'.", "Cris.UnhandledValidationError" ));
+                            ? UserMessage.Error( currentCulture, $"An unhandled error occurred while executing command '{cmd.CrisPocoModel.PocoName}'.", "Cris.UnhandledExecutionError" )
+                            : UserMessage.Error( currentCulture, $"An unhandled error occurred while validating command '{cmd.CrisPocoModel.PocoName}'.", "Cris.UnhandledValidationError" );
             using var g = monitor.UnfilteredOpenGroup( LogLevel.Error | LogLevel.IsFiltered, CrisDirectory.CrisTag, genericError.Message.CodeString, null );
             // Always logged since we opened an Error group.
             monitor.Info( cmd.ToString()!, ex );

@@ -112,11 +112,11 @@ namespace CK.Cris.Executor.Tests
                 result.Success.Should().BeFalse();
                 if( scopedService )
                 {
-                    result.Errors.Should().Contain( "[Scoped]Value should be greater than 0." );
+                    result.Messages.Should().Contain( m => m.Level == UserMessageLevel.Error && m.Text == "[Scoped]Value should be greater than 0." );
                 }
                 if( singletonService )
                 {
-                    result.Errors.Should().Contain( "[Singleton]Value should be greater than 0." );
+                    result.Messages.Should().Contain(m => m.Level == UserMessageLevel.Error && m.Text == "[Singleton]Value should be greater than 0.");
                 }
 
                 cmd.Value = 0;
@@ -125,13 +125,13 @@ namespace CK.Cris.Executor.Tests
                 result.HasWarnings.Should().BeTrue();
                 if( scopedService )
                 {
-                    result.Warnings.Should().Contain( "[Scoped]A positive Value would be better." );
+                    result.Messages.Should().Contain(m => m.Level == UserMessageLevel.Warn && m.Text == "[Scoped]A positive Value would be better.");
                 }
                 if( singletonService )
                 {
-                    result.Warnings.Should().Contain( "[Singleton]A positive Value would be better." );
+                    result.Messages.Should().Contain(m => m.Level == UserMessageLevel.Warn && m.Text == "[Singleton]A positive Value would be better.");
                 }
-                result.Errors.Should().BeEmpty();
+                result.Messages.Should().NotContain( m => m.Level == UserMessageLevel.Error );
             }
         }
 
@@ -197,7 +197,7 @@ namespace CK.Cris.Executor.Tests
                 var cmd = services.GetRequiredService<IPocoFactory<ICmdTestSecure>>().Create( c => c.Value = 1 );
                 var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeFalse();
-                result.Errors.Should().BeEquivalentTo( "Security error." );
+                result.Messages.Should().HaveCount(1).And.Contain( m => m.Level == UserMessageLevel.Error && m.Text == "Security error." );
 
                 cmd.ActorId = 3712;
                 result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
@@ -214,7 +214,7 @@ namespace CK.Cris.Executor.Tests
                 result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeTrue();
                 result.HasWarnings.Should().BeTrue();
-                result.Warnings.Should().Contain( "AsyncValidator is not happy!" );
+                result.Messages.Should().Contain(m => m.Level == UserMessageLevel.Warn && m.Text == "AsyncValidator is not happy!");
 
             }
         }

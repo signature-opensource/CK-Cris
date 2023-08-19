@@ -87,7 +87,7 @@ namespace CK.Cris.AspNet
             if( !validation.Success )
             {
                 var error = _errorResultFactory.Create();
-                error.UserMessages.AddRange( validation.Messages );
+                error.Messages.AddRange( validation.Messages );
                 error.LogKey = validation.LogKey;
                 error.IsValidationError = true;
                 result.Result = error;
@@ -110,9 +110,9 @@ namespace CK.Cris.AspNet
                 error.LogKey = PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, true, ex, cmd, out var genericError );
                 if( ex is MCException mc )
                 {
-                    error.UserMessages.Add( mc.AsUserMessage() );
+                    error.Messages.Add( mc.AsUserMessage() );
                 }
-                error.UserMessages.Add( genericError );
+                error.Messages.Add( genericError );
                 result.Result = error;
             }
             return result;
