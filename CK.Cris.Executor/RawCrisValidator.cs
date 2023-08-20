@@ -1,4 +1,5 @@
 using CK.Core;
+using CK.Setup;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Threading.Tasks;
@@ -8,7 +9,11 @@ namespace CK.Cris
     /// <summary>
     /// Command validation service.
     /// </summary>
-    [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.RawCrisValidatorImpl, CK.Cris.Executor.Engine" )]
+    [ContextBoundDelegation( "CK.Setup.Cris.RawCrisValidatorImpl, CK.Cris.Executor.Engine" )]
+    // To simplify testing.
+    [AlsoRegisterType( typeof( ExtendedCultureInfoUbiquitousServiceDefault ) )]
+    [AlsoRegisterType( typeof( TranslationService ) )]
+    [AlsoRegisterType( typeof( CurrentCultureInfo ) )]
     public abstract class RawCrisValidator : ISingletonAutoService
     {
         protected CrisDirectory Directory;
@@ -46,7 +51,6 @@ namespace CK.Cris
             // The CrisValidationResult.LogKey will be this one if it has been opened.
             // Otherwise it will be null on success and the error group log key on error.
             using var g = commandLogGroup ?? monitor.OpenInfo( CrisDirectory.CrisTag, $"Validating '{command.CrisPocoModel.PocoName}' command." );
-            string? logKey = g.GetLogKeyString();
             // We handle the case where the CurrentCultureInfo is not available in the DI.
             CurrentCultureInfo? currentCulture = null;
             try
@@ -57,19 +61,19 @@ namespace CK.Cris
                 if( c.ErrorCount > 0 )
                 {
                     // Don't open a new group if there's one.
-                    logKey ??= monitor.OpenError( CrisDirectory.CrisTag, $"Command '{command.CrisPocoModel.PocoName}' validation error." ).GetLogKeyString();
+                    string? logKey = g.GetLogKeyString() ?? monitor.OpenError( CrisDirectory.CrisTag, $"Command '{command.CrisPocoModel.PocoName}' validation error." ).GetLogKeyString();
                     c.DumpLogs( monitor );
                     if( g.IsRejectedGroup ) monitor.CloseGroup();
                     return new CrisValidationResult( c, logKey );
                 }
                 return c.UserMessages.Count == 0
                         ? CrisValidationResult.SuccessResult
-                        : new CrisValidationResult( c, logKey );
+                        : new CrisValidationResult( c, g.GetLogKeyString() );
             }
             catch( Exception ex )
             {
                 var k = PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, false, ex, command, out var genericError );
-                return new CrisValidationResult( ex, genericError, logKey ?? k );
+                return new CrisValidationResult( ex, genericError, g.GetLogKeyString() ?? k );
             }
         }
 

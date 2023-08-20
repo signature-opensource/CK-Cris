@@ -41,61 +41,61 @@ namespace CK.Auth
         /// <remarks>
         /// Note that the command's ActorId must exactly match the current <see cref="IAuthenticationInfo.User"/>. 
         /// </remarks>
-        /// <param name="monitor">The monitor to use to raise errors or warnings.</param>
+        /// <param name="c">The message collector.</param>
         /// <param name="cmd">The command to validate.</param>
         /// <param name="info">The current authentication information.</param>
         [CommandValidator]
-        public virtual void ValidateAuthenticatedPart( IActivityMonitor monitor, ICommandAuthUnsafe cmd, IAuthenticationInfo info )
+        public virtual void ValidateAuthenticatedPart( UserMessageCollector c, ICommandAuthUnsafe cmd, IAuthenticationInfo info )
         {
             if( cmd.ActorId != info.UnsafeUser.UserId )
             {
-                monitor.Error( "Invalid actor identifier: the command provided identifier doesn't match the current authentication." );
+                c.Error( "Invalid actor identifier: the command provided identifier doesn't match the current authentication." );
             }
             else if( cmd is ICommandAuthCritical )
             {
                 if( info.Level != AuthLevel.Critical )
                 {
-                    monitor.Error( "Invalid authentication level: the command requires a Critical level." );
+                    c.Error( "Invalid authentication level: the command requires a Critical level." );
                 }
             }
             else if( cmd is ICommandAuthNormal )
             {
                 if( info.Level < AuthLevel.Normal )
                 {
-                    monitor.Error( "Invalid authentication level: the command requires a Critical level." );
+                    c.Error( "Invalid authentication level: the command requires a Critical level." );
                 }
             }
         }
 
         /// <summary>
         /// Checks whether <see cref="ICommandAuthDeviceId.DeviceId"/> is the same as the current <see cref="IAuthenticationInfo.DeviceId"/>
-        /// and if not, emits an error in the <paramref name="monitor"/>.
+        /// and if not, emits an error in the <paramref name="c"/>.
         /// </summary>
-        /// <param name="monitor">The monitor to use to raise errors or warnings.</param>
+        /// <param name="c">The message collector.</param>
         /// <param name="cmd">The command to validate.</param>
         /// <param name="info">The current authentication information.</param>
         [CommandValidator]
-        public virtual void ValidateDevicePart( IActivityMonitor monitor, ICommandAuthDeviceId cmd, IAuthenticationInfo info )
+        public virtual void ValidateDevicePart( UserMessageCollector c, ICommandAuthDeviceId cmd, IAuthenticationInfo info )
         {
             if( cmd.DeviceId != info.DeviceId )
             {
-                monitor.Error( "Invalid device identifier: the command provided identifier doesn't match the current authentication." );
+                c.Error( "Invalid device identifier: the command provided identifier doesn't match the current authentication." );
             }
         }
 
         /// <summary>
         /// Checks whether <see cref="ICommandAuthImpersonation.ActualActorId"/> is the same as the current <see cref="IAuthenticationInfo.ActualUser"/>
-        /// identifier and if not, emits an error in the <paramref name="monitor"/>.
+        /// identifier and if not, emits an error in the <paramref name="c"/>.
         /// </summary>
-        /// <param name="monitor">The monitor to use to raise errors or warnings.</param>
+        /// <param name="c">The message collector.</param>
         /// <param name="cmd">The command to validate.</param>
         /// <param name="info">The current authentication information.</param>
         [CommandValidator]
-        public virtual void ValidateImpersonationPart( IActivityMonitor monitor, ICommandAuthImpersonation cmd, IAuthenticationInfo info )
+        public virtual void ValidateImpersonationPart( UserMessageCollector c, ICommandAuthImpersonation cmd, IAuthenticationInfo info )
         {
             if( cmd.ActualActorId != info.ActualUser.UserId )
             {
-                monitor.Error( "Invalid actual actor identifier: the command provided identifier doesn't match the current authentication." );
+                c.Error( "Invalid actual actor identifier: the command provided identifier doesn't match the current authentication." );
             }
         }
     }

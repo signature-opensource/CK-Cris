@@ -111,7 +111,7 @@ namespace CK.Setup.Cris
                         validatorUserMessageCollector = parameters.FirstOrDefault( p => p.ParameterType == typeof( UserMessageCollector ) );
                         if( validatorUserMessageCollector == null )
                         {
-                            monitor.Error( $"Command validator method '{MethodName( m, parameters )}' must take a 'UserMessageCollector validationContext' parameter " +
+                            monitor.Error( $"Command validator method '{MethodName( m, parameters )}' must take a 'UserMessageCollector' parameter " +
                                            $"to collect validation errors, warnings and informations." );
                             success = false;
                         }

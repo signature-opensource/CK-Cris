@@ -17,13 +17,15 @@ namespace CK.Setup.Cris
             if( registry == null ) return CSCodeGenerationResult.Failed;
 
             // DoValidateCommandAsync is protected, we cannot use nameof() here.
-            var validateMethod = classType.GetMethod( "DoValidateCommandAsync", new[]
-            {
-                typeof( IActivityMonitor ),
-                typeof( UserMessageCollector ),
-                typeof( IServiceProvider ),
-                typeof( IAbstractCommand )
-            } );
+            var validateMethod = classType.GetMethod( "DoValidateCommandAsync",
+                                                       System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance,
+                                                       new[]
+                                                        {
+                                                            typeof( IActivityMonitor ),
+                                                            typeof( UserMessageCollector ),
+                                                            typeof( IServiceProvider ),
+                                                            typeof( IAbstractCommand )
+                                                        } );
             Throw.DebugAssert( validateMethod != null, "This is the signature of the central method." );
 
             var mValidate = scope.CreateSealedOverride( validateMethod );
@@ -38,7 +40,7 @@ namespace CK.Setup.Cris
                 const string funcSignature = "Func<IActivityMonitor, UserMessageCollector, IServiceProvider, CK.Cris.IAbstractCommand, Task>";
 
                 scope.GeneratedByComment().NewLine()
-                     .Append( "static readonly " ).Append( funcSignature ).Append( " Success = ( m, s, c ) => CK.Cris.CrisValidationResult.SuccessResultTask;" )
+                     .Append( "static readonly " ).Append( funcSignature ).Append( " Success = ( m, v, s, c ) => CK.Cris.CrisValidationResult.SuccessResultTask;" )
                      .NewLine();
 
                 foreach( var e in registry.CrisPocoModels )
@@ -121,7 +123,7 @@ namespace CK.Setup.Cris
                      .NewLine();
 
                 mValidate.GeneratedByComment().NewLine()
-                         .Append( "return _validators[command.CrisPocoModel.CrisPocoIndex]( validationMonitor, services, command );" );
+                         .Append( "return _validators[command.CrisPocoModel.CrisPocoIndex]( monitor, validationContext, services, command );" );
             }
             return CSCodeGenerationResult.Success;
         }

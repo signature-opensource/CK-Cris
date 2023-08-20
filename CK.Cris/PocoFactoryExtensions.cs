@@ -45,13 +45,16 @@ namespace CK.Cris
                                                IAbstractCommand cmd,
                                                out UserMessage genericError )
         {
+            using var g = monitor.UnfilteredOpenGroup( LogLevel.Error | LogLevel.IsFiltered,
+                                                       CrisDirectory.CrisTag,
+                                                       $"While {(isExecuting ? "execu" : "valida")}ting command '{cmd.CrisPocoModel.PocoName}'.", null );
+            Throw.DebugAssert( !g.IsRejectedGroup );
             genericError = isExecuting
-                            ? UserMessage.Error( currentCulture, $"An unhandled error occurred while executing command '{cmd.CrisPocoModel.PocoName}'.", "Cris.UnhandledExecutionError" )
-                            : UserMessage.Error( currentCulture, $"An unhandled error occurred while validating command '{cmd.CrisPocoModel.PocoName}'.", "Cris.UnhandledValidationError" );
-            using var g = monitor.UnfilteredOpenGroup( LogLevel.Error | LogLevel.IsFiltered, CrisDirectory.CrisTag, genericError.Message.CodeString, null );
+                            ? UserMessage.Error( currentCulture, $"An unhandled error occurred while executing command '{cmd.CrisPocoModel.PocoName}' (LogKey: {g.GetLogKeyString()}).", "Cris.UnhandledExecutionError" )
+                            : UserMessage.Error( currentCulture, $"An unhandled error occurred while validating command '{cmd.CrisPocoModel.PocoName}' (LogKey: {g.GetLogKeyString()}).", "Cris.UnhandledValidationError" );
             // Always logged since we opened an Error group.
             monitor.Info( cmd.ToString()!, ex );
-            return g.GetLogKeyString();
+            return g.GetLogKeyString()!;
         }
 
     }

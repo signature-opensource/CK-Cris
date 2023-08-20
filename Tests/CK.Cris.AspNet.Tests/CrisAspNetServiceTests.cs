@@ -24,16 +24,16 @@ namespace Other
         }
 
         [CommandValidator]
-        public void Validate( IActivityMonitor m, ICmdTest cmd )
+        public void Validate( UserMessageCollector c, ICmdTest cmd )
         {
-            if( cmd.Value <= 0 ) m.Error( "Value must be positive." );
+            if( cmd.Value <= 0 ) c.Error( "Value must be positive." );
         }
     }
 
     public class BuggyValidator : IAutoService
     {
         [CommandValidator]
-        public void ValidateCommand( IActivityMonitor m, ICmdTest cmd )
+        public void ValidateCommand( UserMessageCollector c, ICmdTest cmd )
         {
             throw new Exception( "This should not happen!" );
         }
