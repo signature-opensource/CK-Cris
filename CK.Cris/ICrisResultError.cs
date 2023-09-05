@@ -8,7 +8,6 @@ namespace CK.Cris
 {
     /// <summary>
     /// Simple model for errors: a list of <see cref="UserMessage"/>.
-    /// Since this is a <see cref="IPoco"/>, it can easily be extended.
     /// <para>
     /// You can use the helper <see cref="PocoFactoryExtensions.Create(IPocoFactory{ICrisResultError}, UserMessage, UserMessage[])"/> extension
     /// method to create a error from user messages.
