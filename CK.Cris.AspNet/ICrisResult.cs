@@ -29,8 +29,7 @@ namespace CK.Cris.AspNet
         /// <list type="bullet">
         ///   <item>
         ///     This is null when the command has been processed synchronously, successfully, and doesn't expect any result
-        ///     (the command is not a <see cref="ICommand{TResult}"/>).
-        ///     This is also always null if the command is a <see cref="ICommand"/> or a <see cref="IEvent"/>.
+        ///     (the command is not a <see cref="ICommand{TResult}"/>, this is also always null if the command is a <see cref="ICommand"/>).
         ///   </item>
         ///   <item>
         ///     If the <see cref="Code"/> is <see cref="VESACode.Asynchronous"/> this may contain a command identifier or other correlation
@@ -38,7 +37,7 @@ namespace CK.Cris.AspNet
         ///     and some extra data is required).
         ///   </item>
         ///   <item>
-        ///     On error (<see cref="VESACode.Error"/> or <see cref="VESACode.ValidationError"/>), this contains a <see cref="ICrisResultError"/>.
+        ///     On error (<see cref="VESACode.Error"/> or <see cref="VESACode.ValidationError"/>), this contains a <see cref="ISimpleCrisResultError"/>.
         ///   </item>
         /// </list>
         /// </summary>

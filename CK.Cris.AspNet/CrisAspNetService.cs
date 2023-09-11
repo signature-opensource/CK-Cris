@@ -22,13 +22,13 @@ namespace CK.Cris.AspNet
         readonly RawCrisExecutor _executor;
         readonly PocoDirectory _poco;
         readonly IPocoFactory<ICrisResult> _resultFactory;
-        readonly IPocoFactory<ICrisResultError> _errorResultFactory;
+        readonly IPocoFactory<ISimpleCrisResultError> _errorResultFactory;
 
         public CrisAspNetService( PocoDirectory poco,
                                   RawCrisValidator validator,
                                   RawCrisExecutor executor,
                                   IPocoFactory<ICrisResult> resultFactory,
-                                  IPocoFactory<ICrisResultError> errorResultFactory )
+                                  IPocoFactory<ISimpleCrisResultError> errorResultFactory )
         {
             _poco = poco;
             _validator = validator;
@@ -87,7 +87,7 @@ namespace CK.Cris.AspNet
             if( !validation.Success )
             {
                 var error = _errorResultFactory.Create();
-                error.Messages.AddRange( validation.Messages );
+                error.Messages.AddRange( validation.Messages.Select( m => m.AsSimpleUserMessage() ) );
                 error.LogKey = validation.LogKey;
                 error.IsValidationError = true;
                 result.Result = error;
@@ -105,7 +105,7 @@ namespace CK.Cris.AspNet
             catch( Exception ex )
             {
                 result.Code = VESACode.Error;
-                var currentCulture = requestServices.GetService<CurrentCultureInfo>();
+                var currentCulture = requestServices.GetRequiredService<CurrentCultureInfo>();
                 var error = _errorResultFactory.Create();
                 error.LogKey = PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, true, ex, cmd, out var genericError );
                 if( ex is MCException mc )
@@ -141,7 +141,7 @@ namespace CK.Cris.AspNet
                     }
                     else
                     {
-                        error = UserMessage.Error( request.HttpContext.RequestServices.GetService<CurrentCultureInfo>(),
+                        error = UserMessage.Error( request.HttpContext.RequestServices.GetRequiredService<CurrentCultureInfo>(),
                                                    "Unable to read Command Poco from empty request body.",
                                                    "Cris.AspNet.EmptyBody" );
                     }
@@ -149,7 +149,7 @@ namespace CK.Cris.AspNet
                 }
                 catch( Exception ex )
                 {
-                    UserMessage errorMessage = UserMessage.Error( request.HttpContext.RequestServices.GetService<CurrentCultureInfo>(),
+                    UserMessage errorMessage = UserMessage.Error( request.HttpContext.RequestServices.GetRequiredService<CurrentCultureInfo>(),
                                                                   $"Unable to read Command Poco from request body (byte length = {length}).",
                                                                   "Cris.AspNet.ReadCommandFailed" );
                     var x = ReadBodyTextOnError( buffer.GetReadOnlySequence() );
@@ -172,12 +172,12 @@ namespace CK.Cris.AspNet
             {
                 var reader = new Utf8JsonReader( buffer );
                 var poco = p.Read( ref reader );
-                if( poco == null ) return (null, UserMessage.Error( services.GetService<CurrentCultureInfo>(),
+                if( poco == null ) return (null, UserMessage.Error( services.GetRequiredService<CurrentCultureInfo>(),
                                                                     $"Received a null Poco.",
                                                                     "Cris.AspNet.ReceiveNullPoco" ));
                 if( poco is not IAbstractCommand c )
                 {
-                    return (null, UserMessage.Error( services.GetService<CurrentCultureInfo>(),
+                    return (null, UserMessage.Error( services.GetRequiredService<CurrentCultureInfo>(),
                                                      $"Received Poco is not a Command but a '{((IPocoGeneratedClass)poco).Factory.Name}'.",
                                                      "Cris.AspNet.NotACommand" ) );
                 }

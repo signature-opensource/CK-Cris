@@ -11,10 +11,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace CK.Setup
 {
-    public class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerator
+    public sealed class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerator
     {
         CrisRegistry? _registry;
 
@@ -33,33 +34,11 @@ namespace CK.Setup
 
         bool ITSCodeGenerator.GenerateCode( IActivityMonitor monitor, TypeScriptContext g )
         {
-            Debug.Assert( _registry != null );
-            // The ICrisResult and the ICrisErrorResult must be in TypeScript.
-            g.DeclareTSType( monitor, typeof(ICrisResult) );
-            g.DeclareTSType( monitor, typeof(ICrisResultError) );
-            using( monitor.OpenInfo( $"Declaring TypeScript support for {_registry.CrisPocoModels.Count} commands." ) )
-            {
-                foreach( var cmd in _registry.CrisPocoModels )
-                {
-                    // Declares the IPoco and the command result.
-                    // The TSIPocoCodeGenerator (in CK.StObj.TypeScript.Engine) generates all the
-                    // interfaces and the final class implementation in the same file (file and class
-                    // is the PrimaryInterface name without the I).
-                    g.DeclareTSType( monitor, cmd.CrisPocoInfo.PrimaryInterface );
-
-                    // Declares the command result, whatever it is.
-                    // If it's a IPoco, it will benefit from the same treatment as the command above.
-                    // Some types are handled by default, but if there is eventually no generator for the
-                    // type then the setup fails.
-                    if( cmd.ResultType != typeof( void ) )
-                    {
-                        g.DeclareTSType( monitor, cmd.ResultType );
-                    }
-                }
-            }
+            // Nothing to do here. We just react to the OnPocoGenerating event raised by the
+            // Poco generator and handles ICrisPoco that MUST be declared as a TypeScript type
+            // (either by the TSTypeScriptAttribute ot by the configuration).
             return true;
         }
-
 
         // We capture the list of the Ambient Values properties.
         IReadOnlyList<TypeScriptPocoPropertyInfo>? _ambientValuesProperties;
@@ -86,6 +65,9 @@ namespace CK.Setup
         {
             Debug.Assert( _registry != null, "CS code generation ran. Implement (CSharp code) has necessarily been successfully called." );
 
+            // The poco that interest us are the ICrisPoco and the IAmbientValues that we need:
+            // the first ICrisPoco declares the IAmbientValues and when the IAmbientValues poco
+            // is registered, then the ICrisResult and ISimpleCrisResultError are also declared.
             if( typeof(ICrisPoco).IsAssignableFrom( e.TypeFile.Type ) )
             {
                 var cmd = _registry.Find( e.PocoClass.PocoRootInfo );
@@ -105,8 +87,14 @@ namespace CK.Setup
 
                 EnsureCrisModel( e );
 
-                bool isVoidReturn = cmd.ResultType == typeof( void );
-                bool isFireAndForget = isVoidReturn && typeof( IEvent ).IsAssignableFrom( e.TypeFile.Type );
+                // Declares the command result, whatever it is.
+                // If it's a IPoco, it will benefit from the same treatment as the command above.
+                // Some types are handled by default, but if there is eventually no generator for the
+                // type then the setup fails.
+                if( cmd.ResultType != typeof( void ) )
+                {
+                    e.TypeFile.Context.DeclareTSType( e.Monitor, cmd.ResultType );
+                }
 
                 // Compute the (potentially) type name only once by caching the signature.
                 var b = e.PocoClass.Part;
@@ -119,7 +107,7 @@ namespace CK.Setup
                 b.Append( " = " )
                     .OpenBlock()
                         .Append( "commandName: " ).AppendSourceString( cmd.PocoName ).Append( "," ).NewLine()
-                        .Append( "isFireAndForget: " ).Append( isFireAndForget ).Append( "," ).NewLine()
+                        .Append( "isFireAndForget: false," ).NewLine()
                         .Append( "applyAmbientValues: (values: { [index: string]: any }, force?: boolean ) => " )
                         .OpenBlock()
                             .Append( ApplyAmbientValues )
@@ -173,6 +161,10 @@ namespace CK.Setup
             {
                 Debug.Assert( _ambientValuesProperties == null );
                 _ambientValuesProperties = e.PocoClass.Properties;
+                // The ICrisResult (from CK.Cris.AspNet) and the ISImpleCrisErrorResult (from CK.Cris) must be in TypeScript.
+                e.TypeFile.Context.DeclareTSType( e.Monitor, typeof( ICrisResult ) );
+                e.TypeFile.Context.DeclareTSType( e.Monitor, typeof( ISimpleCrisResultError ) );
+
             }
         }
 

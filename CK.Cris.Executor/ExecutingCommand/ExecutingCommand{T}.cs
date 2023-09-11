@@ -43,6 +43,7 @@ namespace CK.Cris
                                                              TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default );
             }
 
+            [System.Diagnostics.CodeAnalysis.SuppressMessage( "Usage", "VSTHRD002:Avoid problematic synchronous waits", Justification = "This is called on a completed task." )]
             static void OnRequestCompletion( Task<object?> c, object target )
             {
                 var result = (TaskCompletionSource<TResult>)target;

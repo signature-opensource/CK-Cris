@@ -1,20 +1,13 @@
 using CK.Core;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace CK.Cris
 {
     /// <summary>
-    /// Simple model for errors: a list of <see cref="UserMessage"/>.
-    /// <para>
-    /// You can use the helper <see cref="PocoFactoryExtensions.Create(IPocoFactory{ICrisResultError}, UserMessage, UserMessage[])"/> extension
-    /// method to create a error from user messages.
-    /// </para>
+    /// Simplified <see cref="ICrisResultError"/>: messages are <see cref="SimpleUserMessage"/>.
     /// </summary>
-    [ExternalName( "CrisResultError" )]
-    public interface ICrisResultError : IPoco
+    [ExternalName( "SimpleCrisResultError" )]
+    public interface ISimpleCrisResultError : IPoco
     {
         /// <summary>
         /// Gets or sets whether the command failed during validation or execution.
@@ -25,7 +18,7 @@ namespace CK.Cris
         /// Gets the list of user messages.
         /// At least one of them should be a <see cref="UserMessageLevel.Error"/> but this is not checked.
         /// </summary>
-        List<UserMessage> Messages { get; }
+        List<SimpleUserMessage> Messages { get; }
 
         /// <summary>
         /// Gets or sets a <see cref="ActivityMonitor.LogKey"/> that enables to locate the logs of the command execution.

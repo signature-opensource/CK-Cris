@@ -157,13 +157,13 @@ namespace CK.Setup.Cris
                             {
                                 if( m.MustCastResultParameter )
                                 {
-                                    w.Append( "(" ).Append( p.ParameterType.ToCSharpName() ).Append( ")" );
+                                    w.Append( "(" ).AppendGlobalTypeName( p.ParameterType ).Append( ")" );
                                 }
                                 w.Append( "r" );
                             }
                             else if( p == m.CmdOrPartParameter )
                             {
-                                w.Append( "(" ).Append( m.CmdOrPartParameter.ParameterType.ToCSharpName() ).Append( ")c" );
+                                w.Append( "(" ).AppendGlobalTypeName( m.CmdOrPartParameter.ParameterType ).Append( ")c" );
                             }
                             else
                             {
