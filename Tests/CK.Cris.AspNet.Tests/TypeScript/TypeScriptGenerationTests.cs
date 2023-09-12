@@ -21,6 +21,13 @@ namespace CK.Cris.TypeScript.Tests
         public void DiamondResultAndCommand_works()
         {
             var output = TypeScriptTestHelper.GenerateTSCode( nameof( DiamondResultAndCommand_works ),
+                                                              new TypeScriptAspectConfiguration
+                                                              {
+                                                                  Types =
+                                                                  {
+                                                                      new TypeScriptTypeConfiguration( typeof( Cris.Tests.ICommandUnifiedWithTheResult ) )
+                                                                  }
+                                                              },
                                                               typeof( CrisDirectory ),
                                                               typeof( ICrisResult ),
                                                               typeof( ICrisResultError ),

@@ -48,6 +48,11 @@ namespace CK.Cris.TypeScript.Tests
             return GenerateTSCode( testName, new MonoCollectorResolver( types ) );
         }
 
+        public static (NormalizedPath OutputPath, NormalizedPath SourcePath) GenerateTSCode( string testName, TypeScriptAspectConfiguration tsConfig, params Type[] types )
+        {
+            return GenerateTSCode( testName, tsConfig, new MonoCollectorResolver( types ) );
+        }
+
         public static (NormalizedPath OutputPath, NormalizedPath SourcePath) GenerateTSCode( string testName, IStObjCollectorResultResolver collectorResults )
         {
             return GenerateTSCode( testName, new TypeScriptAspectConfiguration(), collectorResults );
