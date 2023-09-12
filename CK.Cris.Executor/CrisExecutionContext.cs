@@ -62,8 +62,8 @@ namespace CK.Cris
                 for( int i = 0; i < finalEvents.Count; ++i )
                 {
                     var e = finalEvents[i];
-                    Debug.Assert( e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent || e.CrisPocoModel.Kind == CrisPocoKind.CallerOnlyEvent, "No immediate event here." );
-                    Debug.Assert( !e.CrisPocoModel.IsHandled || e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent, "If it is handled then it is a route event." );
+                    Throw.DebugAssert( e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent || e.CrisPocoModel.Kind == CrisPocoKind.CallerOnlyEvent, "No immediate event here." );
+                    Throw.DebugAssert( !e.CrisPocoModel.IsHandled || e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent, "If it is handled then it is a route event." );
                     if( e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent )
                     {
                         await _eventHub.AllSender.SafeRaiseAsync( _monitor, e );
@@ -91,7 +91,7 @@ namespace CK.Cris
         /// <returns>The awaitable.</returns>
         protected virtual Task RaiseImmediateEventAsync( IActivityMonitor monitor, IEvent routedImmediateEvent )
         {
-            Debug.Assert( routedImmediateEvent.CrisPocoModel.Kind == CrisPocoKind.RoutedImmediateEvent );
+            Throw.DebugAssert( routedImmediateEvent.CrisPocoModel.Kind == CrisPocoKind.RoutedImmediateEvent );
             return _eventHub.ImmediateSender.SafeRaiseAsync( _monitor, routedImmediateEvent );
         }
 
@@ -104,7 +104,7 @@ namespace CK.Cris
         /// <returns>The awaitable.</returns>
         protected virtual Task RaiseCallerOnlyImmediateEventAsync( IActivityMonitor monitor, IEvent callerImmediateEvent )
         {
-            Debug.Assert( callerImmediateEvent.CrisPocoModel.Kind == CrisPocoKind.CallerOnlyImmediateEvent );
+            Throw.DebugAssert( callerImmediateEvent.CrisPocoModel.Kind == CrisPocoKind.CallerOnlyImmediateEvent );
             return Task.CompletedTask;
         }
 

@@ -25,7 +25,7 @@ namespace CK.Setup
         bool ITSCodeGenerator.Initialize( IActivityMonitor monitor, TypeScriptContext context )
         {
             _registry = CrisRegistry.Find( monitor, context.CodeContext );
-            Debug.Assert( _registry != null, "CSharp code implementation has necessarily been successfully called." );
+            Throw.DebugAssert( _registry != null, "CSharp code implementation has necessarily been successfully called." );
             context.PocoCodeGenerator.PocoGenerating += OnPocoGenerating;
             return true;
         }
@@ -61,7 +61,7 @@ namespace CK.Setup
         /// <param name="e">The Poco generation information.</param>
         void OnPocoGenerating( object? sender, PocoGeneratingEventArgs e )
         {
-            Debug.Assert( _registry != null, "CS code generation ran. Implement (CSharp code) has necessarily been successfully called." );
+            Throw.DebugAssert( _registry != null, "CS code generation ran. Implement (CSharp code) has necessarily been successfully called." );
 
             // The poco that interest us are the ICrisPoco and the IAmbientValues that we need:
             // the first ICrisPoco declares the IAmbientValues and when the IAmbientValues poco
@@ -81,7 +81,7 @@ namespace CK.Setup
                     return;
                 }
 
-                Debug.Assert( _ambientValuesProperties != null, "The PocoGeneratingEventArgs for IAmbientValues has been called." );
+                Throw.DebugAssert( _ambientValuesProperties != null, "The PocoGeneratingEventArgs for IAmbientValues has been called." );
 
                 EnsureCrisModel( e );
 
@@ -118,14 +118,14 @@ namespace CK.Setup
                     foreach( var itf in e.PocoClass.PocoRootInfo.Interfaces )
                     {
                         var code = e.TypeFile.File.Body.FindKeyedPart( itf.PocoInterface );
-                        Debug.Assert( code != null );
+                        Throw.DebugAssert( code != null );
                         code.Append( signature ).Append( ";" ).NewLine();
                     }
                 }
 
                 void ApplyAmbientValues( ITSCodePart b )
                 {
-                    Debug.Assert( _ambientValuesProperties != null );
+                    Throw.DebugAssert( _ambientValuesProperties != null );
                     bool atLeastOne = false;
                     foreach( var a in _ambientValuesProperties )
                     {
@@ -157,12 +157,8 @@ namespace CK.Setup
             }
             else if( e.PocoClass.PocoRootInfo == _registry.AmbientValues )
             {
-                Debug.Assert( _ambientValuesProperties == null );
+                Throw.DebugAssert( _ambientValuesProperties == null );
                 _ambientValuesProperties = e.PocoClass.Properties;
-                // The ICrisResult (from CK.Cris.AspNet) and the ISImpleCrisErrorResult (from CK.Cris) must be in TypeScript.
-                e.TypeFile.Context.DeclareTSType( e.Monitor, typeof( ICrisResult ) );
-                e.TypeFile.Context.DeclareTSType( e.Monitor, typeof( ISimpleCrisResultError ) );
-
             }
         }
 
@@ -190,14 +186,15 @@ namespace CK.Setup
 
         static void InitializeCrisModelFile( IActivityMonitor monitor, TypeScriptFile<TypeScriptContextRoot> fModel )
         {
-            fModel.EnsureImport( monitor, typeof( VESACode ), typeof( ICrisResultError ), typeof(ICrisResult) );
+            // The import declares the TSTypes for ISimpleCrisResultError and ICrisResult.
+            fModel.EnsureImport( monitor, typeof( VESACode ), typeof( ISimpleCrisResultError ), typeof( ICrisResult ) );
             fModel.Imports.EnsureImportFromLibrary( new LibraryImport( "axios", "^1.2.3", DependencyKind.Dependency ),
                 "AxiosInstance", "AxiosHeaders", "RawAxiosRequestConfig" );
             fModel.Body.Append( @"
 
 export type ICommandResult<T> = {
     code: VESACode.Error | VESACode.ValidationError,
-    result: CrisResultError,
+    result: SimpleCrisResultError,
     correlationId?: string
 } |
 {
@@ -284,7 +281,7 @@ export class HttpCrisEndpoint implements ICrisEndpoint {
       else if (result.code == VESACode.Error || result.code == VESACode.ValidationError) {
         return {
           code: result.code as VESACode.Error | VESACode.ValidationError,
-          result: result.result as CrisResultError,
+          result: result.result as SimpleCrisResultError,
           correlationId: result.correlationId
         };
       }

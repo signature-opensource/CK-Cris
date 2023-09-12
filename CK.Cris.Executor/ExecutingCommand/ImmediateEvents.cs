@@ -39,7 +39,7 @@ namespace CK.Cris
             }
             else
             {
-                Debug.Assert( _last != null );
+                Throw.DebugAssert( _last != null );
                 _last.Next = n;
             }
             ++_count;
@@ -61,7 +61,7 @@ namespace CK.Cris
             }
             else
             {
-                Debug.Assert( _last != null );
+                Throw.DebugAssert( _last != null );
                 _last.Next = n;
             }
             ++_count;

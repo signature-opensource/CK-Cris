@@ -91,7 +91,7 @@ namespace CK.Cris.Executor.Tests
                 var cmd = services.GetRequiredService<IPocoFactory<IAmbientValuesCollectCommand>>().Create();
 
                 var r = await executor.RawExecuteAsync( services, cmd );
-                Debug.Assert( r != null );
+                Throw.DebugAssert( r != null );
                 var auth = (IAuthAmbientValues)r;
                 auth.ActorId.Should().Be( 3712 );
                 auth.ActualActorId.Should().Be( 3712 );

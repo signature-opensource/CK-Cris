@@ -22,7 +22,7 @@ namespace CK.Setup.Cris
         public CSCodeGenerationResult Implement( IActivityMonitor monitor, ICSCodeGenerationContext codeGenContext )
         {
             var (registry, impl, method) = Prepare( monitor, codeGenContext );
-            Debug.Assert( (registry == null) == (impl == null) );
+            Throw.DebugAssert( (registry == null) == (impl == null) );
             return registry != null && registry.RegisterPostHandler( monitor, impl!, method, _a.FileName, _a.LineNumber )
                     ? CSCodeGenerationResult.Success
                     : CSCodeGenerationResult.Failed;

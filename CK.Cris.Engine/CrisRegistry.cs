@@ -45,7 +45,7 @@ namespace CK.Setup.Cris
         {
             (Entry? e, ParameterInfo[]? parameters, ParameterInfo? p) = GetSingleCommandEntry( monitor, "Handler", m );
             if( e == null ) return false;
-            Debug.Assert( parameters != null && p != null );
+            Throw.DebugAssert( parameters != null && p != null );
             bool isClosedHandler = p.ParameterType == e.CrisPocoInfo.ClosureInterface;
             if( !isClosedHandler && !allowUnclosed )
             {
@@ -63,7 +63,7 @@ namespace CK.Setup.Cris
         {
             (Entry? e, ParameterInfo[]? parameters, ParameterInfo? p) = GetSingleCommandEntry( monitor, "PostHandler", m );
             if( e == null ) return false;
-            Debug.Assert( parameters != null && p != null );
+            Throw.DebugAssert( parameters != null && p != null );
             return e.AddPostHandler( monitor, impl, m, parameters, p, fileName, lineNumber );
         }
 
@@ -82,9 +82,9 @@ namespace CK.Setup.Cris
             (ParameterInfo[]? parameters, ParameterInfo? p, IReadOnlyList<IPocoRootInfo>? families) = GetImpactedFamilies( monitor, impl, m, expectCommands: isValidator );
             if( p != null )
             {
-                Debug.Assert( parameters != null );
+                Throw.DebugAssert( parameters != null );
                 bool success = true;
-                Debug.Assert( families != null, "p == null <==> families == null" );
+                Throw.DebugAssert( families != null, "p == null <==> families == null" );
                 if( families.Count == 0 )
                 {
                     monitor.Info( $"Method {MethodName( m, parameters )} is unused since no {(isValidator ? "command" : "event")} match the '{p.Name}' parameter." );
@@ -120,7 +120,7 @@ namespace CK.Setup.Cris
                     {
                         foreach( var family in families )
                         {
-                            Debug.Assert( _indexedEntries.ContainsKey( family ), "Since parameters are filtered by registered Poco." );
+                            Throw.DebugAssert( _indexedEntries.ContainsKey( family ), "Since parameters are filtered by registered Poco." );
                             var e = _indexedEntries[family];
                             success &= isValidator
                                         ? e.AddValidator( monitor, impl, m, parameters, p, validatorUserMessageCollector!, fileName, lineNumber )
@@ -142,7 +142,7 @@ namespace CK.Setup.Cris
             if( parameters == null ) return (null, null, null);
             if( p != null )
             {
-                Debug.Assert( pocoInterface != null, "Since we have a concrete IAbstractCommand or IEvent parameter." );
+                Throw.DebugAssert( pocoInterface != null, "Since we have a concrete IAbstractCommand or IEvent parameter." );
                 return (parameters, p, new IPocoRootInfo[] { pocoInterface.Root });
             }
             // Looking for parts.
@@ -165,7 +165,7 @@ namespace CK.Setup.Cris
                                         .ToArray();
             if( candidates.Length == 1 )
             {
-                Debug.Assert( candidates[0].partsList != null, "Nulls have been filtered out." );
+                Throw.DebugAssert( candidates[0].partsList != null, "Nulls have been filtered out." );
                 return (candidates[0].param, candidates[0].partsList);
             }
             var expected = expectCommands ? "ICommand, ICommand<TResult> or ICommandPart" : "IEvent or IEventPart";
@@ -207,7 +207,7 @@ namespace CK.Setup.Cris
                 var (index,entries) = CreateAllEntries( monitor, c.CurrentRun.EngineMap, pocoResult );
                 if( entries != null )
                 {
-                    Debug.Assert( index != null, "Since entries is not null." );
+                    Throw.DebugAssert( index != null, "Since entries is not null." );
                     monitor.Info( $"{entries.Count} commands or events detected." );
                     var av = pocoResult.Find( typeof( CK.Cris.AmbientValues.IAmbientValues ) );
                     if( av == null )
@@ -322,9 +322,9 @@ namespace CK.Setup.Cris
                 }
                 else
                 {
-                    Debug.Assert( commandInterface != null, "Since we have a parameter." );
-                    Debug.Assert( parameters != null );
-                    Debug.Assert( _indexedEntries.ContainsKey( commandInterface.Root ), "Since parameters are filtered by registered Poco." );
+                    Throw.DebugAssert( commandInterface != null, "Since we have a parameter." );
+                    Throw.DebugAssert( parameters != null );
+                    Throw.DebugAssert( _indexedEntries.ContainsKey( commandInterface.Root ), "Since parameters are filtered by registered Poco." );
                     return (_indexedEntries[commandInterface.Root], parameters, p);
                 }
             }
@@ -351,7 +351,7 @@ namespace CK.Setup.Cris
                 return (parameters, null, null);
             }
             var paramInfo = candidates[0].p;
-            Debug.Assert( candidates[0].Item2 != null && paramInfo.ParameterType == candidates[0].Item2!.PocoInterface );
+            Throw.DebugAssert( candidates[0].Item2 != null && paramInfo.ParameterType == candidates[0].Item2!.PocoInterface );
             bool isCommand = typeof( IAbstractCommand ).IsAssignableFrom( paramInfo.ParameterType );            
             if( isCommand != expectCommand )
             {

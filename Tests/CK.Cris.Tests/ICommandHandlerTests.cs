@@ -192,9 +192,9 @@ namespace CK.Cris.Tests
 
             var handlerService = s.GetRequiredService<ICommandHandler<ICommandWithPocoResult>>();
             var method = handlerService.GetType().GetMethod( handler.MethodName, handler.Parameters.ToArray() );
-            Debug.Assert( method != null );
+            Throw.DebugAssert( method != null );
             var result = (IResult?)method.Invoke( handlerService, new[] { cmd } );
-            Debug.Assert( result != null );
+            Throw.DebugAssert( result != null );
             result.Val.Should().Be( 3712, "Calling the base method naturally uses the overridden method." );
         }
 
@@ -237,7 +237,7 @@ namespace CK.Cris.Tests
             var d = s.GetRequiredService<CrisDirectory>();
             d.CrisPocoModels.Should().HaveCount( 1 );
             var handler = d.CrisPocoModels[0].Handlers.Single();
-            Debug.Assert( handler != null );
+            Throw.DebugAssert( handler != null );
             handler.Type.ClassType.Should().Be( typeof( SpecializedBaseClassService ) );
             handler.Type.FinalType.FullName.Should().Be( "CK.Cris.Tests.ICommandHandlerTests_SpecializedBaseClassService_CK" );
             handler.Type.IsScoped.Should().Be( false );

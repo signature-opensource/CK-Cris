@@ -16,11 +16,12 @@ namespace CK.Setup.Cris
     public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextBoundInitializer
     {
 
-        // Auto registers IAmbientValues and ICrisResultError so that tests don't have to register them explicitly: registering CrisDirectory is enough.
+        // Auto registers IAmbientValues, ICrisResultError and ISimpleCrisResultError so that tests don't have to register them explicitly: registering CrisDirectory is enough.
         void IAttributeContextBoundInitializer.Initialize( IActivityMonitor monitor, ITypeAttributesCache owner, MemberInfo m, Action<Type> alsoRegister )
         {
             alsoRegister( typeof( CK.Cris.AmbientValues.IAmbientValues ) );
             alsoRegister( typeof( ICrisResultError ) );
+            alsoRegister( typeof( ISimpleCrisResultError ) );
         }
 
         // We keep a reference instead of using CommandRegistry.FindOrCreate each time (for TypeScript).
@@ -111,7 +112,7 @@ namespace CK.Setup.Cris
                         var allHandlers = e.CommandHandler != null
                                             ? ((IEnumerable<CrisRegistry.BaseHandler>)e.Validators).Append( e.CommandHandler ).Concat( e.PostHandlers )
                                             : e.EventHandlers;
-                        Debug.Assert( allHandlers.Any() );
+                        Throw.DebugAssert( allHandlers.Any() );
 
                         f.Append( "static readonly CK.Cris.ICrisPocoModel.IHandler[] _handlers = new [] {" ).NewLine();
                         foreach( var handler in allHandlers )
@@ -151,7 +152,7 @@ namespace CK.Setup.Cris
 
         CSCodeGenerationResult CheckICommandHandlerImplementation( IActivityMonitor monitor )
         {
-            Debug.Assert( _registry != null );
+            Throw.DebugAssert( _registry != null );
 
             CSCodeGenerationResult r = CSCodeGenerationResult.Success;
             var missingHandlers = _registry.CrisPocoModels.Where( c => c.CommandHandler == null );

@@ -263,7 +263,7 @@ namespace CK.Setup.Cris
                 }
                 else if( resultTypes != null )
                 {
-                    Debug.Assert( resultTypes.Count > 0 );
+                    Throw.DebugAssert( resultTypes.Count > 0 );
 
                     for( int i = resultTypes.Count - 2; i >= 0; --i )
                     {

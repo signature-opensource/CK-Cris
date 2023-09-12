@@ -62,7 +62,7 @@ namespace CK.Cris.AspNet
                 (IAbstractCommand? cmd, ICrisResult? result) = await ReadCommandAsync( monitor, request );
                 if( result == null )
                 {
-                    Debug.Assert( cmd != null );
+                    Throw.DebugAssert( cmd != null );
                     result = await ValidateAndExecuteAsync( monitor, requestServices, cmd );
                 }
                 if( result.CorrelationId == null )
@@ -94,7 +94,7 @@ namespace CK.Cris.AspNet
                 return result;
             }
             // Valid command: calls the execution handler.
-            Debug.Assert( cmd != null );
+            Throw.DebugAssert( cmd != null );
             try
             {
                 var execContext = requestServices.GetRequiredService<CrisExecutionContext>();
@@ -134,10 +134,10 @@ namespace CK.Cris.AspNet
                         (var cmd, error) = ReadCommand( monitor, request.HttpContext.RequestServices, _poco, buffer.GetReadOnlySequence() );
                         if( cmd != null )
                         {
-                            Debug.Assert( error == null );
+                            Throw.DebugAssert( error == null );
                             return (cmd, null);
                         }
-                        Debug.Assert( error != null );
+                        Throw.DebugAssert( error != null );
                     }
                     else
                     {

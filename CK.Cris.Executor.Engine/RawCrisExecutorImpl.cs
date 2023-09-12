@@ -88,7 +88,7 @@ namespace CK.Setup.Cris
                     ++syncHandlerCount;
                 }
             }
-            Debug.Assert( syncHandlerCount <= e.EventHandlers.Count );
+            Throw.DebugAssert( syncHandlerCount <= e.EventHandlers.Count );
             // Are there async handlers?
             int asyncHandlerCount = e.EventHandlers.Count - syncHandlerCount;
             if( asyncHandlerCount > 0 )
@@ -195,20 +195,20 @@ namespace CK.Setup.Cris
 
         static void CreateExecutorMethods( Type classType, ITypeScope scope )
         {
-            Debug.Assert( nameof( RawCrisExecutor.RawExecuteAsync ) == "RawExecuteAsync" );
-            Debug.Assert( classType.GetMethod( nameof( RawCrisExecutor.RawExecuteAsync ), new[] { typeof( IServiceProvider ), typeof( IAbstractCommand ) } ) != null );
+            Throw.DebugAssert( nameof( RawCrisExecutor.RawExecuteAsync ) == "RawExecuteAsync" );
+            Throw.DebugAssert( classType.GetMethod( nameof( RawCrisExecutor.RawExecuteAsync ), new[] { typeof( IServiceProvider ), typeof( IAbstractCommand ) } ) != null );
             var mExecute = scope.CreateFunction( "public override Task<object> RawExecuteAsync( IServiceProvider s, CK.Cris.IAbstractCommand c )" );
             mExecute.GeneratedByComment().NewLine()
                     .Append( "return global::System.Runtime.CompilerServices.Unsafe.As<Task<object>>(_handlers[c.CrisPocoModel.CrisPocoIndex]( s, c ));" );
 
-            Debug.Assert( nameof( RawCrisExecutor.DispatchEventAsync ) == "DispatchEventAsync" );
-            Debug.Assert( classType.GetMethod( nameof( RawCrisExecutor.DispatchEventAsync ), new[] { typeof( IServiceProvider ), typeof( IEvent ) } ) != null );
+            Throw.DebugAssert( nameof( RawCrisExecutor.DispatchEventAsync ) == "DispatchEventAsync" );
+            Throw.DebugAssert( classType.GetMethod( nameof( RawCrisExecutor.DispatchEventAsync ), new[] { typeof( IServiceProvider ), typeof( IEvent ) } ) != null );
             var mDispatchEvent = scope.CreateFunction( "public override Task DispatchEventAsync( IServiceProvider s, CK.Cris.IEvent e )" );
             mDispatchEvent.GeneratedByComment().NewLine()
                           .Append( "return _handlers[e.CrisPocoModel.CrisPocoIndex]( s, e );" );
 
-            Debug.Assert( nameof( RawCrisExecutor.SafeDispatchEventAsync ) == "SafeDispatchEventAsync" );
-            Debug.Assert( classType.GetMethod( nameof( RawCrisExecutor.SafeDispatchEventAsync ), new[] { typeof( IServiceProvider ), typeof( IEvent ) } ) != null );
+            Throw.DebugAssert( nameof( RawCrisExecutor.SafeDispatchEventAsync ) == "SafeDispatchEventAsync" );
+            Throw.DebugAssert( classType.GetMethod( nameof( RawCrisExecutor.SafeDispatchEventAsync ), new[] { typeof( IServiceProvider ), typeof( IEvent ) } ) != null );
             var mSafeDispatchEvent = scope.CreateFunction( "public override async Task<bool> SafeDispatchEventAsync( IServiceProvider s, CK.Cris.IEvent e )" );
             mSafeDispatchEvent.GeneratedByComment().NewLine()
                     .Append( """

@@ -98,11 +98,17 @@ namespace CK.Cris.AspNet.Tests
 
         public PocoDirectory PocoDirectory { get; }
 
-        public async Task<ICrisResult> GetCrisResultWithNullCorrelationIdAsync( HttpResponseMessage r )
+        public async Task<ICrisResult> GetCrisResultAsync( HttpResponseMessage r )
         {
             r.EnsureSuccessStatusCode();
             var result = PocoDirectory.Find<ICrisResult>()!.JsonDeserialize( await r.Content.ReadAsStringAsync() );
-            Debug.Assert( result != null );
+            Throw.DebugAssert( result != null );
+            return result;
+        }
+
+        public async Task<ICrisResult> GetCrisResultWithCorrelationIdSetToNullAsync( HttpResponseMessage r )
+        {
+            var result = await GetCrisResultAsync( r );
             result.CorrelationId.Should().NotBeNullOrWhiteSpace();
             result.CorrelationId = null;
             return result;

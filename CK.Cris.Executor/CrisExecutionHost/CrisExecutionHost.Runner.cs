@@ -53,7 +53,7 @@ namespace CK.Cris
                 if( delta < 0 )
                 {
                     --_runnerCount;
-                    Debug.Assert( (_runnerCount == 0) == (runner._prev == null && runner._next == null) );
+                    Throw.DebugAssert( (_runnerCount == 0) == (runner._prev == null && runner._next == null) );
                     if( runner._prev != null )
                     {
                         runner._prev._next = runner._next;
@@ -64,16 +64,16 @@ namespace CK.Cris
                     }
                     else
                     {
-                        Debug.Assert( _last == runner, "If there's no next, then we are the last." );
+                        Throw.DebugAssert( _last == runner, "If there's no next, then we are the last." );
                         _last = runner._prev;
-                        Debug.Assert( (_last == null) == (_runnerCount == 0 && _plannedRunnerCount == 0) );
+                        Throw.DebugAssert( (_last == null) == (_runnerCount == 0 && _plannedRunnerCount == 0) );
                     }
                     shouldRaiseCountChanged = _plannedRunnerCount > 0 && _runnerCount == _plannedRunnerCount;
                     monitor.Info( $"Stopping runner n°{_runnerNumber}" );
                     return true;
                 }
-                Debug.Assert( delta > 0 );
-                Debug.Assert( _last != null, "Once the _plannedRunnerCount reached 0, it can never increase." );
+                Throw.DebugAssert( delta > 0 );
+                Throw.DebugAssert( _last != null, "Once the _plannedRunnerCount reached 0, it can never increase." );
                 ++_runnerCount;
                 ++_runnerNumber;
                 monitor.Info( $"Starting new runner n°{_runnerNumber}" );

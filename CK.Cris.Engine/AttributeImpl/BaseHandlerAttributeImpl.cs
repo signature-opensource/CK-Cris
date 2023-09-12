@@ -25,7 +25,7 @@ namespace CK.Setup.Cris
             get
             {
                 var n = GetType().Name;
-                Debug.Assert( "AttributeImpl".Length == 13 );
+                Throw.DebugAssert( "AttributeImpl".Length == 13 );
                 return n.Remove( n.Length - 13 );
             }
         }
