@@ -51,6 +51,7 @@ namespace CK.Cris.AspNet.Tests
     using System.Net.Http;
     using System.Threading.Tasks;
     using static CK.Testing.StObjEngineTestHelper;
+    using CK.Core;
 
     [TestFixture]
     public class CrisAspNetServiceTests
