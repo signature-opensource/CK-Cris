@@ -145,26 +145,25 @@ namespace CK.Cris.AspNet
                                                    "Unable to read Command Poco from empty request body.",
                                                    "Cris.AspNet.EmptyBody" );
                     }
-                    return (null, CreateErrorResult( error.Value, VESACode.ValidationError ));
+                    return (null, CreateErrorResult( error.Value, VESACode.ValidationError, null ));
                 }
                 catch( Exception ex )
                 {
                     UserMessage errorMessage = UserMessage.Error( request.HttpContext.RequestServices.GetRequiredService<CurrentCultureInfo>(),
                                                                   $"Unable to read Command Poco from request body (byte length = {length}).",
                                                                   "Cris.AspNet.ReadCommandFailed" );
+                    using var gError = monitor.OpenError( errorMessage.Message.CodeString, ex );
                     var x = ReadBodyTextOnError( buffer.GetReadOnlySequence() );
                     if( x.B != null )
                     {
-                        monitor.Error( errorMessage.Message.CodeString + " Body: " + x.B, ex );
+                        monitor.Trace( x.B );
                     }
                     else
                     {
-                        using( monitor.OpenError( errorMessage.Message.CodeString, ex ) )
-                        {
-                            monitor.Error( "While tracing request body.", x.E );
-                        }
+                        monitor.Error( "Error while tracing request body.", x.E );
                     }
-                    return (null, CreateErrorResult( errorMessage, VESACode.ValidationError ));
+                    var error = CreateErrorResult( errorMessage, VESACode.ValidationError, gError.GetLogKeyString() );
+                    return (null, error);
                 }
             }
 
@@ -199,11 +198,13 @@ namespace CK.Cris.AspNet
 
         }
 
-        ICrisResult CreateErrorResult( UserMessage message, VESACode code )
+        ICrisResult CreateErrorResult( UserMessage message, VESACode code, string? logKey )
         {
             ICrisResult result = _resultFactory.Create();
             result.Code = code;
-            result.Result = _errorResultFactory.Create( message );
+            ISimpleCrisResultError e = _errorResultFactory.Create( message );
+            e.LogKey = logKey;
+            result.Result = e;
             return result;
         }
 
