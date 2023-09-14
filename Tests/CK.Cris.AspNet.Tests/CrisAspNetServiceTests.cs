@@ -83,7 +83,7 @@ namespace CK.Cris.AspNet.Tests
                     TestHandler.Called.Should().BeFalse( "Validation error." );
 
                     var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                    result.ToString().Should().Match( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":true,""messages"":[[16,0,""Value must be positive.""]],""logKey"":""*""}],""correlationId"":null}" );
+                    result.ToString().Should().Match( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":true,""messages"":[[16,""Value must be positive."",0]],""logKey"":""*""}],""correlationId"":null}" );
                 }
             }
         }
@@ -97,7 +97,7 @@ namespace CK.Cris.AspNet.Tests
                 HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""Test"",{""Value"":3712}]" );
                 Throw.DebugAssert( r != null );
                 var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                result.ToString().Should().Match( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":true,""messages"":[[16,0,""An unhandled error occurred while validating command *Test* (LogKey: *).""]],""logKey"":""*""}],""correlationId"":null}" );
+                result.ToString().Should().Match( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":true,""messages"":[[16,""An unhandled error occurred while validating command *Test* (LogKey: *)."",0]],""logKey"":""*""}],""correlationId"":null}" );
             }
         }
 
@@ -112,32 +112,32 @@ namespace CK.Cris.AspNet.Tests
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, "" );
                     Throw.DebugAssert( r != null );
                     var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                    result.ToString().Should().Be( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":false,""messages"":[[16,0,""Unable to read Command Poco from empty request body.""]],""logKey"":null}],""correlationId"":null}" );
+                    result.ToString().Should().Be( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":false,""messages"":[[16,""Unable to read Command Poco from empty request body."",0]],""logKey"":null}],""correlationId"":null}" );
                 }
                 // Here SimpleErrorResult.LogKey is set.
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, "----" );
                     Throw.DebugAssert( r != null );
                     var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                    result.ToString().Should().Match( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":false,""messages"":[[16,0,""Unable to read Command Poco from request body (byte length = 4).""]],""logKey"":""*""}],""correlationId"":null}" );
+                    result.ToString().Should().Match( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":false,""messages"":[[16,""Unable to read Command Poco from request body (byte length = 4)."",0]],""logKey"":""*""}],""correlationId"":null}" );
                 }
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, "\"X\"" );
                     Throw.DebugAssert( r != null );
                     var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                    result.ToString().Should().Match( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":false,""messages"":[[16,0,""Unable to read Command Poco from request body (byte length = 3).""]],""logKey"":""*""}],""correlationId"":null}" );
+                    result.ToString().Should().Match( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":false,""messages"":[[16,""Unable to read Command Poco from request body (byte length = 3)."",0]],""logKey"":""*""}],""correlationId"":null}" );
                 }
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, "{}" );
                     Throw.DebugAssert( r != null );
                     var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                    result.ToString().Should().Match( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":false,""messages"":[[16,0,""Unable to read Command Poco from request body (byte length = 2).""]],""logKey"":""*""}],""correlationId"":null}" );
+                    result.ToString().Should().Match( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":false,""messages"":[[16,""Unable to read Command Poco from request body (byte length = 2)."",0]],""logKey"":""*""}],""correlationId"":null}" );
                 }
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""Unknown"",{""value"":3712}]" );
                     Throw.DebugAssert( r != null );
                     var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                    result.ToString().Should().Match( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":false,""messages"":[[16,0,""Unable to read Command Poco from request body (byte length = 26).""]],""logKey"":""*""}],""correlationId"":null}" );
+                    result.ToString().Should().Match( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":false,""messages"":[[16,""Unable to read Command Poco from request body (byte length = 26)."",0]],""logKey"":""*""}],""correlationId"":null}" );
                 }
             }
         }

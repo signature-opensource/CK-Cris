@@ -1,4 +1,5 @@
 using CK.Core;
+using CK.Setup;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +10,7 @@ using System.Collections;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -16,6 +18,10 @@ using System.Threading.Tasks;
 namespace CK.Cris.AspNet
 {
     [EndpointSingletonService]
+    [AlsoRegisterType( typeof( CrisDirectory ) )]
+    [AlsoRegisterType( typeof( ISimpleCrisResultError ) )]
+    [AlsoRegisterType( typeof( RawCrisValidator ) )]
+    [AlsoRegisterType( typeof( RawCrisExecutor ) )]
     public partial class CrisAspNetService : ISingletonAutoService
     {
         readonly RawCrisValidator _validator;
@@ -87,7 +93,7 @@ namespace CK.Cris.AspNet
             if( !validation.Success )
             {
                 var error = _errorResultFactory.Create();
-                error.Messages.AddRange( validation.Messages.Select( m => m.AsSimpleUserMessage() ) );
+                error.Messages.AddRange( validation.Messages.Select( m => (m.Level, m.Message.Text, m.Depth) ) );
                 error.LogKey = validation.LogKey;
                 error.IsValidationError = true;
                 result.Result = error;
@@ -107,12 +113,12 @@ namespace CK.Cris.AspNet
                 result.Code = VESACode.Error;
                 var currentCulture = requestServices.GetRequiredService<CurrentCultureInfo>();
                 var error = _errorResultFactory.Create();
-                error.LogKey = PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, true, ex, cmd, out var genericError );
+                error.LogKey = CK.Cris.PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, true, ex, cmd, out var genericError );
                 if( ex is MCException mc )
                 {
-                    error.Messages.Add( mc.AsUserMessage() );
+                    error.Messages.Add( (UserMessageLevel.Error, mc.Message, 0) );
                 }
-                error.Messages.Add( genericError );
+                error.Messages.Add( (UserMessageLevel.Error, genericError.Message, 1 ) );
                 result.Result = error;
             }
             return result;

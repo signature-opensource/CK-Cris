@@ -234,11 +234,11 @@ export class CrisError extends Error {
 }
 
 export function findCrisErrorMessage( innerResult: any ): string {
-  if ( Array.isArray( innerResult ) && innerResult.length > 1 ) {
-    if ( innerResult[0] === 'CrisResultError' ) {
+  if( Array.isArray( innerResult ) && innerResult.length > 1 ) {
+    if( innerResult[0] === 'SimpleCrisResultError' ) {
       const p = innerResult[1];
-      if ( p.message ) return p.message;
-      if ( p.errors && Array.isArray( p.errors ) ) {
+      if( p.message ) return p.message;
+      if( p.errors && Array.isArray( p.errors ) ) {
         return p.errors.join( '; ' );
       }
     }

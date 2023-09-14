@@ -28,10 +28,8 @@ namespace CK.Cris.TypeScript.Tests
                                                                       new TypeScriptTypeConfiguration( typeof( Cris.Tests.ICommandUnifiedWithTheResult ) )
                                                                   }
                                                               },
-                                                              typeof( CrisDirectory ),
+                                                              typeof( CrisAspNetService ),
                                                               typeof( ICrisResult ),
-                                                              typeof( ICrisResultError ),
-                                                              typeof( AmbientValues.IAmbientValues ),
                                                               typeof( Cris.Tests.ICommandUnifiedWithTheResult ),
                                                               typeof( Cris.Tests.IUnifiedResult ) );
 

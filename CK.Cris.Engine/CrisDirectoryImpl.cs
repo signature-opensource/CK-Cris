@@ -21,7 +21,6 @@ namespace CK.Setup.Cris
         {
             alsoRegister( typeof( CK.Cris.AmbientValues.IAmbientValues ) );
             alsoRegister( typeof( ICrisResultError ) );
-            alsoRegister( typeof( ISimpleCrisResultError ) );
         }
 
         // We keep a reference instead of using CommandRegistry.FindOrCreate each time (for TypeScript).

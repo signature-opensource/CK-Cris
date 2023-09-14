@@ -67,7 +67,7 @@ namespace CK.Cris.AspNet.Tests.AuthTests
                     errorMessage.Depth.Should().Be( 0 );
                     errorMessage.Level.Should().Be( UserMessageLevel.Error );
                     var errorLogKey = ActivityMonitor.LogKey.Parse( error.LogKey );
-                    error.ToString().Should().Match( """{"isValidationError":true,"messages":[[16,0,"Invalid actor identifier: the command provided identifier doesn*t match the current authentication."]],"logKey":"*"}""" );
+                    error.ToString().Should().Match( """{"isValidationError":true,"messages":[[16,"Invalid actor identifier: the command provided identifier doesn*t match the current authentication.",0]],"logKey":"*"}""" );
                 }
                 UnsafeHandler.LastUserInfo = null;
                 await s.LoginAsync( "Albert" );
@@ -82,14 +82,14 @@ namespace CK.Cris.AspNet.Tests.AuthTests
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""NO WAY!"",""ActorId"":7}]" );
                     Throw.DebugAssert( r != null );
                     var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                    result.ToString().Should().Match( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":true,""messages"":[[16,0,""Invalid actor identifier: the command provided identifier doesn*t match the current authentication.""]],""logKey"":""*""}],""correlationId"":null}" );
+                    result.ToString().Should().Match( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":true,""messages"":[[16,""Invalid actor identifier: the command provided identifier doesn*t match the current authentication."",0]],""logKey"":""*""}],""correlationId"":null}" );
                 }
                 await s.LogoutAsync();
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""NO! Albert is no more here."",""ActorId"":3712}]" );
                     Throw.DebugAssert( r != null );
                     var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                    result.ToString().Should().Match( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":true,""messages"":[[16,0,""Invalid actor identifier: the command provided identifier doesn*t match the current authentication.""]],""logKey"":""*""}],""correlationId"":null}" );
+                    result.ToString().Should().Match( @"{""code"":86,""result"":[""SimpleCrisResultError"",{""isValidationError"":true,""messages"":[[16,""Invalid actor identifier: the command provided identifier doesn*t match the current authentication."",0]],""logKey"":""*""}],""correlationId"":null}" );
                 }
             }
         }
