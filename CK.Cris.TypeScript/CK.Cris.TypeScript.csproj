@@ -3,10 +3,10 @@
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <description>
-    This package extends the IPoco typescript code for ICommand Poco by adding their CrisPocoModel.
+      This package extends the IPoco typescript code for ICommand Poco by adding their CommandModel.
 
-    The CK/Cris/Model.ts defines the CrisPocoModel and ICrisEndpoint interfaces.
-</description>
+      The CK/Cris/Model.ts defines the CommandModel and ICrisEndpoint interfaces.
+    </description>
   </PropertyGroup>
   <!--
          The CK.StObj.TypeScript package contains 2 only types: the TypeScriptAttribute (with Folder, FileName,

@@ -31,7 +31,7 @@ namespace CK.Cris.AspNet.Tests
             collector.RegisterTypes( new[] {
                 typeof( RawCrisExecutor ),
                 typeof( RawCrisValidator ),
-                typeof( ICrisResult ),
+                typeof( IAspNetCrisResult ),
                 typeof( ICrisResultError ),
                 typeof( PocoJsonSerializer ),
                 typeof( CrisAspNetService ),
@@ -98,15 +98,15 @@ namespace CK.Cris.AspNet.Tests
 
         public PocoDirectory PocoDirectory { get; }
 
-        public async Task<ICrisResult> GetCrisResultAsync( HttpResponseMessage r )
+        public async Task<IAspNetCrisResult> GetCrisResultAsync( HttpResponseMessage r )
         {
             r.EnsureSuccessStatusCode();
-            var result = PocoDirectory.Find<ICrisResult>()!.JsonDeserialize( await r.Content.ReadAsStringAsync() );
+            var result = PocoDirectory.Find<IAspNetCrisResult>()!.JsonDeserialize( await r.Content.ReadAsStringAsync() );
             Throw.DebugAssert( result != null );
             return result;
         }
 
-        public async Task<ICrisResult> GetCrisResultWithCorrelationIdSetToNullAsync( HttpResponseMessage r )
+        public async Task<IAspNetCrisResult> GetCrisResultWithCorrelationIdSetToNullAsync( HttpResponseMessage r )
         {
             var result = await GetCrisResultAsync( r );
             result.CorrelationId.Should().NotBeNullOrWhiteSpace();

@@ -46,9 +46,9 @@ namespace CK.Setup
         /// <list type="bullet">
         /// <item>
         /// We add the commandModel signature to all the IPoco interfaces and its implementation
-        /// on the Poco implementation. It is the CrisPocoModel&lt;TResult&gt; that carries the
+        /// on the Poco implementation. It is the CommandModel&lt;TResult&gt; that carries the
         /// command result type (if any) so that type inference can be used to type the return
-        /// of the send method.
+        /// of the sendAsync method.
         /// </item>
         /// <item>
         /// Poco properties that with same ambient values names are checked (their type must be assignable
@@ -65,7 +65,7 @@ namespace CK.Setup
 
             // The poco that interest us are the ICrisPoco and the IAmbientValues that we need:
             // the first ICrisPoco declares the IAmbientValues and when the IAmbientValues poco
-            // is registered, then the ICrisResult and ISimpleCrisResultError are also declared.
+            // is registered, then the IAspNetCrisResult and IAspNetCrisResultError are also declared.
             if( typeof(ICrisPoco).IsAssignableFrom( e.TypeFile.Type ) )
             {
                 var cmd = _registry.Find( e.PocoClass.PocoRootInfo );
@@ -96,7 +96,7 @@ namespace CK.Setup
 
                 // Compute the (potentially) type name only once by caching the signature.
                 var b = e.PocoClass.Part;
-                string? signature = AppendCrisPocoModelSignature( b, cmd, e );
+                string? signature = AppendCommandModelSignature( b, cmd, e );
                 if( signature == null )
                 {
                     e.SetError();
@@ -105,7 +105,6 @@ namespace CK.Setup
                 b.Append( " = " )
                     .OpenBlock()
                         .Append( "commandName: " ).AppendSourceString( cmd.PocoName ).Append( "," ).NewLine()
-                        .Append( "isFireAndForget: false," ).NewLine()
                         .Append( "applyAmbientValues: (values: { [index: string]: any }, force?: boolean ) => " )
                         .OpenBlock()
                             .Append( ApplyAmbientValues )
@@ -162,9 +161,9 @@ namespace CK.Setup
             }
         }
 
-        static string? AppendCrisPocoModelSignature( ITSCodePart code, CrisRegistry.Entry cmd, PocoGeneratingEventArgs e )
+        static string? AppendCommandModelSignature( ITSCodePart code, CrisRegistry.Entry cmd, PocoGeneratingEventArgs e )
         {
-            var signature = "readonly " + (e.TypeFile.Context.Root.PascalCase ? "C" : "c") + "risPocoModel: CrisPocoModel<";
+            var signature = "readonly " + (e.TypeFile.Context.Root.PascalCase ? "C" : "c") + "ommandModel: CommandModel<";
             code.Append( signature );
             var typeName = code.AppendAndGetComplexTypeName( e.Monitor, e.TypeFile.Context, cmd.ResultNullableTypeTree );
             if( typeName == null ) return null;
@@ -181,69 +180,102 @@ namespace CK.Setup
             {
                 InitializeCrisModelFile( e.Monitor, fModel );
             }
-            e.TypeFile.File.Imports.EnsureImport( fModel, "CrisPocoModel", "ICrisEndpoint" );
+            e.TypeFile.File.Imports.EnsureImport( fModel, "CommandModel", "ICrisEndpoint" );
         }
 
         static void InitializeCrisModelFile( IActivityMonitor monitor, TypeScriptFile<TypeScriptContextRoot> fModel )
         {
-            // The import declares the TSTypes for ISimpleCrisResultError and ICrisResult.
-            fModel.EnsureImport( monitor, typeof( VESACode ), typeof( ISimpleCrisResultError ), typeof( ICrisResult ) );
+            // The import declares the TSTypes for IAspNetCrisResultError and ICrisResult.
+            fModel.EnsureImport( monitor, typeof( UserMessageLevel ), typeof( SimpleUserMessage ), typeof( IAspNetCrisResultError ), typeof( IAspNetCrisResult ) );
+
             fModel.Imports.EnsureImportFromLibrary( new LibraryImport( "axios", "^1.2.3", DependencyKind.Dependency ),
-                "AxiosInstance", "AxiosHeaders", "RawAxiosRequestConfig" );
+                                                                       "AxiosInstance", "AxiosHeaders", "RawAxiosRequestConfig" );
             fModel.Body.Append( @"
 
-export type ICommandResult<T> = {
-    code: VESACode.Error | VESACode.ValidationError,
-    result: SimpleCrisResultError,
-    correlationId?: string
-} |
-{
-    code: 'CommunicationError',
-    result: Error
-} |
-{
-    code: VESACode.Synchronous,
-    result: T,
-    correlationId?: string
-};
-
-export interface CrisPocoModel<TResult> {
+/**
+ * Describes a command. 
+ **/
+export type CommandModel<TResult> = {
+    /**
+     * Gets the name of the command. 
+     **/
     readonly commandName: string;
-    readonly isFireAndForget: boolean;
-    applyAmbientValues: (values: { [index: string]: any }, force?: boolean ) => void;
+    /**
+     * Configures any ambient values that the command holds. 
+     **/
+    readonly applyAmbientValues: (values: { [index: string]: any }, force?: boolean ) => void;
 }
 
-export interface Command<TResult = void> {
-  commandModel: CrisPocoModel<TResult>;
+/** 
+ * Command abstraction: command with or without a result. 
+ * **/
+export interface ICommand<TResult = void> { 
+    /**
+     * Gets the command description. 
+     **/
+    readonly commandModel: CommandModel<TResult>;
+}
+
+/** 
+ * Captures the result of a command execution.
+ **/
+export type ExecutedCommand<T> = {
+    /** The executed command. **/
+    readonly command: ICommand<T>,
+    /** The execution result. **/
+    readonly result: CrisError | T,
+    /** Optional correlation identifier. **/
+    readonly correlationId?: string
+};
+
+/**
+ * Captures communication, validation or execution error.
+ **/
+export class CrisError extends Error {
+    /**
+     * Get this error type.
+     */
+    public readonly errorType : ""CommunicationError""|""ValidationError""|""ExecutionError"";
+    /**
+     * Gets the messages. At least one message is guranteed to exist.
+     */
+    public readonly messages: ReadonlyArray<SimpleUserMessage>; 
+    /**
+     * The Error.cause support is a mess. This replaces it at this level. 
+     */
+    public readonly innerError?: Error; 
+    /**
+     * When defined, enables to find the backend log entry.
+     */
+    public readonly logKey?: string; 
+    /**
+     * Gets the command that failed.
+     */
+    public readonly command: ICommand<unknown>;
+
+    constructor( command: ICommand<unknown>, 
+                 message: string, 
+                 isValidationError: boolean,
+                 innerError?: Error, 
+                 messages?: ReadonlyArray<SimpleUserMessage>,
+                 logKey?: string ) 
+    {
+        super( message );
+        this.command = command;   
+        this.errorType = isValidationError 
+                            ? ""ValidationError"" 
+                            : innerError ? ""CommunicationError"" : ""ExecutionError"";
+        this.innerError = innerError;
+        this.messages = messages && messages.length > 0 
+                        ? messages
+                        : [new SimpleUserMessage(UserMessageLevel.Error,message,0)];
+        this.logKey = logKey;
+    }
 }
 
 export interface ICrisEndpoint {
-  send<T>(command: Command<T>): Promise<ICommandResult<T>>;
-  sendOrThrow<T>( command: Command<T> ): Promise<ICommandResult<T>>;
-}
-
-export class CrisError extends Error {
-  public readonly command: Command<unknown>;
-  public readonly result?: ICommandResult<unknown>;
-
-  constructor( message: string, command: Command<unknown>, result?: ICommandResult<unknown> ) {
-    super( message );
-    this.command = command;
-    this.result = result;
-  }
-}
-
-export function findCrisErrorMessage( innerResult: any ): string {
-  if( Array.isArray( innerResult ) && innerResult.length > 1 ) {
-    if( innerResult[0] === 'SimpleCrisResultError' ) {
-      const p = innerResult[1];
-      if( p.message ) return p.message;
-      if( p.errors && Array.isArray( p.errors ) ) {
-        return p.errors.join( '; ' );
-      }
-    }
-  }
-  return JSON.stringify( innerResult );
+  sendAsync<T>(command: ICommand<T>): Promise<ExecutedCommand<T>>;
+  sendOrThrowAsync<T>( command: ICommand<T> ): Promise<T>;
 }
 
 const defaultCrisAxiosConfig: RawAxiosRequestConfig = {
@@ -255,82 +287,93 @@ const defaultCrisAxiosConfig: RawAxiosRequestConfig = {
   }
 };
 
-export class HttpCrisEndpoint implements ICrisEndpoint {
-  public axiosConfig: RawAxiosRequestConfig; // Allow user replace
+export class HttpCrisEndpoint implements ICrisEndpoint
+{
+    public axiosConfig: RawAxiosRequestConfig; // Allow user replace
 
-  constructor(private readonly axios: AxiosInstance, private readonly crisEndpointUrl: string) {
-    this.axiosConfig = defaultCrisAxiosConfig;
-  }
-
-  async send<T>(command: Command<T>): Promise<ICommandResult<T>> {
-    try {
-      let string = `[""${command.commandModel.commandName}""`;
-      string += `,${JSON.stringify(command, (key, value) => {
-        return key == ""commandModel"" ? undefined : value;
-      })}]`;
-      const resp = await this.axios.post<string>(this.crisEndpointUrl, string, this.axiosConfig);
-
-      const result = JSON.parse(resp.data)[1] as CrisResult; // TODO: @Dan implement io-ts.
-      if (result.code == VESACode.Synchronous) {
-        return {
-          code: VESACode.Synchronous,
-          result: result.result as T,
-          correlationId: result.correlationId
-        };
-      }
-      else if (result.code == VESACode.Error || result.code == VESACode.ValidationError) {
-        return {
-          code: result.code as VESACode.Error | VESACode.ValidationError,
-          result: result.result as SimpleCrisResultError,
-          correlationId: result.correlationId
-        };
-      }
-      else if (result.code == VESACode.Asynchronous) {
-        throw new Error(""Endpoint returned VESACode.Asynchronous which is not yet supported by this client."");
-      } else {
-        throw new Error(""Endpoint returned an unknown VESA Code."");
-      }
-    } catch (e) {
-      if (e instanceof Error) {
-        return {
-          code: 'CommunicationError',
-          result: e
-        };
-      } else {
-        return {
-          code: 'CommunicationError',
-          result: new Error(`Unknown error ${e}.`)
-        };
-      }
-    }
-  }
-
-  async sendOrThrow<T>( command: Command<T> ): Promise<ICommandResult<T>> {
-    const result = await this.send( command );
-    if ( result.code === 'CommunicationError' ) {
-      throw new CrisError(
-        `CRIS communication error (${command.commandModel.commandName}): ${result.result.toString()}`,
-        command,
-        result,
-      );
-    } else if ( result.code == VESACode.Error ) {
-      throw new CrisError(
-        `CRIS error: ${findCrisErrorMessage( result.result )} (${command.commandModel.commandName})`,
-        command,
-        result,
-      );
-    } else if ( result.code == VESACode.ValidationError ) {
-      throw new CrisError(
-        `CRIS validation error: ${findCrisErrorMessage( result.result )} (${command.commandModel.commandName})`,
-        command,
-        result,
-      );
+    constructor(private readonly axios: AxiosInstance, private readonly crisEndpointUrl: string)
+    {
+        this.axiosConfig = defaultCrisAxiosConfig;
     }
 
-    return result;
-  }
+    public async sendAsync<T>(command: ICommand<T>): Promise<ExecutedCommand<T>>
+    {
+        try
+        {
+          let string = `[""${command.commandModel.commandName}""`;
+          string += `,${JSON.stringify(command, (key, value) => {
+            return key == ""commandModel"" ? undefined : value;
+          })}]`;
+          const resp = await this.axios.post<string>(this.crisEndpointUrl, string, this.axiosConfig);
+
+          return fromData( command, JSON.parse(resp.data) );
+        }
+        catch( e )
+        {
+            var error : Error;
+            if( e instanceof Error)
+            {
+                error = e;
+            }
+            else
+            {
+                // Error.cause is a mess. Log it.
+                console.error( e );
+                error = new Error(`Unhandled error ${e}.`);
+            }
+            return {command, result: new CrisError(command,""Communication error"",false, error )};
+        }
+
+        function fromData<T>( cmd: ICommand<T>, data: any ) : ExecutedCommand<T>
+        {
+            if( typeof data.correlationId !== ""undefined"" && data.result instanceof Array && data.result.length == 2 )
+            {
+                if( data.result[0] === ""AspNetCrisResultError"" )
+                {
+                    // Normalized null or empty to undefined.
+                    data.correlationId = data.correlationId ? data.correlationId : undefined;
+                    const e = data.result[1] as {isValidationError?: boolean, logKey?: string, messages?: ReadonlyArray<[UserMessageLevel,string,number]>};
+                    if( typeof e.isValidationError === ""boolean"" && e.messages instanceof Array )
+                    {
+                        const messages: Array<SimpleUserMessage> = [];
+                        for( const msg of e.messages )
+                        {
+                            if(!(msg instanceof Array && msg.length == 3)) return invalidResponse(cmd,e.logKey);
+                            // silently skip potential [0] or other incomplete arrays.
+                            if(msg.length == 3)
+                            {
+                                messages.push( new SimpleUserMessage(msg[0],msg[1],msg[2]) );
+                            }
+                        }
+                        const m = messages.find( m => m.level === UserMessageLevel.Error ) 
+                                    ?? messages.find( m => m.level === UserMessageLevel.Warn )
+                                    ?? messages.find( m => m.level === UserMessageLevel.Info );
+                        const message = m && m.message ? m.message : 'Error (missing Cris error message)';
+                        return {command: cmd, result: new CrisError(cmd,message,e.isValidationError,undefined,messages,e.logKey), correlationId: data.correlationId };
+                    }
+                    return invalidResponse( cmd, data.correlationId );
+                }
+                return {command: cmd, result: data.result[1] as T, correlationId: data.correlationId };
+            }
+            return invalidResponse( cmd );
+
+            function invalidResponse( cmd: ICommand<unknown>, cId?: string ) 
+            {
+                const m = 'Invalid command response.';
+                return {command: cmd, result: new CrisError(cmd, m, false, new Error(m)), correlationId: cId};
+            } 
+        }
+    }
+
+    public async sendOrThrowAsync<T>( command: ICommand<T> ): Promise<T>
+    {
+        const r = await this.sendAsync( command );
+        if( r.result instanceof Error ) throw r.result;
+        return r.result;
+    }
 }
 " );
         }
+
     }
 }

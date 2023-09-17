@@ -10,13 +10,13 @@ namespace CK.Cris.AspNet
     public static class PocoFactoryExtensions
     {
         /// <summary>
-        /// Creates a <see cref="ISimpleCrisResultError"/> from a <see cref="ICrisResultError"/>.
+        /// Creates a <see cref="IAspNetCrisResultError"/> from a <see cref="ICrisResultError"/>.
         /// </summary>
         /// <param name="this">This factory.</param>
         /// <param name="error">The source error result.</param>
         /// <returns>A simple error result.</returns>
         [return: NotNullIfNotNull( nameof( error ) )]
-        public static ISimpleCrisResultError? Create( this IPocoFactory<ISimpleCrisResultError> @this, ICrisResultError? error )
+        public static IAspNetCrisResultError? Create( this IPocoFactory<IAspNetCrisResultError> @this, ICrisResultError? error )
         {
             if( error == null ) return null;
             var r = @this.Create();
@@ -27,14 +27,14 @@ namespace CK.Cris.AspNet
         }
 
         /// <summary>
-        /// Creates a <see cref="ISimpleCrisResultError"/> with at least one message.
+        /// Creates a <see cref="IAspNetCrisResultError"/> with at least one message.
         /// There can be no <see cref="UserMessageLevel.Error"/> messages in the messages: this result is still an error.
         /// </summary>
         /// <param name="this">This factory.</param>
         /// <param name="first">The required first message. Must be <see cref="SimpleUserMessage.IsValid"/>.</param>
         /// <param name="others">Optional other messages.</param>
         /// <returns>An error result.</returns>
-        public static ISimpleCrisResultError Create( this IPocoFactory<ISimpleCrisResultError> @this, SimpleUserMessage first, params SimpleUserMessage[] others )
+        public static IAspNetCrisResultError Create( this IPocoFactory<IAspNetCrisResultError> @this, SimpleUserMessage first, params SimpleUserMessage[] others )
         {
             Throw.CheckArgument( first.IsValid );
             var r = @this.Create();

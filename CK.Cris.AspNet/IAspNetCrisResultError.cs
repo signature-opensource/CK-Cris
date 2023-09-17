@@ -6,8 +6,8 @@ namespace CK.Cris
     /// <summary>
     /// Simplified <see cref="ICrisResultError"/>: messages are deconstructed <see cref="SimpleUserMessage"/> tuples.
     /// </summary>
-    [ExternalName( "SimpleCrisResultError" )]
-    public interface ISimpleCrisResultError : IPoco
+    [ExternalName( "AspNetCrisResultError" )]
+    public interface IAspNetCrisResultError : IPoco
     {
         /// <summary>
         /// Gets or sets whether the command failed during validation or execution.

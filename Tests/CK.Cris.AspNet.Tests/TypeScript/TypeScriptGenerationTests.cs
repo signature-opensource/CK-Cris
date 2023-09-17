@@ -29,7 +29,7 @@ namespace CK.Cris.TypeScript.Tests
                                                                   }
                                                               },
                                                               typeof( CrisAspNetService ),
-                                                              typeof( ICrisResult ),
+                                                              typeof( IAspNetCrisResult ),
                                                               typeof( Cris.Tests.ICommandUnifiedWithTheResult ),
                                                               typeof( Cris.Tests.IUnifiedResult ) );
 
@@ -86,7 +86,7 @@ namespace CK.Cris.TypeScript.Tests
                                                               typeof( IColoredAmbientValues ),
                                                               typeof( ColorService ),
                                                               typeof( ICommandColored ),
-                                                              typeof( ICrisResult ),
+                                                              typeof( IAspNetCrisResult ),
                                                               typeof( ICrisResultError ) );
         }
 

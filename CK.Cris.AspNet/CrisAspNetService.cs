@@ -19,7 +19,7 @@ namespace CK.Cris.AspNet
 {
     [EndpointSingletonService]
     [AlsoRegisterType( typeof( CrisDirectory ) )]
-    [AlsoRegisterType( typeof( ISimpleCrisResultError ) )]
+    [AlsoRegisterType( typeof( IAspNetCrisResultError ) )]
     [AlsoRegisterType( typeof( RawCrisValidator ) )]
     [AlsoRegisterType( typeof( RawCrisExecutor ) )]
     public partial class CrisAspNetService : ISingletonAutoService
@@ -27,14 +27,14 @@ namespace CK.Cris.AspNet
         readonly RawCrisValidator _validator;
         readonly RawCrisExecutor _executor;
         readonly PocoDirectory _poco;
-        readonly IPocoFactory<ICrisResult> _resultFactory;
-        readonly IPocoFactory<ISimpleCrisResultError> _errorResultFactory;
+        readonly IPocoFactory<IAspNetCrisResult> _resultFactory;
+        readonly IPocoFactory<IAspNetCrisResultError> _errorResultFactory;
 
         public CrisAspNetService( PocoDirectory poco,
                                   RawCrisValidator validator,
                                   RawCrisExecutor executor,
-                                  IPocoFactory<ICrisResult> resultFactory,
-                                  IPocoFactory<ISimpleCrisResultError> errorResultFactory )
+                                  IPocoFactory<IAspNetCrisResult> resultFactory,
+                                  IPocoFactory<IAspNetCrisResultError> errorResultFactory )
         {
             _poco = poco;
             _validator = validator;
@@ -65,7 +65,7 @@ namespace CK.Cris.AspNet
             using( HandleIncomingCKDepToken( monitor, request ) )
             {
                 // If we cannot read the command, it is considered as a Code V (Validation error), hence a BadRequest status code.
-                (IAbstractCommand? cmd, ICrisResult? result) = await ReadCommandAsync( monitor, request );
+                (IAbstractCommand? cmd, IAspNetCrisResult? result) = await ReadCommandAsync( monitor, request );
                 if( result == null )
                 {
                     Throw.DebugAssert( cmd != null );
@@ -77,7 +77,7 @@ namespace CK.Cris.AspNet
                 }
                 using( var writer = new Utf8JsonWriter( response.BodyWriter ) )
                 {
-                    PocoJsonSerializer.Write( result, writer );
+                    PocoJsonSerializer.Write( result, writer, withType: false );
                 }
                 // A Cris result HTTP status code is always 200 OK except
                 // on Internal Server Error.
@@ -85,10 +85,9 @@ namespace CK.Cris.AspNet
             }
         }
 
-        async Task<ICrisResult> ValidateAndExecuteAsync( IActivityMonitor monitor, IServiceProvider requestServices, IAbstractCommand cmd )
+        async Task<IAspNetCrisResult> ValidateAndExecuteAsync( IActivityMonitor monitor, IServiceProvider requestServices, IAbstractCommand cmd )
         {
-            ICrisResult result = _resultFactory.Create();
-            result.Code = VESACode.ValidationError;
+            IAspNetCrisResult result = _resultFactory.Create();
             CrisValidationResult validation = await _validator.ValidateCommandAsync( monitor, requestServices, cmd );
             if( !validation.Success )
             {
@@ -105,12 +104,10 @@ namespace CK.Cris.AspNet
             {
                 var execContext = requestServices.GetRequiredService<CrisExecutionContext>();
                 var (o, _) = await execContext.ExecuteAsync( cmd );
-                result.Code = VESACode.Synchronous;
                 result.Result = o;
             }
             catch( Exception ex )
             {
-                result.Code = VESACode.Error;
                 var currentCulture = requestServices.GetRequiredService<CurrentCultureInfo>();
                 var error = _errorResultFactory.Create();
                 error.LogKey = CK.Cris.PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, true, ex, cmd, out var genericError );
@@ -125,7 +122,7 @@ namespace CK.Cris.AspNet
         }
 
 
-        async Task<(IAbstractCommand?, ICrisResult?)> ReadCommandAsync( IActivityMonitor monitor, HttpRequest request )
+        async Task<(IAbstractCommand?, IAspNetCrisResult?)> ReadCommandAsync( IActivityMonitor monitor, HttpRequest request )
         {
             int length = -1;
             using( var buffer = (RecyclableMemoryStream)Util.RecyclableStreamManager.GetStream() )
@@ -151,7 +148,7 @@ namespace CK.Cris.AspNet
                                                    "Unable to read Command Poco from empty request body.",
                                                    "Cris.AspNet.EmptyBody" );
                     }
-                    return (null, CreateErrorResult( error.Value, VESACode.ValidationError, null ));
+                    return (null, CreateValidationErrorResult( error.Value, null ));
                 }
                 catch( Exception ex )
                 {
@@ -168,7 +165,7 @@ namespace CK.Cris.AspNet
                     {
                         monitor.Error( "Error while tracing request body.", x.E );
                     }
-                    var error = CreateErrorResult( errorMessage, VESACode.ValidationError, gError.GetLogKeyString() );
+                    var error = CreateValidationErrorResult( errorMessage, gError.GetLogKeyString() );
                     return (null, error);
                 }
             }
@@ -204,11 +201,11 @@ namespace CK.Cris.AspNet
 
         }
 
-        ICrisResult CreateErrorResult( UserMessage message, VESACode code, string? logKey )
+        IAspNetCrisResult CreateValidationErrorResult( UserMessage message, string? logKey )
         {
-            ICrisResult result = _resultFactory.Create();
-            result.Code = code;
-            ISimpleCrisResultError e = _errorResultFactory.Create( message );
+            IAspNetCrisResult result = _resultFactory.Create();
+            IAspNetCrisResultError e = _errorResultFactory.Create( message );
+            e.IsValidationError = true;
             e.LogKey = logKey;
             result.Result = e;
             return result;

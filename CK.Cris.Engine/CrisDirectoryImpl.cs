@@ -16,7 +16,7 @@ namespace CK.Setup.Cris
     public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextBoundInitializer
     {
 
-        // Auto registers IAmbientValues, ICrisResultError and ISimpleCrisResultError so that tests don't have to register them explicitly: registering CrisDirectory is enough.
+        // Auto registers IAmbientValues, ICrisResultError and IAspNetCrisResultError so that tests don't have to register them explicitly: registering CrisDirectory is enough.
         void IAttributeContextBoundInitializer.Initialize( IActivityMonitor monitor, ITypeAttributesCache owner, MemberInfo m, Action<Type> alsoRegister )
         {
             alsoRegister( typeof( CK.Cris.AmbientValues.IAmbientValues ) );
@@ -81,7 +81,6 @@ namespace CK.Setup.Cris
                 // Registering non Poco result type (Poco are all registered by JsonSerializationCodeGen).
                 if( json != null
                     && e.ResultType != typeof(void)
-                    && e.PocoResultType != null
                     && !json.IsAllowedType( e.ResultType ) )
                 {
                     if( !json.AllowType( e.ResultNullableTypeTree ) )
