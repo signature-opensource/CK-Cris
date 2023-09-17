@@ -94,7 +94,7 @@ namespace CK.Cris.AspNet
             if( !validation.Success )
             {
                 var error = _errorResultFactory.Create();
-                error.Messages.AddRange( validation.Messages.Select( m => (m.Level, m.Message.Text, m.Depth) ) );
+                error.Messages.AddRange( validation.Messages.Select( m => m.AsSimpleUserMessage() ) );
                 error.LogKey = validation.LogKey;
                 error.IsValidationError = true;
                 result.Result = error;
@@ -115,9 +115,9 @@ namespace CK.Cris.AspNet
                 error.LogKey = CK.Cris.PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, true, ex, cmd, out var genericError );
                 if( ex is MCException mc )
                 {
-                    error.Messages.Add( (UserMessageLevel.Error, mc.Message, 0) );
+                    error.Messages.Add( mc.AsUserMessage() );
                 }
-                error.Messages.Add( (UserMessageLevel.Error, genericError.Message, 1 ) );
+                error.Messages.Add( genericError );
                 result.Result = error;
             }
             return result;

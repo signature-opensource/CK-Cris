@@ -22,7 +22,7 @@ namespace CK.Cris.AspNet
             var r = @this.Create();
             r.IsValidationError = error.IsValidationError;
             r.LogKey = error.LogKey;
-            foreach( var m in error.Messages ) r.Messages.Add( (m.Level, m.Message, m.Depth) );
+            foreach( var m in error.Messages ) r.Messages.Add( m );
             return r;
         }
 
@@ -38,8 +38,8 @@ namespace CK.Cris.AspNet
         {
             Throw.CheckArgument( first.IsValid );
             var r = @this.Create();
-            r.Messages.Add( (first.Level,first.Message,first.Depth) );
-            r.Messages.AddRange( others.Select( o => (o.Level, o.Message, o.Depth) ) );
+            r.Messages.Add( first );
+            r.Messages.AddRange( others );
             return r;
         }
 
