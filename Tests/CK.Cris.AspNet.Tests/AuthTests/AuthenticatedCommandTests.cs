@@ -70,9 +70,9 @@ namespace CK.Cris.AspNet.Tests.AuthTests
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""NO WAY!"",""ActorId"":3712}]" );
                     Throw.DebugAssert( r != null );
-                    IAspNetCrisResult result = await s.GetCrisResultAsync( r );
+                    CrisAspNetService.IAspNetCrisResult result = await s.GetCrisResultAsync( r );
                     var correlationId = ActivityMonitor.Token.Parse( result.CorrelationId );
-                    var error = result.Result as IAspNetCrisResultError;
+                    var error = result.Result as CrisAspNetService.IAspNetCrisResultError;
                     Debug.Assert( error != null );
                     error.IsValidationError.Should().BeTrue();
                     error.Messages.Should().HaveCount( 1 );

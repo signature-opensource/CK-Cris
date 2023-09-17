@@ -19,11 +19,13 @@ namespace CK.Cris.AspNet
 {
     [EndpointSingletonService]
     [AlsoRegisterType( typeof( CrisDirectory ) )]
+    [AlsoRegisterType( typeof( IAspNetCrisResult ) )]
     [AlsoRegisterType( typeof( IAspNetCrisResultError ) )]
     [AlsoRegisterType( typeof( RawCrisValidator ) )]
     [AlsoRegisterType( typeof( RawCrisExecutor ) )]
     public partial class CrisAspNetService : ISingletonAutoService
     {
+
         readonly RawCrisValidator _validator;
         readonly RawCrisExecutor _executor;
         readonly PocoDirectory _poco;

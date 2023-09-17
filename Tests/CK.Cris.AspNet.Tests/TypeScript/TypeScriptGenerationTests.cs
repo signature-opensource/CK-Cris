@@ -29,7 +29,6 @@ namespace CK.Cris.TypeScript.Tests
                                                                   }
                                                               },
                                                               typeof( CrisAspNetService ),
-                                                              typeof( IAspNetCrisResult ),
                                                               typeof( Cris.Tests.ICommandUnifiedWithTheResult ),
                                                               typeof( Cris.Tests.IUnifiedResult ) );
 
@@ -65,7 +64,7 @@ namespace CK.Cris.TypeScript.Tests
         public interface IBeautifulCommand : ICommandColored
         {
             /// <summary>
-            /// Gets or sets the Nico's beauty's string.
+            /// Gets or sets the beauty's string.
             /// </summary>
             string Beauty { get; set; }
         }
@@ -74,6 +73,14 @@ namespace CK.Cris.TypeScript.Tests
         public void beautiful_colored_command_with_ambient_values()
         {
             var output = TypeScriptTestHelper.GenerateTSCode( nameof( beautiful_colored_command_with_ambient_values ),
+                                                              new TypeScriptAspectConfiguration
+                                                              {
+                                                                Types =
+                                                                {
+                                                                    new TypeScriptTypeConfiguration( typeof( IBeautifulCommand ) )
+                                                                }
+                                                              },
+
                                                               typeof( CrisDirectory ),
                                                               // By registering the IBeautifulCommand first,
                                                               // we use (and test!) the fact that the OnPocoGenerating calls EnsurePoco
@@ -86,8 +93,7 @@ namespace CK.Cris.TypeScript.Tests
                                                               typeof( IColoredAmbientValues ),
                                                               typeof( ColorService ),
                                                               typeof( ICommandColored ),
-                                                              typeof( IAspNetCrisResult ),
-                                                              typeof( ICrisResultError ) );
+                                                              typeof( CrisAspNetService ) );
         }
 
     }

@@ -16,7 +16,7 @@ namespace CK.Cris.AspNet
         /// <param name="error">The source error result.</param>
         /// <returns>A simple error result.</returns>
         [return: NotNullIfNotNull( nameof( error ) )]
-        public static IAspNetCrisResultError? Create( this IPocoFactory<IAspNetCrisResultError> @this, ICrisResultError? error )
+        public static CrisAspNetService.IAspNetCrisResultError? Create( this IPocoFactory<CrisAspNetService.IAspNetCrisResultError> @this, ICrisResultError? error )
         {
             if( error == null ) return null;
             var r = @this.Create();
@@ -34,7 +34,7 @@ namespace CK.Cris.AspNet
         /// <param name="first">The required first message. Must be <see cref="SimpleUserMessage.IsValid"/>.</param>
         /// <param name="others">Optional other messages.</param>
         /// <returns>An error result.</returns>
-        public static IAspNetCrisResultError Create( this IPocoFactory<IAspNetCrisResultError> @this, SimpleUserMessage first, params SimpleUserMessage[] others )
+        public static CrisAspNetService.IAspNetCrisResultError Create( this IPocoFactory<CrisAspNetService.IAspNetCrisResultError> @this, SimpleUserMessage first, params SimpleUserMessage[] others )
         {
             Throw.CheckArgument( first.IsValid );
             var r = @this.Create();

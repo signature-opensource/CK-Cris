@@ -186,7 +186,11 @@ namespace CK.Setup
         static void InitializeCrisModelFile( IActivityMonitor monitor, TypeScriptFile<TypeScriptContextRoot> fModel )
         {
             // The import declares the TSTypes for IAspNetCrisResultError and ICrisResult.
-            fModel.EnsureImport( monitor, typeof( UserMessageLevel ), typeof( SimpleUserMessage ), typeof( IAspNetCrisResultError ), typeof( IAspNetCrisResult ) );
+            fModel.EnsureImport( monitor,
+                                 typeof( UserMessageLevel ),
+                                 typeof( SimpleUserMessage ),
+                                 typeof( CrisAspNetService.IAspNetCrisResultError ),
+                                 typeof( CrisAspNetService.IAspNetCrisResult ) );
 
             fModel.Imports.EnsureImportFromLibrary( new LibraryImport( "axios", "^1.2.3", DependencyKind.Dependency ),
                                                                        "AxiosInstance", "AxiosHeaders", "RawAxiosRequestConfig" );
