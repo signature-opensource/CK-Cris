@@ -30,9 +30,9 @@ namespace CK.Cris.AspNet.Tests
                                Action<IApplicationBuilder>? configureApplication = null )
         {
             collector.RegisterTypes( new[] {
-                typeof( RawCrisExecutor ),
-                typeof( RawCrisValidator ),
-                typeof( ICrisResultError ),
+                //typeof( RawCrisExecutor ),
+                //typeof( RawCrisValidator ),
+                //typeof( ICrisResultError ),
                 typeof( PocoJsonSerializer ),
                 typeof( CrisAspNetService ),
                 typeof( AmbientValues.IAmbientValues ),
@@ -55,10 +55,6 @@ namespace CK.Cris.AspNet.Tests
                     typeof( ICommandAuthImpersonation )
             } );
             }
-
-            GenerateCodeResult r = TestHelper.GenerateCode( TestHelper.GetSuccessfulResult( collector ), engineConfigurator: null, generateSourceFile: true, CompileOption.Compile );
-            r.Success.Should().BeTrue( "CodeGeneration should work." );
-            var map = r.EngineResult.Groups[0].LoadStObjMap( useEmbeddedStObjMapIfPossible );
 
             var (result, stObjMap) = TestHelper.CompileAndLoadStObjMap( collector );
 

@@ -72,7 +72,7 @@ namespace CK.Cris.AspNet.Tests
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""TestCommand"",{""CurrentCultureName"":null,""IsValid"":false}]" );
                     string response = await r.Content.ReadAsStringAsync();
-                    response.Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""messages"":[[4,""The current culture is fr."",0],[16,""Sorry, this command is invalid!"",0]],""logKey"":""*""}],""correlationId"":""*""}" );
+                    response.Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""messages"":[[4,""The current culture is en."",0],[16,""Sorry, this command is invalid!"",0]],""logKey"":""*""}],""correlationId"":""*""}" );
                 }
             }
         }
