@@ -7,7 +7,11 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CK.Cris.Executor\CK.Cris.Executor.csproj" />
+    <!-- Temporary: should be externalized in a CK.Cris.Globalization independent package. -->
+    <PackageReference Include="CK.Globalization" Version="0.0.0--04jibk7-develop" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CK.Cris.BackgroundExecutor\CK.Cris.BackgroundExecutor.csproj" />
     <ProjectReference Include="..\CK.Cris.TypeScript\CK.Cris.TypeScript.csproj" />
   </ItemGroup>
 </Project>

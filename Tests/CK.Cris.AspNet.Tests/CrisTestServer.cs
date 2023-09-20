@@ -3,6 +3,7 @@ using CK.AspNet.Tester;
 using CK.Auth;
 using CK.Core;
 using CK.Setup;
+using CK.Testing;
 using FluentAssertions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -54,6 +55,10 @@ namespace CK.Cris.AspNet.Tests
                     typeof( ICommandAuthImpersonation )
             } );
             }
+
+            GenerateCodeResult r = TestHelper.GenerateCode( TestHelper.GetSuccessfulResult( collector ), engineConfigurator: null, generateSourceFile: true, CompileOption.Compile );
+            r.Success.Should().BeTrue( "CodeGeneration should work." );
+            var map = r.EngineResult.Groups[0].LoadStObjMap( useEmbeddedStObjMapIfPossible );
 
             var (result, stObjMap) = TestHelper.CompileAndLoadStObjMap( collector );
 
