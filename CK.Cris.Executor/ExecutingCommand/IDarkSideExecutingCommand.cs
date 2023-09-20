@@ -37,7 +37,7 @@ namespace CK.Cris
         void SetResult( IReadOnlyList<IEvent> events, object? result );
 
         /// <summary>
-        /// Sets an execution error. The <see cref="IExecutingCommand.Completion"/> task is faulted.
+        /// Sets an execution error. The <see cref="IExecutingCommand.SafeCompletion"/> task is faulted.
         /// </summary>
         /// <param name="ex">The execution exception.</param>
         void SetException( Exception ex );

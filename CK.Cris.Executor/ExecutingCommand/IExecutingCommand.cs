@@ -34,19 +34,28 @@ namespace CK.Cris
         /// <summary>
         /// Gets the validation result of the executing command.
         /// When this <see cref="CrisValidationResult.Success"/> is false,
-        /// the <see cref="Completion"/> contains a <see cref="ICrisResultError"/> with the <see cref="CrisValidationResult.Messages"/>
+        /// the <see cref="SafeCompletion"/> contains a <see cref="ICrisResultError"/> with the <see cref="CrisValidationResult.Messages"/>
         /// lines. 
         /// </summary>
         Task<CrisValidationResult> ValidationResult { get; }
 
         /// <summary>
         /// Gets a task that is completed when the execution is terminated.
-        /// The task's value can be:
+        /// The task's result can be:
         /// <list type="bullet">
         ///  <item>A <see cref="ICrisResultError"/> on validation or execution error.</item>
-        ///  <item>A successful null result on success when <see cref="Command"/> is a <see cref="ICommand"/>.</item>
+        ///  <item>A successful null result when <see cref="Command"/> is a <see cref="ICommand"/>.</item>
         ///  <item>A successful result object when this command is a <see cref="ICommand{TResult}"/>.</item>
         /// </list>
+        /// </summary>
+        Task<object?> SafeCompletion { get; }
+
+        /// <summary>
+        /// Gets a task that is completed when the execution is terminated. It is in faulted state with the <see cref="Task.Exception"/>
+        /// on error: awaited it raises the exception.
+        /// <para>
+        /// Use <see cref="SafeCompletion"/> to obtain a <see cref="ICrisResultError"/> on failure rather than throwing an exception.
+        /// </para>
         /// </summary>
         Task<object?> Completion { get; }
 

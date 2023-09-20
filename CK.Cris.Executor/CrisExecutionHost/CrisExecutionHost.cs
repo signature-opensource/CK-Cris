@@ -190,13 +190,13 @@ namespace CK.Cris
             }
             catch( Exception ex )
             {
-                // Sets the exception on the executing command if there is one.
+                // Sets the exception on the executing command Completion if there is one.
                 job._executingCommand?.DarkSide.SetException( ex );
                 // Ensures that the crisResult exists and sets its Result to a ICrisErrorResult.
                 var currentCulture = isScopedCreated ? scoped.ServiceProvider.GetService<CurrentCultureInfo>() : null;
                 PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, true, ex, job.Command, out var genericError );
                 crisResult ??= _jobResultFactory.Create();
-                var error = _errorResultFactory.Create();
+                ICrisResultError error = _errorResultFactory.Create();
                 crisResult.Result = error;
                 if( ex is MCException mc )
                 {
@@ -204,8 +204,12 @@ namespace CK.Cris
                 }
                 error.Messages.Add( genericError );
                 error.LogKey = gLog.GetLogKeyString();
+
+                // Sets the SafeCompletion with the ICrisResultError on the executing command if there is one.
+                var noEvents = Array.Empty<IEvent>();
+                job._executingCommand?.DarkSide.SetResult( noEvents, error );
                 // Send the error. We are done.
-                await job._executor.SetFinalResultAsync( monitor, job, Array.Empty<IEvent>(), crisResult );
+                await job._executor.SetFinalResultAsync( monitor, job, noEvents, crisResult );
             }
             finally
             {

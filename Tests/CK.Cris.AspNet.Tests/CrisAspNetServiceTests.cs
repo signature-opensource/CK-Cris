@@ -50,8 +50,8 @@ namespace CK.Cris.AspNet.Tests
     using System.Diagnostics;
     using System.Net.Http;
     using System.Threading.Tasks;
-    using static CK.Testing.StObjEngineTestHelper;
     using CK.Core;
+    using static CK.Testing.StObjEngineTestHelper;
 
     [TestFixture]
     public class CrisAspNetServiceTests
@@ -89,7 +89,7 @@ namespace CK.Cris.AspNet.Tests
         }
 
         [Test]
-        public async Task exceptions_raised_by_validators_are_handled_and_results_to_a_Code_E_Async()
+        public async Task exceptions_raised_by_validators_are_handled_Async()
         {
             var c = TestHelper.CreateStObjCollector( typeof( ICmdTest ), typeof( BuggyValidator ) );
             using( var s = new CrisTestServer( c ) )

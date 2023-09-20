@@ -12,7 +12,7 @@ namespace CK.Cris
 {
     /// <summary>
     /// Non generic base class for <see cref="ExecutingCommand{T}"/>.
-    /// An executing command carries the <see cref="Command"/>, the <see cref="ValidationResult"/> and the eventual <see cref="Completion"/>.
+    /// An executing command carries the <see cref="Command"/>, the <see cref="ValidationResult"/> and the eventual <see cref="SafeCompletion"/>.
     /// of a <see cref="ICommand"/> or <see cref="ICommand{TResult}"/>.
     /// </summary>
     public class ExecutingCommand : IExecutingCommand, IDarkSideExecutingCommand
@@ -20,6 +20,7 @@ namespace CK.Cris
         readonly IAbstractCommand _command;
         readonly ActivityMonitor.Token _issuerToken;
         readonly TaskCompletionSource<CrisValidationResult> _validation;
+        readonly TaskCompletionSource<object?> _safeCompletion;
         readonly TaskCompletionSource<object?> _completion;
         readonly internal ImmediateEvents _immediate;
         IReadOnlyList<IEvent> _events;
@@ -30,7 +31,10 @@ namespace CK.Cris
             _issuerToken = issuerToken;
             _command = command;
             _validation = new TaskCompletionSource<CrisValidationResult>();
+            _safeCompletion = new TaskCompletionSource<object?>();
             _completion = new TaskCompletionSource<object?>();
+            // Avoid Unobserved exception on this task.
+            _ = _completion.Task.ContinueWith( t => t.Exception!.Handle( ex => true ), default, TaskContinuationOptions.OnlyOnFaulted|TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default );
             _immediate = new ImmediateEvents();
             _events = Array.Empty<IEvent>();
         }
@@ -44,23 +48,13 @@ namespace CK.Cris
         /// <inheritdoc />
         public DateTime CreationDate => _issuerToken.CreationDate.TimeUtc;
 
-        /// <summary>
-        /// Gets the validation result of the executing command.
-        /// When this <see cref="CrisValidationResult.Success"/> is false,
-        /// the <see cref="Completion"/> contains a <see cref="ICrisResultError"/> with the <see cref="CrisValidationResult.Errors"/>
-        /// lines. 
-        /// </summary>
+        /// <inheritdoc />
         public Task<CrisValidationResult> ValidationResult => _validation.Task;
 
-        /// <summary>
-        /// Gets a task that is completed when the execution is terminated.
-        /// The task's value can be:
-        /// <list type="bullet">
-        ///  <item>A <see cref="ICrisResultError"/> on validation or execution error.</item>
-        ///  <item>A successful null result on success when this command is a <see cref="ICommand"/>.</item>
-        ///  <item>A successful result object if this command is a <see cref="ICommand{TResult}"/>.</item>
-        /// </list>
-        /// </summary>
+        /// <inheritdoc />
+        public Task<object?> SafeCompletion => _safeCompletion.Task;
+
+        /// <inheritdoc />
         public Task<object?> Completion => _completion.Task;
 
         /// <summary>
@@ -98,6 +92,7 @@ namespace CK.Cris
         void IDarkSideExecutingCommand.SetResult( IReadOnlyList<IEvent> events, object? result )
         {
             _events = events;
+            _safeCompletion.SetResult( result );
             _completion.SetResult( result );
         }
 

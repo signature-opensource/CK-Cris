@@ -37,7 +37,7 @@ namespace CK.Cris
             {
                 _command = command;
                 _result = new TaskCompletionSource<TResult>();
-                _ = _command.Completion.ContinueWith( OnRequestCompletion!,
+                _ = _command.SafeCompletion.ContinueWith( OnRequestCompletion!,
                                                              _result,
                                                              CancellationToken.None,
                                                              TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default );
@@ -108,6 +108,8 @@ namespace CK.Cris
             public ActivityMonitor.Token IssuerToken => _command.IssuerToken;
 
             public DateTime CreationDate => _command.CreationDate;
+
+            public Task<object?> SafeCompletion => _command.SafeCompletion;
 
             public Task<object?> Completion => _command.Completion;
 

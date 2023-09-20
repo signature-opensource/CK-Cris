@@ -65,9 +65,8 @@ namespace CK.Cris
             /// <summary>
             /// Gets the <see cref="IStObjFinalClass"/> that handles this command.
             /// <para>
-            /// This should be either a <see cref="IStObjFinalImplementation"/> (for real objects)
-            /// or a <see cref="IStObjServiceClassDescriptor"/> (for Automatic Services) but currently
-            /// (until the "StObj goes static" is done), this is a dedicated, independent, implementation.
+            /// This is either a <see cref="IStObjFinalImplementation"/> (for real objects)
+            /// or a <see cref="IStObjServiceClassDescriptor"/> (for Automatic Services).
             /// </para>
             /// </summary>
             IStObjFinalClass Type { get; }
