@@ -7,8 +7,8 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Waiting for v8.0.0 -->
-    <PackageReference Include="CK.CodeGen" Version="7.0.1--0047-develop" />
-    <PackageReference Include="CK.StObj.Runtime" Version="23.0.1--0149-develop" />
+    <PackageReference Include="CK.CodeGen" Version="7.0.1--0048-develop" />
+    <PackageReference Include="CK.StObj.Runtime" Version="23.0.1--0150-develop" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
