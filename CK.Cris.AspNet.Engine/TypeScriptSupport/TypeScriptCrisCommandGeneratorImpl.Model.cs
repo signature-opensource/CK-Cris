@@ -6,7 +6,7 @@ namespace CK.Setup
 {
     public sealed partial class TypeScriptCrisCommandGeneratorImpl
     {
-        static void GenerateCrisModelFile( IActivityMonitor monitor, TypeScriptFile<TypeScriptContextRoot> fModel )
+        static void GenerateCrisModelFile( IActivityMonitor monitor, TypeScriptFile<TypeScriptContext> fModel )
         {
             // The import declares the TSTypes for IAspNetCrisResultError and ICrisResult.
             fModel.EnsureImport( monitor, typeof( SimpleUserMessage ) );

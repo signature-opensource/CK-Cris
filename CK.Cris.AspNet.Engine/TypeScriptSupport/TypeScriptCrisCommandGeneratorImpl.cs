@@ -22,6 +22,7 @@ namespace CK.Setup
             // Nothing to do: we don't want to interfere with the standard IPoco handling.
             return true;
         }
+
         bool ITSCodeGenerator.Initialize( IActivityMonitor monitor, TypeScriptContext context )
         {
             _registry = CrisRegistry.Find( monitor, context.CodeContext );
@@ -63,9 +64,6 @@ namespace CK.Setup
         {
             Throw.DebugAssert( _registry != null, "CS code generation ran. Implement (CSharp code) has necessarily been successfully called." );
 
-            // The poco that interest us are the ICrisPoco and the IAmbientValues that we need:
-            // the first ICrisPoco declares the IAmbientValues and when the IAmbientValues poco
-            // is registered, then the IAspNetCrisResult and IAspNetCrisResultError are also declared.
             if( typeof(ICrisPoco).IsAssignableFrom( e.TypeFile.Type ) )
             {
                 var cmd = _registry.Find( e.PocoClass.PocoRootInfo );
@@ -85,10 +83,7 @@ namespace CK.Setup
 
                 EnsureCrisModel( e );
 
-                // Declares the command result, whatever it is.
-                // If it's a IPoco, it will benefit from the same treatment as the command above.
-                // Some types are handled by default, but if there is eventually no generator for the
-                // type then the setup fails.
+                // Declares the command result type, whatever it is.
                 if( cmd.ResultType != typeof( void ) )
                 {
                     e.TypeFile.Context.DeclareTSType( e.Monitor, cmd.ResultType );
@@ -110,17 +105,6 @@ namespace CK.Setup
                             .Append( ApplyAmbientValues )
                         .CloseBlock()
                     .CloseBlock( withSemiColon: true );
-
-                // All the interfaces share the commandModel signature.
-                if( e.TypeFile.Context.Root.GeneratePocoInterfaces )
-                {
-                    foreach( var itf in e.PocoClass.PocoRootInfo.Interfaces )
-                    {
-                        var code = e.TypeFile.File.Body.FindKeyedPart( itf.PocoInterface );
-                        Throw.DebugAssert( code != null );
-                        code.Append( signature ).Append( ";" ).NewLine();
-                    }
-                }
 
                 void ApplyAmbientValues( ITSCodePart b )
                 {
@@ -163,7 +147,7 @@ namespace CK.Setup
 
         static string? AppendCommandModelSignature( ITSCodePart code, CrisRegistry.Entry cmd, PocoGeneratingEventArgs e )
         {
-            var signature = "readonly " + (e.TypeFile.Context.Root.PascalCase ? "C" : "c") + "ommandModel: CommandModel<";
+            var signature = "readonly " + (e.TypeFile.Context.PascalCase ? "C" : "c") + "ommandModel: CommandModel<";
             code.Append( signature );
             var typeName = code.AppendAndGetComplexTypeName( e.Monitor, e.TypeFile.Context, cmd.ResultNullableTypeTree );
             if( typeName == null ) return null;
@@ -174,7 +158,7 @@ namespace CK.Setup
 
         static void EnsureCrisModel( PocoGeneratingEventArgs e )
         {
-            var folder = e.TypeFile.Context.Root.Root.FindOrCreateFolder( "CK/Cris" );
+            var folder = e.TypeFile.Context.Root.FindOrCreateFolder( "CK/Cris" );
             var fModel = folder.FindOrCreateFile( "Model.ts", out bool created );
             if( created )
             {

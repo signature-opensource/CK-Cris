@@ -1,4 +1,5 @@
 using CK.Core;
+using CK.Cris.AmbientValues;
 using CK.Setup;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
@@ -19,10 +20,12 @@ namespace CK.Cris.AspNet
 {
     [EndpointSingletonService]
     [AlsoRegisterType( typeof( CrisDirectory ) )]
+    [AlsoRegisterType( typeof( TypeScriptCrisCommandGenerator ) )]
+    [AlsoRegisterType( typeof( RawCrisValidator ) )]
     [AlsoRegisterType( typeof( IAspNetCrisResult ) )]
     [AlsoRegisterType( typeof( IAspNetCrisResultError ) )]
     [AlsoRegisterType( typeof( CrisBackgroundExecutor ) )]
-    [AlsoRegisterType( typeof( RawCrisValidator ) )]
+    [AlsoRegisterType( typeof( IAmbientValuesCollectCommand ) )]
     public partial class CrisAspNetService : ISingletonAutoService
     {
         readonly RawCrisValidator _validator;

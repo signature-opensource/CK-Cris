@@ -8,7 +8,7 @@ namespace CK.Setup
 {
     public sealed partial class TypeScriptCrisCommandGeneratorImpl
     {
-        static void GenerateCrisHttpEndpoint( IActivityMonitor monitor, TypeScriptFile<TypeScriptContextRoot> fHttpEndpoint )
+        static void GenerateCrisHttpEndpoint( IActivityMonitor monitor, TypeScriptFile<TypeScriptContext> fHttpEndpoint )
         {
             // Importing the Model (ICommand<T>, CommandModel, ICrisEndpoint, etc.).
             fHttpEndpoint.Imports.Append( "import {ICrisEndpoint,ICommand,ExecutedCommand,CrisError} from './Model';'" ).NewLine();

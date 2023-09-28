@@ -20,23 +20,18 @@ namespace CK.Cris.TypeScript.Tests
         [Test]
         public void DiamondResultAndCommand_works()
         {
-            var output = TypeScriptTestHelper.GenerateTSCode( nameof( DiamondResultAndCommand_works ),
-                                                              new TypeScriptAspectConfiguration
-                                                              {
-                                                                  Types =
-                                                                  {
-                                                                      new TypeScriptTypeConfiguration( typeof( Cris.Tests.ICommandUnifiedWithTheResult ) )
-                                                                  }
-                                                              },
-                                                              typeof( CrisAspNetService ),
-                                                              typeof( Cris.Tests.ICommandUnifiedWithTheResult ),
-                                                              typeof( Cris.Tests.IUnifiedResult ) );
+            var targetOutputPath = TestHelper.GetTypeScriptWithTestsSupportTargetProjectPath();
+            TestHelper.GenerateTypeScript( targetOutputPath,
+                                           new[] {  typeof( CrisAspNetService ),
+                                                    typeof( Cris.Tests.ICommandUnifiedWithTheResult ),
+                                                    typeof( Cris.Tests.IUnifiedResult ) },
+                                           new[] { typeof( Cris.Tests.ICommandUnifiedWithTheResult ) } );
 
-            var fCommand = output.SourcePath.Combine( "CK/Cris/Tests/CommandWithPocoResult.ts" );
-            var fResult = output.SourcePath.Combine( "CK/Cris/Tests/Result.ts" );
+            var fCommand = targetOutputPath.Combine( "ck-gen/src/CK/Cris/Tests/CommandWithPocoResult.ts" );
+            var fResult = targetOutputPath.Combine( "ck-gen/src/CK/Cris/Tests/Result.ts" );
 
-            var command = File.ReadAllText( fCommand );
-            var result = File.ReadAllText( fResult );
+            File.Exists( fCommand ).Should().BeTrue();
+            File.Exists( fResult ).Should().BeTrue();
         }
 
         public interface IColoredAmbientValues : AmbientValues.IAmbientValues
@@ -72,28 +67,21 @@ namespace CK.Cris.TypeScript.Tests
         [Test]
         public void beautiful_colored_command_with_ambient_values()
         {
-            var output = TypeScriptTestHelper.GenerateTSCode( nameof( beautiful_colored_command_with_ambient_values ),
-                                                              new TypeScriptAspectConfiguration
-                                                              {
-                                                                Types =
-                                                                {
-                                                                    new TypeScriptTypeConfiguration( typeof( IBeautifulCommand ) )
-                                                                }
-                                                              },
-
-                                                              typeof( CrisDirectory ),
-                                                              // By registering the IBeautifulCommand first,
-                                                              // we use (and test!) the fact that the OnPocoGenerating calls EnsurePoco
-                                                              // on the IAmbientValues so that the ambient values are known when handling
-                                                              // the first command...
-                                                              typeof( IBeautifulCommand ),
-                                                              typeof( AmbientValues.IAmbientValues ),
-                                                              typeof( AmbientValues.IAmbientValuesCollectCommand ),
-                                                              typeof( AmbientValues.AmbientValuesService ),
-                                                              typeof( IColoredAmbientValues ),
-                                                              typeof( ColorService ),
-                                                              typeof( ICommandColored ),
-                                                              typeof( CrisAspNetService ) );
+            var targetOutputPath = TestHelper.GetTypeScriptWithTestsSupportTargetProjectPath();
+            TestHelper.GenerateTypeScript( targetOutputPath,
+                                   new[] { // By registering the IBeautifulCommand first,
+                                           // we use (and test!) the fact that the OnPocoGenerating calls EnsurePoco
+                                           // on the IAmbientValues so that the ambient values are known when handling
+                                           // the first command...
+                                           typeof( IBeautifulCommand ),
+                                           typeof( AmbientValues.IAmbientValues ),
+                                           typeof( AmbientValues.IAmbientValuesCollectCommand ),
+                                           typeof( AmbientValues.AmbientValuesService ),
+                                           typeof( IColoredAmbientValues ),
+                                           typeof( ColorService ),
+                                           typeof( ICommandColored ),
+                                           typeof( CrisAspNetService ) },
+                                   new[] { typeof( IBeautifulCommand ) } );
         }
 
     }
