@@ -30,9 +30,6 @@ namespace CK.Cris.AspNet.Tests
                                Action<IApplicationBuilder>? configureApplication = null )
         {
             collector.RegisterTypes( new[] {
-                //typeof( RawCrisExecutor ),
-                //typeof( RawCrisValidator ),
-                //typeof( ICrisResultError ),
                 typeof( PocoJsonSerializer ),
                 typeof( CrisAspNetService ),
                 typeof( AmbientValues.IAmbientValues ),
