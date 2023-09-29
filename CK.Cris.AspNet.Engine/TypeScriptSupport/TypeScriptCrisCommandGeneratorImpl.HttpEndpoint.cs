@@ -183,14 +183,18 @@ namespace CK.Setup
                                            while(true)
                                            {
                                                var e = await this.doSendAsync( AmbientValuesCollectCommand.create() );
-                                               if( e.result instanceof AmbientValues )
+                                               if( e.result instanceof CrisError )
+                                               {
+                                                   console.error( "Error while getting AmbientValues. Retrying.", e.result );
+                                                   this.setIsConnected( false );
+                                               }
+                                               else
                                                {
                                                    this._ambientValuesRequest = undefined;
-                                                   this._ambientValues = Object.assign( e.result, this.ambientValuesOverride );
+                                                   this._ambientValues = Object.assign( <AmbientValues>e.result, this.ambientValuesOverride );
                                                    this.setIsConnected( true );
+                                                   return this._ambientValues;
                                                }
-                                               console.error( "Error while getting AmbientValues. Retrying." );
-                                               this.setIsConnected( false );
                                            }
                                        }
                                    }

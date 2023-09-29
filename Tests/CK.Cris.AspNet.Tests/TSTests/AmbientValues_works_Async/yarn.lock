@@ -950,6 +950,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/node@npm:^20.7.2":
+  version: 20.7.2
+  resolution: "@types/node@npm:20.7.2"
+  checksum: 5baa09368c8daa50ad1eaa2499b988b2f4c06cacf8b251d1e63f68ad32df97b21d8104f1ac06889481f1d3e84056842732bb848dd1136164d823c1d4a6baf435
+  languageName: node
+  linkType: hard
+
 "@types/responselike@npm:^1.0.0":
   version: 1.0.1
   resolution: "@types/responselike@npm:1.0.1"
@@ -1139,7 +1146,9 @@ __metadata:
   dependencies:
     "@local/ck-gen": "workspace:*"
     "@types/jest": ^29.5.5
+    "@types/node": ^20.7.2
     "@yarnpkg/sdks": ^3.0.0-rc.51
+    axios: ^1.2.3
     jest: ^29.7.0
     ts-jest: ^29.1.1
     typescript: ^5.2.2

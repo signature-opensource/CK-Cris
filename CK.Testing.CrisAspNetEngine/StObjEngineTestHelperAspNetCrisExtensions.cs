@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Hosting;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
+using FluentAssertions.Common;
 
 namespace CK
 {
@@ -67,8 +68,11 @@ namespace CK
             var stobjMap = runResult.Groups[0].LoadStObjMap();
 
             var builder = WebApplication.CreateBuilder();
-            builder.Host.UseCKMonitoring();
             builder.WebHost.UseScopedHttpContext();
+            // Don't UseCKMonitoring here or the GrandOutput.Default will be reconfigured:
+            // register the IActivityMonitor and its ParallelLogger.
+            builder.Services.AddScoped<IActivityMonitor, ActivityMonitor>();
+            builder.Services.AddScoped( sp => sp.GetRequiredService<IActivityMonitor>().ParallelLogger );
 
             var register = new StObjContextRoot.ServiceRegister( helper.Monitor, builder.Services );
             register.AddStObjMap( stobjMap );
@@ -79,21 +83,27 @@ namespace CK
             {
                 // This chooses a random, free port.
                 app.Urls.Add( "http://[::1]:0" );
+
                 app.UseGuardRequestMonitor();
                 app.UseCris();
                 configureApplication?.Invoke( app );
 
-                await app.StartAsync();
+                using( helper.Monitor.OpenInfo( "Starting server and running TS tests." ) )
+                {
+                    await app.StartAsync();
 
-                // The IServer's IServerAddressesFeature feature has the address resolved.
-                var server = app.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>();
-                var addresses = server.Features.Get<IServerAddressesFeature>();
-                Throw.DebugAssert( addresses != null && addresses.Addresses.Count > 0 );
-                WIP
-                // We set the CRIS_ENDPOINT_URL environment variable: the tests can use it.
-                helper.RunTypeScriptTest( targetProjectPath/*, new{ { "CRIS_ENDPOINT_URL", addresses.Addresses.First() } }*/ );
+                    // The IServer's IServerAddressesFeature feature has the address resolved.
+                    var server = app.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>();
+                    var addresses = server.Features.Get<IServerAddressesFeature>();
+                    Throw.DebugAssert( addresses != null && addresses.Addresses.Count > 0 );
 
-                await app.StopAsync();
+                    var endpointUrl = addresses.Addresses.First() + "/.cris";
+                    helper.Monitor.Info( $"Server started. Cris endpoint url: '{endpointUrl}'." );
+                    // We set the CRIS_ENDPOINT_URL environment variable: the tests can use it.
+                    helper.RunTypeScriptTest( targetProjectPath, new Dictionary<string, string> { { "CRIS_ENDPOINT_URL", endpointUrl } } );
+
+                    await app.StopAsync();
+                }
             }
             catch( Exception ex )
             {

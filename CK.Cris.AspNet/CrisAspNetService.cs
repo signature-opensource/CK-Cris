@@ -21,6 +21,7 @@ namespace CK.Cris.AspNet
     [EndpointSingletonService]
     [AlsoRegisterType( typeof( CrisDirectory ) )]
     [AlsoRegisterType( typeof( TypeScriptCrisCommandGenerator ) )]
+    [AlsoRegisterType( typeof( PocoJsonSerializer ) )]
     [AlsoRegisterType( typeof( RawCrisValidator ) )]
     [AlsoRegisterType( typeof( IAspNetCrisResult ) )]
     [AlsoRegisterType( typeof( IAspNetCrisResultError ) )]
