@@ -1,0 +1,8 @@
+{
+    "name": "diamondresultandcommand_works",
+    "private": true,
+    "workspaces":["ck-gen"],
+    "dependencies": {
+        "@local/ck-gen": "workspace:*"
+    }
+}

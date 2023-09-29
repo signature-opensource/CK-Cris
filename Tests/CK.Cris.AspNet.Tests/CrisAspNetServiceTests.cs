@@ -60,12 +60,12 @@ namespace CK.Cris.AspNet.Tests
         public async Task basic_call_to_a_command_handler_Async()
         {
             var c = TestHelper.CreateStObjCollector( typeof( ICmdTest ), typeof( TestHandler ), typeof( CrisExecutionContext ) );
-            using( var s = new CrisTestServer( c ) )
+            using( var s = new CrisTestHostServer( c ) )
             {
                 // Value: 3712 is fine (it must be positive).
                 {
                     TestHandler.Called = false;
-                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""Test"",{""Value"":3712}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""Test"",{""Value"":3712}]" );
                     Throw.DebugAssert( r != null );
                     TestHandler.Called.Should().BeTrue();
 
@@ -78,7 +78,7 @@ namespace CK.Cris.AspNet.Tests
                 // Value: 0 is invalid.
                 {
                     TestHandler.Called = false;
-                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""Test"",{""Value"":0}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""Test"",{""Value"":0}]" );
                     Throw.DebugAssert( r != null );
                     TestHandler.Called.Should().BeFalse( "Validation error." );
 
@@ -92,9 +92,9 @@ namespace CK.Cris.AspNet.Tests
         public async Task exceptions_raised_by_validators_are_handled_Async()
         {
             var c = TestHelper.CreateStObjCollector( typeof( ICmdTest ), typeof( BuggyValidator ) );
-            using( var s = new CrisTestServer( c ) )
+            using( var s = new CrisTestHostServer( c ) )
             {
-                HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""Test"",{""Value"":3712}]" );
+                HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""Test"",{""Value"":3712}]" );
                 Throw.DebugAssert( r != null );
                 var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
                 result.ToString().Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""messages"":[[16,""An unhandled error occurred while validating command *Test* (LogKey: *)."",0]],""logKey"":""*""}],""correlationId"":null}" );
@@ -105,36 +105,36 @@ namespace CK.Cris.AspNet.Tests
         public async Task bad_request_are_validation_error_Async()
         {
             var c = TestHelper.CreateStObjCollector();
-            using( var s = new CrisTestServer( c ) )
+            using( var s = new CrisTestHostServer( c ) )
             {
                 // SimpleErrorResult.LogKey is null for really empty input.
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, "" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, "" );
                     Throw.DebugAssert( r != null );
                     var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
                     result.ToString().Should().Be( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""messages"":[[16,""Unable to read Command Poco from empty request body."",0]],""logKey"":null}],""correlationId"":null}" );
                 }
                 // Here SimpleErrorResult.LogKey is set.
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, "----" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, "----" );
                     Throw.DebugAssert( r != null );
                     var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
                     result.ToString().Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""messages"":[[16,""Unable to read Command Poco from request body (byte length = 4)."",0]],""logKey"":""*""}],""correlationId"":null}" );
                 }
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, "\"X\"" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, "\"X\"" );
                     Throw.DebugAssert( r != null );
                     var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
                     result.ToString().Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""messages"":[[16,""Unable to read Command Poco from request body (byte length = 3)."",0]],""logKey"":""*""}],""correlationId"":null}" );
                 }
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, "{}" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, "{}" );
                     Throw.DebugAssert( r != null );
                     var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
                     result.ToString().Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""messages"":[[16,""Unable to read Command Poco from request body (byte length = 2)."",0]],""logKey"":""*""}],""correlationId"":null}" );
                 }
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestServer.CrisUri, @"[""Unknown"",{""value"":3712}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""Unknown"",{""value"":3712}]" );
                     Throw.DebugAssert( r != null );
                     var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
                     result.ToString().Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""messages"":[[16,""Unable to read Command Poco from request body (byte length = 26)."",0]],""logKey"":""*""}],""correlationId"":null}" );

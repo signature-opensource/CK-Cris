@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CK.AspNet" Version="11.0.1--0036-develop" />
+    <PackageReference Include="CK.Testing.StObjTypeScriptEngine" Version="0.13.1--0094-develop" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CK.Cris.AspNet.Engine\CK.Cris.AspNet.Engine.csproj" />
+    <ProjectReference Include="..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
+  </ItemGroup>
+</Project>

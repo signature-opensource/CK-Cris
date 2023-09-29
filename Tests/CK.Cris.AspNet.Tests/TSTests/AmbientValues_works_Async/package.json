@@ -1,0 +1,20 @@
+{
+  "name": "ambientvalues_works_async",
+  "private": true,
+  "workspaces": [
+    "ck-gen"
+  ],
+  "dependencies": {
+    "@local/ck-gen": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.5",
+    "@yarnpkg/sdks": "^3.0.0-rc.51",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.2.2"
+  },
+  "scripts": {
+    "test": "jest"
+  }
+}

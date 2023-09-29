@@ -7,7 +7,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Temporary: should be externalized in a CK.Cris.Globalization independent package. -->
+    <!-- Temporary? should this be externalized in a CK.Cris.Globalization independent package? -->
     <PackageReference Include="CK.Globalization" Version="0.0.0--04k7ugc-develop" />
   </ItemGroup>
   <ItemGroup>
