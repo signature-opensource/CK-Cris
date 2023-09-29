@@ -163,10 +163,10 @@ namespace CK.Setup
             if( created )
             {
                 GenerateCrisModelFile( e.Monitor, fModel );
-                var fHttpEndpoint = folder.FindOrCreateFile( "HttpEndpoint.ts" );
-                GenerateCrisHttpEndpoint( e.Monitor, fHttpEndpoint );
+                GenerateCrisEndpoint( e.Monitor, folder.FindOrCreateFile( "CrisEndpoint.ts" ) );
+                GenerateCrisHttpEndpoint( e.Monitor, folder.FindOrCreateFile( "HttpCrisEndpoint.ts" ) );
             }
-            e.TypeFile.File.Imports.EnsureImport( fModel, "CommandModel", "ICrisEndpoint" );
+            e.TypeFile.File.Imports.EnsureImport( fModel, "CommandModel" );
         }
 
     }
