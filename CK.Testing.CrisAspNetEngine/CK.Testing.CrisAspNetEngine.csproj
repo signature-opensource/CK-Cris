@@ -6,7 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CK.AspNet" Version="11.0.1--0038-develop" />
-    <PackageReference Include="CK.Testing.StObjTypeScriptEngine" Version="0.13.1--0099-develop" />
+    <PackageReference Include="CK.Testing.StObjTypeScriptEngine" Version="0.13.1--0100-develop" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris.AspNet.Engine\CK.Cris.AspNet.Engine.csproj" />
