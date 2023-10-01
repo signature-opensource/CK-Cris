@@ -79,8 +79,9 @@ namespace CK.Setup
                                         */
                                        protected setIsConnected( value: boolean ): void 
                                        {
-                                           if( this._isConnected != value )
+                                           if( this._isConnected !== value )
                                            {
+                                               this._isConnected = value;
                                                if( !value ) 
                                                {
                                                    this.updateAmbientValuesAsync();

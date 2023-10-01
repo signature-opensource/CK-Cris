@@ -2,6 +2,7 @@ using CK.Core;
 using CK.Cris.AspNet;
 using FluentAssertions;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using NUnit.Framework;
 using System.IO;
 using System.Threading.Tasks;
@@ -68,7 +69,9 @@ namespace CK.Cris.TypeScript.Tests
                                                             typeof( IColoredAmbientValues ),
                                                             typeof( ColorService ),
                                                             typeof( CrisAspNetService ) },
-                                                    new[] { typeof( IBeautifulCommand ) } );
+                                                    new[] { typeof( IBeautifulCommand ) },
+                                                    resume: resume =>
+                                                    { return resume; } );
         }
 
     }
