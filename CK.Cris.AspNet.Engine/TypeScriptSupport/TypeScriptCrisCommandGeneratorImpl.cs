@@ -91,16 +91,22 @@ namespace CK.Setup
 
                 // Compute the (potentially) type name only once by caching the signature.
                 var b = e.PocoClass.Part;
-                string? signature = AppendCommandModelSignature( b, cmd, e );
-                if( signature == null )
+
+                // The commandModel is a getter that returns a static (shared commandModel instance).
+                b.Append( "get " ).Append( e.TypeFile.Context.PascalCase ? "C" : "c" ).Append( "ommandModel() { return " )
+                 .Append( e.PocoClass.TypeName ).Append( "._commandModel; }" ).NewLine();
+                //
+                b.Append( "private static readonly _commandModel: CommandModel<" );
+                var resultTypeName = b.AppendAndGetComplexTypeName( e.Monitor, e.TypeFile.Context, cmd.ResultNullableTypeTree );
+                if( resultTypeName == null )
                 {
                     e.SetError();
                     return;
                 }
-                b.Append( " = " )
+                b.Append( "> = " )
                     .OpenBlock()
                         .Append( "commandName: " ).AppendSourceString( cmd.PocoName ).Append( "," ).NewLine()
-                        .Append( "applyAmbientValues: (values: { [index: string]: any }, force?: boolean ) => " )
+                        .Append( "applyAmbientValues( command: any, a: any, o: any )" )
                         .OpenBlock()
                             .Append( ApplyAmbientValues )
                         .CloseBlock()
@@ -129,8 +135,12 @@ namespace CK.Setup
                             }
                             else
                             {
-                                b.Append( "if( force || typeof this." ).Append( fromAmbient.Property.Name ).Append( " === \"undefined\" ) this." ).Append( fromAmbient.Property.Name )
-                                 .Append( " = values[" ).AppendSourceString( fromAmbient.CtorParameterName ).Append( "];" );
+                                // Generates:
+                                // if( command.color === undefined ) command.color = o.color !== null ? o.color : a.color;
+                                b.Append( "if( command." ).Append( fromAmbient.Property.Name ).Append( " === undefined ) command." )
+                                 .Append( fromAmbient.Property.Name )
+                                 .Append( " = o." ).Append( fromAmbient.Property.Name ).Append(" !== null ? o.")
+                                 .Append( fromAmbient.Property.Name ).Append( " : a." ).Append( fromAmbient.Property.Name ).Append( ";" ).NewLine();
                             }
                             atLeastOne = true;
                         }
@@ -142,18 +152,48 @@ namespace CK.Setup
             {
                 Throw.DebugAssert( _ambientValuesProperties == null );
                 _ambientValuesProperties = e.PocoClass.Properties;
-            }
-        }
+                var context = e.TypeFile.Context;
+                var fOverride = context.Root.FindOrCreateFile( e.TypeFile.Folder.AppendPart( "AmbientValuesOverride.ts" ) );
+                var b = fOverride.Body.CreatePart();
+                b.Append( """
+                    /**
+                    * To manage ambient values overrides, we use the null value to NOT override:
+                    *  - We decided to map C# null to undefined because working with both null
+                    *    and undefined is difficult.
+                    *  - Here, the null is used, so that undefined can be used to override with an undefined that will
+                    *    be a null value on the C# side.
+                    * All the properties are initialized to null in the constructor.
+                    **/
 
-        static string? AppendCommandModelSignature( ITSCodePart code, CrisRegistry.Entry cmd, PocoGeneratingEventArgs e )
-        {
-            var signature = "readonly " + (e.TypeFile.Context.PascalCase ? "C" : "c") + "ommandModel: CommandModel<";
-            code.Append( signature );
-            var typeName = code.AppendAndGetComplexTypeName( e.Monitor, e.TypeFile.Context, cmd.ResultNullableTypeTree );
-            if( typeName == null ) return null;
-            signature += typeName + ">";
-            code.Append( ">" );
-            return signature;
+                    """ )
+                 .Append( "export class AmbientValuesOverride" )
+                 .OpenBlock()
+                 .CreatePart( out var propertiesPart )
+                 .Append( "constructor()" )
+                     .OpenBlock()
+                     .CreatePart( out var ctorPart )
+                     .CloseBlock()
+                 .CloseBlock();
+
+                GenerateProperties( propertiesPart, ctorPart, _ambientValuesProperties );
+            }
+
+            void GenerateProperties( ITSCodePart propertiesPart,
+                                     ITSCodePart ctorPart,
+                                     IReadOnlyList<TypeScriptPocoPropertyInfo> ambientValuesProperties )
+            {
+                foreach( var property in ambientValuesProperties )
+                {
+                    propertiesPart.Append( property.Property.Name ).Append( ": " )
+                                  .Append( property.Property.Type );
+                    if( property.Property.Optional )
+                    {
+                        propertiesPart.Append( "|undefined" ).NewLine();
+                    }
+                    propertiesPart.Append( "|null;" ).NewLine();
+                    ctorPart.Append( "this." ).Append( property.Property.Name ).Append( " = null;" ).NewLine();
+                }
+            }
         }
 
         static void EnsureCrisModel( PocoGeneratingEventArgs e )

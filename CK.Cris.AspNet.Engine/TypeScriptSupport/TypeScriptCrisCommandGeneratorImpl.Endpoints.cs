@@ -20,6 +20,12 @@ namespace CK.Setup
                                              typeof( IAmbientValues ),
                                              typeof( IAmbientValuesCollectCommand ) );
 
+            // AmbientValuesOverride is in the same folder as AmbienValues.ts.
+            var tA = fEndpoint.Root.DeclareTSType(monitor, typeof( IAmbientValues ) );
+            Throw.DebugAssert( tA != null );
+            var relPath = fEndpoint.Folder.GetRelativePathTo( tA.File.Folder );
+            fEndpoint.Imports.Append( "import { AmbientValuesOverride } from '").Append(relPath).Append( "/AmbientValuesOverride';" ).NewLine();
+
             fEndpoint.Body.Append( """
                                    /**
                                     * Abstract Cris endpoint. 
@@ -34,7 +40,7 @@ namespace CK.Setup
 
                                        constructor()
                                        {
-                                           this.ambientValuesOverride = {};
+                                           this.ambientValuesOverride = new AmbientValuesOverride();
                                            this._isConnected = false;
                                            this._subscribers = new Set<() => void>();
                                        }
@@ -44,7 +50,7 @@ namespace CK.Setup
                                        * Sensible ambient values (like the actorId when CK.Cris.Auth is used) are checked against
                                        * secured contextual values: overriding them will trigger a ValidationError. 
                                        **/    
-                                       public readonly ambientValuesOverride: { [name in keyof AmbientValues]?: AmbientValues[name]|undefined };
+                                       public readonly ambientValuesOverride: AmbientValuesOverride;
 
 
                                        //#region isConnected
@@ -111,7 +117,7 @@ namespace CK.Setup
                                            let a = this._ambientValues;
                                            // Don't use coalesce here since there may be no ambient values (an empty object is truthy).
                                            if( a === undefined ) a = await this.updateAmbientValuesAsync();
-                                           command.commandModel.applyAmbientValues( a );
+                                           command.commandModel.applyAmbientValues( command, a, this.ambientValuesOverride );
                                            return await this.doSendAsync( command ); 
                                        }
 
@@ -141,34 +147,41 @@ namespace CK.Setup
                                         */
                                        protected handleJsonResponse<T>( command: ICommand<T>, data: any ) : ExecutedCommand<T>
                                        {
-                                           if( typeof data.correlationId !== "undefined" && data.result instanceof Array && data.result.length == 2 )
+                                           if( data.correlationId !== undefined )
                                            {
-                                               if( data.result[0] === "AspNetCrisResultError" )
-                                               {
-                                                   // Normalized null or empty to undefined.
-                                                   data.correlationId = data.correlationId ? data.correlationId : undefined;
-                                                   const e = data.result[1] as {isValidationError?: boolean, logKey?: string, messages?: ReadonlyArray<[UserMessageLevel,string,number]>};
-                                                   if( typeof e.isValidationError === "boolean" && e.messages instanceof Array )
-                                                   {
-                                                       const messages: Array<SimpleUserMessage> = [];
-                                                       for( const msg of e.messages )
-                                                       {
-                                                           if(!(msg instanceof Array && msg.length == 3)) return invalidResponse(command,e.logKey);
-                                                           // silently skip potential [0] or other incomplete arrays.
-                                                           if(msg.length == 3)
-                                                           {
-                                                               messages.push( new SimpleUserMessage(msg[0],msg[1],msg[2]) );
-                                                           }
-                                                       }
-                                                       const m = messages.find( m => m.level === UserMessageLevel.Error ) 
-                                                                   ?? messages.find( m => m.level === UserMessageLevel.Warn )
-                                                                   ?? messages.find( m => m.level === UserMessageLevel.Info );
-                                                       const message = m && m.message ? m.message : 'Error (missing Cris error message)';
-                                                       return {command: command, result: new CrisError(command,message,e.isValidationError,undefined,messages,e.logKey), correlationId: data.correlationId };
-                                                   }
-                                                   return invalidResponse( command, data.correlationId );
-                                               }
-                                               return {command: command, result: data.result[1] as T, correlationId: data.correlationId };
+                                              if( ["boolean","string","number","boolean"].includes( typeof(data.result) ) )
+                                              {
+                                                 return {command: command, result: data.result as T, correlationId: data.correlationId };
+                                              }
+                                              else if( data.result instanceof Array && data.result.length == 2 )
+                                              {
+                                                  if( data.result[0] === "AspNetCrisResultError" )
+                                                  {
+                                                         // Normalized null or empty to undefined.
+                                                         data.correlationId = data.correlationId ? data.correlationId : undefined;
+                                                         const e = data.result[1] as {isValidationError?: boolean, logKey?: string, messages?: ReadonlyArray<[UserMessageLevel,string,number]>};
+                                                         if( typeof e.isValidationError === "boolean" && e.messages instanceof Array )
+                                                         {
+                                                             const messages: Array<SimpleUserMessage> = [];
+                                                             for( const msg of e.messages )
+                                                             {
+                                                                 if(!(msg instanceof Array && msg.length == 3)) return invalidResponse(command,e.logKey);
+                                                                 // silently skip potential [0] or other incomplete arrays.
+                                                                 if(msg.length == 3)
+                                                                 {
+                                                                     messages.push( new SimpleUserMessage(msg[0],msg[1],msg[2]) );
+                                                                 }
+                                                             }
+                                                             const m = messages.find( m => m.level === UserMessageLevel.Error ) 
+                                                                         ?? messages.find( m => m.level === UserMessageLevel.Warn )
+                                                                         ?? messages.find( m => m.level === UserMessageLevel.Info );
+                                                             const message = m && m.message ? m.message : 'Error (missing Cris error message)';
+                                                             return {command: command, result: new CrisError(command,message,e.isValidationError,undefined,messages,e.logKey), correlationId: data.correlationId };
+                                                         }
+                                                         return invalidResponse( command, data.correlationId );
+                                                  }
+                                                  return {command: command, result: data.result[1] as T, correlationId: data.correlationId };
+                                              }
                                            }
                                            return invalidResponse( command );
 
@@ -192,7 +205,7 @@ namespace CK.Setup
                                                else
                                                {
                                                    this._ambientValuesRequest = undefined;
-                                                   this._ambientValues = Object.assign( <AmbientValues>e.result, this.ambientValuesOverride );
+                                                   this._ambientValues = <AmbientValues>e.result;
                                                    this.setIsConnected( true );
                                                    return this._ambientValues;
                                                }

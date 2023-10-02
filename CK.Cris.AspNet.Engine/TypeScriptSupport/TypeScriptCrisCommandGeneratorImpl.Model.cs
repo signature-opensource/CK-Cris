@@ -21,9 +21,9 @@ namespace CK.Setup
                                      **/
                                     readonly commandName: string;
                                     /**
-                                     * Configures any ambient values that the command holds. 
+                                     * This supports the CrisEdpoint implementation. This is not to be used directly.
                                      **/
-                                    readonly applyAmbientValues: (values: { [index: string]: any }, force?: boolean ) => void;
+                                    readonly applyAmbientValues: (command: any, a: any, o: any ) => void;
                                 }
 
                                 /** 

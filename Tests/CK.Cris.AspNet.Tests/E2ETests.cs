@@ -17,6 +17,9 @@ namespace CK.Cris.TypeScript.Tests
     {
         public interface IColoredAmbientValues : AmbientValues.IAmbientValues
         {
+            /// <summary>
+            /// The color of <see cref="ICommandColored"/> commands.
+            /// </summary>
             string Color { get; set; }
         }
 
@@ -70,8 +73,8 @@ namespace CK.Cris.TypeScript.Tests
                                                             typeof( ColorService ),
                                                             typeof( CrisAspNetService ) },
                                                     new[] { typeof( IBeautifulCommand ) },
-                                                    resume: resume =>
-                                                    { return resume; } );
+                                                    resume =>
+                                                    resume );
         }
 
     }
