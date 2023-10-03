@@ -22,7 +22,4 @@
     <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
     <ProjectReference Include="..\..\CK.Testing.CrisAspNetEngine\CK.Testing.CrisAspNetEngine.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="TSTests\" />
-  </ItemGroup>
 </Project>

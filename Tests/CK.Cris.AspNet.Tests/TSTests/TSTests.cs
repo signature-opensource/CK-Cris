@@ -1,19 +1,14 @@
 using CK.Core;
-using CK.Cris.AspNet;
-using FluentAssertions;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using NUnit.Framework;
-using System.IO;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-namespace CK.Cris.TypeScript.Tests
+namespace CK.Cris.AspNet.E2ETests
 {
     [TestFixture]
-    public class E2ETests
+    public class TSTests
     {
         public interface IColoredAmbientValues : AmbientValues.IAmbientValues
         {
@@ -59,9 +54,10 @@ namespace CK.Cris.TypeScript.Tests
         }
 
         [Test]
-        public async Task AmbientValues_works_Async()
+        public async Task E2ETest_Async()
         {
             var targetOutputPath = TestHelper.GetTypeScriptWithTestsSupportTargetProjectPath();
+            Throw.DebugAssert( targetOutputPath.EndsWith( "/TSTests/E2ETest_Async" ) );
             await TestHelper.RunAspNetE2ETestAsync( targetOutputPath,
                                                     new[] { // By registering the IBeautifulCommand first,
                                                             // we use (and test!) the fact that the OnPocoGenerating calls EnsurePoco

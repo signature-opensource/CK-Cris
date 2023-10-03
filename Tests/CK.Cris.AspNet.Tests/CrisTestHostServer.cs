@@ -58,6 +58,11 @@ namespace CK.Cris.AspNet.Tests
             var b = CK.AspNet.Tester.WebHostBuilderFactory.Create( null, null,
                 services =>
                 {
+                    // Don't UseCKMonitoring here or the GrandOutput.Default will be reconfigured:
+                    // only register the IActivityMonitor and its ParallelLogger.
+                    services.AddScoped<IActivityMonitor, ActivityMonitor>();
+                    services.AddScoped( sp => sp.GetRequiredService<IActivityMonitor>().ParallelLogger );
+
                     services.AddOptions();
                     if( withAuthentication )
                     {
@@ -82,7 +87,7 @@ namespace CK.Cris.AspNet.Tests
                 {
                     webBuilder.UseScopedHttpContext();
                 }
-            ).UseCKMonitoring();
+            );
 
             var host = b.Build();
             host.Start();
