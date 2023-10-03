@@ -4,8 +4,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.AspNet" Version="11.0.1--0038-develop" />
-    <PackageReference Include="CK.Testing.StObjTypeScriptEngine" Version="0.13.1--0104-develop" />
+    <PackageReference Include="CK.AspNet" Version="11.0.1--0040-develop" />
+    <PackageReference Include="CK.Testing.StObjTypeScriptEngine" Version="0.13.1--0106-develop" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris.AspNet.Engine\CK.Cris.AspNet.Engine.csproj" />
