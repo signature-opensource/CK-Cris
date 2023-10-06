@@ -41,8 +41,13 @@ namespace CK.Cris.HttpSender
 
         internal static HttpRetryStrategyOptions CreateRetryStrategy( IActivityMonitor monitor, ImmutableConfigurationSection section )
         {
-            return CreateRetryStrategy( 
-                section.TryLookupIntValue( monitor, nameof( HttpRetryStrategyOptions.MaxRetryAttempts ), 1, int.MaxValue ), DelayBackoffType ? backoffType, bool ? useJitter, TimeSpan ? delay, TimeSpan ? maxDelay, bool ? shouldRetryAfterHeader );
+            return CreateRetryStrategy(
+                section.TryLookupIntValue( monitor, nameof( HttpRetryStrategyOptions.MaxRetryAttempts ), 1, int.MaxValue ),
+                section.TryLookupEnumValue( monitor, nameof( HttpRetryStrategyOptions.BackoffType ) ),
+                section.TryLookupBooleanValue( monitor, nameof( HttpRetryStrategyOptions.UseJitter ) ),
+                section.TryLookupTimeSpanValue( monitor, nameof( HttpRetryStrategyOptions.Delay ), TimeSpan.Zero, TimeSpan.FromDays( 1 ) ),
+                section.TryLookupTimeSpanValue( monitor, nameof( HttpRetryStrategyOptions.MaxDelay ), TimeSpan.Zero, TimeSpan.FromDays( 1 ) ),
+                section.TryLookupBooleanValue( monitor, nameof( HttpRetryStrategyOptions.ShouldRetryAfterHeader ) ) );
         }
 
         static HttpRetryStrategyOptions CreateRetryStrategy( int? maxRetryAttempts, DelayBackoffType? backoffType, bool? useJitter, TimeSpan? delay, TimeSpan? maxDelay, bool? shouldRetryAfterHeader )
@@ -89,7 +94,7 @@ namespace CK.Cris.HttpSender
             var resilienceBuilder = new ResiliencePipelineBuilder<HttpResponseMessage>()
                 .AddRetry( retry );
 
-            var h = new ResilienceHandler( message => _defaultResilienceBuilder.Build() )
+            var h = new ResilienceHandler( message => resilienceBuilder.Build() )
             {
                 InnerHandler = new HttpClientHandler()
             };
