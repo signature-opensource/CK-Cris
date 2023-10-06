@@ -1,11 +1,5 @@
 using CK.Core;
 using Microsoft.AspNetCore.Http;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.IO.Pipelines;
-using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace CK.Cris.AspNet
@@ -13,6 +7,7 @@ namespace CK.Cris.AspNet
     public class CrisMiddleware
     {
         static readonly PathString _crisPath = new PathString( "/.cris" );
+        static readonly PathString _netPath = new PathString( "/net" );
         readonly RequestDelegate _next;
         readonly CrisAspNetService _service;
 
@@ -39,7 +34,8 @@ namespace CK.Cris.AspNet
                 }
                 else
                 {
-                    await _service.HandleRequestAsync( monitor, ctx.RequestServices, ctx.Request, ctx.Response );
+                    bool isNetPath = remainder.StartsWithSegments( _netPath );
+                    await _service.HandleRequestAsync( monitor, ctx.RequestServices, ctx.Request, ctx.Response, isNetPath );
                 }
             }
             else

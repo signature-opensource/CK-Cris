@@ -1,17 +1,12 @@
 using CK.Core;
 using CK.Cris.AmbientValues;
 using CK.Setup;
-using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IO;
 using System;
 using System.Buffers;
-using System.Collections;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Reflection.Emit;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -34,21 +29,24 @@ namespace CK.Cris.AspNet
         readonly PocoDirectory _poco;
         readonly IPocoFactory<IAspNetCrisResult> _resultFactory;
         readonly IPocoFactory<IAspNetCrisResultError> _errorResultFactory;
+        readonly IPocoFactory<ICrisResultError> _crisErrorResultFactory;
 
         public CrisAspNetService( PocoDirectory poco,
                                   RawCrisValidator validator,
                                   CrisBackgroundExecutor backgroundExecutor,
                                   IPocoFactory<IAspNetCrisResult> resultFactory,
-                                  IPocoFactory<IAspNetCrisResultError> errorResultFactory )
+                                  IPocoFactory<IAspNetCrisResultError> errorResultFactory,
+                                  IPocoFactory<ICrisResultError> backendErrorResultFactory )
         {
             _poco = poco;
             _validator = validator;
             _backgroundExecutor = backgroundExecutor;
             _resultFactory = resultFactory;
             _errorResultFactory = errorResultFactory;
+            _crisErrorResultFactory = backendErrorResultFactory;
         }
 
-        IDisposable? HandleIncomingCKDepToken( IActivityMonitor monitor, HttpRequest request, out ActivityMonitor.Token? token )
+        static IDisposable? HandleIncomingCKDepToken( IActivityMonitor monitor, HttpRequest request, out ActivityMonitor.Token? token )
         {
             // This handles the first valid token if multiple tokens are provided (and StringValues enumerator is fast).
             // Multiple tokens makes no real sense.
@@ -64,7 +62,25 @@ namespace CK.Cris.AspNet
             return null;
         }
 
-        public async Task HandleRequestAsync( IActivityMonitor monitor, IServiceProvider requestServices, HttpRequest request, HttpResponse response )
+        // Temporary:
+        // TODO: Handle this "context matching" in a generic way ([ConfigureEndpointServices] attribute).
+        EndpointUbiquitousInfo? HandleEndpointUbiquitousInfoConfigurator( IServiceProvider requestServices, IAbstractCommand? cmd )
+        {
+            EndpointUbiquitousInfo? info = null;
+            if( cmd is ICommandWithCurrentCulture c )
+            {
+                info = requestServices.GetRequiredService<EndpointUbiquitousInfo>();
+                CrisCultureService.ConfigureCurrentCulture( c, info );
+                if( !info.IsDirty ) info = null;
+            }
+            return info;
+        }
+
+        internal async Task HandleRequestAsync( IActivityMonitor monitor,
+                                                IServiceProvider requestServices,
+                                                HttpRequest request,
+                                                HttpResponse response,
+                                                bool isNetPath )
         {
             // There is no try catch here and this is intended. An unhandled exception here
             // is an Internal Server Error that should bubble up.
@@ -82,14 +98,7 @@ namespace CK.Cris.AspNet
                         var c = _backgroundExecutor.Start( monitor, cmd, info, issuerToken: depToken );
                         var o = await c.SafeCompletion;
                         result = _resultFactory.Create();
-                        if( o is ICrisResultError error )
-                        {
-                            result.Result = _errorResultFactory.Create( error );
-                        }
-                        else
-                        {
-                            result.Result = o;
-                        }
+                        result.Result = o;
                     }
                     else
                     {
@@ -99,6 +108,14 @@ namespace CK.Cris.AspNet
                 if( result.CorrelationId == null )
                 {
                     result.CorrelationId = monitor.CreateToken().ToString();
+                }
+                if( !isNetPath && result.Result is ICrisResultError error )
+                {
+                    IAspNetCrisResultError simpleError = _errorResultFactory.Create();
+                    simpleError.IsValidationError = error.IsValidationError;
+                    simpleError.LogKey = error.LogKey;
+                    simpleError.Messages.AddRange( error.Messages.Select( m => m.AsSimpleUserMessage() ) );
+                    result.Result = simpleError;
                 }
                 using( var writer = new Utf8JsonWriter( response.BodyWriter ) )
                 {
@@ -110,29 +127,19 @@ namespace CK.Cris.AspNet
             }
         }
 
-        static EndpointUbiquitousInfo? HandleEndpointUbiquitousInfoConfigurator( IServiceProvider requestServices, IAbstractCommand? cmd )
-        {
-            EndpointUbiquitousInfo? info = null;
-            if( cmd is ICommandWithCurrentCulture c )
-            {
-                info = requestServices.GetRequiredService<EndpointUbiquitousInfo>();
-                CrisCultureService.ConfigureCurrentCulture( c, info );
-                if( !info.IsDirty ) info = null;
-            }
-            return info;
-        }
-
         /// <summary>
         /// Validates and executes the command in the context of the end point.
         /// </summary>
-        async Task<IAspNetCrisResult> ValidateAndExecuteInlineAsync( IActivityMonitor monitor, IServiceProvider requestServices, IAbstractCommand cmd )
+        async Task<IAspNetCrisResult> ValidateAndExecuteInlineAsync( IActivityMonitor monitor,
+                                                                     IServiceProvider requestServices,
+                                                                     IAbstractCommand cmd )
         {
             IAspNetCrisResult result = _resultFactory.Create();
             CrisValidationResult validation = await _validator.ValidateCommandAsync( monitor, requestServices, cmd );
             if( !validation.Success )
             {
-                IAspNetCrisResultError error = _errorResultFactory.Create();
-                error.Messages.AddRange( validation.Messages.Select( m => m.AsSimpleUserMessage() ) );
+                ICrisResultError error = _crisErrorResultFactory.Create();
+                error.Messages.AddRange( validation.Messages );
                 error.LogKey = validation.LogKey;
                 error.IsValidationError = true;
                 result.Result = error;
@@ -149,7 +156,7 @@ namespace CK.Cris.AspNet
             catch( Exception ex )
             {
                 var currentCulture = requestServices.GetRequiredService<CurrentCultureInfo>();
-                IAspNetCrisResultError error = _errorResultFactory.Create();
+                ICrisResultError error = _crisErrorResultFactory.Create();
                 error.LogKey = CK.Cris.PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, true, ex, cmd, out var genericError );
                 if( ex is MCException mc )
                 {
@@ -244,7 +251,7 @@ namespace CK.Cris.AspNet
         IAspNetCrisResult CreateValidationErrorResult( UserMessage message, string? logKey )
         {
             IAspNetCrisResult result = _resultFactory.Create();
-            IAspNetCrisResultError e = _errorResultFactory.Create( message );
+            ICrisResultError e = _crisErrorResultFactory.Create( message );
             e.IsValidationError = true;
             e.LogKey = logKey;
             result.Result = e;

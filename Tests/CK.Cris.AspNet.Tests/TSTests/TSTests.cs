@@ -38,8 +38,8 @@ namespace CK.Cris.AspNet.E2ETests
             /// <summary>
             /// Gets or sets the color.
             /// <para>
-            /// This is an ambient value: the caller can set it but if not, the CrisEndPoint transparently
-            /// sets it.
+            /// This is an ambient value: the caller can set it but if not, the TypeScript
+            /// CrisEndPoint transparently sets it.
             /// </para>
             /// </summary>
             string Color { get; set; }

@@ -16,7 +16,7 @@ namespace CK.Cris.AmbientValues
 
         /// <summary>
         /// Creates the empty <see cref="IAmbientValues"/> result.
-        /// Any number of <see cref="CommandPostHandlerAttribute"/> can be used to populate the it.
+        /// Any number of <see cref="CommandPostHandlerAttribute"/> populate it.
         /// </summary>
         /// <param name="cmd">The collect command.</param>
         /// <returns>The ambient values (initially empty).</returns>

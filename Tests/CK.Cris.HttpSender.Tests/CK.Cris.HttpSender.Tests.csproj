@@ -1,20 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <LangVersion>11</LangVersion>
   </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="CK.Testing.StObjEngine" Version="23.0.1--0157-develop" />
+    <PackageReference Include="CK.Testing.AppIdentity" Version="0.0.0--04kl2gf-develop" />
     <PackageReference Include="NUnit" Version="3.13.3" />
     <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" Version="4.5.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\CK.Cris.BackgroundExecutor\CK.Cris.BackgroundExecutor.csproj" />
+    <ProjectReference Include="..\..\CK.Cris.AspNet.Engine\CK.Cris.AspNet.Engine.csproj" />
     <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
+    <ProjectReference Include="..\..\CK.Cris.HttpSender\CK.Cris.HttpSender.csproj" />
+    <ProjectReference Include="..\..\CK.Testing.CrisAspNetEngine\CK.Testing.CrisAspNetEngine.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="%24StObjGen\" />
-  </ItemGroup>
+
 </Project>

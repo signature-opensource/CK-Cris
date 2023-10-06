@@ -6,7 +6,7 @@ namespace CK.Cris.AspNet
     public partial class CrisAspNetService
     {
         /// <summary>
-        /// Simplified <see cref="ICrisResultError"/>: messages are deconstructed <see cref="SimpleUserMessage"/> tuples.
+        /// Simplified <see cref="ICrisResultError"/>: messages are <see cref="SimpleUserMessage"/>.
         /// </summary>
         [ExternalName( "AspNetCrisResultError" )]
         public interface IAspNetCrisResultError : IPoco

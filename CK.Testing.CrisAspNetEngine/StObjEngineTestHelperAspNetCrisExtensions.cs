@@ -15,6 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 using FluentAssertions.Common;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Configuration;
 
 namespace CK
 {
@@ -163,5 +164,112 @@ namespace CK
                 await app.DisposeAsync();
             }
         }
+
+        /// <summary>
+        /// Running AspNet server with its <see cref="CrisEndpointUrl"/>, <see cref="Services"/>
+        /// and <see cref="Configuration"/>.
+        /// </summary>
+        public sealed class RunningAspNetServer : IAsyncDisposable
+        {
+            readonly string _serverAddress;
+            readonly string _crisEndpointUrl;
+            readonly WebApplication _app;
+
+            internal RunningAspNetServer( WebApplication app, string serverAddress )
+            {
+                _app = app;
+                _serverAddress = serverAddress;
+                _crisEndpointUrl = serverAddress + "/.cris/net";
+            }
+
+            /// <summary>
+            /// Gets the application's configured services.
+            /// </summary>
+            public IServiceProvider Services => _app.Services;
+
+            /// <summary>
+            /// Gets the application's configuration.
+            /// </summary>
+            public IConfiguration Configuration => _app.Configuration;
+
+            /// <summary>
+            /// Gets the server address (the port is automatically assigned).
+            /// </summary>
+            public string ServerAddress => _serverAddress;
+
+            /// <summary>
+            /// Gets the absolute url to send Cris command: "<see cref="ServerAddress"/>/.cris/net".
+            /// </summary>
+            public string CrisEndpointUrl => _crisEndpointUrl;
+
+            /// <summary>
+            /// Stops the application.
+            /// </summary>
+            /// <returns>The awaitable.</returns>
+            public async ValueTask DisposeAsync()
+            {
+                await _app.StopAsync();
+            }
+        }
+
+        /// <summary>
+        /// Creates, configure and starts a <see cref="RunningAspNetServer"/>.
+        /// No types are implicitly registered: <paramref name="registeredTypes"/> shoudl contain <see cref="CK.Cris.AspNet.CrisAspNetService"/>.
+        /// </summary>
+        /// <param name="helper">This helper.</param>
+        /// <param name="registeredTypes">The types to register in the StObjCollector.</param>
+        /// <param name="engineConfigurator">Optional engine configurator.</param>
+        /// <param name="configureServices">Optional application services configurator.</param>
+        /// <param name="configureApplication">Optional application configurator.</param>
+        /// <returns>A running .NET server.</returns>
+        public static async Task<RunningAspNetServer> RunAspNetServerAsync( this IStObjEngineTestHelper helper,
+                                                                            IEnumerable<Type> registeredTypes,
+                                                                            Func<StObjEngineConfiguration, StObjEngineConfiguration>? engineConfigurator = null,
+                                                                            Action<StObjContextRoot.ServiceRegister>? configureServices = null,
+                                                                            Action<IApplicationBuilder>? configureApplication = null )
+        {
+            StObjCollector collector = helper.CreateStObjCollector( registeredTypes.ToArray() );
+            CompileAndLoadResult r = helper.CompileAndLoadStObjMap( collector, engineConfigurator );
+
+            var builder = WebApplication.CreateBuilder();
+            builder.WebHost.UseScopedHttpContext();
+            // Don't UseCKMonitoring here or the GrandOutput.Default will be reconfigured:
+            // only register the IActivityMonitor and its ParallelLogger.
+            builder.Services.AddScoped<IActivityMonitor, ActivityMonitor>();
+            builder.Services.AddScoped( sp => sp.GetRequiredService<IActivityMonitor>().ParallelLogger );
+
+            var register = new StObjContextRoot.ServiceRegister( helper.Monitor, builder.Services );
+            register.AddStObjMap( r.Map );
+            configureServices?.Invoke( register );
+
+            var app = builder.Build();
+            try
+            {
+                // This chooses a random, free port.
+                app.Urls.Add( "http://[::1]:0" );
+
+                app.UseGuardRequestMonitor();
+                app.UseCris();
+                configureApplication?.Invoke( app );
+
+                await app.StartAsync();
+
+                // The IServer's IServerAddressesFeature feature has the address resolved.
+                var server = app.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>();
+                var addresses = server.Features.Get<IServerAddressesFeature>();
+                Throw.DebugAssert( addresses != null && addresses.Addresses.Count > 0 );
+
+                var serverAddress = addresses.Addresses.First();
+                helper.Monitor.Info( $"Server started. Server address: '{serverAddress}'." );
+                return new RunningAspNetServer( app, serverAddress );
+            }
+            catch( Exception ex )
+            {
+                helper.Monitor.Error( "Unhandled error while starting http server.", ex );
+                await app.DisposeAsync();
+                throw;
+            }
+        }
+
     }
 }
