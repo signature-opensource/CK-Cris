@@ -22,12 +22,6 @@ namespace CK.Cris.HttpSender
         sealed record class CallContext( CrisHttpSender Sender, IActivityMonitor Monitor );
         static ResiliencePropertyKey<CallContext> _contextKey = new ResiliencePropertyKey<CallContext>( nameof( CrisHttpSender ) );
 
-        static ResiliencePipelineBuilder<HttpResponseMessage> _defaultResilienceBuilder =
-                    new ResiliencePipelineBuilder<HttpResponseMessage>().AddRetry( new HttpRetryStrategyOptions()
-                    {
-                        OnRetry = OnRetryAsync
-                    } );
-
         static ValueTask OnRetryAsync( OnRetryArguments<HttpResponseMessage> args )
         {
             if( args.Context.Properties.TryGetValue( _contextKey, out var ctx ) )
@@ -43,6 +37,24 @@ namespace CK.Cris.HttpSender
                 }
             }
             return default;
+        }
+
+        internal static HttpRetryStrategyOptions CreateRetryStrategy( IActivityMonitor monitor, ImmutableConfigurationSection section )
+        {
+            return CreateRetryStrategy( 
+                section.TryLookupIntValue( monitor, nameof( HttpRetryStrategyOptions.MaxRetryAttempts ), 1, int.MaxValue ), DelayBackoffType ? backoffType, bool ? useJitter, TimeSpan ? delay, TimeSpan ? maxDelay, bool ? shouldRetryAfterHeader );
+        }
+
+        static HttpRetryStrategyOptions CreateRetryStrategy( int? maxRetryAttempts, DelayBackoffType? backoffType, bool? useJitter, TimeSpan? delay, TimeSpan? maxDelay, bool? shouldRetryAfterHeader )
+        {
+            var retry = new HttpRetryStrategyOptions() { OnRetry = OnRetryAsync };
+            if( maxRetryAttempts.HasValue ) retry.MaxRetryAttempts = maxRetryAttempts.Value;
+            if( backoffType.HasValue ) retry.BackoffType = backoffType.Value;
+            if( useJitter.HasValue ) retry.UseJitter = useJitter.Value;
+            if( delay.HasValue ) retry.Delay = delay.Value;
+            if( maxDelay.HasValue ) retry.MaxDelay = maxDelay.Value;
+            if( shouldRetryAfterHeader.HasValue ) retry.ShouldRetryAfterHeader = shouldRetryAfterHeader.Value;
+            return retry;
         }
 
         readonly HttpClient _httpClient;
@@ -62,8 +74,21 @@ namespace CK.Cris.HttpSender
                                                                         NormalizedCultureInfo.CodeDefault,
                                                                         "Internal error." ) );
 
-        internal CrisHttpSender( IRemoteParty remote, Uri endpointUrl, PocoDirectory pocoDirectory )
+        internal CrisHttpSender( IRemoteParty remote,
+                                 Uri endpointUrl,
+                                 PocoDirectory pocoDirectory,
+                                 int? maxRetryAttempts,
+                                 DelayBackoffType? backoffType,
+                                 bool? useJitter,
+                                 TimeSpan? delay,
+                                 TimeSpan? maxDelay,
+                                 bool? shouldRetryAfterHeader )
         {
+            HttpRetryStrategyOptions retry = CreateRetryStrategy( maxRetryAttempts, backoffType, useJitter, delay, maxDelay, shouldRetryAfterHeader );
+
+            var resilienceBuilder = new ResiliencePipelineBuilder<HttpResponseMessage>()
+                .AddRetry( retry );
+
             var h = new ResilienceHandler( message => _defaultResilienceBuilder.Build() )
             {
                 InnerHandler = new HttpClientHandler()

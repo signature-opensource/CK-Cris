@@ -97,10 +97,6 @@ namespace CK.Cris.HttpSender
                     monitor.Error( $"Unable to setup feature 'CrisHttpSender' on '{r.FullName}': Address '{r.Address}' url must not have a path and/or a query part." );
                     return false;
                 }
-                if( isSection )
-                {
-                    WIP
-                }
                 // Currently, no specific configuration exists.
                 monitor.Info( $"Enabling 'CrisHttpSender' on '{r}' with address '{uri}'." );
                 r.AddFeature( new CrisHttpSender( r, new( uri, ".cris/net"), _pocoDirectory ) );
