@@ -1,14 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
     <LangVersion>11</LangVersion>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="CK.Testing.AppIdentity" Version="0.0.0--04kl2gf-develop" />
+    <PackageReference Include="CK.Testing.AppIdentity" Version="0.0.0--04kn2ug-develop" />
     <PackageReference Include="NUnit" Version="3.13.3" />
     <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" Version="4.5.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />
@@ -19,5 +17,4 @@
     <ProjectReference Include="..\..\CK.Cris.HttpSender\CK.Cris.HttpSender.csproj" />
     <ProjectReference Include="..\..\CK.Testing.CrisAspNetEngine\CK.Testing.CrisAspNetEngine.csproj" />
   </ItemGroup>
-
 </Project>
