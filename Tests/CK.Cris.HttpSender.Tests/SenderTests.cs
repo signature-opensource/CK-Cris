@@ -76,18 +76,16 @@ namespace CK.Cris.HttpSender.Tests
                     .And.Contain( """Request failed on 'Domain/$Server/#Dev' (attempt n°0).""" )
                     .And.Contain( """Request failed on 'Domain/$Server/#Dev' (attempt n°1).""" )
                     .And.Contain( """Request failed on 'Domain/$Server/#Dev' (attempt n°2).""" )
-                    ;
-                WIP
+                    .And.Contain( """While sending: ["CK.Cris.HttpSender.Tests.IBeautifulCommand",{"beauty":"Marvellous","waitTime":0,"color":"Black"}]""" );
             }
         }
 
 
         static Task<ApplicationIdentityTestHelperExtension.RunningAppIdentity> CreateRunningCallerAsync( string serverAddress,
-                                                                                                         Type[] registerTypes )
+                                                                                                         Type[] registerTypes,
+                                                                                                         Action<MutableConfigurationSection>? configuration = null )
         {
-            var callerCollector = TestHelper.CreateStObjCollector();
-            //callerCollector.SetAutoServiceKind( typeof( ApplicationIdentityServiceConfiguration ), AutoServiceKind.IsSingleton );
-            callerCollector.RegisterTypes( registerTypes );
+            var callerCollector = TestHelper.CreateStObjCollector( registerTypes );
             var callerMap = TestHelper.CompileAndLoadStObjMap( callerCollector ).Map;
 
             return TestHelper.CreateRunningAppIdentityServiceAsync(
@@ -97,6 +95,7 @@ namespace CK.Cris.HttpSender.Tests
                     c["Parties:0:FullName"] = "Domain/$Server";
                     c["Parties:0:Address"] = serverAddress;
                     c["Parties:0:CrisHttpSender"] = "true";
+                    configuration?.Invoke( c );
                 },
                 services =>
                 {

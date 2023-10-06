@@ -97,9 +97,9 @@ namespace CK.Cris.HttpSender
                     monitor.Error( $"Unable to setup feature 'CrisHttpSender' on '{r.FullName}': Address '{r.Address}' url must not have a path and/or a query part." );
                     return false;
                 }
-                // Currently, no specific configuration exists.
+                var retryStrategy = CrisHttpSender.CreateRetryStrategy( monitor, isSection ? config : null );
                 monitor.Info( $"Enabling 'CrisHttpSender' on '{r}' with address '{uri}'." );
-                r.AddFeature( new CrisHttpSender( r, new( uri, ".cris/net"), _pocoDirectory ) );
+                r.AddFeature( new CrisHttpSender( r, new( uri, ".cris/net"), _pocoDirectory, retryStrategy ) );
             }
             return true;
         }

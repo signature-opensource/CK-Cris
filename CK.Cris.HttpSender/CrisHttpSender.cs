@@ -39,27 +39,30 @@ namespace CK.Cris.HttpSender
             return default;
         }
 
-        internal static HttpRetryStrategyOptions CreateRetryStrategy( IActivityMonitor monitor, ImmutableConfigurationSection section )
+        internal static HttpRetryStrategyOptions CreateRetryStrategy( IActivityMonitor monitor, ImmutableConfigurationSection? section )
         {
-            return CreateRetryStrategy(
-                section.TryLookupIntValue( monitor, nameof( HttpRetryStrategyOptions.MaxRetryAttempts ), 1, int.MaxValue ),
-                section.TryLookupEnumValue( monitor, nameof( HttpRetryStrategyOptions.BackoffType ) ),
-                section.TryLookupBooleanValue( monitor, nameof( HttpRetryStrategyOptions.UseJitter ) ),
-                section.TryLookupTimeSpanValue( monitor, nameof( HttpRetryStrategyOptions.Delay ), TimeSpan.Zero, TimeSpan.FromDays( 1 ) ),
-                section.TryLookupTimeSpanValue( monitor, nameof( HttpRetryStrategyOptions.MaxDelay ), TimeSpan.Zero, TimeSpan.FromDays( 1 ) ),
-                section.TryLookupBooleanValue( monitor, nameof( HttpRetryStrategyOptions.ShouldRetryAfterHeader ) ) );
-        }
+            return section == null
+                        ? new HttpRetryStrategyOptions() { OnRetry = OnRetryAsync }
+                        : CreateRetryStrategy(
+                            section.TryLookupIntValue( monitor, nameof( HttpRetryStrategyOptions.MaxRetryAttempts ), 1, int.MaxValue ),
+                            section.TryLookupEnumValue<DelayBackoffType>( monitor, nameof( HttpRetryStrategyOptions.BackoffType ) ),
+                            section.TryLookupBooleanValue( monitor, nameof( HttpRetryStrategyOptions.UseJitter ) ),
+                            section.TryLookupTimeSpanValue( monitor, nameof( HttpRetryStrategyOptions.Delay ), TimeSpan.Zero, TimeSpan.FromDays( 1 ) ),
+                            section.TryLookupTimeSpanValue( monitor, nameof( HttpRetryStrategyOptions.MaxDelay ), TimeSpan.Zero, TimeSpan.FromDays( 1 ) ),
+                            section.TryLookupBooleanValue( monitor, nameof( HttpRetryStrategyOptions.ShouldRetryAfterHeader ) ) );
 
-        static HttpRetryStrategyOptions CreateRetryStrategy( int? maxRetryAttempts, DelayBackoffType? backoffType, bool? useJitter, TimeSpan? delay, TimeSpan? maxDelay, bool? shouldRetryAfterHeader )
-        {
-            var retry = new HttpRetryStrategyOptions() { OnRetry = OnRetryAsync };
-            if( maxRetryAttempts.HasValue ) retry.MaxRetryAttempts = maxRetryAttempts.Value;
-            if( backoffType.HasValue ) retry.BackoffType = backoffType.Value;
-            if( useJitter.HasValue ) retry.UseJitter = useJitter.Value;
-            if( delay.HasValue ) retry.Delay = delay.Value;
-            if( maxDelay.HasValue ) retry.MaxDelay = maxDelay.Value;
-            if( shouldRetryAfterHeader.HasValue ) retry.ShouldRetryAfterHeader = shouldRetryAfterHeader.Value;
-            return retry;
+            static HttpRetryStrategyOptions CreateRetryStrategy( int? maxRetryAttempts, DelayBackoffType? backoffType, bool? useJitter, TimeSpan? delay, TimeSpan? maxDelay, bool? shouldRetryAfterHeader )
+            {
+                var retry = new HttpRetryStrategyOptions() { OnRetry = OnRetryAsync };
+                if( maxRetryAttempts.HasValue ) retry.MaxRetryAttempts = maxRetryAttempts.Value;
+                if( backoffType.HasValue ) retry.BackoffType = backoffType.Value;
+                if( useJitter.HasValue ) retry.UseJitter = useJitter.Value;
+                if( delay.HasValue ) retry.Delay = delay.Value;
+                if( maxDelay.HasValue ) retry.MaxDelay = maxDelay.Value;
+                if( shouldRetryAfterHeader.HasValue ) retry.ShouldRetryAfterHeader = shouldRetryAfterHeader.Value;
+                return retry;
+            }
+
         }
 
         readonly HttpClient _httpClient;
@@ -82,17 +85,10 @@ namespace CK.Cris.HttpSender
         internal CrisHttpSender( IRemoteParty remote,
                                  Uri endpointUrl,
                                  PocoDirectory pocoDirectory,
-                                 int? maxRetryAttempts,
-                                 DelayBackoffType? backoffType,
-                                 bool? useJitter,
-                                 TimeSpan? delay,
-                                 TimeSpan? maxDelay,
-                                 bool? shouldRetryAfterHeader )
+                                 HttpRetryStrategyOptions retryStrategy )
         {
-            HttpRetryStrategyOptions retry = CreateRetryStrategy( maxRetryAttempts, backoffType, useJitter, delay, maxDelay, shouldRetryAfterHeader );
-
             var resilienceBuilder = new ResiliencePipelineBuilder<HttpResponseMessage>()
-                .AddRetry( retry );
+                .AddRetry( retryStrategy );
 
             var h = new ResilienceHandler( message => resilienceBuilder.Build() )
             {
