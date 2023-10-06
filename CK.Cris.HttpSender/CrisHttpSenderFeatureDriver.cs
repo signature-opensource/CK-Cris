@@ -2,6 +2,7 @@ using CK.AppIdentity;
 using CK.Core;
 using Microsoft.Extensions.Configuration;
 using Polly.Retry;
+using Polly.Timeout;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -61,17 +62,17 @@ namespace CK.Cris.HttpSender
             return TeardownAsync( context );
         }
 
-        static bool HasConfig( IConfigurationSection section, out bool isSection )
+        static bool HasConfig( IConfigurationSection section, out bool isSection, bool trueDefault = true )
         {
             if( bool.TryParse( section.Value, out var b ) )
             {
                 if( b )
                 {
                     isSection = false;
-                    return true;
+                    return trueDefault;
                 }
                 isSection = false;
-                return false;
+                return !trueDefault;
             }
             Throw.DebugAssert( section.GetChildren().Any() );
             isSection = true;
@@ -97,7 +98,15 @@ namespace CK.Cris.HttpSender
                     monitor.Error( $"Unable to setup feature 'CrisHttpSender' on '{r.FullName}': Address '{r.Address}' url must not have a path and/or a query part." );
                     return false;
                 }
-                var retryStrategy = CrisHttpSender.CreateRetryStrategy( monitor, isSection ? config : null );
+                HttpRetryStrategyOptions? retryStrategy = null;
+                if( isSection )
+                {
+                    var retryConfig = r.Configuration.Configuration.TryGetSection( "Retry" );
+                    if( retryConfig != null && HasConfig( retryConfig, out bool hasChildren, trueDefault: false ) )
+                    {
+                        retryStrategy = CrisHttpSender.CreateRetryStrategy( monitor, hasChildren ? config : null );
+                    }
+                }
                 monitor.Info( $"Enabling 'CrisHttpSender' on '{r}' with address '{uri}'." );
                 r.AddFeature( new CrisHttpSender( r, new( uri, ".cris/net"), _pocoDirectory, retryStrategy ) );
             }

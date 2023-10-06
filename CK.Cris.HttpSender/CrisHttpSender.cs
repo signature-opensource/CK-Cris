@@ -17,54 +17,8 @@ using System.Threading;
 
 namespace CK.Cris.HttpSender
 {
-    public sealed class CrisHttpSender
+    public sealed partial class CrisHttpSender
     {
-        sealed record class CallContext( CrisHttpSender Sender, IActivityMonitor Monitor );
-        static ResiliencePropertyKey<CallContext> _contextKey = new ResiliencePropertyKey<CallContext>( nameof( CrisHttpSender ) );
-
-        static ValueTask OnRetryAsync( OnRetryArguments<HttpResponseMessage> args )
-        {
-            if( args.Context.Properties.TryGetValue( _contextKey, out var ctx ) )
-            {
-                var outcome = args.Outcome;
-                if( outcome.Result != null )
-                {
-                    ctx.Monitor.Warn( CrisDirectory.CrisTag, $"Request failed on '{ctx.Sender._remote}' (attempt n°{args.AttemptNumber}): request ended with {(int)outcome.Result.StatusCode} {outcome.Result.StatusCode}." );
-                }
-                else
-                {
-                    ctx.Monitor.Warn( CrisDirectory.CrisTag, $"Request failed on '{ctx.Sender._remote}' (attempt n°{args.AttemptNumber}).", outcome.Exception );
-                }
-            }
-            return default;
-        }
-
-        internal static HttpRetryStrategyOptions CreateRetryStrategy( IActivityMonitor monitor, ImmutableConfigurationSection? section )
-        {
-            return section == null
-                        ? new HttpRetryStrategyOptions() { OnRetry = OnRetryAsync }
-                        : CreateRetryStrategy(
-                            section.TryLookupIntValue( monitor, nameof( HttpRetryStrategyOptions.MaxRetryAttempts ), 1, int.MaxValue ),
-                            section.TryLookupEnumValue<DelayBackoffType>( monitor, nameof( HttpRetryStrategyOptions.BackoffType ) ),
-                            section.TryLookupBooleanValue( monitor, nameof( HttpRetryStrategyOptions.UseJitter ) ),
-                            section.TryLookupTimeSpanValue( monitor, nameof( HttpRetryStrategyOptions.Delay ), TimeSpan.Zero, TimeSpan.FromDays( 1 ) ),
-                            section.TryLookupTimeSpanValue( monitor, nameof( HttpRetryStrategyOptions.MaxDelay ), TimeSpan.Zero, TimeSpan.FromDays( 1 ) ),
-                            section.TryLookupBooleanValue( monitor, nameof( HttpRetryStrategyOptions.ShouldRetryAfterHeader ) ) );
-
-            static HttpRetryStrategyOptions CreateRetryStrategy( int? maxRetryAttempts, DelayBackoffType? backoffType, bool? useJitter, TimeSpan? delay, TimeSpan? maxDelay, bool? shouldRetryAfterHeader )
-            {
-                var retry = new HttpRetryStrategyOptions() { OnRetry = OnRetryAsync };
-                if( maxRetryAttempts.HasValue ) retry.MaxRetryAttempts = maxRetryAttempts.Value;
-                if( backoffType.HasValue ) retry.BackoffType = backoffType.Value;
-                if( useJitter.HasValue ) retry.UseJitter = useJitter.Value;
-                if( delay.HasValue ) retry.Delay = delay.Value;
-                if( maxDelay.HasValue ) retry.MaxDelay = maxDelay.Value;
-                if( shouldRetryAfterHeader.HasValue ) retry.ShouldRetryAfterHeader = shouldRetryAfterHeader.Value;
-                return retry;
-            }
-
-        }
-
         readonly HttpClient _httpClient;
         readonly IRemoteParty _remote;
         readonly Uri _endpointUrl;
@@ -85,16 +39,16 @@ namespace CK.Cris.HttpSender
         internal CrisHttpSender( IRemoteParty remote,
                                  Uri endpointUrl,
                                  PocoDirectory pocoDirectory,
-                                 HttpRetryStrategyOptions retryStrategy )
+                                 HttpRetryStrategyOptions? retryStrategy )
         {
-            var resilienceBuilder = new ResiliencePipelineBuilder<HttpResponseMessage>()
-                .AddRetry( retryStrategy );
-
-            var h = new ResilienceHandler( message => resilienceBuilder.Build() )
+            HttpMessageHandler handler = new HttpClientHandler();
+            if( retryStrategy != null )
             {
-                InnerHandler = new HttpClientHandler()
-            };
-            _httpClient = new HttpClient( h );
+                var resilienceBuilder = new ResiliencePipelineBuilder<HttpResponseMessage>()
+                                            .AddRetry( retryStrategy );
+                handler = new ResilienceHandler( message => resilienceBuilder.Build() ) { InnerHandler = handler };
+            }
+            _httpClient = new HttpClient( handler );
             _remote = remote;
             _endpointUrl = endpointUrl;
             _pocoDirectory = pocoDirectory;
