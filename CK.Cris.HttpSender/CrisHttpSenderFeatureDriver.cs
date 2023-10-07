@@ -81,10 +81,9 @@ namespace CK.Cris.HttpSender
 
         bool PlugFeature( IActivityMonitor monitor, IRemoteParty r )
         {
-            var config = r.Configuration.Configuration.TryGetSection( "CrisHttpSender" );
             // Allow "CrisHttpSender" = "false" or "true".
             // This supports default, empty, configuration.
-            if( config != null && HasConfig( config, out var isSection ) )
+            if( r.Configuration.Configuration.ShouldApplyConfiguration( "CrisHttpSender", optOut: true, out var config ) )
             {
                 if( r.Address is null
                     || !Uri.TryCreate( r.Address, UriKind.Absolute, out var uri )
@@ -99,13 +98,9 @@ namespace CK.Cris.HttpSender
                     return false;
                 }
                 HttpRetryStrategyOptions? retryStrategy = null;
-                if( isSection )
+                if( config.ShouldApplyConfiguration( "Retry", optOut: true, out var retryConfig ) )
                 {
-                    var retryConfig = r.Configuration.Configuration.TryGetSection( "Retry" );
-                    if( retryConfig != null && HasConfig( retryConfig, out bool hasChildren, trueDefault: false ) )
-                    {
-                        retryStrategy = CrisHttpSender.CreateRetryStrategy( monitor, hasChildren ? config : null );
-                    }
+                    retryStrategy = CrisHttpSender.CreateRetryStrategy( monitor, retryConfig );
                 }
                 monitor.Info( $"Enabling 'CrisHttpSender' on '{r}' with address '{uri}'." );
                 r.AddFeature( new CrisHttpSender( r, new( uri, ".cris/net"), _pocoDirectory, retryStrategy ) );
