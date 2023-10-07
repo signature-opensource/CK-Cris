@@ -26,7 +26,7 @@ namespace CK.Cris
         public new T Command => Unsafe.As<T>( base.Command );
 
 
-        sealed class ResultAdapter<TResult> : IExecutedCommand<T>.TypedResult<TResult>
+        sealed class ResultAdapter<TResult> : IExecutedCommand<T>.IWithResult<TResult>
         {
             readonly ExecutedCommand<T> _command;
 
@@ -45,11 +45,11 @@ namespace CK.Cris
 
             object? IExecutedCommand.Result => _command.Result;
 
-            public IExecutedCommand<T>.TypedResult<TOtherResult> WithResult<TOtherResult>() => _command.WithResult<TOtherResult>();
+            public IExecutedCommand<T>.IWithResult<TOtherResult> WithResult<TOtherResult>() => _command.WithResult<TOtherResult>();
         }
 
         /// <inheritdoc />
-        public IExecutedCommand<T>.TypedResult<TResult> WithResult<TResult>()
+        public IExecutedCommand<T>.IWithResult<TResult> WithResult<TResult>()
         {
             // Building a strongly typed result: we check that the actual result type (that is
             // the most precise type among the different ICommand<TResult> TResult types) is

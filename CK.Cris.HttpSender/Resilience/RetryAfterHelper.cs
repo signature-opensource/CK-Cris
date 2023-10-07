@@ -1,13 +1,10 @@
 using CK.Core;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CK.Cris.HttpSender
 {
+    // Waiting for .NET 8 
     internal static class RetryAfterHelper
     {
         /// <summary>

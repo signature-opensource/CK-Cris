@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace CK.Cris.HttpSender
 {
+    // Waiting for .NET 8 
     internal sealed class ResilienceHandler : DelegatingHandler
     {
         public static readonly ResiliencePropertyKey<HttpRequestMessage> RequestMessage = new( "Resilience.Http.RequestMessage" );

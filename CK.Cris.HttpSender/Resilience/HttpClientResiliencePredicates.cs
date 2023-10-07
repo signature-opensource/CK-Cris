@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 
 namespace CK.Cris.HttpSender
 {
+    // Waiting for .NET 8 
+
     public static class HttpClientResiliencePredicates
     {
         /// <summary>

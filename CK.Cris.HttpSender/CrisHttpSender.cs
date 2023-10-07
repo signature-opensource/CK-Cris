@@ -14,6 +14,7 @@ using Polly.Retry;
 using System.Net;
 using static CK.Core.CheckedWriteStream;
 using System.Threading;
+using System.Linq;
 
 namespace CK.Cris.HttpSender
 {
@@ -55,17 +56,77 @@ namespace CK.Cris.HttpSender
         }
 
         /// <summary>
-        /// Sends a Cris command on a remote endpoint, and returns the result.
+        /// Sends a Cris command on the remote endpoint, and returns the <see cref="IExecutedCommand{T}"/>.
         /// This never throws.
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="command">The command to send.</param>
+        /// <param name="cancellationToken">Optional cancellation token.</param>
+        /// <param name="lineNumber">Calling line number (set by Roslyn).</param>
+        /// <param name="fileName">Calling file path (set by Roslyn).</param>
         /// <returns>The <see cref="IExecutedCommand"/>.</returns>
-        public async Task<IExecutedCommand<T>> SendAsync<T>( IActivityMonitor monitor,
-                                                             T command,
-                                                             CancellationToken cancellationToken = default,
-                                                             [CallerLineNumber] int lineNumber = 0,
-                                                             [CallerFilePath] string? fileName = null )
+        public Task<IExecutedCommand<T>> SendAsync<T>( IActivityMonitor monitor,
+                                                       T command,
+                                                       CancellationToken cancellationToken = default,
+                                                       [CallerLineNumber] int lineNumber = 0,
+                                                       [CallerFilePath] string? fileName = null )
+            where T : class, IAbstractCommand
+        {
+            return DoSendAsync( monitor, command, throwError: false, lineNumber, fileName, cancellationToken );
+        }
+
+        /// <summary>
+        /// Sends a Cris command on the remote endpoint, and returns a successful result or throws:
+        /// if <see cref="IExecutedCommand.Result"/> is a <see cref="ICrisResultError"/>, this throws.
+        /// </summary>
+        /// <param name="monitor">The monitor to use.</param>
+        /// <param name="command">The command to send.</param>
+        /// <param name="cancellationToken">Optional cancellation token.</param>
+        /// <param name="lineNumber">Calling line number (set by Roslyn).</param>
+        /// <param name="fileName">Calling file path (set by Roslyn).</param>
+        /// <returns>The <see cref="IExecutedCommand"/>.</returns>
+        public async Task<IExecutedCommand<T>> SendOrThrowAsync<T>( IActivityMonitor monitor,
+                                                                    T command,
+                                                                    CancellationToken cancellationToken = default,
+                                                                    [CallerLineNumber] int lineNumber = 0,
+                                                                    [CallerFilePath] string? fileName = null )
+            where T : class, IAbstractCommand
+        {
+            var r = await DoSendAsync( monitor, command, throwError: true, lineNumber, fileName, cancellationToken ).ConfigureAwait( false );
+            if( r.Result is ICrisResultError e )
+            {
+                var msg = e.Messages.FirstOrDefault().Message.Text;
+                if( msg.Length == 0 ) msg = "(no user messages)";
+                Throw.CKException( $"Cris error. {msg}" );
+            }
+            return r;
+        }
+
+        /// <summary>
+        /// Sends a <see cref="ICommand{TResult}"/> on the remote endpoint, and returns its result or throws.
+        /// </summary>
+        /// <param name="monitor">The monitor to use.</param>
+        /// <param name="command">The command to send.</param>
+        /// <param name="cancellationToken">Optional cancellation token.</param>
+        /// <param name="lineNumber">Calling line number (set by Roslyn).</param>
+        /// <param name="fileName">Calling file path (set by Roslyn).</param>
+        /// <returns>The <see cref="IExecutedCommand"/>.</returns>
+        public async Task<TResult> SendAndGetResultOrThrowAsync<TResult>( IActivityMonitor monitor,
+                                                                          ICommand<TResult> command,
+                                                                          CancellationToken cancellationToken = default,
+                                                                          [CallerLineNumber] int lineNumber = 0,
+                                                                          [CallerFilePath] string? fileName = null )
+        {
+            var r = await SendOrThrowAsync( monitor, command, cancellationToken, lineNumber, fileName ).ConfigureAwait( false );
+            return r.WithResult<TResult>().Result;
+        }
+
+        async Task<IExecutedCommand<T>> DoSendAsync<T>( IActivityMonitor monitor,
+                                                        T command,
+                                                        bool throwError,
+                                                        int lineNumber,
+                                                        string? fileName,
+                                                        CancellationToken cancellationToken )
             where T : class, IAbstractCommand
         {
             byte[]? payloadResponse = null;
@@ -77,7 +138,7 @@ namespace CK.Cris.HttpSender
                 {
                     command.Write( wPayload );
                 }
-                monitor.Info( CrisDirectory.CrisTag, $"Sending {(payloadString = Encoding.UTF8.GetString(payload.GetReadOnlySequence()))} to '{_remote.FullName}'.", lineNumber, fileName );
+                monitor.Info( CrisDirectory.CrisTag, $"Sending {(payloadString = Encoding.UTF8.GetString( payload.GetReadOnlySequence() ))} to '{_remote.FullName}'.", lineNumber, fileName );
                 using var request = new HttpRequestMessage( HttpMethod.Post, _endpointUrl );
 
                 payload.Position = 0;
@@ -87,16 +148,16 @@ namespace CK.Cris.HttpSender
                 {
                     ctx.Properties.Set( _contextKey, new CallContext( this, monitor ) );
                     request.SetResilienceContext( ctx );
-                    using var response = await _httpClient.SendAsync( request ).ConfigureAwait( false );
+                    using var response = await _httpClient.SendAsync( request, cancellationToken ).ConfigureAwait( false );
                     response.EnsureSuccessStatusCode();
-                    payloadResponse = await response.Content.ReadAsByteArrayAsync().ConfigureAwait( false );
+                    payloadResponse = await response.Content.ReadAsByteArrayAsync( cancellationToken ).ConfigureAwait( false );
                 }
                 finally
                 {
                     ResilienceContextPool.Shared.Return( ctx );
                 }
 
-                var crisResult = ReadAspNetCrisResult( monitor, _pocoDirectory, payloadResponse );
+                var crisResult = ReadAspNetCrisResult( monitor, _pocoDirectory, payloadResponse, throwError );
                 if( crisResult.HasValue )
                 {
                     return new ExecutedCommand<T>( command, crisResult.Value.Result, null );
@@ -106,6 +167,7 @@ namespace CK.Cris.HttpSender
             }
             catch( Exception ex )
             {
+                if( throwError ) throw;
                 payloadString ??= command.ToString();
                 var errorPayloadResponse = payloadResponse != null
                                 ? $"{Environment.NewLine}Response:{Environment.NewLine}{Encoding.UTF8.GetString( payloadResponse )}"
@@ -117,7 +179,8 @@ namespace CK.Cris.HttpSender
 
             static (object? Result, string? CorrelationId)? ReadAspNetCrisResult( IActivityMonitor monitor,
                                                                                   PocoDirectory pocoDirectory,
-                                                                                  ReadOnlySpan<byte> payload )
+                                                                                  ReadOnlySpan<byte> payload,
+                                                                                  bool throwError )
             {
                 var reader = new Utf8JsonReader( payload );
                 Throw.DebugAssert( reader.TokenType == JsonTokenType.None );
@@ -162,7 +225,9 @@ namespace CK.Cris.HttpSender
                         return (result, reader.GetString());
                     }
                 }
-                monitor.Error( $"Unable to read Cris result from:{Environment.NewLine}{Encoding.UTF8.GetString(payload)}" );
+                var msg = $"Unable to read Cris result from:{Environment.NewLine}{Encoding.UTF8.GetString( payload )}";
+                if( throwError ) throw new CKException( msg );
+                monitor.Error( msg );
                 return null;
             }
         }

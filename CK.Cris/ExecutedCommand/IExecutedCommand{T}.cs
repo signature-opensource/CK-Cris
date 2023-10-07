@@ -15,7 +15,7 @@ namespace CK.Cris
         /// compliant with the actual command result's type otherwise an <see cref="ArgumentException"/> is thrown.
         /// </summary>
         /// <typeparam name="TResult">The expected result type.</typeparam>
-        public interface TypedResult<TResult> : IExecutedCommand<T>
+        public interface IWithResult<TResult> : IExecutedCommand<T>
         {
             /// <summary>
             /// Gets the strongly typed result of <see cref="ICommand{TResult}"/>.
@@ -35,7 +35,7 @@ namespace CK.Cris
         /// </summary>
         /// <typeparam name="TResult">The result type.</typeparam>
         /// <returns>A strongly typed command and its result.</returns>
-        TypedResult<TResult> WithResult<TResult>();
+        IWithResult<TResult> WithResult<TResult>();
 
     }
 

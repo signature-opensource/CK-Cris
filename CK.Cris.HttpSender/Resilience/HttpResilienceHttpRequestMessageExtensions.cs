@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 
 namespace CK.Cris.HttpSender
 {
+    // Waiting for .NET 8 
+
     /// <summary>
     /// The resilience extensions for <see cref="HttpRequestMessage"/>.
     /// </summary>

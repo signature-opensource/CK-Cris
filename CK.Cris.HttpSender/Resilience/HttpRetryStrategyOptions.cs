@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 
 namespace CK.Cris.HttpSender
 {
+    // Waiting for .NET 8 
+
     /// <summary>
     /// Implementation of the <see cref="RetryStrategyOptions{TResult}"/> for <see cref="HttpResponseMessage"/> results.
     /// </summary>
