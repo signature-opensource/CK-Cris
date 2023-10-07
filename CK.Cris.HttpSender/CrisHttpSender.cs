@@ -5,20 +5,20 @@ using System;
 using System.Buffers;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Polly;
-using Polly.Retry;
-using System.Net;
-using static CK.Core.CheckedWriteStream;
 using System.Threading;
 using System.Linq;
 
 namespace CK.Cris.HttpSender
 {
-    public sealed partial class CrisHttpSender
+    /// <summary>
+    /// Supports sending Cris commands to "<see cref="IRemoteParty.Address"/>/.cris/net" endpoint.
+    /// The remote address must be a "http://" or "https://" address without any path or query part.
+    /// </summary>
+    public sealed partial class CrisHttpSender : ICrisHttpSender
     {
         readonly HttpClient _httpClient;
         readonly IRemoteParty _remote;
@@ -55,16 +55,10 @@ namespace CK.Cris.HttpSender
             _pocoDirectory = pocoDirectory;
         }
 
-        /// <summary>
-        /// Sends a Cris command on the remote endpoint, and returns the <see cref="IExecutedCommand{T}"/>.
-        /// This never throws.
-        /// </summary>
-        /// <param name="monitor">The monitor to use.</param>
-        /// <param name="command">The command to send.</param>
-        /// <param name="cancellationToken">Optional cancellation token.</param>
-        /// <param name="lineNumber">Calling line number (set by Roslyn).</param>
-        /// <param name="fileName">Calling file path (set by Roslyn).</param>
-        /// <returns>The <see cref="IExecutedCommand"/>.</returns>
+        /// <inheritdoc />
+        public IRemoteParty Remote => _remote;
+
+        /// <inheritdoc />
         public Task<IExecutedCommand<T>> SendAsync<T>( IActivityMonitor monitor,
                                                        T command,
                                                        CancellationToken cancellationToken = default,
@@ -75,16 +69,7 @@ namespace CK.Cris.HttpSender
             return DoSendAsync( monitor, command, throwError: false, lineNumber, fileName, cancellationToken );
         }
 
-        /// <summary>
-        /// Sends a Cris command on the remote endpoint, and returns a successful result or throws:
-        /// if <see cref="IExecutedCommand.Result"/> is a <see cref="ICrisResultError"/>, this throws.
-        /// </summary>
-        /// <param name="monitor">The monitor to use.</param>
-        /// <param name="command">The command to send.</param>
-        /// <param name="cancellationToken">Optional cancellation token.</param>
-        /// <param name="lineNumber">Calling line number (set by Roslyn).</param>
-        /// <param name="fileName">Calling file path (set by Roslyn).</param>
-        /// <returns>The <see cref="IExecutedCommand"/>.</returns>
+        /// <inheritdoc />
         public async Task<IExecutedCommand<T>> SendOrThrowAsync<T>( IActivityMonitor monitor,
                                                                     T command,
                                                                     CancellationToken cancellationToken = default,
@@ -102,15 +87,7 @@ namespace CK.Cris.HttpSender
             return r;
         }
 
-        /// <summary>
-        /// Sends a <see cref="ICommand{TResult}"/> on the remote endpoint, and returns its result or throws.
-        /// </summary>
-        /// <param name="monitor">The monitor to use.</param>
-        /// <param name="command">The command to send.</param>
-        /// <param name="cancellationToken">Optional cancellation token.</param>
-        /// <param name="lineNumber">Calling line number (set by Roslyn).</param>
-        /// <param name="fileName">Calling file path (set by Roslyn).</param>
-        /// <returns>The <see cref="IExecutedCommand"/>.</returns>
+        /// <inheritdoc />
         public async Task<TResult> SendAndGetResultOrThrowAsync<TResult>( IActivityMonitor monitor,
                                                                           ICommand<TResult> command,
                                                                           CancellationToken cancellationToken = default,

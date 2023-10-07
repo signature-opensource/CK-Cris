@@ -29,6 +29,12 @@ namespace CK.Cris.HttpSender
             _pocoDirectory = pocoDirectory;
         }
 
+        /// <summary>
+        /// Adds the <see cref="CrisHttpSender"/> feature to any <see cref="FeatureLifetimeContext.GetAllRemotes()"/>
+        /// that has a "CrisHttpSender" section.
+        /// </summary>
+        /// <param name="context">The lifetime context.</param>
+        /// <returns>True on success, false on error.</returns>
         protected override Task<bool> SetupAsync( FeatureLifetimeContext context )
         {
             bool success = true;
@@ -39,12 +45,25 @@ namespace CK.Cris.HttpSender
             return Task.FromResult( success );
         }
 
+        /// <summary>
+        /// Adds the <see cref="CrisHttpSender"/> feature to any <see cref="FeatureLifetimeContext.GetAllRemotes()"/>
+        /// that has a "CrisHttpSender" section.
+        /// </summary>
+        /// <param name="context">The lifetime context.</param>
+        /// <param name="party">The dynamic party to initialize.</param>
+        /// <returns>True on success, false on error.</returns>
         protected override Task<bool> SetupDynamicRemoteAsync( FeatureLifetimeContext context, IOwnedParty party )
         {
             // Since we only use the GetAllRemotes helper, SetupAsync does the job.
             return SetupAsync( context );
         }
 
+        /// <summary>
+        /// Tears down the <see cref="CrisHttpSender"/> feature (by disposing its HttpClient)
+        /// from any <see cref="FeatureLifetimeContext.GetAllRemotes()"/> that has it.
+        /// </summary>
+        /// <param name="context">The lifetime context.</param>
+        /// <returns>The awaitable.</returns>
         protected override Task TeardownAsync( FeatureLifetimeContext context )
         {
             foreach( var r in context.GetAllRemotes() )
@@ -56,27 +75,17 @@ namespace CK.Cris.HttpSender
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Tears down the <see cref="CrisHttpSender"/> feature (by disposing its HttpClient)
+        /// from any <see cref="FeatureLifetimeContext.GetAllRemotes()"/> that has it.
+        /// </summary>
+        /// <param name="context">The lifetime context.</param>
+        /// <param name="party">The dynamic party to cleanup.</param>
+        /// <returns>The awaitable.</returns>
         protected override Task TeardownDynamicRemoteAsync( FeatureLifetimeContext context, IOwnedParty party )
         {
             // Since we only use the GetAllRemotes helper, TeardownAsync does the job.
             return TeardownAsync( context );
-        }
-
-        static bool HasConfig( IConfigurationSection section, out bool isSection, bool trueDefault = true )
-        {
-            if( bool.TryParse( section.Value, out var b ) )
-            {
-                if( b )
-                {
-                    isSection = false;
-                    return trueDefault;
-                }
-                isSection = false;
-                return !trueDefault;
-            }
-            Throw.DebugAssert( section.GetChildren().Any() );
-            isSection = true;
-            return true;
         }
 
         bool PlugFeature( IActivityMonitor monitor, IRemoteParty r )

@@ -13,7 +13,7 @@ namespace CK.Cris.HttpSender
 {
     // Waiting for .NET 8 
 
-    public static class HttpClientResiliencePredicates
+    internal static class HttpClientResiliencePredicates
     {
         /// <summary>
         /// Determines whether an exception should be treated by resilience strategies as a transient failure.
