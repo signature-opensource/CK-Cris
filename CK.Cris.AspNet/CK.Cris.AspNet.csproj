@@ -8,7 +8,7 @@
   </ItemGroup>
   <ItemGroup>
     <!-- Temporary? should this be externalized in a CK.Cris.Globalization independent package? -->
-    <PackageReference Include="CK.Globalization" Version="0.0.0--04kn2ug-develop" />
+    <PackageReference Include="CK.Globalization" Version="0.0.0--04kok4n-develop" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris.BackgroundExecutor\CK.Cris.BackgroundExecutor.csproj" />
