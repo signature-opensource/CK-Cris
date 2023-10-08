@@ -1,0 +1,122 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Comment CommentText="[CKTypeSuperDefiner]">
+    <Position X="6.025" Y="0.867" Height="0.291" Width="1.442" />
+  </Comment>
+  <Comment CommentText="[CKTypeSuperDefiner]">
+    <Position X="4.35" Y="2.742" Height="0.291" Width="1.45" />
+  </Comment>
+  <Comment CommentText="[CKTypeSuperDefiner]">
+    <Position X="8.292" Y="3.742" Height="0.291" Width="1.442" />
+  </Comment>
+  <Comment CommentText="[CKTypeSuperDefiner]">
+    <Position X="2.5" Y="3.75" Height="0.291" Width="1.442" />
+  </Comment>
+  <Class Name="CK.Cris.CrisDirectory">
+    <Position X="8.25" Y="0.5" Width="1.5" />
+    <Members>
+      <Method Name="CrisDirectory" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>CrisDirectory.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Interface Name="CK.Cris.IAbstractCommand" Collapsed="true">
+    <Position X="4.25" Y="2.5" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Command\IAbstractCommand.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="CK.Cris.ICommand" Collapsed="true">
+    <Position X="4.25" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Command\ICommand.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="CK.Cris.ICommandPart" Collapsed="true">
+    <Position X="2.5" Y="3.5" Width="1.5" />
+    <InheritanceLine Type="CK.Cris.IAbstractCommand" FixedToPoint="true">
+      <Path>
+        <Point X="5.125" Y="3.191" />
+        <Point X="5.125" Y="3.346" />
+        <Point X="3.188" Y="3.346" />
+        <Point X="3.188" Y="3.5" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Command\ICommandPart.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="CK.Cris.ICommand&lt;TResult&gt;" Collapsed="true">
+    <Position X="6" Y="3.5" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQA=</HashCode>
+      <FileName>Command\ICommand{TResult}.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="CK.Cris.ICrisPoco">
+    <Position X="6" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>ICrisPoco.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="CK.Cris.IEvent" Collapsed="true">
+    <Position X="8.25" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Event\IEvent.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="CK.Cris.IEventPart" Collapsed="true">
+    <Position X="8.25" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Event\IEventPart.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="CK.Cris.IEventWithCommand">
+    <Position X="8" Y="4.5" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAA=</HashCode>
+      <FileName>Event\IEventWithCommand.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="CK.Cris.ICrisPocoModel">
+    <Position X="0.5" Y="0.5" Width="1.75" />
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <NestedTypes>
+      <Interface Name="CK.Cris.ICrisPocoModel.IHandler">
+        <TypeIdentifier>
+          <NewMemberFileName>ICrisPocoModel.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Interface>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AAAAABAAABBAQACAEAAAAAAAAFAAAEAAAAAAAAAAAAA=</HashCode>
+      <FileName>ICrisPocoModel.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Enum Name="CK.Cris.CrisPocoKind">
+    <Position X="2.5" Y="0.5" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAgAAAAAAAgAAAAAAACBAAACAAAAAAAAACAAAAAAAA=</HashCode>
+      <FileName>CrisPocoKind.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="CK.Cris.CrisHandlerKind">
+    <Position X="2.5" Y="4.5" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>IAAAAAAAAAAAIAAAAAABIAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>CrisHandlerKind.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

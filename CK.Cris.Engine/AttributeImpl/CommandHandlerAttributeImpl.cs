@@ -9,7 +9,7 @@ using System.Text;
 
 namespace CK.Setup.Cris
 {
-    sealed class CommandHandlerAttributeImpl : CommandAttributeImpl, ICSCodeGenerator
+    sealed class CommandHandlerAttributeImpl : BaseHandlerAttributeImpl, ICSCodeGenerator
     {
         readonly CommandHandlerAttribute _a;
 
@@ -22,8 +22,8 @@ namespace CK.Setup.Cris
         public CSCodeGenerationResult Implement( IActivityMonitor monitor, ICSCodeGenerationContext codeGenContext )
         {
             var (registry, impl, method) = Prepare( monitor, codeGenContext );
-            Debug.Assert( (registry == null) == (impl == null) );
-            return registry != null && registry.RegisterHandler( monitor, impl!, method, _a.AllowUnclosedCommand )
+            Throw.DebugAssert( (registry == null) == (impl == null) );
+            return registry != null && registry.RegisterHandler( monitor, impl!, method, _a.AllowUnclosedCommand, _a.FileName, _a.LineNumber )
                     ? CSCodeGenerationResult.Success
                     : CSCodeGenerationResult.Failed;
         }

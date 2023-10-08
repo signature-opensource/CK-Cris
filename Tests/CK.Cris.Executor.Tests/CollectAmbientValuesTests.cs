@@ -67,7 +67,7 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task CommandPostHandler_fills_the_resulting_ambient_values_Async()
         {
-            var c = FrontCommandExecutorTests.CreateFrontCommandCollector( typeof( IAmbientValuesCollectCommand ),
+            var c = RawCrisExecutorCommandTests.CreateRawExecutorCollector( typeof( IAmbientValuesCollectCommand ),
                                                                            typeof( AmbientValuesService ),
                                                                            typeof( AuthService ),
                                                                            typeof( IAuthAmbientValues ),
@@ -78,7 +78,8 @@ namespace CK.Cris.Executor.Tests
             var authInfo = authTypeSystem.AuthenticationInfo.Create( authTypeSystem.UserInfo.Create( 3712, "John" ), DateTime.UtcNow.AddDays( 1 ) );
             var map = TestHelper.CompileAndLoadStObjMap( c ).Map;
             var reg = new StObjContextRoot.ServiceRegister( TestHelper.Monitor, new ServiceCollection() );
-            reg.Register<IAuthenticationInfo>( s => authInfo, true, false );
+            reg.Register<IAuthenticationInfo>( s => authInfo, isScoped: true, allowMultipleRegistration: false );
+            reg.Register<IActivityMonitor>( s => TestHelper.Monitor, true, false );
             reg.AddStObjMap( map ).Should().BeTrue( "Service configuration succeed." );
 
             var appServices = reg.Services.BuildServiceProvider();
@@ -86,19 +87,17 @@ namespace CK.Cris.Executor.Tests
             using( var scope = appServices.CreateScope() )
             {
                 var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<FrontCommandExecutor>();
+                var executor = services.GetRequiredService<RawCrisExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<IAmbientValuesCollectCommand>>().Create();
 
-                var r = await executor.ExecuteCommandAsync( TestHelper.Monitor, services, cmd );
-                r.Code.Should().Be( VESACode.Synchronous );
-                Debug.Assert( r.Result != null );
-
-                var auth = (IAuthAmbientValues)r.Result!;
+                var r = await executor.RawExecuteAsync( services, cmd );
+                Throw.DebugAssert( r != null );
+                var auth = (IAuthAmbientValues)r;
                 auth.ActorId.Should().Be( 3712 );
                 auth.ActualActorId.Should().Be( 3712 );
                 auth.DeviceId.Should().Be( authInfo.DeviceId );
 
-                var sec = (ISecurityAmbientValues)r.Result!;
+                var sec = (ISecurityAmbientValues)r;
                 sec.Roles.Should().BeEquivalentTo( "Administrator", "Tester", "Approver" );
             }
         }

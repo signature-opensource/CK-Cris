@@ -3,7 +3,18 @@
     <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>CK.Setup.Cris</RootNamespace>
     <Nullable>enable</Nullable>
+    <LangVersion>11</LangVersion>
   </PropertyGroup>
+  <ItemGroup>
+    <!--
+          This CK.Cris.AspNet.Engine directly implements the TypeScriptCrisCommandGeneratorImpl to avoid another (quite small) assembly.
+
+          Note that Cris TypeScript generation requires:
+          - the TypeScriptAspect is declared and one or more <TypeScript><OutuptPath>...</OutuptPath></TypeScript> is defined in the BinPathConfiguration.
+          - AND the CK.Cris.TypeScript must be referenced.
+    -->
+    <PackageReference Include="CK.StObj.TypeScript.Engine" Version="0.14.0" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris.AspNet\CK.Cris.AspNet.csproj" />
     <ProjectReference Include="..\CK.Cris.Engine\CK.Cris.Engine.csproj" />

@@ -5,6 +5,9 @@
     <RootNamespace>CK.Cris</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="CK.PerfectEvent" Version="20.0.0" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
   </ItemGroup>
 </Project>

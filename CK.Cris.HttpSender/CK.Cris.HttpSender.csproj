@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CK.AppIdentity" Version="0.1.0" />
+    <PackageReference Include="CK.Poco.Json" Version="24.0.0" />
+    <PackageReference Include="Polly.Core" Version="8.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
+  </ItemGroup>
+</Project>
