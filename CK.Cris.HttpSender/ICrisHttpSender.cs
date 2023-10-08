@@ -26,7 +26,12 @@ namespace CK.Cris.HttpSender
         /// <param name="lineNumber">Calling line number (set by Roslyn).</param>
         /// <param name="fileName">Calling file path (set by Roslyn).</param>
         /// <returns>The <see cref="IExecutedCommand"/>.</returns>
-        Task<IExecutedCommand<T>> SendAsync<T>( IActivityMonitor monitor, T command, CancellationToken cancellationToken = default, [CallerLineNumber] int lineNumber = 0, [CallerFilePath] string? fileName = null ) where T : class, IAbstractCommand;
+        Task<IExecutedCommand<T>> SendAsync<T>( IActivityMonitor monitor,
+                                                T command,
+                                                CancellationToken cancellationToken = default,
+                                                [CallerLineNumber] int lineNumber = 0,
+                                                [CallerFilePath] string? fileName = null )
+            where T : class, IAbstractCommand;
 
         /// <summary>
         /// Sends a Cris command on the remote endpoint, and returns a successful result or throws:
@@ -38,7 +43,12 @@ namespace CK.Cris.HttpSender
         /// <param name="lineNumber">Calling line number (set by Roslyn).</param>
         /// <param name="fileName">Calling file path (set by Roslyn).</param>
         /// <returns>The <see cref="IExecutedCommand"/>.</returns>
-        Task<IExecutedCommand<T>> SendOrThrowAsync<T>( IActivityMonitor monitor, T command, CancellationToken cancellationToken = default, [CallerLineNumber] int lineNumber = 0, [CallerFilePath] string? fileName = null ) where T : class, IAbstractCommand;
+        Task<IExecutedCommand<T>> SendOrThrowAsync<T>( IActivityMonitor monitor,
+                                                       T command,
+                                                       CancellationToken cancellationToken = default,
+                                                       [CallerLineNumber] int lineNumber = 0,
+                                                       [CallerFilePath] string? fileName = null )
+            where T : class, IAbstractCommand;
 
         /// <summary>
         /// Sends a <see cref="ICommand{TResult}"/> on the remote endpoint, and returns its result or throws.
@@ -49,7 +59,11 @@ namespace CK.Cris.HttpSender
         /// <param name="lineNumber">Calling line number (set by Roslyn).</param>
         /// <param name="fileName">Calling file path (set by Roslyn).</param>
         /// <returns>The <see cref="IExecutedCommand"/>.</returns>
-        Task<TResult> SendAndGetResultOrThrowAsync<TResult>( IActivityMonitor monitor, ICommand<TResult> command, CancellationToken cancellationToken = default, [CallerLineNumber] int lineNumber = 0, [CallerFilePath] string? fileName = null );
+        Task<TResult> SendAndGetResultOrThrowAsync<TResult>( IActivityMonitor monitor,
+                                                             ICommand<TResult> command,
+                                                             CancellationToken cancellationToken = default,
+                                                             [CallerLineNumber] int lineNumber = 0,
+                                                             [CallerFilePath] string? fileName = null );
 
     }
 }
