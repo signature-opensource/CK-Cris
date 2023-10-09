@@ -9,6 +9,7 @@ namespace CK.Cris
 {
     public sealed partial class CrisJob
     {
+        [ExcludeCKType]
         internal sealed class JobExecutionContext : CrisExecutionContext
         {
             readonly CrisJob _job;

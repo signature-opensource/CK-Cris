@@ -23,7 +23,7 @@ namespace CK.Cris
         /// parallel is supported.
         /// <para>
         /// Once emitted, the event should not be mutated otherwise kitten will die: it is safer to use
-        /// <see cref="EmitEventAsync{T}(Action{T}){T}(Action{T})"/>.
+        /// <see cref="EmitEventAsync{T}(Action{T})"/>.
         /// </para>
         /// </summary>
         /// <param name="e">The event to send.</param>
