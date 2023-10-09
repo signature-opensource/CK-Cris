@@ -1,6 +1,8 @@
 using CK.Core;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -71,18 +73,32 @@ namespace CK.Cris
         }
 
         /// <summary>
+        /// Direct constructor from a non empty array of messages.
+        /// The array must not be mutated, this is inteded to be used by external de/serializer.
+        /// </summary>
+        /// <param name="messages">The messages. Must not be empty: use <see cref="Success"/> singleton in such case.</param>
+        /// <param name="logKey">Optional log key.</param>
+        public CrisValidationResult( UserMessage[] messages, string? logKey )
+        {
+            Throw.CheckNotNullOrEmptyArgument( messages );
+            Success = messages.All( m => m.Level != UserMessageLevel.Error );
+            Messages = messages;
+            LogKey = logKey;
+        }
+
+        /// <summary>
         /// Gets all the messages.
         /// </summary>
         public IReadOnlyList<UserMessage> Messages { get; }
 
         /// <summary>
-        /// Gets whether the command has been successfully validated. <see cref="Errors"/> is empty
-        /// but there may be <see cref="Warnings"/>.
+        /// Gets whether the command has been successfully validated: <see cref="Messages"/> is empty
+        /// or has no <see cref="UserMessageLevel.Error"/>.
         /// </summary>
         public bool Success { get; }
 
         /// <summary>
-        /// Gets whether there are <see cref="Warnings"/> messages.
+        /// Gets whether there are <see cref="UserMessageLevel.Warn"/> messages.
         /// </summary>
         public bool HasWarnings => Messages.Any( e => e.Level == UserMessageLevel.Warn );
 

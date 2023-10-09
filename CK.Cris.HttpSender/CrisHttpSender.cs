@@ -169,7 +169,7 @@ namespace CK.Cris.HttpSender
                     && reader.ValueTextEquals( "result" )
                     && reader.Read() )
                 {
-                    // TODO: expose the internal generated object? ReadObject( ref reader ) on PocoDirectory!
+                    // TODO: expose the internal generated object? ReadAny( ref reader ) on PocoDirectory!
                     object? result;
                     switch( reader.TokenType )
                     {
