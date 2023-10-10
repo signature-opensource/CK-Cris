@@ -11,7 +11,7 @@ namespace CK.Cris
     /// </summary>
     [ContextBoundDelegation( "CK.Setup.Cris.RawCrisValidatorImpl, CK.Cris.Executor.Engine" )]
     // To simplify testing.
-    [AlsoRegisterType( typeof( ExtendedCultureInfoUbiquitousServiceDefault ) )]
+    [AlsoRegisterType( typeof( NormalizedCultureInfoUbiquitousServiceDefault ) )]
     [AlsoRegisterType( typeof( TranslationService ) )]
     [AlsoRegisterType( typeof( CurrentCultureInfo ) )]
     public abstract class RawCrisValidator : ISingletonAutoService
