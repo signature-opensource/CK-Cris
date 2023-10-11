@@ -13,6 +13,7 @@ namespace CK.Cris
     // To simplify testing.
     [AlsoRegisterType( typeof( NormalizedCultureInfoUbiquitousServiceDefault ) )]
     [AlsoRegisterType( typeof( TranslationService ) )]
+    [AlsoRegisterType( typeof( NormalizedCultureInfo ) )]
     [AlsoRegisterType( typeof( CurrentCultureInfo ) )]
     public abstract class RawCrisValidator : ISingletonAutoService
     {
