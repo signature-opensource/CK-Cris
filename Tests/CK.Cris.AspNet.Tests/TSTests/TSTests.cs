@@ -56,6 +56,16 @@ namespace CK.Cris.AspNet.E2ETests
         [Test]
         public async Task E2ETest_Async()
         {
+            //
+            // When running in Debug, this will wait until resume is set to true.
+            // Until then, the .NET server is running and tests can be manually executed
+            // written and fixed.
+            // 
+            // To stop, simply put a breakpoint in the resume lambda and sets the resume value
+            // to true with the Watch window.
+            //
+            // In regular run, this will not wait for resume.
+            //
             var targetOutputPath = TestHelper.GetTypeScriptWithTestsSupportTargetProjectPath();
             Throw.DebugAssert( targetOutputPath.EndsWith( "/TSTests/E2ETest_Async" ) );
             await TestHelper.RunAspNetE2ETestAsync( targetOutputPath,
