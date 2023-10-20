@@ -5,8 +5,8 @@
     <IsPackable>true</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.AppIdentity" Version="0.1.1--0002-develop" />
-    <PackageReference Include="CK.Poco.Json" Version="24.0.1--0007-develop" />
+    <PackageReference Include="CK.AppIdentity" Version="0.1.1" />
+    <PackageReference Include="CK.Poco.Json" Version="24.1.0" />
     <PackageReference Include="Polly.Core" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>
