@@ -222,7 +222,7 @@ namespace CK.Setup
             fHttpEndpoint.Imports.Append( "import {CrisEndpoint} from './CrisEndpoint';" ).NewLine();
             fHttpEndpoint.Imports.Append( "import {ICommand,ExecutedCommand,CrisError} from './Model';" ).NewLine();
 
-            fHttpEndpoint.Imports.EnsureImportFromLibrary( new LibraryImport( "axios", "^1.2.3", DependencyKind.Dependency ),
+            fHttpEndpoint.Imports.EnsureImportFromLibrary( new LibraryImport( "axios", "^1.5.1", DependencyKind.Dependency ),
                                                                        "AxiosInstance", "AxiosHeaders", "RawAxiosRequestConfig" );
             fHttpEndpoint.Body.Append( """
                                        const defaultCrisAxiosConfig: RawAxiosRequestConfig = {
