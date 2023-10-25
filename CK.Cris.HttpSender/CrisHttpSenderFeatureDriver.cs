@@ -92,7 +92,7 @@ namespace CK.Cris.HttpSender
         {
             // Allow "CrisHttpSender" = "false" or "true".
             // This supports default, empty, configuration.
-            if( r.Configuration.Configuration.ShouldApplyConfiguration( "CrisHttpSender", optOut: true, out var config ) )
+            if( r.Configuration.Configuration.ShouldApplyConfiguration( "CrisHttpSender", optOut: false, out var config ) )
             {
                 if( r.Address is null
                     || !Uri.TryCreate( r.Address, UriKind.Absolute, out var uri )
