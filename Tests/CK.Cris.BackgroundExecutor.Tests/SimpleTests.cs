@@ -35,11 +35,28 @@ namespace CK.Cris.BackgroundExecutor.Tests
             int Delay { get; set; }
         }
 
+        public sealed class RegularScopedService : IScopedAutoService, IDisposable
+        {
+            readonly IActivityMonitor _monitor;
+
+            public RegularScopedService( IActivityMonitor monitor )
+            {
+                _monitor = monitor;
+                monitor.Info( $"Instantiating {nameof(RegularScopedService)}." );
+            }
+
+            public void Dispose()
+            {
+                _monitor.Info( $"Disposing {nameof( RegularScopedService )}." );
+            }
+        }
+
         public sealed class StupidHandlers : ISingletonAutoService
         {
             [CommandHandler]
-            public async Task HandleCommandAsync( IActivityMonitor monitor, IDelayCommand command )
+            public async Task HandleCommandAsync( IActivityMonitor monitor, IDelayCommand command, RegularScopedService scopedOne )
             {
+                scopedOne.Should().NotBeNull();
                 monitor.Trace( SafeTrace( $"In '{command.Name}'." ) );
                 var d = command.Delay;
                 if( d != 0 )
@@ -58,7 +75,8 @@ namespace CK.Cris.BackgroundExecutor.Tests
                                                      typeof( StdAuthenticationTypeSystem ),
                                                      typeof( IDelayCommand ),
                                                      typeof( StupidHandlers ),
-                                                     typeof( CrisExecutionContext ) );
+                                                     typeof( CrisExecutionContext ),
+                                                     typeof( RegularScopedService ) );
             _services = await TestHelper.StartHostedServicesAsync( TestHelper.CreateAutomaticServices( c ).Services );
             _services.GetRequiredService<CrisExecutionHost>().ParallelRunnerCount = 1;
         }
