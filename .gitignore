@@ -261,10 +261,14 @@ CodeCakeBuilder/Tools/
 CodeCakeBuilder/[Rr]elease/
 CodeCakeBuilder/[Rr]eleases/
 
-/**/.yarn/*
-!/**/.yarn/cache
-!/**/.yarn/patches
-!/**/.yarn/plugins
-!/**/.yarn/sdks
-!/**/.yarn/releases
-!/**/.yarn/versions
+# Yarn - Not using Zero-Install (.yarn/cache and .pnp.* are not commited).
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Because we can have subordinated .yarn folder we must exclude any .yarn/install-state.gz.
+**/.yarn/install-state.gz
