@@ -21,7 +21,7 @@
         in AssemblyInfo.cs.
     -->
   <ItemGroup>
-    <PackageReference Include="CK.StObj.TypeScript" Version="0.15.2--0002-develop" />
+    <PackageReference Include="CK.StObj.TypeScript" Version="0.16.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
