@@ -18,7 +18,7 @@ namespace CK.Cris.AspNet.E2ETests
             string Color { get; set; }
         }
 
-        public class ColorService : IAutoService
+        public class ColorAndBuggyService : IAutoService
         {
             [CommandPostHandler]
             public void GetColoredAmbientValues( AmbientValues.IAmbientValuesCollectCommand cmd, IColoredAmbientValues values )
@@ -31,6 +31,24 @@ namespace CK.Cris.AspNet.E2ETests
             {
                 return $"{cmd.Color} - {cmd.Beauty}";
             }
+
+            [CommandValidator]
+            public void ValidateBuggyCommand( UserMessageCollector collector, IBuggyCommand cmd )
+            {
+                if( cmd.EmitValidationError )
+                {
+                    collector.Error( "The BuggyCommand is not valid (by design)." );
+                }
+            }
+
+            [CommandHandler]
+            public void HandleBuggyCommand( IBuggyCommand cmd )
+            {
+                Throw.DebugAssert( cmd.EmitValidationError is false );
+                throw new System.NotImplementedException( "BuggyCommand handler is not implemented." );
+            }
+
+
         }
 
         public interface ICommandColored : ICommandPart
@@ -51,6 +69,16 @@ namespace CK.Cris.AspNet.E2ETests
             /// Gets or sets the beauty's string.
             /// </summary>
             string Beauty { get; set; }
+        }
+
+        public interface IBuggyCommand : ICommand
+        {
+            /// <summary>
+            /// Gets or sets whether a validation error must be emitted or
+            /// a <see cref="System.NotImplementedException"/> must be thrown
+            /// from command execution.
+            /// </summary>
+            bool EmitValidationError { get; set; }
         }
 
         [Test]
@@ -76,9 +104,10 @@ namespace CK.Cris.AspNet.E2ETests
                                                             typeof( IBeautifulCommand ),
                                                             typeof( AmbientValues.AmbientValuesService ),
                                                             typeof( IColoredAmbientValues ),
-                                                            typeof( ColorService ),
+                                                            typeof( ColorAndBuggyService ),
+                                                            typeof( IBuggyCommand ),
                                                             typeof( CrisAspNetService ) },
-                                                    new[] { typeof( IBeautifulCommand ) },
+                                                    new[] { typeof( IBeautifulCommand ), typeof(IBuggyCommand) },
                                                     resume =>
                                                     resume );
         }

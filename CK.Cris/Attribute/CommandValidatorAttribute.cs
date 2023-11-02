@@ -6,6 +6,8 @@ namespace CK.Cris
 {
     /// <summary>
     /// Decorates a method that is a command or command part validator.
+    /// The method must have at least a <see cref="CK.Core.UserMessageCollector"/> and a
+    /// command (or command part) parameters.
     /// </summary>
     [AttributeUsage( AttributeTargets.Method, AllowMultiple = false, Inherited = false )]
     public sealed class CommandValidatorAttribute : ContextBoundDelegationAttribute
