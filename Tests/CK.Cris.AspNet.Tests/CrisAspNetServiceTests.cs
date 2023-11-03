@@ -97,7 +97,7 @@ namespace CK.Cris.AspNet.Tests
                 HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""Test"",{""Value"":3712}]" );
                 Throw.DebugAssert( r != null );
                 var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                result.ToString().Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""messages"":[[16,""An unhandled error occurred while validating command *Test* (LogKey: *)."",0]],""logKey"":""*""}],""correlationId"":null}" );
+                result.ToString().Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""messages"":[[16,""An unhandled error occurred while validating command *Test* (LogKey: *)."",0],[16,""This should not happen!"",0]],""logKey"":""*""}],""correlationId"":null}" );
             }
         }
 

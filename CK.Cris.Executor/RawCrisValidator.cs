@@ -2,6 +2,7 @@ using CK.Core;
 using CK.Setup;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace CK.Cris
@@ -73,8 +74,9 @@ namespace CK.Cris
             }
             catch( Exception ex )
             {
-                var k = PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, false, ex, command, out var genericError );
-                return new CrisValidationResult( ex, genericError, g.GetLogKeyString() ?? k );
+                var messages = new List<UserMessage>();
+                var k = PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, false, ex, command, messages );
+                return new CrisValidationResult( messages, g.GetLogKeyString() ?? k );
             }
         }
 

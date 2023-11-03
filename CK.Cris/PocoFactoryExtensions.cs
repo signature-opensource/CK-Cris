@@ -37,14 +37,19 @@ namespace CK.Cris
         /// <param name="isExecuting">Whether the command is executing or validating.</param>
         /// <param name="ex">The unhandled exception.</param>
         /// <param name="cmd">The faulted command.</param>
-        /// <param name="genericError">A generic error message.</param>
+        /// <param name="collector">Error message collector.</param>
+        /// <param name="leakAll">
+        /// Whether all exceptions must be exposed or only the <see cref="MCException"/> ones.
+        /// Defaults to <see cref="CoreApplicationIdentity.EnvironmentName"/> == "#Dev".
+        /// </param>
         /// <returns>The log key.</returns>
         public static string OnUnhandledError( IActivityMonitor monitor,
                                                CurrentCultureInfo? currentCulture,
                                                bool isExecuting,
                                                Exception ex,
                                                IAbstractCommand cmd,
-                                               out UserMessage genericError )
+                                               List<UserMessage> collector,
+                                               bool? leakAll = null )
         {
             var logText = $"While {(isExecuting ? "execu" : "valida")}ting command '{cmd.CrisPocoModel.PocoName}'.";
             using var g = monitor.UnfilteredOpenGroup( LogLevel.Error | LogLevel.IsFiltered, CrisDirectory.CrisTag, logText, null );
@@ -52,22 +57,56 @@ namespace CK.Cris
             if( currentCulture == null )
             {
                 MCString m = MCString.CreateNonTranslatable( NormalizedCultureInfo.CodeDefault, logText );
-                genericError = new UserMessage( UserMessageLevel.Error, m, 0 );
+                collector.Add( new UserMessage( UserMessageLevel.Error, m, 0 ) );
             }
             else
             {
-                genericError = isExecuting
-                            ? UserMessage.Error( currentCulture,
-                                                 $"An unhandled error occurred while executing command '{cmd.CrisPocoModel.PocoName}' (LogKey: {g.GetLogKeyString()}).",
-                                                 "Cris.UnhandledExecutionError" )
-                            : UserMessage.Error( currentCulture,
-                                                 $"An unhandled error occurred while validating command '{cmd.CrisPocoModel.PocoName}' (LogKey: {g.GetLogKeyString()}).",
-                                                 "Cris.UnhandledValidationError" );
+                collector.Add( isExecuting
+                                ? UserMessage.Error( currentCulture,
+                                                     $"An unhandled error occurred while executing command '{cmd.CrisPocoModel.PocoName}' (LogKey: {g.GetLogKeyString()}).",
+                                                     "Cris.UnhandledExecutionError" )
+                                : UserMessage.Error( currentCulture,
+                                                     $"An unhandled error occurred while validating command '{cmd.CrisPocoModel.PocoName}' (LogKey: {g.GetLogKeyString()}).",
+                                                     "Cris.UnhandledValidationError" ) );
+            }
+            var all = leakAll ?? CoreApplicationIdentity.IsInitialized
+                                    ? CoreApplicationIdentity.Instance.EnvironmentName == CoreApplicationIdentity.DefaultEnvironmentName
+                                    : true;
+            if( all )
+            {
+                if( currentCulture != null )
+                {
+                    ex.GetUserMessages( currentCulture, collector.Add );
+                }
+                else
+                {
+                    ex.GetUserMessages( collector.Add );
+                }
+            }
+            else
+            {
+                CollectMCOnly( collector.Add, 0, ex );
             }
             // Always logged since we opened an Error group.
             monitor.Info( cmd.ToString()!, ex );
             return g.GetLogKeyString()!;
         }
 
+        static void CollectMCOnly( Action<UserMessage> collector, byte depth, Exception e )
+        {
+            if( e is AggregateException a )
+            {
+                ++depth;
+                foreach( var sub in a.InnerExceptions ) CollectMCOnly( collector, depth, sub );
+            }
+            else
+            {
+                if( e is MCException mC )
+                {
+                    collector( mC.AsUserMessage().With( depth ) );
+                }
+                if( e.InnerException != null ) CollectMCOnly( collector, ++depth, e.InnerException );
+            }
+        }
     }
 }
