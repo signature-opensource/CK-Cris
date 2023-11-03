@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CK.Cris
@@ -51,24 +52,14 @@ namespace CK.Cris
 
         /// <summary>
         /// Initializes a new validation result for an unhandled exception.
-        /// If the <paramref name="ex"/> is a <see cref="MCString"/>, both its <see cref="MCException.Message"/>
-        /// and the <paramref name="genericError"/> are added.
         /// </summary>
-        /// <param name="ex">The unhandled exception.</param>
-        /// <param name="genericError">Generic "unhandled error" message.</param>
+        /// <param name="messages">The messages.</param>
         /// <param name="logKey">Required log key.</param>
-        public CrisValidationResult( Exception ex, UserMessage genericError, string logKey )
+        public CrisValidationResult( List<UserMessage> messages, string logKey )
         {
-            Throw.CheckArgument( genericError.Level == UserMessageLevel.Error );
-            Throw.CheckNotNullArgument( logKey );
-            if( ex is MCException mc )
-            {
-                Messages = new[] { mc.AsUserMessage(), genericError };
-            }
-            else
-            {
-                Messages = new[] { genericError };
-            }
+            Throw.CheckNotNullOrEmptyArgument( messages );
+            Throw.CheckNotNullOrEmptyArgument( logKey );
+            Messages = messages.ToArray();
             LogKey = logKey;
         }
 

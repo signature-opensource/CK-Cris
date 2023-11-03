@@ -168,15 +168,10 @@ namespace CK.Cris
                 job._executingCommand?.DarkSide.SetException( ex );
                 // Ensures that the crisResult exists and sets its Result to a ICrisErrorResult.
                 var currentCulture = isScopedCreated ? scoped.ServiceProvider.GetService<CurrentCultureInfo>() : null;
-                PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, true, ex, job.Command, out var genericError );
                 crisResult ??= _jobResultFactory.Create();
                 ICrisResultError error = _errorResultFactory.Create();
                 crisResult.Result = error;
-                if( ex is MCException mc )
-                {
-                    error.Messages.Add( mc.AsUserMessage() );
-                }
-                error.Messages.Add( genericError );
+                PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, true, ex, job.Command, error.Messages );
                 error.LogKey = gLog.GetLogKeyString();
 
                 // Sets the SafeCompletion with the ICrisResultError on the executing command if there is one.

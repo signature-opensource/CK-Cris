@@ -62,10 +62,13 @@ namespace CK.Cris.Executor.Tests
             var validator = services.GetRequiredService<RawCrisValidator>();
             var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
             result.Success.Should().BeFalse();
-            result.Messages.Should().HaveCount( 1 )
+            result.Messages.Should().HaveCount( 2 )
                        .And.Contain( m => m.Level == UserMessageLevel.Error
-                                     && m.ResName == "Cris.UnhandledValidationError"
-                                     && m.Text.StartsWith( "An unhandled error occurred while validating command 'Test' (LogKey:" ) );
+                                          && m.ResName == "Cris.UnhandledValidationError"
+                                          && m.Text.StartsWith( "An unhandled error occurred while validating command 'Test' (LogKey:" ) )
+                       .And.Contain( m => m.Level == UserMessageLevel.Error
+                                          && m.ResName == "SHA.3pSE_AMsQ-7QNQP6WgA9j88mLSI"
+                                          && m.Message == "This should not happen!" );
         }
 
         [ExternalName( "NoValidators" )]

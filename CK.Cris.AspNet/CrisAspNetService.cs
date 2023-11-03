@@ -157,12 +157,7 @@ namespace CK.Cris.AspNet
             {
                 var currentCulture = requestServices.GetRequiredService<CurrentCultureInfo>();
                 ICrisResultError error = _crisErrorResultFactory.Create();
-                error.LogKey = CK.Cris.PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, true, ex, cmd, out var genericError );
-                if( ex is MCException mc )
-                {
-                    error.Messages.Add( mc.AsUserMessage() );
-                }
-                error.Messages.Add( genericError );
+                error.LogKey = CK.Cris.PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, true, ex, cmd, error.Messages );
                 result.Result = error;
             }
             return result;
