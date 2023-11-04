@@ -25,7 +25,12 @@ namespace CK.Cris.HttpSender.Tests
         string Beauty { get; set; }
     }
 
-    public class ColorService : IAutoService
+    public interface INakedCommand : ICommand
+    {
+        string Event { get; set; }
+    }
+
+    public class ColorAndNakedService : IAutoService
     {
         [CommandPostHandler]
         public void GetColoredAmbientValues( AmbientValues.IAmbientValuesCollectCommand cmd, IColoredAmbientValues values )
@@ -37,6 +42,16 @@ namespace CK.Cris.HttpSender.Tests
         public string HandleBeatifulCommand( IBeautifulCommand cmd )
         {
             return $"{cmd.Color} - {cmd.Beauty}";
+        }
+
+        [CommandHandler]
+        public void HandleNakedCommand( CurrentCultureInfo culture, INakedCommand cmd )
+        {
+            if( cmd.Event == "Bug!" )
+            {
+                throw new Exception( "Outer exception.",
+                            new AggregateException( culture.MCException( "Bug! (n°1)" ), culture.MCException( "Bug! (n°2)" ) ) );
+            }
         }
     }
 

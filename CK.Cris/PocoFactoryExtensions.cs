@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace CK.Cris
@@ -27,6 +28,40 @@ namespace CK.Cris
             r.Messages.Add( first );
             r.Messages.AddRange( others );
             return r;
+        }
+
+        /// <summary>
+        /// Creates an exception from the <see cref="ICrisResultError.Messages"/>.
+        /// </summary>
+        /// <param name="e">This result error.</param>
+        /// <param name="lineNumber">Calling line number (usually set by Roslyn).</param>
+        /// <param name="fileName">Calling file path (usually set by Roslyn).</param>
+        /// <returns>The exception.</returns>
+        public static CKException CreateException( this ICrisResultError e, [CallerLineNumber] int lineNumber = 0, [CallerFilePath] string? fileName = null )
+        {
+            var msg = e.Messages;
+            var b = new StringBuilder();
+            for( int iM = 0; iM < msg.Count; iM++ )
+            {
+                UserMessage m = msg[iM];
+                if( m.IsValid )
+                {
+                    var lines = m.Text.Split( '\n', StringSplitOptions.TrimEntries );
+                    if( lines.Length > 0 )
+                    {
+                        b.Append( ' ', m.Depth * 2 ).Append( "- " ).AppendLine( lines[0] );
+                        if( iM == 0 )
+                        {
+                            b.Append( ' ', m.Depth * 2 ).Append( "  -> " ).Append( fileName ).Append( '@' ).Append( lineNumber ).AppendLine();
+                        }
+                        for( int i = 1; i < lines.Length; i++ )
+                        {
+                            b.Append( ' ', m.Depth * 2 ).AppendLine( lines[i] );
+                        }
+                    }
+                }
+            }
+            return new CKException( b.Length == 0 ? "Cris error (no messages)." : b.ToString() );
         }
 
         /// <summary>
