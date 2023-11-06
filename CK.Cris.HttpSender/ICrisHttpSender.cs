@@ -36,6 +36,9 @@ namespace CK.Cris.HttpSender
         /// <summary>
         /// Sends a Cris command on the remote endpoint, and returns a successful result or throws:
         /// if <see cref="IExecutedCommand.Result"/> is a <see cref="ICrisResultError"/>, this throws.
+        /// <para>
+        /// This can be used for <see cref="ICommand{TResult}"/> and <see cref="ICommand"/> (without result).
+        /// </para>
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="command">The command to send.</param>

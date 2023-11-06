@@ -21,13 +21,15 @@ namespace CK.Cris.HttpSender.Tests
             await using var runningServer = await TestHelper.RunAspNetServerAsync(
                                                 new[] { typeof( CrisAspNetService ),
                                                         typeof( IBeautifulWithOptionsCommand ),
+                                                        typeof( INakedCommand ),
                                                         typeof( AmbientValuesService ),
-                                                        typeof( ColorService ),
+                                                        typeof( ColorAndNakedService ),
                                                         typeof( WithOptionsService ) } );
 
             var serverAddress = runningServer.ServerAddress;
 
             var callerServices = new[] { typeof( IBeautifulWithOptionsCommand ),
+                                         typeof( INakedCommand ),
                                          typeof( CrisDirectory ),
                                          typeof( PocoJsonSerializer ),
                                          typeof( ApplicationIdentityService ),
@@ -38,14 +40,39 @@ namespace CK.Cris.HttpSender.Tests
             var sender = runningCaller.ApplicationIdentityService.Remotes
                                                     .Single( r => r.PartyName == "$Server" )
                                                     .GetRequiredFeature<CrisHttpSender>();
+
+            // Command with result.
             var cmd = callerPoco.Create<IBeautifulCommand>( c =>
             {
                 c.Color = "Black";
                 c.Beauty = "Marvellous";
             } );
             var result = await sender.SendAsync( TestHelper.Monitor, cmd );
-
             result.Result.Should().Be( "Black - Marvellous - 0" );
+
+            // Command without result.
+            var naked = callerPoco.Create<INakedCommand>( c => c.Event = "Something" );
+            var nakedResult = await sender.SendAsync( TestHelper.Monitor, naked );
+            nakedResult.Result.Should().BeNull();
+
+            // Command without result that throws.
+            var nakedBug = callerPoco.Create<INakedCommand>( c => c.Event = "Bug!" );
+            var nakedBugResult = await sender.SendAsync( TestHelper.Monitor, nakedBug );
+            nakedBugResult.Result.Should().NotBeNull().And.BeAssignableTo<ICrisResultError>();
+
+            // Command without result that throws and use SendOrThrowAsync.
+            var nakedBug2 = callerPoco.Create<INakedCommand>( c => c.Event = "Bug!" );
+            await FluentActions.Awaiting( () => sender.SendOrThrowAsync( TestHelper.Monitor, nakedBug2 ) )
+                .Should().ThrowAsync<CKException>()
+                .WithMessage( """
+                - An unhandled error occurred while executing command 'CK.Cris.HttpSender.Tests.INakedCommand' (LogKey: *).
+                  -> *\CK-Cris\Tests\CK.Cris.HttpSender.Tests\SenderTests.cs@65
+                - Outer exception.
+                  - One or more errors occurred. (Bug! (n°1)) (Bug! (n°2))
+                    - Bug! (n°1)
+                    - Bug! (n°2)
+                """ );
+
         }
 
         [Test]

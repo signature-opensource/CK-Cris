@@ -80,9 +80,7 @@ namespace CK.Cris.HttpSender
             var r = await DoSendAsync( monitor, command, throwError: true, lineNumber, fileName, cancellationToken ).ConfigureAwait( false );
             if( r.Result is ICrisResultError e )
             {
-                var msg = e.Messages.FirstOrDefault().Message.Text;
-                if( msg.Length == 0 ) msg = "(no user messages)";
-                Throw.CKException( $"Cris error. {msg}" );
+                throw e.CreateException( lineNumber, fileName );
             }
             return r;
         }
