@@ -40,6 +40,7 @@ namespace CK.Cris.HttpSender
         internal CrisHttpSender( IRemoteParty remote,
                                  Uri endpointUrl,
                                  PocoDirectory pocoDirectory,
+                                 TimeSpan? timeout,
                                  HttpRetryStrategyOptions? retryStrategy )
         {
             HttpMessageHandler handler = new HttpClientHandler();
@@ -49,7 +50,9 @@ namespace CK.Cris.HttpSender
                                             .AddRetry( retryStrategy );
                 handler = new ResilienceHandler( message => resilienceBuilder.Build() ) { InnerHandler = handler };
             }
+            
             _httpClient = new HttpClient( handler );
+            _httpClient.Timeout = timeout ?? TimeSpan.FromMinutes( 1 );
             _remote = remote;
             _endpointUrl = endpointUrl;
             _pocoDirectory = pocoDirectory;
