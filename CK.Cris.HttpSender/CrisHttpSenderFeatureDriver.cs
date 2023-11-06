@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Polly.Retry;
 using Polly.Timeout;
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -111,8 +112,24 @@ namespace CK.Cris.HttpSender
                 {
                     retryStrategy = CrisHttpSender.CreateRetryStrategy( monitor, retryConfig );
                 }
+                TimeSpan? timeout = null;
+                if( config != null )
+                {
+                    var s = config["Timeout"];
+                    if( s != null )
+                    {
+                        if( TimeSpan.TryParse( s, CultureInfo.InvariantCulture, out var tOut ) )
+                        {
+                            timeout = tOut;
+                        }
+                        else
+                        {
+                            monitor.Warn( $"Unable to parse CrisHttpSender Timout '{s}' for remote '{r}'. Using default value of 60 seconds." );
+                        }
+                    }
+                }
                 monitor.Info( $"Enabling 'CrisHttpSender' on '{r}' with address '{uri}'." );
-                r.AddFeature( new CrisHttpSender( r, new( uri, ".cris/net"), _pocoDirectory, retryStrategy ) );
+                r.AddFeature( new CrisHttpSender( r, new( uri, ".cris/net"), _pocoDirectory, timeout, retryStrategy ) );
             }
             return true;
         }
