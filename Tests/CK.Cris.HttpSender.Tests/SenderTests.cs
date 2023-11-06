@@ -66,7 +66,7 @@ namespace CK.Cris.HttpSender.Tests
                 .Should().ThrowAsync<CKException>()
                 .WithMessage( """
                 - An unhandled error occurred while executing command 'CK.Cris.HttpSender.Tests.INakedCommand' (LogKey: *).
-                  -> *\Tests\CK.Cris.HttpSender.Tests\SenderTests.cs@65
+                  -> *SenderTests.cs@65
                 - Outer exception.
                   - One or more errors occurred. (Bug! (n°1)) (Bug! (n°2))
                     - Bug! (n°1)
