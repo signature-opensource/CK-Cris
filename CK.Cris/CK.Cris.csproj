@@ -5,7 +5,7 @@
     <RootNamespace>CK.Cris</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Globalization" Version="0.2.0" />
-    <PackageReference Include="CK.StObj.Model" Version="24.2.0" />
+    <PackageReference Include="CK.Globalization" Version="0.2.1--0005-develop" />
+    <PackageReference Include="CK.StObj.Model" Version="24.2.2--0001-develop" />
   </ItemGroup>
 </Project>
