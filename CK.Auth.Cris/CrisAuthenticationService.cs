@@ -62,7 +62,7 @@ namespace CK.Auth
             {
                 if( info.Level < AuthLevel.Normal )
                 {
-                    c.Error( "Invalid authentication level: the command requires a Critical level." );
+                    c.Error( "Invalid authentication level: the command requires a Normal level." );
                 }
             }
         }
