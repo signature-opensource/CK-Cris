@@ -36,7 +36,7 @@ namespace CK.Cris
             public ResultAdapter( ExecutingCommand<T> command )
             {
                 _command = command;
-                _result = new TaskCompletionSource<TResult>();
+                _result = new TaskCompletionSource<TResult>( TaskCreationOptions.RunContinuationsAsynchronously );
                 _ = _command.SafeCompletion.ContinueWith( OnRequestCompletion!,
                                                              _result,
                                                              CancellationToken.None,
