@@ -30,9 +30,9 @@ namespace CK.Cris
         {
             _issuerToken = issuerToken;
             _command = command;
-            _validation = new TaskCompletionSource<CrisValidationResult>();
-            _safeCompletion = new TaskCompletionSource<object?>();
-            _completion = new TaskCompletionSource<object?>();
+            _validation = new TaskCompletionSource<CrisValidationResult>( TaskCreationOptions.RunContinuationsAsynchronously );
+            _safeCompletion = new TaskCompletionSource<object?>( TaskCreationOptions.RunContinuationsAsynchronously );
+            _completion = new TaskCompletionSource<object?>( TaskCreationOptions.RunContinuationsAsynchronously );
             // Avoid Unobserved exception on this task.
             _ = _completion.Task.ContinueWith( t => t.Exception!.Handle( ex => true ), default, TaskContinuationOptions.OnlyOnFaulted|TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default );
             _immediate = new ImmediateEvents();
