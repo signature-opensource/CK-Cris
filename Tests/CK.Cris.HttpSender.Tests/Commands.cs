@@ -70,7 +70,6 @@ namespace CK.Cris.HttpSender.Tests
         {
             await Task.Delay( cmd.WaitTime );
             return $"{cmd.Color} - {cmd.Beauty} - {cmd.WaitTime}";
-
         }
     }
 

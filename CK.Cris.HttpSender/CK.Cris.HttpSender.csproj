@@ -10,6 +10,7 @@
     <PackageReference Include="Polly.Core" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CK.Auth.Cris\CK.Auth.Cris.csproj" />
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
   </ItemGroup>
 </Project>

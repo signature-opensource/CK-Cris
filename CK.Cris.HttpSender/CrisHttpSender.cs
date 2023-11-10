@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using Polly;
 using System.Threading;
 using System.Linq;
+using System.Net.Http.Headers;
+using CK.Auth;
 
 namespace CK.Cris.HttpSender
 {
@@ -21,6 +23,7 @@ namespace CK.Cris.HttpSender
     public sealed partial class CrisHttpSender : ICrisHttpSender
     {
         readonly HttpClient _httpClient;
+        readonly TokenHandler _tokenHandler;
         readonly IRemoteParty _remote;
         readonly Uri _endpointUrl;
         readonly PocoDirectory _pocoDirectory;
@@ -32,10 +35,45 @@ namespace CK.Cris.HttpSender
                                                                         "Protocol error." ) );
 
         static MCString? _internalErrorMsg;
+        private bool _skipAutomaticAuthorizationToken;
+
         static UserMessage InternalErrorMessage => new UserMessage( UserMessageLevel.Error,
                                                                     _internalErrorMsg ??= MCString.CreateNonTranslatable(
                                                                         NormalizedCultureInfo.CodeDefault,
                                                                         "Internal error." ) );
+
+        sealed class TokenHandler : DelegatingHandler
+        {
+            string? _token;
+            AuthenticationHeaderValue? _bearer;
+
+            public string? Token
+            {
+                get => _token;
+                set
+                {
+                    if( value == null )
+                    {
+                        _token = null;
+                        _bearer = null;
+                    }
+                    else
+                    {
+                        _token = value;
+                        _bearer = new AuthenticationHeaderValue( "Bearer", value );
+                    }
+                }
+            }
+
+            protected override Task<HttpResponseMessage> SendAsync( HttpRequestMessage request, CancellationToken cancellationToken )
+            {
+                if( _bearer != null )
+                {
+                    request.Headers.Authorization = _bearer;
+                }
+                return base.SendAsync( request, cancellationToken );
+            }
+        }
 
         internal CrisHttpSender( IRemoteParty remote,
                                  Uri endpointUrl,
@@ -50,7 +88,7 @@ namespace CK.Cris.HttpSender
                                             .AddRetry( retryStrategy );
                 handler = new ResilienceHandler( message => resilienceBuilder.Build() ) { InnerHandler = handler };
             }
-            
+            handler = _tokenHandler = new TokenHandler{ InnerHandler = handler };
             _httpClient = new HttpClient( handler );
             _httpClient.Timeout = timeout ?? TimeSpan.FromMinutes( 1 );
             _remote = remote;
@@ -60,6 +98,19 @@ namespace CK.Cris.HttpSender
 
         /// <inheritdoc />
         public IRemoteParty Remote => _remote;
+
+        public bool SkipAutomaticAuthorizationToken
+        {
+            get => _skipAutomaticAuthorizationToken;
+            set => _skipAutomaticAuthorizationToken = value;
+        }
+
+        /// <inheritdoc />
+        public string? AuthorizationToken
+        {
+            get => _tokenHandler.Token;
+            set => _tokenHandler.Token = value;
+        }
 
         /// <inheritdoc />
         public Task<IExecutedCommand<T>> SendAsync<T>( IActivityMonitor monitor,
@@ -138,6 +189,10 @@ namespace CK.Cris.HttpSender
                 var crisResult = ReadAspNetCrisResult( monitor, _pocoDirectory, payloadResponse, throwError );
                 if( crisResult.HasValue )
                 {
+                    if( !_skipAutomaticAuthorizationToken )
+                    {
+                        HandleAutomaticAuthorizationToken( monitor, command, crisResult.Value.Result );
+                    }
                     return new ExecutedCommand<T>( command, crisResult.Value.Result, null );
                 }
                 var protocolError = _pocoDirectory.Create<ICrisResultError>( e => e.Messages.Add( ProtocolErrorMessage ) );
@@ -207,6 +262,28 @@ namespace CK.Cris.HttpSender
                 if( throwError ) throw new CKException( msg );
                 monitor.Error( msg );
                 return null;
+            }
+        }
+
+        void HandleAutomaticAuthorizationToken( IActivityMonitor monitor, object command, object? result )
+        {
+            if( result is IAuthenticationResult authResult )
+            {
+                if( authResult.Success && command is IBasicLoginCommand or IRefreshAuthenticationCommand )
+                {
+                    _tokenHandler.Token = authResult.Token;
+                    monitor.Info( $"Updating the AuthorizationToken. User '{authResult.Info.ActualUserName} ({authResult.Info.ActualUserId})'." );
+                }
+                else
+                {
+                    monitor.Warn( $"A IAuthenticationResult has been received but not from a IBasicLoginCommand nor IRefreshAuthenticationCommand. " +
+                                  $"Skipping AuthorizationToken update." );
+                }
+            }
+            else if( command is ILogoutCommand )
+            {
+                _tokenHandler.Token = null;
+                monitor.Info( $"Logout command succeeded: clearing AuthorizationToken." );
             }
         }
 

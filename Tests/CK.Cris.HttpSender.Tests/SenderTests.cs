@@ -1,8 +1,13 @@
 using CK.AppIdentity;
+using CK.AspNet.Auth;
+using CK.AspNet.Auth.Cris;
+using CK.Auth;
 using CK.Core;
 using CK.Cris.AmbientValues;
 using CK.Cris.AspNet;
+using CK.Testing.StObjEngine;
 using FluentAssertions;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
@@ -12,6 +17,7 @@ using static CK.Testing.StObjEngineTestHelper;
 
 namespace CK.Cris.HttpSender.Tests
 {
+
     [TestFixture]
     public class SenderTests
     {
@@ -19,28 +25,141 @@ namespace CK.Cris.HttpSender.Tests
         public async Task sending_commands_Async()
         {
             await using var runningServer = await TestHelper.RunAspNetServerAsync(
-                                                new[] { typeof( CrisAspNetService ),
-                                                        typeof( IBeautifulWithOptionsCommand ),
-                                                        typeof( INakedCommand ),
-                                                        typeof( AmbientValuesService ),
-                                                        typeof( ColorAndNakedService ),
-                                                        typeof( WithOptionsService ) } );
+                                                new[]
+                                                {
+                                                    typeof( IAuthenticationInfo ),
+                                                    typeof( CrisAspNetService ),
+                                                    typeof( IBeautifulWithOptionsCommand ),
+                                                    typeof( INakedCommand ),
+                                                    typeof( AmbientValuesService ),
+                                                    typeof( ColorAndNakedService ),
+                                                    typeof( WithOptionsService ),
+                                                    typeof( ITotalCommand ),
+                                                    typeof( ITotalResult ),
+                                                    typeof( TotalCommandService ),
+                                                    typeof( IBasicLoginCommand ),
+                                                    typeof( ILogoutCommand ),
+                                                    typeof( IRefreshAuthenticationCommand ),
+                                                    typeof( IAuthenticationResult ),
+                                                    typeof( IPocoAuthenticationInfo ),
+                                                    typeof( CrisAuthenticationService ),
+                                                    typeof( CrisWebFrontAuthCommandHandler )
+                                                },
+                                                configureServices: services =>
+                                                {
+                                                    // We could have used the type registration above and
+                                                    // benefit of the Automatic DI.
+                                                    services.AddSingleton<FakeWebFrontLoginService>();
+                                                    services.AddSingleton<IWebFrontAuthLoginService>( sp => sp.GetRequiredService<FakeWebFrontLoginService>() );
+                                                } );
 
             var serverAddress = runningServer.ServerAddress;
 
             var callerServices = new[] { typeof( IBeautifulWithOptionsCommand ),
                                          typeof( INakedCommand ),
+                                         typeof( ITotalCommand ),
+                                         typeof( ITotalResult ),
+                                         typeof( IBasicLoginCommand ),
+                                         typeof( ILogoutCommand ),
+                                         typeof( IRefreshAuthenticationCommand ),
+                                         typeof( IAuthenticationResult ),
+                                         typeof( IPocoAuthenticationInfo ),
                                          typeof( CrisDirectory ),
                                          typeof( PocoJsonSerializer ),
                                          typeof( ApplicationIdentityService ),
                                          typeof( CrisHttpSenderFeatureDriver )};
 
-            await using var runningCaller = await CreateRunningCallerAsync( runningServer.ServerAddress, callerServices );
+            await using var runningCaller = await CreateRunningCallerAsync( serverAddress, callerServices, generateSourceCode: false );
+
             var callerPoco = runningCaller.Services.GetRequiredService<PocoDirectory>();
             var sender = runningCaller.ApplicationIdentityService.Remotes
                                                     .Single( r => r.PartyName == "$Server" )
                                                     .GetRequiredFeature<CrisHttpSender>();
 
+            // ITotalCommand requires Normal authentication. 
+            var totalCommand = callerPoco.Create<ITotalCommand>();
+            var totalExecutedCommand = await sender.SendAsync( TestHelper.Monitor, totalCommand );
+            totalExecutedCommand.Result.Should().BeAssignableTo<ICrisResultError>();
+            var error = (ICrisResultError)totalExecutedCommand.Result!;
+            error.IsValidationError.Should().BeTrue();
+            error.Messages[0].Text.Should().StartWith( "Invalid authentication level: " );
+
+            var loginCommand = callerPoco.Create<IBasicLoginCommand>( c =>
+            {
+                c.UserName = "Albert";
+                c.Password = "success";
+            } );
+
+            var loginAlbert = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, loginCommand );
+            loginAlbert.Info.UserName.Should().Be( "Albert" );
+
+            // Unexisting user id.
+            totalCommand.ActorId = 3712;
+            totalExecutedCommand = await sender.SendAsync( TestHelper.Monitor, totalCommand );
+            totalExecutedCommand.Result.Should().BeAssignableTo<ICrisResultError>();
+            error = (ICrisResultError)totalExecutedCommand.Result!;
+            error.IsValidationError.Should().BeTrue();
+            error.Messages[0].Text.Should().StartWith( "Invalid actor identifier: " );
+
+            // Albert (null current culture name): this is executed in the Global DI context.
+            totalCommand.ActorId = 2; 
+            var totalResult = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, totalCommand );
+            totalResult.Success.Should().BeTrue();
+            totalResult.ActorId.Should().Be( 2 );
+            totalResult.CultureName.Should().Be( "en" );
+
+            // Albert in French: this is executed in a Background job. 
+            totalCommand.CurrentCultureName = "fr";
+            totalResult = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, totalCommand );
+            totalResult.Success.Should().BeTrue();
+            totalResult.ActorId.Should().Be( 2, "The authentication info has been transferred." );
+            totalResult.CultureName.Should().Be( "fr", "The current culture is French." );
+
+            // Albert in French sends an invalid action.
+            totalCommand.Action = "Invalid";
+            totalExecutedCommand = await sender.SendAsync( TestHelper.Monitor, totalCommand );
+            totalExecutedCommand.Result.Should().BeAssignableTo<ICrisResultError>();
+            error = (ICrisResultError)totalExecutedCommand.Result!;
+            error.IsValidationError.Should().BeTrue();
+            error.Messages[0].Text.Should().StartWith( "The Action must be Bug!, Error!, Warn! or empty. Not 'Invalid'." );
+
+            // Logout.
+            await sender.SendOrThrowAsync( TestHelper.Monitor, callerPoco.Create<ILogoutCommand>() );
+
+            await TestSimpleCommandsAsync( callerPoco, sender );
+
+            await TestAuthenticationCommandsAsync( callerPoco, sender );
+
+        }
+
+        static async Task TestAuthenticationCommandsAsync( PocoDirectory callerPoco, CrisHttpSender sender )
+        {
+            sender.AuthorizationToken.Should().BeNull( "No authentication token." );
+
+            var loginCommand = callerPoco.Create<IBasicLoginCommand>( c =>
+            {
+                c.UserName = "Albert";
+                c.Password = "success";
+            } );
+
+            var initialAuth = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, loginCommand );
+            initialAuth.Success.Should().BeTrue();
+            initialAuth.Info.Level.Should().Be( AuthLevel.Normal );
+            initialAuth.Info.UserName.Should().Be( "Albert" );
+            sender.AuthorizationToken.Should().NotBeNull( "The AuthorizationToken is set." );
+
+            var refreshCommand = callerPoco.Create<IRefreshAuthenticationCommand>();
+            var refreshedAuth = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, refreshCommand );
+            refreshedAuth.Success.Should().BeTrue();
+            refreshedAuth.Info.UserName.Should().Be( "Albert" );
+
+            var logoutCommand = callerPoco.Create<ILogoutCommand>();
+            await sender.SendOrThrowAsync( TestHelper.Monitor, logoutCommand );
+            sender.AuthorizationToken.Should().BeNull( "No more AuthorizationToken." );
+        }
+
+        static async Task TestSimpleCommandsAsync( PocoDirectory callerPoco, CrisHttpSender sender )
+        {
             // Command with result.
             var cmd = callerPoco.Create<IBeautifulCommand>( c =>
             {
@@ -66,13 +185,12 @@ namespace CK.Cris.HttpSender.Tests
                 .Should().ThrowAsync<CKException>()
                 .WithMessage( """
                 - An unhandled error occurred while executing command 'CK.Cris.HttpSender.Tests.INakedCommand' (LogKey: *).
-                  -> *SenderTests.cs@65
+                  -> *SenderTests.cs@*
                 - Outer exception.
                   - One or more errors occurred. (Bug! (n°1)) (Bug! (n°2))
                     - Bug! (n°1)
                     - Bug! (n°2)
                 """ );
-
         }
 
         [Test]
@@ -110,10 +228,15 @@ namespace CK.Cris.HttpSender.Tests
 
         static Task<ApplicationIdentityTestHelperExtension.RunningAppIdentity> CreateRunningCallerAsync( string serverAddress,
                                                                                                          Type[] registerTypes,
-                                                                                                         Action<MutableConfigurationSection>? configuration = null )
+                                                                                                         Action<MutableConfigurationSection>? configuration = null,
+                                                                                                         bool generateSourceCode = true )
         {
             var callerCollector = TestHelper.CreateStObjCollector( registerTypes );
-            var callerMap = TestHelper.CompileAndLoadStObjMap( callerCollector ).Map;
+            var callerMap = TestHelper.CompileAndLoadStObjMap( callerCollector, engineConfigurator: c =>
+            {
+                c.BinPaths[0].GenerateSourceFiles = generateSourceCode;
+                return c;
+            } ).Map;
 
             return TestHelper.CreateRunningAppIdentityServiceAsync(
                 c =>
