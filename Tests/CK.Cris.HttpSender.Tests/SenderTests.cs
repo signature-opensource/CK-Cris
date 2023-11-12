@@ -42,6 +42,7 @@ namespace CK.Cris.HttpSender.Tests
                                                     typeof( IRefreshAuthenticationCommand ),
                                                     typeof( IAuthenticationResult ),
                                                     typeof( IPocoAuthenticationInfo ),
+                                                    typeof( IPocoUserInfo ),
                                                     typeof( CrisAuthenticationService ),
                                                     typeof( CrisWebFrontAuthCommandHandler )
                                                 },
@@ -64,6 +65,7 @@ namespace CK.Cris.HttpSender.Tests
                                          typeof( IRefreshAuthenticationCommand ),
                                          typeof( IAuthenticationResult ),
                                          typeof( IPocoAuthenticationInfo ),
+                                         typeof( IPocoUserInfo ),
                                          typeof( CrisDirectory ),
                                          typeof( PocoJsonSerializer ),
                                          typeof( ApplicationIdentityService ),
@@ -91,7 +93,7 @@ namespace CK.Cris.HttpSender.Tests
             } );
 
             var loginAlbert = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, loginCommand );
-            loginAlbert.Info.UserName.Should().Be( "Albert" );
+            loginAlbert.Info.User.UserName.Should().Be( "Albert" );
 
             // Unexisting user id.
             totalCommand.ActorId = 3712;
@@ -145,13 +147,13 @@ namespace CK.Cris.HttpSender.Tests
             var initialAuth = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, loginCommand );
             initialAuth.Success.Should().BeTrue();
             initialAuth.Info.Level.Should().Be( AuthLevel.Normal );
-            initialAuth.Info.UserName.Should().Be( "Albert" );
+            initialAuth.Info.User.UserName.Should().Be( "Albert" );
             sender.AuthorizationToken.Should().NotBeNull( "The AuthorizationToken is set." );
 
             var refreshCommand = callerPoco.Create<IRefreshAuthenticationCommand>();
             var refreshedAuth = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, refreshCommand );
             refreshedAuth.Success.Should().BeTrue();
-            refreshedAuth.Info.UserName.Should().Be( "Albert" );
+            refreshedAuth.Info.User.UserName.Should().Be( "Albert" );
 
             var logoutCommand = callerPoco.Create<ILogoutCommand>();
             await sender.SendOrThrowAsync( TestHelper.Monitor, logoutCommand );

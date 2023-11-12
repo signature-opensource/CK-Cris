@@ -272,7 +272,7 @@ namespace CK.Cris.HttpSender
                 if( authResult.Success && command is IBasicLoginCommand or IRefreshAuthenticationCommand )
                 {
                     _tokenHandler.Token = authResult.Token;
-                    monitor.Info( $"Updating the AuthorizationToken. User '{authResult.Info.ActualUserName} ({authResult.Info.ActualUserId})'." );
+                    monitor.Info( $"Updating the AuthorizationToken. User '{authResult.Info.ActualUser.UserName} ({authResult.Info.ActualUser.UserId})'." );
                 }
                 else
                 {

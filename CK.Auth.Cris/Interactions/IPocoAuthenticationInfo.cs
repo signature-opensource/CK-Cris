@@ -1,5 +1,6 @@
 using CK.Core;
 using System;
+using System.Collections.Generic;
 
 namespace CK.Auth
 {
@@ -11,32 +12,17 @@ namespace CK.Auth
         /// <summary>
         /// See <see cref="IAuthenticationInfo.User"/>.
         /// </summary>
-        string UserName { get; set; }
-
-        /// <summary>
-        /// See <see cref="IAuthenticationInfo.User"/>.
-        /// </summary>
-        int UserId { get; set; }
+        IPocoUserInfo User { get; }
 
         /// <summary>
         /// See <see cref="IAuthenticationInfo.UnsafeUser"/>.
         /// </summary>
-        string UnsafeUserName { get; set; }
-
-        /// <summary>
-        /// See <see cref="IAuthenticationInfo.UnsafeUser"/>.
-        /// </summary>
-        int UnsafeUserId { get; set; }
+        IPocoUserInfo UnsafeUser { get; }
 
         /// <summary>
         /// See <see cref="IAuthenticationInfo.ActualUser"/>.
         /// </summary>
-        string ActualUserName { get; set; }
-
-        /// <summary>
-        /// See <see cref="IAuthenticationInfo.ActualUser"/>.
-        /// </summary>
-        int ActualUserId { get; set; }
+        IPocoUserInfo ActualUser { get; }
 
         /// <summary>
         /// See <see cref="IAuthenticationInfo.IsImpersonated"/>.
@@ -59,18 +45,15 @@ namespace CK.Auth
         DateTime? CriticalExpires { get; set; }
 
         /// <summary>
-        /// Initializes this from an actual <see cref="IAuthenticationInfo"/>.
+        /// Initializes this Poco from an actual <see cref="IAuthenticationInfo"/>.
         /// </summary>
         /// <param name="info">The actual information.</param>
         void InitializeFrom( IAuthenticationInfo info )
         {
             Throw.CheckNotNullArgument( info );
-            UserName = info.User.UserName;
-            UserId = info.User.UserId;
-            ActualUserName = info.ActualUser.UserName;
-            ActualUserId = info.ActualUser.UserId;
-            UnsafeUserName = info.UnsafeUser.UserName;
-            UnsafeUserId = info.UnsafeUser.UserId;
+            User.InitializeFrom( info.User );
+            ActualUser.InitializeFrom( info.ActualUser );
+            UnsafeUser.InitializeFrom( info.UnsafeUser );
             IsImpersonated = info.IsImpersonated;
             Level = info.Level;
             Expires = info.Expires;
