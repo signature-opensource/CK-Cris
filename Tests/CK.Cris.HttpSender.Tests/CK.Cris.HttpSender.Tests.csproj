@@ -6,12 +6,14 @@
     <LangVersion>11</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Testing.AppIdentity" Version="0.2.1" />
+    <PackageReference Include="CK.Testing.AppIdentity" Version="0.3.0" />
     <PackageReference Include="NUnit" Version="3.13.3" />
     <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" Version="4.5.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\CK.AspNet.Auth.Cris\CK.AspNet.Auth.Cris.csproj" />
+    <ProjectReference Include="..\..\CK.Auth.Cris\CK.Auth.Cris.csproj" />
     <ProjectReference Include="..\..\CK.Cris.AspNet.Engine\CK.Cris.AspNet.Engine.csproj" />
     <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
     <ProjectReference Include="..\..\CK.Cris.HttpSender\CK.Cris.HttpSender.csproj" />

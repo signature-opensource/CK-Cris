@@ -16,7 +16,7 @@ namespace CK.Cris
     {
         /// <summary>
         /// Gets or sets whether the command succeeded or failed.
-        /// Deaults to true.
+        /// Defaults to true.
         /// </summary>
         [DefaultValue( true )]
         bool Success { get; set; }

@@ -2,15 +2,12 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <IsPackable>true</IsPackable>
+    <Description>Implements IBasicLoginCommand, IRefreshAuthenticationCommand and ILogoutCommand using the WebFrontAuthService.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.AppIdentity" Version="0.3.0" />
-    <PackageReference Include="CK.Poco.Json" Version="24.3.0" />
-    <PackageReference Include="Polly.Core" Version="8.0.0" />
+    <PackageReference Include="CK.AspNet.Auth" Version="21.4.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Auth.Cris\CK.Auth.Cris.csproj" />
-    <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
   </ItemGroup>
 </Project>

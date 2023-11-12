@@ -15,7 +15,8 @@ using Microsoft.Extensions.DependencyInjection;
 using FluentAssertions.Common;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Microsoft.Extensions.Configuration;
+using CK.AspNet.Auth;
+using CK.Auth;
 
 namespace CK
 {
@@ -63,7 +64,7 @@ namespace CK
                                                   IEnumerable<Type> registeredTypes,
                                                   IEnumerable<Type> tsTypes,
                                                   Func<bool, bool> resume,
-                                                  Action<StObjContextRoot.ServiceRegister>? configureServices = null,
+                                                  Action<IServiceCollection>? configureServices = null,
                                                   Action<IApplicationBuilder>? configureApplication = null,
                                                   [CallerMemberName] string? testName = null,
                                                   [CallerLineNumber] int lineNumber = 0,
@@ -100,7 +101,7 @@ namespace CK
                                                         IEnumerable<Type> registeredTypes,
                                                         IEnumerable<Type> tsTypes,
                                                         Func<StObjEngineTestHelperTypeScriptExtensions.TypeScriptRunner, Task>? beforeRun = null,
-                                                        Action<StObjContextRoot.ServiceRegister>? configureServices = null,
+                                                        Action<IServiceCollection>? configureServices = null,
                                                         Action<IApplicationBuilder>? configureApplication = null )
         {
             var config = helper.ConfigureTypeScript( null, targetProjectPath, tsTypes.ToArray() );
@@ -119,9 +120,8 @@ namespace CK
             builder.Services.AddScoped<IActivityMonitor, ActivityMonitor>();
             builder.Services.AddScoped( sp => sp.GetRequiredService<IActivityMonitor>().ParallelLogger );
 
-            var register = new StObjContextRoot.ServiceRegister( helper.Monitor, builder.Services );
-            register.AddStObjMap( stobjMap );
-            configureServices?.Invoke( register );
+            configureServices?.Invoke( builder.Services );
+            builder.Services.AddStObjMap( helper.Monitor, stobjMap );
 
             var app = builder.Build();
             try
@@ -166,55 +166,8 @@ namespace CK
         }
 
         /// <summary>
-        /// Running AspNet server with its <see cref="CrisEndpointUrl"/>, <see cref="Services"/>
-        /// and <see cref="Configuration"/>.
-        /// </summary>
-        public sealed class RunningAspNetServer : IAsyncDisposable
-        {
-            readonly string _serverAddress;
-            readonly string _crisEndpointUrl;
-            readonly WebApplication _app;
-
-            internal RunningAspNetServer( WebApplication app, string serverAddress )
-            {
-                _app = app;
-                _serverAddress = serverAddress;
-                _crisEndpointUrl = serverAddress + "/.cris/net";
-            }
-
-            /// <summary>
-            /// Gets the application's configured services.
-            /// </summary>
-            public IServiceProvider Services => _app.Services;
-
-            /// <summary>
-            /// Gets the application's configuration.
-            /// </summary>
-            public IConfiguration Configuration => _app.Configuration;
-
-            /// <summary>
-            /// Gets the server address (the port is automatically assigned).
-            /// </summary>
-            public string ServerAddress => _serverAddress;
-
-            /// <summary>
-            /// Gets the absolute url to send Cris command: "<see cref="ServerAddress"/>/.cris/net".
-            /// </summary>
-            public string CrisEndpointUrl => _crisEndpointUrl;
-
-            /// <summary>
-            /// Stops the application.
-            /// </summary>
-            /// <returns>The awaitable.</returns>
-            public async ValueTask DisposeAsync()
-            {
-                await _app.StopAsync();
-            }
-        }
-
-        /// <summary>
         /// Creates, configure and starts a <see cref="RunningAspNetServer"/>.
-        /// No types are implicitly registered: <paramref name="registeredTypes"/> shoudl contain <see cref="CK.Cris.AspNet.CrisAspNetService"/>.
+        /// No types are implicitly registered: <paramref name="registeredTypes"/> should contain <see cref="CK.Cris.AspNet.CrisAspNetService"/>.
         /// </summary>
         /// <param name="helper">This helper.</param>
         /// <param name="registeredTypes">The types to register in the StObjCollector.</param>
@@ -225,10 +178,14 @@ namespace CK
         public static async Task<RunningAspNetServer> RunAspNetServerAsync( this IStObjEngineTestHelper helper,
                                                                             IEnumerable<Type> registeredTypes,
                                                                             Func<StObjEngineConfiguration, StObjEngineConfiguration>? engineConfigurator = null,
-                                                                            Action<StObjContextRoot.ServiceRegister>? configureServices = null,
+                                                                            Action<IServiceCollection>? configureServices = null,
                                                                             Action<IApplicationBuilder>? configureApplication = null )
         {
             StObjCollector collector = helper.CreateStObjCollector( registeredTypes.ToArray() );
+            // These 2 services are required by the WebFrontAthService.
+            collector.RegisterType( typeof( AuthenticationInfoTokenService ) );
+            collector.RegisterType( typeof( StdAuthenticationTypeSystem ) );
+
             CompileAndLoadResult r = helper.CompileAndLoadStObjMap( collector, engineConfigurator );
 
             var builder = WebApplication.CreateBuilder();
@@ -238,9 +195,12 @@ namespace CK
             builder.Services.AddScoped<IActivityMonitor, ActivityMonitor>();
             builder.Services.AddScoped( sp => sp.GetRequiredService<IActivityMonitor>().ParallelLogger );
 
-            var register = new StObjContextRoot.ServiceRegister( helper.Monitor, builder.Services );
-            register.AddStObjMap( r.Map );
-            configureServices?.Invoke( register );
+            builder.Services.AddAuthentication( WebFrontAuthOptions.OnlyAuthenticationScheme )
+                        .AddWebFrontAuth();
+
+            configureServices?.Invoke( builder.Services );
+
+            builder.Services.AddStObjMap( helper.Monitor, r.Map );
 
             var app = builder.Build();
             try
@@ -249,6 +209,7 @@ namespace CK
                 app.Urls.Add( "http://[::1]:0" );
 
                 app.UseGuardRequestMonitor();
+                app.UseAuthentication();
                 app.UseCris();
                 configureApplication?.Invoke( app );
 
@@ -272,4 +233,5 @@ namespace CK
         }
 
     }
+
 }

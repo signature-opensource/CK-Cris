@@ -17,6 +17,23 @@ namespace CK.Cris.HttpSender
         IRemoteParty Remote {  get; }
 
         /// <summary>
+        /// Gets or sets whether <see cref="CK.Auth.IBasicLoginCommand"/>, <see cref="CK.Auth.IRefreshAuthenticationCommand"/>
+        /// and <see cref="CK.Auth.ILogoutCommand"/> automatically update the <see cref="AuthorizationToken"/>.
+        /// <para>
+        /// Defaults to false.
+        /// </para>
+        /// </summary>
+        public bool SkipAutomaticAuthorizationToken { get; set; }
+
+        /// <summary>
+        /// Gets or sets an optional "Authorization" bearer token.
+        /// <para>
+        /// <see cref="SkipAutomaticAuthorizationToken"/> should be set to true when using this directly.
+        /// </para>
+        /// </summary>
+        string? AuthorizationToken { get; set; }
+
+        /// <summary>
         /// Sends a Cris command on the remote endpoint, and returns the <see cref="IExecutedCommand{T}"/>.
         /// This never throws.
         /// </summary>
