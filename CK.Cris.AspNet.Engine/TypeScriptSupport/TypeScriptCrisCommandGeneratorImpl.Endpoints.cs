@@ -180,6 +180,17 @@ namespace CK.Setup
                                                          }
                                                          return invalidResponse( command, data.correlationId );
                                                   }
+                                                  else if( data.result[0] === "SimpleUserMessage" )
+                                                  {
+                                                      const msg = data.result[1];
+                                                      if(!(msg instanceof Array && msg.length === 3)) return invalidResponse(command, data.correlationId);
+
+                                                      if(msg.length !== 3)
+                                                      {
+                                                          return invalidResponse(command, data.correlationId);
+                                                      }
+                                                      return {command: command, result: new SimpleUserMessage(msg[0],msg[1],msg[2]) as T, correlationId: data.correlationId};
+                                                  }
                                                   return {command: command, result: data.result[1] as T, correlationId: data.correlationId };
                                               }
                                            }
