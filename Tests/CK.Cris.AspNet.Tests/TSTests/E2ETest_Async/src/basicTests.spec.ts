@@ -1,6 +1,6 @@
 import axios from "axios"; 
-import { HttpCrisEndpoint, AmbientValues, CrisError } from "@local/ck-gen"; 
-import { BeautifulCommand, BuggyCommand } from "@local/ck-gen"; 
+import { HttpCrisEndpoint, AmbientValues, CrisError, UserMessageLevel, SimpleUserMessage } from "@local/ck-gen"; 
+import { BeautifulCommand, BuggyCommand, CommandWithMessage } from "@local/ck-gen"; 
 import { type } from "os";
 
 const crisEndpoint = process.env.CRIS_ENDPOINT_URL ?? "";
@@ -48,31 +48,45 @@ it( 'ambient values can be overridden.', async () =>
   expect( executedCommand.result ).toBe( "Black - Superb" );
 });
 
-it( 'sendOrThrowAsync throws the CrisError.', async () => 
-{
-  const ep = new HttpCrisEndpoint( axios, crisEndpoint );
-  const cmd = BuggyCommand.create( true );
-  try
-  {
-    await ep.sendOrThrowAsync( cmd );
-    fail("Never here!");
-  }
-  catch( ex )
-  {
-    expect( ex instanceof CrisError );
-    const cex = <CrisError>ex;
-    expect( cex.errorType === "ValidationError" );
-  }
-  cmd.emitValidationError = false;
-  try
-  {
-    await ep.sendOrThrowAsync( cmd );
-    fail("Never here!");
-  }
-  catch( ex )
-  {
-    expect( ex instanceof CrisError );
-    const cex = <CrisError>ex;
-    expect( cex.errorType === "ExecutionError" );
-  }
+it('sendOrThrowAsync throws the CrisError.', async () => {
+    const ep = new HttpCrisEndpoint(axios, crisEndpoint);
+    const cmd = BuggyCommand.create(true);
+    try {
+        await ep.sendOrThrowAsync(cmd);
+        fail("Never here!");
+    }
+    catch (ex) {
+        expect(ex instanceof CrisError);
+        const cex = <CrisError>ex;
+        expect(cex.errorType === "ValidationError");
+    }
+    cmd.emitValidationError = false;
+    try {
+        await ep.sendOrThrowAsync(cmd);
+        fail("Never here!");
+    }
+    catch (ex) {
+        expect(ex instanceof CrisError);
+        const cex = <CrisError>ex;
+        expect(cex.errorType === "ExecutionError");
+    }
+});
+it('CrisError messages are SimpleMessage.', async () => {
+    const ep = new HttpCrisEndpoint(axios, crisEndpoint);
+    const cmd = BuggyCommand.create(true);
+    var executed = await ep.sendAsync(cmd);
+    expect(executed.result instanceof CrisError );
+    const r = <CrisError>executed.result;
+    expect(r.messages[0].message).toBe("The BuggyCommand is not valid (by design).");
+    expect(r.messages[0].depth).toBe( 0 );
+    expect(r.messages[0].level).toBe( UserMessageLevel.Error );
+});
+it('A command can return a SimpleMessage.', async () => {
+  const ep = new HttpCrisEndpoint(axios, crisEndpoint);
+  const cmd = CommandWithMessage.create();
+  var r = await ep.sendOrThrowAsync(cmd);
+  expect(r instanceof SimpleUserMessage );
+  expect(r.message.startsWith("Local servert time is"));
+  expect(r.depth).toBe( 0 );
+  expect(r.level).toBe( UserMessageLevel.Info );
 });
