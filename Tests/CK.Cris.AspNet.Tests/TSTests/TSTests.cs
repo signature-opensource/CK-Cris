@@ -1,5 +1,6 @@
 using CK.Core;
 using NUnit.Framework;
+using System;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
 
@@ -18,6 +19,10 @@ namespace CK.Cris.AspNet.E2ETests
             string Color { get; set; }
         }
 
+        public interface ICommandWithMessage : ICommand<SimpleUserMessage>
+        {
+        }
+
         public class ColorAndBuggyService : IAutoService
         {
             [CommandPostHandler]
@@ -27,9 +32,15 @@ namespace CK.Cris.AspNet.E2ETests
             }
 
             [CommandHandler]
-            public string HandleBeatifulCommand( IBeautifulCommand cmd )
+            public string HandleBeautifulCommand( IBeautifulCommand cmd )
             {
                 return $"{cmd.Color} - {cmd.Beauty}";
+            }
+
+            [CommandHandler]
+            public SimpleUserMessage Handle( CurrentCultureInfo culture, ICommandWithMessage cmd )
+            {
+                return culture.InfoMessage( $"Local servert time is {DateTime.Now}." );
             }
 
             [CommandValidator]
@@ -106,8 +117,9 @@ namespace CK.Cris.AspNet.E2ETests
                                                             typeof( IColoredAmbientValues ),
                                                             typeof( ColorAndBuggyService ),
                                                             typeof( IBuggyCommand ),
+                                                            typeof( ICommandWithMessage ),
                                                             typeof( CrisAspNetService ) },
-                                                    new[] { typeof( IBeautifulCommand ), typeof(IBuggyCommand) },
+                                                    new[] { typeof( IBeautifulCommand ), typeof( IBuggyCommand ), typeof( ICommandWithMessage ) },
                                                     resume =>
                                                     resume );
         }
