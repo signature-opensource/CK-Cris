@@ -68,10 +68,10 @@ namespace CK.Cris
         /// Helper that centralizes unhandled exception behavior.
         /// </summary>
         /// <param name="monitor">The monitor.</param>
-        /// <param name="currentCulture">The current culture.</param>
-        /// <param name="isExecuting">Whether the command is executing or validating.</param>
         /// <param name="ex">The unhandled exception.</param>
         /// <param name="cmd">The faulted command.</param>
+        /// <param name="isExecuting">Whether the command is executing or validating.</param>
+        /// <param name="currentCulture">The current culture.</param>
         /// <param name="collector">Error message collector.</param>
         /// <param name="leakAll">
         /// Whether all exceptions must be exposed or only the <see cref="MCException"/> ones.
@@ -79,11 +79,11 @@ namespace CK.Cris
         /// </param>
         /// <returns>The log key.</returns>
         public static string OnUnhandledError( IActivityMonitor monitor,
-                                               CurrentCultureInfo? currentCulture,
-                                               bool isExecuting,
                                                Exception ex,
                                                IAbstractCommand cmd,
-                                               List<UserMessage> collector,
+                                               bool isExecuting,
+                                               CurrentCultureInfo? currentCulture,
+                                               Action<UserMessage> collector,
                                                bool? leakAll = null )
         {
             var logText = $"While {(isExecuting ? "execu" : "valida")}ting command '{cmd.CrisPocoModel.PocoName}'.";
@@ -92,11 +92,11 @@ namespace CK.Cris
             if( currentCulture == null )
             {
                 MCString m = MCString.CreateNonTranslatable( NormalizedCultureInfo.CodeDefault, logText );
-                collector.Add( new UserMessage( UserMessageLevel.Error, m, 0 ) );
+                collector( new UserMessage( UserMessageLevel.Error, m, 0 ) );
             }
             else
             {
-                collector.Add( isExecuting
+                collector( isExecuting
                                 ? UserMessage.Error( currentCulture,
                                                      $"An unhandled error occurred while executing command '{cmd.CrisPocoModel.PocoName}' (LogKey: {g.GetLogKeyString()}).",
                                                      "Cris.UnhandledExecutionError" )
@@ -104,44 +104,10 @@ namespace CK.Cris
                                                      $"An unhandled error occurred while validating command '{cmd.CrisPocoModel.PocoName}' (LogKey: {g.GetLogKeyString()}).",
                                                      "Cris.UnhandledValidationError" ) );
             }
-            var all = leakAll ?? CoreApplicationIdentity.IsInitialized
-                                    ? CoreApplicationIdentity.Instance.EnvironmentName == CoreApplicationIdentity.DefaultEnvironmentName
-                                    : true;
-            if( all )
-            {
-                if( currentCulture != null )
-                {
-                    ex.GetUserMessages( currentCulture, collector.Add );
-                }
-                else
-                {
-                    ex.GetUserMessages( collector.Add );
-                }
-            }
-            else
-            {
-                CollectMCOnly( collector.Add, 0, ex );
-            }
+            ex.GetUserMessages( collector, currentCulture, 0, null, leakAll );
             // Always logged since we opened an Error group.
             monitor.Info( cmd.ToString()!, ex );
             return g.GetLogKeyString()!;
-        }
-
-        static void CollectMCOnly( Action<UserMessage> collector, byte depth, Exception e )
-        {
-            if( e is AggregateException a )
-            {
-                ++depth;
-                foreach( var sub in a.InnerExceptions ) CollectMCOnly( collector, depth, sub );
-            }
-            else
-            {
-                if( e is MCException mC )
-                {
-                    collector( mC.AsUserMessage().With( depth ) );
-                }
-                if( e.InnerException != null ) CollectMCOnly( collector, ++depth, e.InnerException );
-            }
         }
     }
 }

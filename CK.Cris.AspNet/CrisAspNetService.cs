@@ -105,10 +105,7 @@ namespace CK.Cris.AspNet
                         result = await ValidateAndExecuteInlineAsync( monitor, requestServices, cmd );
                     }
                 }
-                if( result.CorrelationId == null )
-                {
-                    result.CorrelationId = monitor.CreateToken().ToString();
-                }
+                result.CorrelationId ??= monitor.CreateToken().ToString();
                 if( !isNetPath && result.Result is ICrisResultError error )
                 {
                     IAspNetCrisResultError simpleError = _errorResultFactory.Create();
@@ -157,7 +154,7 @@ namespace CK.Cris.AspNet
             {
                 var currentCulture = requestServices.GetRequiredService<CurrentCultureInfo>();
                 ICrisResultError error = _crisErrorResultFactory.Create();
-                error.LogKey = CK.Cris.PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, true, ex, cmd, error.Messages );
+                error.LogKey = CK.Cris.PocoFactoryExtensions.OnUnhandledError( monitor, ex, cmd, true, currentCulture, error.Messages.Add );
                 result.Result = error;
             }
             return result;
@@ -198,17 +195,16 @@ namespace CK.Cris.AspNet
                                                                   $"Unable to read Command Poco from request body (byte length = {length}).",
                                                                   "Cris.AspNet.ReadCommandFailed" );
                     using var gError = monitor.OpenError( errorMessage.Message.CodeString, ex );
-                    var x = ReadBodyTextOnError( buffer.GetReadOnlySequence() );
-                    if( x.B != null )
+                    var (body, error) = ReadBodyTextOnError( buffer.GetReadOnlySequence() );
+                    if( body != null )
                     {
-                        monitor.Trace( x.B );
+                        monitor.Trace( body );
                     }
                     else
                     {
-                        monitor.Error( "Error while tracing request body.", x.E );
+                        monitor.Error( "Error while tracing request body.", error );
                     }
-                    var error = CreateValidationErrorResult( errorMessage, gError.GetLogKeyString() );
-                    return (null, error);
+                    return (null, CreateValidationErrorResult( errorMessage, gError.GetLogKeyString() ));
                 }
             }
 

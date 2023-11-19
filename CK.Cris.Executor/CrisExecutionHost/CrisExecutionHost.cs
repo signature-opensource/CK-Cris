@@ -171,7 +171,7 @@ namespace CK.Cris
                 crisResult ??= _jobResultFactory.Create();
                 ICrisResultError error = _errorResultFactory.Create();
                 crisResult.Result = error;
-                PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, true, ex, job.Command, error.Messages );
+                PocoFactoryExtensions.OnUnhandledError( monitor, ex, job.Command, true, currentCulture, error.Messages.Add );
                 error.LogKey = gLog.GetLogKeyString();
 
                 // Sets the SafeCompletion with the ICrisResultError on the executing command if there is one.
