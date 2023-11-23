@@ -9,7 +9,7 @@ using static CK.Testing.StObjEngineTestHelper;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-namespace CK.Cris.TypeScript.E2ETests
+namespace CK.Cris.AspNet.E2ETests
 {
     [TestFixture]
     public class TypeScriptBuildOnlyTests
