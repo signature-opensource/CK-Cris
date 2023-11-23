@@ -17,7 +17,7 @@ namespace CK.Cris.AspNet.E2ETests
         [Test]
         public void DiamondResultAndCommand_works()
         {
-            var targetOutputPath = TestHelper.GetTypeScriptWithBuildTargetProjectPath();
+            var targetOutputPath = TestHelper.GetTypeScriptGeneratedOnlyTargetProjectPath();
             TestHelper.GenerateTypeScript( targetOutputPath,
                                            new[] {  typeof( CrisAspNetService ),
                                                     typeof( Cris.Tests.ICommandUnifiedWithTheResult ),
