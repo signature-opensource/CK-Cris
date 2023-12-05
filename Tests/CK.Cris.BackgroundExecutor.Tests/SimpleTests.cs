@@ -1,6 +1,7 @@
 using CK.Auth;
 using CK.Core;
 using FluentAssertions;
+using FluentAssertions.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
@@ -14,6 +15,7 @@ using static CK.Testing.StObjEngineTestHelper;
 
 namespace CK.Cris.BackgroundExecutor.Tests
 {
+
     [TestFixture]
     public class SimpleTests
     {
@@ -71,7 +73,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
         [OneTimeSetUp]
         public async Task OneTimeSetUpAsync()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisBackgroundExecutor ),
+            var c = TestHelper.CreateStObjCollector( typeof( CrisBackgroundExecutorService ),
                                                      typeof( StdAuthenticationTypeSystem ),
                                                      typeof( IDelayCommand ),
                                                      typeof( StupidHandlers ),
@@ -94,10 +96,10 @@ namespace CK.Cris.BackgroundExecutor.Tests
             {
                 Traces.Clear();
                 var poco = scope.ServiceProvider.GetRequiredService<PocoDirectory>();
-                var back = scope.ServiceProvider.GetRequiredService<CrisBackgroundExecutor>();
+                var back = scope.ServiceProvider.GetRequiredService<CrisBackgroundExecutorService>();
                 var ubiq = scope.ServiceProvider.GetRequiredService<EndpointUbiquitousInfo>();
                 var commands = Enumerable.Range( 0, 20 )
-                                         .Select( i => back.Start( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ) );
+                                         .Select( i => back.Submit( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ) );
                 TestHelper.Monitor.Info( "Waiting for commands to be executed." );
                 await Task.WhenAll( commands.Select( c => c.SafeCompletion ) );
                 var all = Traces.Concatenate();
@@ -115,7 +117,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
             {
                 Traces.Clear();
                 var poco = _services.GetRequiredService<PocoDirectory>();
-                var back = _services.GetRequiredService<CrisBackgroundExecutor>();
+                var back = _services.GetRequiredService<CrisBackgroundExecutorService>();
                 var ubiq = scope.ServiceProvider.GetRequiredService<EndpointUbiquitousInfo>();
                 back.ExecutionHost.ParallelRunnerCount = 2;
 
@@ -124,7 +126,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
                 await Task.Delay( 15 );
 
                 var commands = Enumerable.Range( 0, 20 )
-                                         .Select( i => back.Start( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ) );
+                                         .Select( i => back.Submit( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ) );
                 TestHelper.Monitor.Info( "Waiting for the commands to be executed." );
                 await Task.WhenAll( commands.Select( c => c.SafeCompletion ) );
                 Traces.Should().HaveCount( 2 * 20 );
@@ -144,12 +146,12 @@ namespace CK.Cris.BackgroundExecutor.Tests
             {
                 Traces.Clear();
                 var poco = _services.GetRequiredService<PocoDirectory>();
-                var back = _services.GetRequiredService<CrisBackgroundExecutor>();
+                var back = _services.GetRequiredService<CrisBackgroundExecutorService>();
                 var ubiq = scope.ServiceProvider.GetRequiredService<EndpointUbiquitousInfo>();
                 back.ExecutionHost.ParallelRunnerCount = 4;
 
                 var commands = Enumerable.Range( 0, 20 )
-                                         .Select( i => back.Start( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ) );
+                                         .Select( i => back.Submit( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ) );
                 TestHelper.Monitor.Info( "Waiting for the commands to be executed." );
                 await Task.WhenAll( commands.Select( c => c.SafeCompletion ) );
                 Traces.Should().HaveCount( 2 * 20 );
@@ -170,7 +172,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
             {
                 Traces.Clear();
                 var poco = scope.ServiceProvider.GetRequiredService<PocoDirectory>();
-                var back = scope.ServiceProvider.GetRequiredService<CrisBackgroundExecutor>();
+                var back = scope.ServiceProvider.GetRequiredService<CrisBackgroundExecutorService>();
 
                 int eventualRunnerCount = Random.Shared.Next( 1, 10 );
 
@@ -199,7 +201,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
                     for( int i = 0; i < countChange; i++ )
                     {
                         var ubiq = scope.ServiceProvider.GetRequiredService<EndpointUbiquitousInfo>();
-                        await back.Start( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ).SafeCompletion;
+                        await back.Submit( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ).SafeCompletion;
                     }
                     back.ExecutionHost.ParallelRunnerCount = eventualRunnerCount;
                 } );

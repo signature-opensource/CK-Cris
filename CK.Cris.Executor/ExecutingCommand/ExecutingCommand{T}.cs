@@ -28,7 +28,7 @@ namespace CK.Cris
         /// <inheritdoc />
         public new T Command => Unsafe.As<T>( base.Command );
 
-        sealed class ResultAdapter<TResult> : IExecutingCommand<T>.WithResult<TResult>
+        sealed class ResultAdapter<TResult> : IExecutingCommand<T>.IResultAdapter<TResult>
         {
             readonly ExecutingCommand<T> _command;
             readonly TaskCompletionSource<TResult> _result;
@@ -78,7 +78,7 @@ namespace CK.Cris
                         {
                             if( default( TResult ) == null )
                             {
-                                result.SetResult( default( TResult )! );
+                                result.SetResult( default! );
                             }
                             else
                             {
@@ -93,6 +93,15 @@ namespace CK.Cris
                         }
                     }
                 }
+            }
+
+            public IExecutingCommand<T>.IResultAdapter<TOtherResult> WithResult<TOtherResult>()
+            {
+                if( typeof( TOtherResult ) == typeof( TResult ) )
+                {
+                    return Unsafe.As<IExecutingCommand<T>.IResultAdapter<TOtherResult>>( this );
+                }
+                return _command.WithResult<TOtherResult>();
             }
 
             public Task<TResult> Result => _result.Task;
@@ -123,7 +132,7 @@ namespace CK.Cris
         /// </summary>
         /// <typeparam name="TResult">The result type.</typeparam>
         /// <returns>A strongly typed command and its result.</returns>
-        public IExecutingCommand<T>.WithResult<TResult> WithResult<TResult>()
+        public IExecutingCommand<T>.IResultAdapter<TResult> WithResult<TResult>()
         {
             // Building a strongly typed result: we check that the actual result type (that is
             // the most precise type among the different ICommand<TResult> TResult types) is

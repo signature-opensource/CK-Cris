@@ -20,12 +20,12 @@ namespace CK.Cris.AspNet
     [AlsoRegisterType( typeof( RawCrisValidator ) )]
     [AlsoRegisterType( typeof( IAspNetCrisResult ) )]
     [AlsoRegisterType( typeof( IAspNetCrisResultError ) )]
-    [AlsoRegisterType( typeof( CrisBackgroundExecutor ) )]
+    [AlsoRegisterType( typeof( CrisBackgroundExecutorService ) )]
     [AlsoRegisterType( typeof( IAmbientValuesCollectCommand ) )]
     public partial class CrisAspNetService : ISingletonAutoService
     {
         readonly RawCrisValidator _validator;
-        readonly CrisBackgroundExecutor _backgroundExecutor;
+        readonly CrisBackgroundExecutorService _backgroundExecutor;
         readonly PocoDirectory _poco;
         readonly IPocoFactory<IAspNetCrisResult> _resultFactory;
         readonly IPocoFactory<IAspNetCrisResultError> _errorResultFactory;
@@ -33,7 +33,7 @@ namespace CK.Cris.AspNet
 
         public CrisAspNetService( PocoDirectory poco,
                                   RawCrisValidator validator,
-                                  CrisBackgroundExecutor backgroundExecutor,
+                                  CrisBackgroundExecutorService backgroundExecutor,
                                   IPocoFactory<IAspNetCrisResult> resultFactory,
                                   IPocoFactory<IAspNetCrisResultError> errorResultFactory,
                                   IPocoFactory<ICrisResultError> backendErrorResultFactory )
@@ -95,7 +95,7 @@ namespace CK.Cris.AspNet
                     EndpointUbiquitousInfo? info = HandleEndpointUbiquitousInfoConfigurator( requestServices, cmd );
                     if( info != null )
                     {
-                        var c = _backgroundExecutor.Start( monitor, cmd, info, issuerToken: depToken );
+                        var c = _backgroundExecutor.Submit( monitor, cmd, info, issuerToken: depToken );
                         var o = await c.SafeCompletion;
                         result = _resultFactory.Create();
                         result.Result = o;
