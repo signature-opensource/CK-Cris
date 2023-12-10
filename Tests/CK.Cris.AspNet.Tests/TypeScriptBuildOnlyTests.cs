@@ -9,7 +9,7 @@ using static CK.Testing.StObjEngineTestHelper;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-namespace CK.Cris.TypeScript.E2ETests
+namespace CK.Cris.AspNet.E2ETests
 {
     [TestFixture]
     public class TypeScriptBuildOnlyTests
@@ -17,7 +17,7 @@ namespace CK.Cris.TypeScript.E2ETests
         [Test]
         public void DiamondResultAndCommand_works()
         {
-            var targetOutputPath = TestHelper.GetTypeScriptWithBuildTargetProjectPath();
+            var targetOutputPath = TestHelper.GetTypeScriptGeneratedOnlyTargetProjectPath();
             TestHelper.GenerateTypeScript( targetOutputPath,
                                            new[] {  typeof( CrisAspNetService ),
                                                     typeof( Cris.Tests.ICommandUnifiedWithTheResult ),

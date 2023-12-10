@@ -189,7 +189,7 @@ namespace CK.Cris.HttpSender.Tests
                 - An unhandled error occurred while executing command 'CK.Cris.HttpSender.Tests.INakedCommand' (LogKey: *).
                   -> *SenderTests.cs@*
                 - Outer exception.
-                  - One or more errors occurred. (Bug! (n°1)) (Bug! (n°2))
+                  - One or more errors occurred.
                     - Bug! (n°1)
                     - Bug! (n°2)
                 """ );

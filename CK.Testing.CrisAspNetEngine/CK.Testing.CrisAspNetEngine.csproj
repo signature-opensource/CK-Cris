@@ -4,8 +4,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.AspNet.Auth" Version="21.4.0" />
-    <PackageReference Include="CK.Testing.StObjTypeScriptEngine" Version="0.17.0" />
+    <PackageReference Include="CK.AspNet.Auth" Version="22.0.0" />
+    <PackageReference Include="CK.Testing.StObjTypeScriptEngine" Version="0.18.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris.AspNet.Engine\CK.Cris.AspNet.Engine.csproj" />

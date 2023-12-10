@@ -42,7 +42,7 @@ namespace CK.Cris
         /// Initializes a new validation result from a <see cref="UserMessageCollector"/>.
         /// </summary>
         /// <param name="collector">The message collector.</param>
-        /// <param name="logKey">Optional <see cref="ActivityMonitor.LogKey"/> that enables to locat the logs of the validation.</param>
+        /// <param name="logKey">Optional <see cref="ActivityMonitor.LogKey"/> that enables to locate the logs of the validation.</param>
         public CrisValidationResult( UserMessageCollector collector, string? logKey )
         {
             Messages = collector.UserMessages.ToArray();

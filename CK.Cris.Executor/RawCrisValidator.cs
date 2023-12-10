@@ -75,7 +75,7 @@ namespace CK.Cris
             catch( Exception ex )
             {
                 var messages = new List<UserMessage>();
-                var k = PocoFactoryExtensions.OnUnhandledError( monitor, currentCulture, false, ex, command, messages );
+                var k = PocoFactoryExtensions.OnUnhandledError( monitor, ex, command, false, currentCulture, messages.Add );
                 return new CrisValidationResult( messages, g.GetLogKeyString() ?? k );
             }
         }
