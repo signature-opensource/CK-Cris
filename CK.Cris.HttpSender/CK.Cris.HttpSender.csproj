@@ -4,7 +4,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.AppIdentity" Version="0.4.0" />
+    <PackageReference Include="CK.AppIdentity" Version="0.4.1--0003-develop" />
     <PackageReference Include="CK.Poco.Json" Version="25.0.0" />
     <PackageReference Include="Polly.Core" Version="8.0.0" />
   </ItemGroup>
