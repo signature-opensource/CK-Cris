@@ -96,21 +96,13 @@ namespace CK.Setup
                 b.Append( "get " ).Append( e.TypeFile.Context.PascalCase ? "C" : "c" ).Append( "ommandModel() { return " )
                  .Append( e.PocoClass.TypeName ).Append( "._commandModel; }" ).NewLine();
                 //
-                b.Append( "private static readonly _commandModel: CommandModel<" );
-                var resultTypeName = b.AppendAndGetComplexTypeName( e.Monitor, e.TypeFile.Context, cmd.ResultNullableTypeTree );
-                if( resultTypeName == null )
-                {
-                    e.SetError();
-                    return;
-                }
-                b.Append( "> = " )
-                    .OpenBlock()
-                        .Append( "commandName: " ).AppendSourceString( cmd.PocoName ).Append( "," ).NewLine()
-                        .Append( "applyAmbientValues( command: any, a: any, o: any )" )
-                        .OpenBlock()
-                            .Append( ApplyAmbientValues )
-                        .CloseBlock()
-                    .CloseBlock( withSemiColon: true );
+                b.Append( "private static readonly _commandModel = {" ).NewLine();
+                b.Append( "commandName: " ).AppendSourceString( cmd.PocoName ).Append( "," ).NewLine()
+                 .Append( "applyAmbientValues( command: any, a: any, o: any )" )
+                 .OpenBlock()
+                    .Append( ApplyAmbientValues )
+                 .CloseBlock()
+                 .CloseBlock( withSemiColon: true );
 
                 void ApplyAmbientValues( ITSCodePart b )
                 {
