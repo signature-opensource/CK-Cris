@@ -1,5 +1,6 @@
 using CK.Core;
 using Microsoft.AspNetCore.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace CK.Cris.AspNet
@@ -34,8 +35,13 @@ namespace CK.Cris.AspNet
                 }
                 else
                 {
+                    ctx.Response.StatusCode = 200;
                     bool isNetPath = remainder.StartsWithSegments( _netPath );
-                    await _service.HandleRequestAsync( monitor, ctx.RequestServices, ctx.Request, ctx.Response, isNetPath );
+                    var result = await _service.HandleRequestAsync( monitor, ctx.Request, CrisAspNetService.StandardReadCommandAsync, isNetPath );
+                    using( var writer = new Utf8JsonWriter( ctx.Response.BodyWriter ) )
+                    {
+                        PocoJsonSerializer.Write( result, writer, withType: false );
+                    }
                 }
             }
             else
