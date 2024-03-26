@@ -66,7 +66,7 @@ namespace CK.Cris
                     else if( r is ICrisResultError error )
                     {
                         // The result is a ICrisResultError: we set an exception on the Task.
-                        var ex = new CKException( $"Command failed with {error.Messages.Count} messages." );
+                        var ex = new CKException( $"Command failed with {error.Errors.Count} messages." );
                         result.SetException( ex );
                     }
                     else

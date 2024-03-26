@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IO;
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -90,9 +91,16 @@ namespace CK.Cris.AspNet
                 if( !useSimpleError && result.Result is ICrisResultError error )
                 {
                     IAspNetCrisResultError simpleError = _errorResultFactory.Create();
-                    simpleError.IsValidationError = error.IsValidationError;
+                    // On validation errors, the IAspNetCrisResult.ValidationMessages contains all the messages.
+                    // The simplified IAspNetCrisResultError always contains
+                    // only the errors as string.
+                    simpleError.Errors.AddRange( error.Errors.Where( e => e.Level == UserMessageLevel.Error ).Select( m => m.Text ) );
+                    if( error.IsValidationError )
+                    {
+                        result.ValidationMessages = error.Errors.Select( m => m.AsSimpleUserMessage() ).ToList();
+                        simpleError.IsValidationError = true;
+                    }
                     simpleError.LogKey = error.LogKey;
-                    simpleError.Messages.AddRange( error.Messages.Select( m => m.AsSimpleUserMessage() ) );
                     result.Result = simpleError;
                 }
                 /// A Cris result HTTP status code must always be 200 OK (except on Internal Server Error).
@@ -144,7 +152,7 @@ namespace CK.Cris.AspNet
             if( !validation.Success )
             {
                 ICrisResultError error = _crisErrorResultFactory.Create();
-                error.Messages.AddRange( validation.Messages );
+                error.Errors.AddRange( validation.Messages );
                 error.LogKey = validation.LogKey;
                 error.IsValidationError = true;
                 result.Result = error;
@@ -162,7 +170,7 @@ namespace CK.Cris.AspNet
             {
                 var currentCulture = requestServices.GetRequiredService<CurrentCultureInfo>();
                 ICrisResultError error = _crisErrorResultFactory.Create();
-                error.LogKey = CK.Cris.PocoFactoryExtensions.OnUnhandledError( monitor, ex, cmd, true, currentCulture, error.Messages.Add );
+                error.LogKey = PocoFactoryExtensions.OnUnhandledError( monitor, ex, cmd, true, currentCulture, error.Errors.Add );
                 result.Result = error;
             }
             return result;
@@ -280,7 +288,16 @@ namespace CK.Cris.AspNet
         IAspNetCrisResult CreateValidationErrorResult( UserMessageCollector messages, string? logKey )
         {
             IAspNetCrisResult result = _resultFactory.Create();
-            ICrisResultError e = _crisErrorResultFactory.Create( e => e.Messages.AddRange( messages.UserMessages ) );
+            ICrisResultError e = _crisErrorResultFactory.Create();
+
+            var validationMessages = new List<SimpleUserMessage>();
+            foreach( var message in messages.UserMessages )
+            {
+                if( message.Level == UserMessageLevel.Error ) e.Errors.Add( message );
+                validationMessages.Add( message );
+            }
+            result.ValidationMessages = validationMessages;
+
             e.IsValidationError = true;
             e.LogKey = logKey;
             result.Result = e;

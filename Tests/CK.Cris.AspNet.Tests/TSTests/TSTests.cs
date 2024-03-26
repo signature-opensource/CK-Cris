@@ -46,9 +46,13 @@ namespace CK.Cris.AspNet.E2ETests
             [CommandValidator]
             public void ValidateBuggyCommand( UserMessageCollector collector, IBuggyCommand cmd )
             {
-                if( cmd.EmitValidationError )
+                using( collector.OpenInfo( "This is an info from the command validation." ) )
                 {
-                    collector.Error( "The BuggyCommand is not valid (by design)." );
+                    if( cmd.EmitValidationError )
+                    {
+                        collector.Error( "The BuggyCommand is not valid (by design)." );
+                    }
+                    collector.Warn( "This is a warning from the command validation." );
                 }
             }
 

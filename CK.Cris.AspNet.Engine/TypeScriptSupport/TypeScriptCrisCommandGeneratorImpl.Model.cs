@@ -57,9 +57,13 @@ namespace CK.Setup
                                      */
                                     public readonly errorType : "CommunicationError"|"ValidationError"|"ExecutionError";
                                     /**
-                                     * Gets the messages. At least one message is guranteed to exist.
+                                     * Gets the errors. At least one error is guaranteed to exist.
                                      */
-                                    public readonly messages: ReadonlyArray<SimpleUserMessage>; 
+                                    public readonly errors: ReadonlyArray<string>; 
+                                    /**
+                                     * Gets the validationMessages if any.
+                                     */
+                                    public readonly validationMessages?: ReadonlyArray<SimpleUserMessage>; 
                                     /**
                                      * The Error.cause support is a mess. This replaces it at this level. 
                                      */
@@ -74,21 +78,20 @@ namespace CK.Setup
                                     public readonly command: ICommand<unknown>;
 
                                     constructor( command: ICommand<unknown>, 
-                                                 message: string, 
                                                  isValidationError: boolean,
-                                                 innerError?: Error, 
-                                                 messages?: ReadonlyArray<SimpleUserMessage>,
+                                                 errors: ReadonlyArray<string>, 
+                                                 innerError?: Error,
+                                                 validationMessages?: ReadonlyArray<SimpleUserMessage>,
                                                  logKey?: string ) 
                                     {
-                                        super( message );
+                                        super( errors[0] );
                                         this.command = command;   
                                         this.errorType = isValidationError 
                                                             ? "ValidationError" 
                                                             : innerError ? "CommunicationError" : "ExecutionError";
                                         this.innerError = innerError;
-                                        this.messages = messages && messages.length > 0 
-                                                        ? messages
-                                                        : [new SimpleUserMessage(UserMessageLevel.Error,message,0)];
+                                        this.errors = errors;
+                                        this.validationMessages = validationMessages;
                                         this.logKey = logKey;
                                     }
                                 }
