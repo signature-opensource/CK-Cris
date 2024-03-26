@@ -139,64 +139,60 @@ namespace CK.Setup
                                         */
                                        protected abstract doSendAsync<T>(command: ICommand<T>): Promise<ExecutedCommand<T>>;
 
-                                       /**
-                                        * Available helper.
-                                        * @param command The sent command.
-                                        * @param data The Json object response.
-                                        * @returns The resulting ExecutedCommand<T>.
-                                        */
-                                       protected handleJsonResponse<T>( command: ICommand<T>, data: any ) : ExecutedCommand<T>
-                                       {
-                                           if( data.correlationId !== undefined )
-                                           {
-                                              if( ["boolean","string","number","boolean"].includes( typeof(data.result) ) )
-                                              {
-                                                 return {command: command, result: data.result as T, correlationId: data.correlationId };
-                                              }
-                                              else if( data.result instanceof Array && data.result.length == 2 )
-                                              {
-                                                  if( data.result[0] === "AspNetCrisResultError" )
-                                                  {
-                                                         // Normalized null or empty to undefined.
-                                                         data.correlationId = data.correlationId ? data.correlationId : undefined;
-                                                         const e = data.result[1] as {isValidationError?: boolean, logKey?: string, messages?: ReadonlyArray<[UserMessageLevel,string,number]>};
-                                                         if( typeof e.isValidationError === "boolean" && e.messages instanceof Array )
-                                                         {
-                                                             const messages: Array<SimpleUserMessage> = [];
-                                                             for( const msg of e.messages )
-                                                             {
-                                                                 if(!(msg instanceof Array && msg.length == 3)) return invalidResponse(command,e.logKey);
-                                                                 // silently skip potential [0] or other incomplete arrays.
-                                                                 if(msg.length == 3)
-                                                                 {
-                                                                     messages.push( new SimpleUserMessage(msg[0],msg[1],msg[2]) );
-                                                                 }
-                                                             }
-                                                             const m = messages.find( m => m.level === UserMessageLevel.Error ) 
-                                                                         ?? messages.find( m => m.level === UserMessageLevel.Warn )
-                                                                         ?? messages.find( m => m.level === UserMessageLevel.Info );
-                                                             const message = m && m.message ? m.message : 'Error (missing Cris error message)';
-                                                             return {command: command, result: new CrisError(command,message,e.isValidationError,undefined,messages,e.logKey), correlationId: data.correlationId };
-                                                         }
-                                                         return invalidResponse( command, data.correlationId );
-                                                  }
-                                                  else if( data.result[0] === "SimpleUserMessage" )
-                                                  {
-                                                      const msg = data.result[1];
-                                                      if(!(msg instanceof Array && msg.length === 3)) return invalidResponse(command, data.correlationId);
-                                                      return {command: command, result: new SimpleUserMessage(msg[0],msg[1],msg[2]) as T, correlationId: data.correlationId};
-                                                  }
-                                                  return {command: command, result: data.result[1] as T, correlationId: data.correlationId };
-                                              }
-                                           }
-                                           return invalidResponse( command );
+                                        /**
+                                         * Available helper.
+                                         * @param command The sent command.
+                                         * @param data The Json object response.
+                                         * @returns The resulting ExecutedCommand<T>.
+                                         */
+                                        protected handleJsonResponse<T>( command: ICommand<T>, data: any ) : ExecutedCommand<T>
+                                        {
+                                            if( data.correlationId !== undefined )
+                                            {
+                                               if( ["boolean","string","number","boolean"].includes( typeof(data.result) ) )
+                                               {
+                                                  return {command: command, result: data.result as T, correlationId: data.correlationId };
+                                               }
+                                               else if( data.result instanceof Array && data.result.length === 2 )
+                                               {
+                                                   if( data.result[0] === "AspNetCrisResultError" )
+                                                   {
+                                                          // Normalized null or empty to undefined.
+                                                          data.correlationId = data.correlationId ? data.correlationId : undefined;
+                                                          const e = data.result[1] as {isValidationError?: boolean, logKey?: string, errors?: ReadonlyArray<string>};
+                                                          if( typeof e.isValidationError === "boolean" && e.errors instanceof Array )
+                                                          {
+                                                                let messages: Array<SimpleUserMessage>|undefined = undefined;
+                                                                if( e.isValidationError )
+                                                                {
+                                                                    messages = [];
+                                                                    for( const msg of data.validationMessages )
+                                                                    {
+                                                                        if(!(msg instanceof Array && msg.length === 3)) return invalidResponse(command,e.logKey);
+                                                                        messages.push( new SimpleUserMessage(msg[0],msg[1],msg[2]) );
+                                                                    }
+                                                                }
+                                                              return {command: command, result: new CrisError(command, e.isValidationError, e.errors, undefined, messages, e.logKey), correlationId: data.correlationId };
+                                                          }
+                                                          return invalidResponse( command, data.correlationId );
+                                                   }
+                                                   else if( data.result[0] === "SimpleUserMessage" )
+                                                   {
+                                                       const msg = data.result[1];
+                                                       if(!(msg instanceof Array && msg.length === 3)) return invalidResponse(command, data.correlationId);
+                                                       return {command: command, result: new SimpleUserMessage(msg[0],msg[1],msg[2]) as T, correlationId: data.correlationId};
+                                                   }
+                                                   return {command: command, result: data.result[1] as T, correlationId: data.correlationId };
+                                               }
+                                            }
+                                            return invalidResponse( command );
 
-                                           function invalidResponse( cmd: ICommand<unknown>, cId?: string ) 
-                                           {
-                                               const m = 'Invalid command response.';
-                                               return {command: cmd, result: new CrisError(cmd, m, false, new Error(m)), correlationId: cId};
-                                           } 
-                                       }
+                                            function invalidResponse( cmd: ICommand<unknown>, cId?: string ) 
+                                            {
+                                                const m = 'Invalid command response.';
+                                                return {command: cmd, result: new CrisError(cmd, false, [m], new Error(m)), correlationId: cId};
+                                            } 
+                                        }
 
                                        private async waitForAmbientValuesAsync() : Promise<AmbientValues>
                                        {
@@ -263,35 +259,33 @@ namespace CK.Setup
 
                                            protected override async doSendAsync<T>(command: ICommand<T>): Promise<ExecutedCommand<T>>
                                            {
-                                               try
-                                               {
-                                                 let string = `["${command.commandModel.commandName}"`;
-                                                 string += `,${JSON.stringify(command, (key, value) => {
-                                                   return key == "commandModel" ? undefined : value;
-                                                 })}]`;
-                                                 const resp = await this.axios.post<string>(this.crisEndpointUrl, string, this.axiosConfig);
+                                                try
+                                                {
+                                                  let string = `["${command.commandModel.commandName}"`;
+                                                  string += `,${JSON.stringify(command, (key, value) => {
+                                                    return key == "commandModel" ? undefined : value;
+                                                  })}]`;
+                                                  const resp = await this.axios.post<string>(this.crisEndpointUrl, string, this.axiosConfig);
 
-                                                 return this.handleJsonResponse( command, JSON.parse(resp.data) );
-                                               }
-                                               catch( e )
-                                               {
-                                                   var error : Error;
-                                                   if( e instanceof Error)
-                                                   {
-                                                       error = e;
-                                                   }
-                                                   else
-                                                   {
-                                                       // Error.cause is a mess. Log it.
-                                                       console.error( e );
-                                                       error = new Error(`Unhandled error ${e}.`);
-                                                   }
-                                                   this.setIsConnected(false);
-                                                   return {command, result: new CrisError(command,"Communication error", false, error )};
-                                               }
-
+                                                  return this.handleJsonResponse( command, JSON.parse(resp.data) );
+                                                }
+                                                catch( e )
+                                                {
+                                                    var error : Error;
+                                                    if( e instanceof Error)
+                                                    {
+                                                        error = e;
+                                                    }
+                                                    else
+                                                    {
+                                                        // Error.cause is a mess. Log it.
+                                                        console.error( e );
+                                                        error = new Error(`Unhandled error ${e}.`);
+                                                    }
+                                                    this.setIsConnected(false);
+                                                    return {command, result: new CrisError(command, false, ["Communication error"], error )};
+                                                }
                                            }
-
                                        }
                                        """ );
         }

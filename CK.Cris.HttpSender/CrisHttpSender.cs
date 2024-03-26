@@ -195,7 +195,7 @@ namespace CK.Cris.HttpSender
                     }
                     return new ExecutedCommand<T>( command, crisResult.Value.Result, null );
                 }
-                var protocolError = _pocoDirectory.Create<ICrisResultError>( e => e.Messages.Add( ProtocolErrorMessage ) );
+                var protocolError = _pocoDirectory.Create<ICrisResultError>( e => e.Errors.Add( ProtocolErrorMessage ) );
                 return new ExecutedCommand<T>( command, protocolError, null );
             }
             catch( Exception ex )
@@ -206,7 +206,7 @@ namespace CK.Cris.HttpSender
                                 ? $"{Environment.NewLine}Response:{Environment.NewLine}{Encoding.UTF8.GetString( payloadResponse )}"
                                 : null;
                 monitor.Error( CrisDirectory.CrisTag, $"While sending: {payloadString}{errorPayloadResponse}", ex );
-                var internalError = _pocoDirectory.Create<ICrisResultError>( e => e.Messages.Add( InternalErrorMessage ) );
+                var internalError = _pocoDirectory.Create<ICrisResultError>( e => e.Errors.Add( InternalErrorMessage ) );
                 return new ExecutedCommand<T>( command, internalError, null );
             }
 

@@ -137,7 +137,7 @@ namespace CK.Cris
                     if( !validation.Success )
                     {
                         var error = _errorResultFactory.Create();
-                        error.Messages.AddRange( validation.Messages );
+                        error.Errors.AddRange( validation.Messages );
                         error.LogKey = validation.LogKey;
                         error.IsValidationError = true;
                         job._executingCommand.DarkSide.SetValidationResult( validation, error );
@@ -171,7 +171,7 @@ namespace CK.Cris
                 crisResult ??= _jobResultFactory.Create();
                 ICrisResultError error = _errorResultFactory.Create();
                 crisResult.Result = error;
-                PocoFactoryExtensions.OnUnhandledError( monitor, ex, job.Command, true, currentCulture, error.Messages.Add );
+                PocoFactoryExtensions.OnUnhandledError( monitor, ex, job.Command, true, currentCulture, error.Errors.Add );
                 error.LogKey = gLog.GetLogKeyString();
 
                 // Sets the SafeCompletion with the ICrisResultError on the executing command if there is one.

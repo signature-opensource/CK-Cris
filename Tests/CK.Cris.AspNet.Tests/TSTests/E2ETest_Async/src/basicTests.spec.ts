@@ -71,15 +71,23 @@ it('sendOrThrowAsync throws the CrisError.', async () => {
         expect(cex.errorType === "ExecutionError");
     }
 });
-it('CrisError messages are SimpleMessage.', async () => {
+it('CrisError validation messages are SimpleMessage.', async () => {
     const ep = new HttpCrisEndpoint(axios, crisEndpoint);
     const cmd = BuggyCommand.create(true);
     var executed = await ep.sendAsync(cmd);
     expect(executed.result instanceof CrisError );
     const r = <CrisError>executed.result;
-    expect(r.messages[0].message).toBe("The BuggyCommand is not valid (by design).");
-    expect(r.messages[0].depth).toBe( 0 );
-    expect(r.messages[0].level).toBe( UserMessageLevel.Error );
+    expect( r.errorType).toBe( "ValidationError" );
+    expect(r.validationMessages).toBeDefined();
+    expect(r.validationMessages![0].message).toBe("This is an info from the command validation.");
+    expect(r.validationMessages![0].depth).toBe( 0 );
+    expect(r.validationMessages![0].level).toBe( UserMessageLevel.Info );
+    expect(r.validationMessages![1].message).toBe("The BuggyCommand is not valid (by design).");
+    expect(r.validationMessages![1].depth).toBe( 1 );
+    expect(r.validationMessages![1].level).toBe( UserMessageLevel.Error );
+    expect(r.validationMessages![2].message).toBe("This is a warning from the command validation.");
+    expect(r.validationMessages![2].depth).toBe( 1 );
+    expect(r.validationMessages![2].level).toBe( UserMessageLevel.Warn );
 });
 it('A command can return a SimpleMessage.', async () => {
   const ep = new HttpCrisEndpoint(axios, crisEndpoint);

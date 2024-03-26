@@ -25,13 +25,13 @@ namespace CK.Cris
         {
             Throw.CheckArgument( first.IsValid );
             var r = @this.Create();
-            r.Messages.Add( first );
-            r.Messages.AddRange( others );
+            r.Errors.Add( first );
+            r.Errors.AddRange( others );
             return r;
         }
 
         /// <summary>
-        /// Creates an exception from the <see cref="ICrisResultError.Messages"/>.
+        /// Creates an exception from the <see cref="ICrisResultError.Errors"/>.
         /// </summary>
         /// <param name="e">This result error.</param>
         /// <param name="lineNumber">Calling line number (usually set by Roslyn).</param>
@@ -39,7 +39,7 @@ namespace CK.Cris
         /// <returns>The exception.</returns>
         public static CKException CreateException( this ICrisResultError e, [CallerLineNumber] int lineNumber = 0, [CallerFilePath] string? fileName = null )
         {
-            var msg = e.Messages;
+            var msg = e.Errors;
             var b = new StringBuilder();
             for( int iM = 0; iM < msg.Count; iM++ )
             {

@@ -48,12 +48,12 @@ namespace CK.Cris.AspNet.Tests
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""TestCommand"",{""CurrentCultureName"":null,""IsValid"":true}]" );
                     string response = await r.Content.ReadAsStringAsync();
-                    response.Should().Match( @"{""result"":""en"",""correlationId"":""*""}" );
+                    response.Should().Match( @"{""result"":""en"",""validationMessages"":null,""correlationId"":""*""}" );
                 }
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""TestCommand"",{""CurrentCultureName"":null,""IsValid"":false}]" );
                     string response = await r.Content.ReadAsStringAsync();
-                    response.Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""messages"":[[4,""The current culture is en."",0],[16,""Sorry, this command is invalid!"",0]],""logKey"":""*""}],""correlationId"":""*""}" );
+                    response.Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""errors"":[""Sorry, this command is invalid!""],""logKey"":""*""}],""validationMessages"":[[4,""The current culture is en."",0],[16,""Sorry, this command is invalid!"",0]],""correlationId"":""*""}" );
                 }
             }
         }
@@ -67,12 +67,12 @@ namespace CK.Cris.AspNet.Tests
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""TestCommand"",{""CurrentCultureName"":""fr"",""IsValid"":true}]" );
                     string response = await r.Content.ReadAsStringAsync();
-                    response.Should().Match( @"{""result"":""fr"",""correlationId"":""*""}" );
+                    response.Should().Match( @"{""result"":""fr"",""validationMessages"":null,""correlationId"":""*""}" );
                 }
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""TestCommand"",{""CurrentCultureName"":null,""IsValid"":false}]" );
                     string response = await r.Content.ReadAsStringAsync();
-                    response.Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""messages"":[[4,""The current culture is en."",0],[16,""Sorry, this command is invalid!"",0]],""logKey"":""*""}],""correlationId"":""*""}" );
+                    response.Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""errors"":[""Sorry, this command is invalid!""],""logKey"":""*""}],""validationMessages"":[[4,""The current culture is en."",0],[16,""Sorry, this command is invalid!"",0]],""correlationId"":""*""}" );
                 }
             }
         }

@@ -84,7 +84,7 @@ namespace CK.Cris.HttpSender.Tests
             totalExecutedCommand.Result.Should().BeAssignableTo<ICrisResultError>();
             var error = (ICrisResultError)totalExecutedCommand.Result!;
             error.IsValidationError.Should().BeTrue();
-            error.Messages[0].Text.Should().StartWith( "Invalid authentication level: " );
+            error.Errors[0].Text.Should().StartWith( "Invalid authentication level: " );
 
             var loginCommand = callerPoco.Create<IBasicLoginCommand>( c =>
             {
@@ -101,7 +101,7 @@ namespace CK.Cris.HttpSender.Tests
             totalExecutedCommand.Result.Should().BeAssignableTo<ICrisResultError>();
             error = (ICrisResultError)totalExecutedCommand.Result!;
             error.IsValidationError.Should().BeTrue();
-            error.Messages[0].Text.Should().StartWith( "Invalid actor identifier: " );
+            error.Errors[0].Text.Should().StartWith( "Invalid actor identifier: " );
 
             // Albert (null current culture name): this is executed in the Global DI context.
             totalCommand.ActorId = 2; 
@@ -123,7 +123,7 @@ namespace CK.Cris.HttpSender.Tests
             totalExecutedCommand.Result.Should().BeAssignableTo<ICrisResultError>();
             error = (ICrisResultError)totalExecutedCommand.Result!;
             error.IsValidationError.Should().BeTrue();
-            error.Messages[0].Text.Should().StartWith( "The Action must be Bug!, Error!, Warn! or empty. Not 'Invalid'." );
+            error.Errors[0].Text.Should().StartWith( "The Action must be Bug!, Error!, Warn! or empty. Not 'Invalid'." );
 
             // Logout.
             await sender.SendOrThrowAsync( TestHelper.Monitor, callerPoco.Create<ILogoutCommand>() );

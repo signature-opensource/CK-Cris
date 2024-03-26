@@ -17,10 +17,9 @@ namespace CK.Cris.AspNet
             bool IsValidationError { get; set; }
 
             /// <summary>
-            /// Gets the list of user messages.
-            /// At least one of them should be a <see cref="UserMessageLevel.Error"/> but this is not checked.
+            /// Gets one or more error messages.
             /// </summary>
-            List<SimpleUserMessage> Messages { get; }
+            List<string> Errors { get; }
 
             /// <summary>
             /// Gets or sets a <see cref="ActivityMonitor.LogKey"/> that enables to locate the logs of the command execution.
