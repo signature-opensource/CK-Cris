@@ -1,15 +1,9 @@
 using CK.Core;
-using CK.Setup;
 using FluentAssertions;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using static CK.Testing.StObjEngineTestHelper;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
@@ -19,44 +13,48 @@ namespace CK.Cris.Tests
     [TestFixture]
     public class ICommandHandlerTests
     {
-        public class CmdHandlerMissingHandler : ICommandHandler<ICommandUnifiedWithTheResult>
+        public class CmdHandlerMissingHandler : ICommandHandler<IWithTheResultUnifiedCommand>
         {
         }
 
+        // When ICommandHandler<T> is used, there MUST be a handler method.
+        // (Note that this doesn't mean that a Command must have a handler: command can exist
+        // without handlers in some deployment.)
         [Test]
         public void Command_method_handler_must_exist()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
-                typeof( ICommandUnifiedWithTheResult ),
-                typeof( IUnifiedResult),
-                typeof( CmdHandlerMissingHandler ) );
+                                                     typeof( IWithTheResultUnifiedCommand ),
+                                                     typeof( IUnifiedResult),
+                                                     typeof( CmdHandlerMissingHandler ) );
             TestHelper.GenerateCode( c, null ).Success.Should().BeFalse();
         }
 
-        public class CmdHandlerOfBase : ICommandHandler<ICommandWithPocoResult>
+        public class CmdHandlerOfBase : ICommandHandler<IWithPocoResultCommand>
         {
             [CommandHandler]
-            public IResult Run( IPocoFactory<IResult> resultFacory, ICommandWithPocoResult r ) => resultFacory.Create();
+            public IResult Run( IPocoFactory<IResult> resultFacory, IWithPocoResultCommand r ) => resultFacory.Create();
         }
 
         // This one is not ICommandHandler: it will be skipped in favor of CmdHandlerOfBase.
         public class CmdHandlerAlternate
         {
             [CommandHandler]
-            public IResult Run( ICommandWithPocoResult r, IPocoFactory<IResult> resultFacory ) => throw new Exception("Hidden.");
+            public IResult Run( IWithPocoResultCommand r, IPocoFactory<IResult> resultFacory ) => throw new Exception("Hidden.");
         }
 
         [Test]
         public void ICommandHandler_has_the_priority()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
-                typeof( ICommandWithPocoResult ),
-                typeof( CmdHandlerOfBase ),
-                typeof( CmdHandlerAlternate ) );
+                                                     typeof( IWithPocoResultCommand ),
+                                                     typeof( IResult ),
+                                                     typeof( CmdHandlerOfBase ),
+                                                     typeof( CmdHandlerAlternate ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CrisDirectory>();
 
-            var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
+            var cmd = s.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
             var handler = cmd.CrisPocoModel.Handlers.Single();
             handler.Type.FinalType.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerOfBase ) );
         }
@@ -64,7 +62,7 @@ namespace CK.Cris.Tests
         public class CmdHandlerWithMore : CmdHandlerOfBase
         {
             [CommandHandler]
-            public IMoreResult RunMore( IPocoFactory<IMoreResult> resultFacory, ICommandWithMorePocoResult r ) => resultFacory.Create();
+            public IMoreResult RunMore( IPocoFactory<IMoreResult> resultFacory, IWithMorePocoResultCommand r ) => resultFacory.Create();
 
         }
 
@@ -72,14 +70,15 @@ namespace CK.Cris.Tests
         public void ICommandHandler_implementation_can_be_specialized_without_redefining_command_type()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
-                typeof( ICommandWithMorePocoResult ),
-                typeof( CmdHandlerWithMore ),
-                typeof( CmdHandlerAlternate ) );
+                                                     typeof( IWithMorePocoResultCommand ),
+                                                     typeof( IMoreResult ),
+                                                     typeof( CmdHandlerWithMore ),
+                                                     typeof( CmdHandlerAlternate ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CrisDirectory>();
 
-            var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
-            cmd.Should().BeAssignableTo<ICommandWithMorePocoResult>();
+            var cmd = s.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
+            cmd.Should().BeAssignableTo<IWithMorePocoResultCommand>();
 
             var handler = cmd.CrisPocoModel.Handlers.Single();
             handler.Type.FinalType.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerWithMore ) );
@@ -88,18 +87,19 @@ namespace CK.Cris.Tests
         public class CmdHandlerWithAnother : CmdHandlerOfBase
         {
             [CommandHandler]
-            public IAnotherResult RunAnother( IPocoFactory<IAnotherResult> resultFacory, ICommandWithAnotherPocoResult r ) => resultFacory.Create();
+            public IAnotherResult RunAnother( IPocoFactory<IAnotherResult> resultFacory, IWithAnotherPocoResultCommand r ) => resultFacory.Create();
         }
 
         [Test]
         public void Command_handler_service_must_be_unified_just_like_other_IAutoService()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
-                typeof( ICommandUnifiedWithTheResult ),
-                typeof( CmdHandlerWithMore ),
-                typeof( CmdHandlerWithAnother ),
-                typeof( CmdHandlerAlternate ) );
-            TestHelper.GetFailedResult( c );
+                                                     typeof( IWithTheResultUnifiedCommand ),
+                                                     typeof( CmdHandlerWithMore ),
+                                                     typeof( CmdHandlerWithAnother ),
+                                                     typeof( CmdHandlerAlternate ) );
+            TestHelper.GetFailedResult( c, "Service Class Unification: unable to resolve 'CK.Cris.Tests.ICommandHandlerTests+CmdHandlerOfBase' to a unique specialization.",
+                                           "Base class 'CK.Cris.Tests.ICommandHandlerTests+CmdHandlerOfBase' cannot be unified by any of this candidates: 'ICommandHandlerTests.CmdHandlerWithAnother', 'ICommandHandlerTests.CmdHandlerWithMore'." );
         }
 
         // This service unifies the Service, but doesn't solve the ICommand and IResult diamond: this fails (not during the service analysis like above
@@ -115,7 +115,7 @@ namespace CK.Cris.Tests
         public void Command_method_handler_must_also_be_unified()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
-                typeof( ICommandUnifiedWithTheResult ),
+                typeof( IWithTheResultUnifiedCommand ),
                 typeof( CmdHandlerFailingUnified ),
                 typeof( CmdHandlerWithMore ),
                 typeof( CmdHandlerWithAnother ),
@@ -134,14 +134,15 @@ namespace CK.Cris.Tests
             }
 
             [CommandHandler]
-            public virtual IUnifiedResult Run( ICommandUnifiedWithTheResult r ) => _resultFacory.Create();
+            public virtual IUnifiedResult Run( IWithTheResultUnifiedCommand r ) => _resultFacory.Create();
         }
 
         [Test]
         public void ICommandHandler_Service_AND_handler_method_must_be_unified()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
-                                                     typeof( ICommandUnifiedWithTheResult ),
+                                                     typeof( IWithTheResultUnifiedCommand ),
+                                                     typeof( IUnifiedResult ),
                                                      typeof( CmdHandlerUnified ),
                                                      typeof( CmdHandlerWithMore ),
                                                      typeof( CmdHandlerWithAnother ),
@@ -149,8 +150,8 @@ namespace CK.Cris.Tests
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CrisDirectory>();
 
-            var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
-            cmd.Should().BeAssignableTo<ICommandUnifiedWithTheResult>();
+            var cmd = s.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
+            cmd.Should().BeAssignableTo<IWithTheResultUnifiedCommand>();
 
             var handler = cmd.CrisPocoModel.Handlers.Single();
             handler.Type.FinalType.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerUnified ) );
@@ -164,7 +165,7 @@ namespace CK.Cris.Tests
             {
             }
 
-            public override IUnifiedResult Run( ICommandUnifiedWithTheResult r )
+            public override IUnifiedResult Run( IWithTheResultUnifiedCommand r )
             {
                 var result = base.Run( r );
                 result.Val.Should().Be( 0 );
@@ -177,20 +178,20 @@ namespace CK.Cris.Tests
         public void Handler_method_can_be_virtual()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
-                                                     typeof( ICommandUnifiedWithTheResult ),
+                                                     typeof( IWithTheResultUnifiedCommand ),
                                                      typeof( IUnifiedResult ),
                                                      typeof( CmdHandlerUnifiedSpecialized ), typeof( CmdHandlerWithMore ), typeof( CmdHandlerWithAnother ), typeof( CmdHandlerAlternate ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CrisDirectory>();
 
-            var cmd = s.GetRequiredService<IPocoFactory<ICommandWithPocoResult>>().Create();
-            cmd.Should().BeAssignableTo<ICommandUnifiedWithTheResult>();
+            var cmd = s.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
+            cmd.Should().BeAssignableTo<IWithTheResultUnifiedCommand>();
 
             var model = cmd.CrisPocoModel;
             model.Handlers.Should().NotBeEmpty();
             var handler = model.Handlers.Single();
 
-            var handlerService = s.GetRequiredService<ICommandHandler<ICommandWithPocoResult>>();
+            var handlerService = s.GetRequiredService<ICommandHandler<IWithPocoResultCommand>>();
             var method = handlerService.GetType().GetMethod( handler.MethodName, handler.Parameters.ToArray() );
             Throw.DebugAssert( method != null );
             var result = (IResult?)method.Invoke( handlerService, new[] { cmd } );

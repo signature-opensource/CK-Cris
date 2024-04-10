@@ -52,6 +52,7 @@ namespace CK.Cris.AspNet.Tests
     using System.Threading.Tasks;
     using CK.Core;
     using static CK.Testing.StObjEngineTestHelper;
+    using System.Linq;
 
     [TestFixture]
     public class CrisAspNetServiceTests
@@ -73,12 +74,12 @@ namespace CK.Cris.AspNet.Tests
                     typedResponse.Should().StartWith( @"{""result"":null," );
 
                     var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                    result.ToString().Should().Be( @"{""result"":null,""validationMessages"":null,""correlationId"":null}" );
+                    result.ToString().Should().Be( @"{""Result"":null,""ValidationMessages"":null,""CorrelationId"":null}" );
                 }
                 // Value: 0 is invalid.
                 {
                     TestHandler.Called = false;
-                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""Test"",{""Value"":0}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri+"?UseSimpleError", @"[""Test"",{""Value"":0}]" );
                     Throw.DebugAssert( r != null );
                     TestHandler.Called.Should().BeFalse( "Validation error." );
 
@@ -94,10 +95,19 @@ namespace CK.Cris.AspNet.Tests
             var c = TestHelper.CreateStObjCollector( typeof( ICmdTest ), typeof( BuggyValidator ) );
             using( var s = new CrisTestHostServer( c ) )
             {
-                HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""Test"",{""Value"":3712}]" );
+                HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri+ "?UseSimpleError", @"[""Test"",{""Value"":3712}]" );
                 Throw.DebugAssert( r != null );
-                var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                result.ToString().Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""errors"":[""An unhandled error occurred while validating command *Test* (LogKey: *)."",""This should not happen!""],""logKey"":""*""}],""validationMessages"":[[16,""An unhandled error occurred while validating command *Test* (LogKey: *)."",0],[16,""This should not happen!"",0]],""correlationId"":null}" );
+                var result = await s.GetCrisResultAsync( r );
+                result.CorrelationId.Should().NotBeNullOrWhiteSpace();
+                // We activated the "UseSimpleError" mode: there are ValidationMessages.
+                Throw.DebugAssert( result.ValidationMessages != null );
+                result.ValidationMessages[0].Message.Should().Match( "An unhandled error occurred while validating command 'Test' (LogKey: *)." );
+                result.ValidationMessages[1].Message.Should().Match( "This should not happen!" );
+                // The ValidationMessages are the same as the ICrisAspNetResultError.
+                Throw.DebugAssert( result.Result != null );
+                var resultError = (IAspNetCrisResultError)result.Result;
+                resultError.IsValidationError.Should().BeTrue();
+                resultError.Errors.Should().BeEquivalentTo( result.ValidationMessages.Select( m => m.Message ) );
             }
         }
 

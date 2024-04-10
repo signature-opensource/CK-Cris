@@ -10,7 +10,7 @@ using System.Text;
 namespace CK.Setup.Cris
 {
 
-    sealed class CommandValidatorAttributeImpl : BaseHandlerAttributeImpl, ICSCodeGenerator
+    sealed class CommandValidatorAttributeImpl : BaseHandlerAttributeImpl
     {
         readonly CommandValidatorAttribute _a;
 
@@ -20,11 +20,9 @@ namespace CK.Setup.Cris
             _a = a;
         }
 
-        public CSCodeGenerationResult Implement( IActivityMonitor monitor, ICSCodeGenerationContext codeGenContext )
+        private protected override CSCodeGenerationResult DoImplement( IActivityMonitor monitor, CrisTypeRegistry crisTypeRegistry, IStObjFinalClass impl, MethodInfo method )
         {
-            var (registry, impl, method) = Prepare( monitor, codeGenContext );
-            Throw.DebugAssert( registry == null || impl != null, "registry available => final implementation of the class that implements the method exists." );
-            return registry != null && registry.RegisterValidator( monitor, impl!, method, _a.FileName, _a.LineNumber )
+            return crisTypeRegistry.RegisterValidator( monitor, impl!, method, _a.FileName, _a.LineNumber )
                     ? CSCodeGenerationResult.Success
                     : CSCodeGenerationResult.Failed;
         }

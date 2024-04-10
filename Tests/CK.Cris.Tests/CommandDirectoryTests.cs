@@ -52,7 +52,7 @@ namespace CK.Cris.Tests
             {
                 var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( ICmdTestSpec ) );
                 TestHelper.GenerateCode( c, null ).Success.Should().BeFalse();
-                texts.Should().Contain( "Command 'Test' cannot be both a IEvent and a ICommand." );
+                texts.Should().Contain( "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ICmdTest' cannot be both a IEvent and a IAbstractCommand." );
             }
         }
 
@@ -67,7 +67,7 @@ namespace CK.Cris.Tests
             {
                 var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( ICmdNoWay ) );
                 TestHelper.GenerateCode( c, null ).Success.Should().BeFalse();
-                texts.Should().Contain( "Command 'CK.Cris.Tests.CrisDirectoryTests+ICmdNoWay' cannot be both a IEvent and a ICommand<TResult>." );
+                texts.Should().Contain( "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ICmdNoWay' cannot be both a IEvent and a IAbstractCommand." );
             }
         }
     }

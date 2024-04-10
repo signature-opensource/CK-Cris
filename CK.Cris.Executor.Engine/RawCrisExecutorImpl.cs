@@ -1,12 +1,11 @@
 using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using static CK.Setup.Cris.CrisRegistry;
-using static System.Formats.Asn1.AsnWriter;
 
 namespace CK.Setup.Cris
 {
@@ -16,8 +15,10 @@ namespace CK.Setup.Cris
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
             Throw.CheckState( "Applies only to the RawCrisExecutor class.", classType == typeof( RawCrisExecutor ) );
-            var registry = CrisRegistry.FindOrCreate( monitor, c );
-            if( registry == null ) return CSCodeGenerationResult.Failed;
+
+            var crisEngineService = c.CurrentRun.ServiceContainer.GetService<ICrisDirectoryServiceEngine>();
+            if( crisEngineService == null ) return CSCodeGenerationResult.Retry;
+
             scope.Definition.Modifiers |= Modifiers.Sealed;
 
             using var scopeRegion = scope.Region();
@@ -25,7 +26,7 @@ namespace CK.Setup.Cris
             CreateExecutorMethods( classType, scope );
 
             // Creates the static handlers functions.
-            foreach( var e in registry.CrisPocoModels )
+            foreach( var e in crisEngineService.CrisTypes )
             {
                 var h = e.CommandHandler;
                 if( h != null )
@@ -45,7 +46,7 @@ namespace CK.Setup.Cris
             const string funcSignature = "Func<IServiceProvider, CK.Cris.ICrisPoco, Task>";
             scope.Append( "readonly " ).Append( funcSignature ).Append( "[] _handlers = new " ).Append( funcSignature ).Append( "[]{" );
             bool needNoHandler = false;
-            foreach( var e in registry.CrisPocoModels )
+            foreach( var e in crisEngineService.CrisTypes )
             {
                 if( e.CrisPocoIndex != 0 ) scope.Append( ", " );
                 if( e.IsHandled )
@@ -67,7 +68,7 @@ namespace CK.Setup.Cris
             return CSCodeGenerationResult.Success;
         }
 
-        static void CreateEventHandler( ITypeScope scope, CrisRegistry.Entry e )
+        static void CreateEventHandler( ITypeScope scope, CrisType e )
         {
             var func = scope.CreateFunction( $"static Task H{e.CrisPocoIndex}(IServiceProvider s, CK.Cris.ICrisPoco c)" );
 
@@ -118,7 +119,7 @@ namespace CK.Setup.Cris
             }
         }
 
-        static void CreateCommandHandler( ITypeScope scope, CrisRegistry.Entry e, CrisRegistry.HandlerMethod h )
+        static void CreateCommandHandler( ITypeScope scope, CrisType e, HandlerMethod h )
         {
             bool isVoidReturn = h.UnwrappedReturnType == typeof( void );
             bool isHandlerAsync = h.IsRefAsync || h.IsValAsync;
@@ -133,7 +134,7 @@ namespace CK.Setup.Cris
 
             var cachedServices = new VariableCachedServices( scope.CreatePart() );
 
-            if( !isVoidReturn ) scope.AppendGlobalTypeName( e.ResultType ).Append( " r = " );
+            if( !isVoidReturn ) scope.AppendGlobalTypeName( e.CommandResultType?.Type ).Append( " r = " );
             if( isHandlerAsync ) scope.Append( "await " );
             InlineCallOwnerMethod( scope, h, cachedServices, h.CommandParameter ).Append(";").NewLine();
 
@@ -165,7 +166,7 @@ namespace CK.Setup.Cris
             .CloseBlock();
         }
 
-        static ICodeWriter InlineCallOwnerMethod( ICodeWriter w, BaseHandler h, VariableCachedServices cachedServices, ParameterInfo crisPocoParameter )
+        static ICodeWriter InlineCallOwnerMethod( ICodeWriter w, HandlerBase h, VariableCachedServices cachedServices, ParameterInfo crisPocoParameter )
         {
             if( h.Method.DeclaringType != h.Owner.ClassType )
             {

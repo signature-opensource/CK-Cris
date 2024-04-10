@@ -1,7 +1,6 @@
 using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
-using CK.Setup.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -15,28 +14,45 @@ namespace CK.Setup.Cris
     /// </summary>
     public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextBoundInitializer
     {
-
-        // Auto registers IAmbientValues, ICrisResultError and IAspNetCrisResultError so that tests don't have to register them explicitly: registering CrisDirectory is enough.
+        // Auto registers IAmbientValues, ICrisResultError so that tests don't have to register them explicitly: registering CrisDirectory is enough.
         void IAttributeContextBoundInitializer.Initialize( IActivityMonitor monitor, ITypeAttributesCache owner, MemberInfo m, Action<Type> alsoRegister )
         {
             alsoRegister( typeof( CK.Cris.AmbientValues.IAmbientValues ) );
             alsoRegister( typeof( ICrisResultError ) );
         }
 
-        // We keep a reference instead of using CommandRegistry.FindOrCreate each time (for TypeScript).
-        CrisRegistry? _registry;
-
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
-            // We need the JsonSerializationCodeGen service to register command result type.
-            return new CSCodeGenerationResult( nameof( DoImplement ) );
+            // Skips the purely unified BinPath.
+            if( c.CurrentRun.ConfigurationGroup.IsUnifiedPure ) return CSCodeGenerationResult.Success;
+            // Waits for the IPocoTypeSystem.
+            return new CSCodeGenerationResult( nameof( WaitForPocoTypeSystem ) );
         }
 
-        CSCodeGenerationResult DoImplement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope, JsonSerializationCodeGen? json = null )
+        CSCodeGenerationResult WaitForPocoTypeSystem( IActivityMonitor monitor, ICSCodeGenerationContext c, [WaitFor]IPocoTypeSystem typeSystem )
+        {
+            using( monitor.OpenInfo( $"IPocoTypeSystem is available: discovering Cris Poco types." ) )
+            {
+                var registry = CrisTypeRegistry.Create( monitor, typeSystem, c.CurrentRun.EngineMap );
+                if( registry == null ) return CSCodeGenerationResult.Failed;
+
+                // Expose the internal CrisTypeRegistry type. Attribute handlers use it to register the handlers.
+                c.CurrentRun.ServiceContainer.Add( registry );
+                // One more step to let the attributes register their handlers.
+                // Once done, the public ICrisTypeDirectory is will be published.
+                return new CSCodeGenerationResult( nameof( DoImplement ) );
+            }
+        }
+
+
+        CSCodeGenerationResult DoImplement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope, CrisTypeRegistry registry )
         { 
             Throw.CheckState( "Applies only to the CrisDirectory class.", classType == typeof( CrisDirectory ) );
-            _registry = CrisRegistry.FindOrCreate( monitor, c );
-            if( _registry == null ) return CSCodeGenerationResult.Failed;
+
+            if( !CheckICommandHandlerMissingImplementations( monitor, registry ) )
+            {
+                return CSCodeGenerationResult.Failed;
+            }
 
             scope.Workspace.Global.FindOrCreateNamespace( "CK.Cris" )
                                    .CreateType( "sealed class CrisHandlerDescriptor : CK.Cris.ICrisPocoModel.IHandler" )
@@ -76,20 +92,9 @@ namespace CK.Setup.Cris
                  .OpenBlock()
                  .Append( "var list = new CK.Cris.ICrisPocoModel[]" ).NewLine()
                  .Append( "{" ).NewLine();
-            foreach( var e in _registry.CrisPocoModels )
+            foreach( var e in registry.CrisTypes )
             {
-                // Registering non Poco result type (Poco are all registered by JsonSerializationCodeGen).
-                if( json != null
-                    && e.ResultType != typeof(void)
-                    && !json.IsAllowedType( e.ResultType ) )
-                {
-                    if( !json.AllowType( e.ResultNullableTypeTree ) )
-                    {
-                        monitor.Error( $"Failed to allow returned type '{e.ResultNullableTypeTree}' in JSON for command '{e.PocoName}'." );
-                        return CSCodeGenerationResult.Failed;
-                    }
-                }
-                var f = scope.Namespace.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoInfo.PocoFactoryClass );
+                var f = scope.Namespace.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoType.FamilyInfo.PocoFactoryClass );
                 using( f.Region() )
                 {
                     f.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICrisPocoModel" ) );
@@ -97,7 +102,7 @@ namespace CK.Setup.Cris
                      .Append( "public int CrisPocoIndex => " ).Append( e.CrisPocoIndex ).Append( ";" ).NewLine()
                      .Append( "public string PocoName => Name;" ).NewLine()
                      .Append( "public CK.Cris.CrisPocoKind Kind => " ).Append( e.Kind ).Append( ";" ).NewLine()
-                     .Append( "public Type ResultType => " ).AppendTypeOf( e.ResultType ).Append( ";" ).NewLine()
+                     .Append( "public Type ResultType => " ).AppendTypeOf( e.CommandResultType?.Type ?? typeof(void) ).Append( ";" ).NewLine()
                      .Append( "CK.Cris.ICrisPoco CK.Cris.ICrisPocoModel.Create() => (CK.Cris.ICrisPoco)Create();" ).NewLine();
 
                     if( !e.IsHandled )
@@ -108,7 +113,7 @@ namespace CK.Setup.Cris
                     else
                     {
                         var allHandlers = e.CommandHandler != null
-                                            ? ((IEnumerable<CrisRegistry.BaseHandler>)e.Validators).Append( e.CommandHandler ).Concat( e.PostHandlers )
+                                            ? ((IEnumerable<HandlerBase>)e.Validators).Append( e.CommandHandler ).Concat( e.PostHandlers )
                                             : e.EventHandlers;
                         Throw.DebugAssert( allHandlers.Any() );
 
@@ -133,7 +138,7 @@ namespace CK.Setup.Cris
                 }
 
                 // The CrisPocoModel is the _factory field.
-                var p = scope.Namespace.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoInfo.PocoClass );
+                var p = scope.Namespace.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoType.FamilyInfo.PocoClass );
                 p.GeneratedByComment().NewLine()
                  .Append( "public CK.Cris.ICrisPocoModel CrisPocoModel => _factory;" ).NewLine();
 
@@ -143,37 +148,36 @@ namespace CK.Setup.Cris
                  .Append( "return list;" )
                  .CloseBlock();
 
-            // Publish the CommandRegistry in the services so that other can use it.
-            c.CurrentRun.ServiceContainer.Add( _registry );
-            return new CSCodeGenerationResult( nameof( CheckICommandHandlerImplementation ) );
+            // Expose the public ICrisDirectoryServiceEngine.
+            c.CurrentRun.ServiceContainer.Add<ICrisDirectoryServiceEngine>( registry );
+
+            return CSCodeGenerationResult.Success;
         }
 
-        CSCodeGenerationResult CheckICommandHandlerImplementation( IActivityMonitor monitor )
+        static bool CheckICommandHandlerMissingImplementations( IActivityMonitor monitor, CrisTypeRegistry registry )
         {
-            Throw.DebugAssert( _registry != null );
-
-            CSCodeGenerationResult r = CSCodeGenerationResult.Success;
-            var missingHandlers = _registry.CrisPocoModels.Where( c => c.CommandHandler == null );
+            var success = true;
+            var missingHandlers = registry.CrisTypes.Where( c => c.CommandHandler == null );
             foreach( var c in missingHandlers )
             {
                 if( c.ExpectedHandlerService != null )
                 {
-                    if( c.CrisPocoInfo.ClosureInterface != null )
+                    if( c.CrisPocoType.FamilyInfo.ClosureInterface != null )
                     {
-                        monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType.FullName}' must implement a command handler method for closed command {c.PocoName} of the closing type {c.CrisPocoInfo.ClosureInterface.FullName}." );
+                        monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType:N}' must implement a command handler method for closed command {c.PocoName} of the closing type {c.CrisPocoType.FamilyInfo.ClosureInterface:N}." );
                     }
                     else
                     {
-                        monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType.FullName}' must implement a command handler method for unclosed command {c.PocoName} of primary type {c.CrisPocoInfo.PrimaryInterface.FullName}." );
+                        monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType:N}' must implement a command handler method for unclosed command {c.PocoName} of primary type {c.CrisPocoType.FamilyInfo.PrimaryInterface.PocoInterface:N}." );
                     }
-                    r = CSCodeGenerationResult.Failed;
+                    success = false;
                 }
                 else
                 {
-                    monitor.Warn( $"Command {c.PocoName} for primary type {c.CrisPocoInfo.PrimaryInterface.FullName} has no associated handler." );
+                    monitor.Warn( $"Cris command '{c.CrisPocoType}' has no associated handler." );
                 }
             }
-            return r;
+            return success;
         }
     }
 }

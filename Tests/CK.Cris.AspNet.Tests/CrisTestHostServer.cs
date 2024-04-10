@@ -20,7 +20,10 @@ namespace CK.Cris.AspNet.Tests
 {
     class CrisTestHostServer : IDisposable
     {
-        public const string CrisUri = "/.cris";
+        // Use the HttpCrisSender endpoint that allows "AllExchangeable" Poco. The /.cris is bound to
+        // a TypeFilterName that is or starts with "TypeScript" and this one is registered by CK.StObj.TypeScript.Engine
+        // that is not used here.
+        public const string CrisUri = "/.cris/net";
         public const string BasicLoginUri = "/.webfront/c/basicLogin";
         public const string LogoutUri = "/.webfront/c/logout";
 
@@ -29,15 +32,11 @@ namespace CK.Cris.AspNet.Tests
                                    Action<IServiceCollection>? configureServices = null,
                                    Action<IApplicationBuilder>? configureApplication = null )
         {
-            collector.RegisterTypes( new[] {
-                typeof( PocoJsonSerializer ),
-                typeof( CrisAspNetService ),
-                typeof( AmbientValues.AmbientValuesService )
-            } );
+            collector.RegisterType( TestHelper.Monitor, typeof( CrisAspNetService ) );
 
             if( withAuthentication )
             {
-                collector.RegisterTypes( new[] {
+                collector.RegisterTypes( TestHelper.Monitor, new[] {
                     typeof( StdAuthenticationTypeSystem ),
                     typeof( FakeWebFrontLoginService ),
                     typeof( CrisAuthenticationService ),
@@ -98,15 +97,15 @@ namespace CK.Cris.AspNet.Tests
 
         public PocoDirectory PocoDirectory { get; }
 
-        public async Task<CrisAspNetService.IAspNetCrisResult> GetCrisResultAsync( HttpResponseMessage r )
+        public async Task<IAspNetCrisResult> GetCrisResultAsync( HttpResponseMessage r )
         {
             r.EnsureSuccessStatusCode();
-            var result = PocoDirectory.Find<CrisAspNetService.IAspNetCrisResult>()!.JsonDeserialize( await r.Content.ReadAsStringAsync() );
+            var result = PocoDirectory.Find<IAspNetCrisResult>()!.ReadJson( await r.Content.ReadAsByteArrayAsync() );
             Throw.DebugAssert( result != null );
             return result;
         }
 
-        public async Task<CrisAspNetService.IAspNetCrisResult> GetCrisResultWithCorrelationIdSetToNullAsync( HttpResponseMessage r )
+        public async Task<IAspNetCrisResult> GetCrisResultWithCorrelationIdSetToNullAsync( HttpResponseMessage r )
         {
             var result = await GetCrisResultAsync( r );
             result.CorrelationId.Should().NotBeNullOrWhiteSpace();

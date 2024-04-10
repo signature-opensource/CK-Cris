@@ -88,7 +88,6 @@ namespace CK.Cris.BackgroundExecutor.Tests
 
             var cmd = poco.Create<IMyCommand>( c => c.WantedPower = 42 );
 
-            Throw.DebugAssert( "Waiting for the new Poco model...", ((IMyExtendedCommand)cmd).SomeOtherStuff == null );
             ((IMyExtendedCommand)cmd).SomeOtherStuff = "";
 
             var ec = executor.Submit( TestHelper.Monitor, cmd ).WithResult<IMyCommandResult>();

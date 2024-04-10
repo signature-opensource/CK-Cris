@@ -183,8 +183,8 @@ namespace CK
         {
             StObjCollector collector = helper.CreateStObjCollector( registeredTypes.ToArray() );
             // These 2 services are required by the WebFrontAthService.
-            collector.RegisterType( typeof( AuthenticationInfoTokenService ) );
-            collector.RegisterType( typeof( StdAuthenticationTypeSystem ) );
+            collector.RegisterType( helper.Monitor, typeof( AuthenticationInfoTokenService ) );
+            collector.RegisterType( helper.Monitor, typeof( StdAuthenticationTypeSystem ) );
 
             CompileAndLoadResult r = helper.CompileAndLoadStObjMap( collector, engineConfigurator );
 

@@ -32,12 +32,12 @@ CK.Cris basic package.
 Components/libraries that want to use and publish such ambient values just have to:
 
 - Define an extension to the `IAmbientValue` IPoco with the properties they want. Here we decide that the Ambient Values
-must expose an array of strings that are the `Roles` of the current user[^1]:
+must expose an array of strings that are the `UserRoles` of the current user[^1]:
 
 ```csharp
   public interface ISecurityAmbientValues : IAmbientValues
   {
-      string[] Roles { get; set; }
+      string[] UserRoles { get; set; }
   }
 ```
 
@@ -66,6 +66,17 @@ the result so that it can control/enrich/alter this result:
 
 The parameter command itself is not used here (this command has no information, its sole purpose is to define its result) but
 is required since this is used to identify the command handled by this PostCommandHandler.
+
+From now on, any command or command part that has a nullable `UserRoles` property decorated by the `[AmbientValue]` attribute
+can automatically be updated by the sender of a command: the configuration of these properties is automatic. Note that
+
+```csharp
+public interface INeedUserRolesCommand
+{
+    [AmbientValue]
+    string[] UserRoles { get; set; }
+}
+```
 
 [^1]: Please don't do this! Unless your application is a ToDo list, the Security By Roles pattern (SBR) is intrinsically limited and
 doesn't scale well in terms of functionalities!

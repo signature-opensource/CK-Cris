@@ -1,41 +1,76 @@
 using CK.Core;
 using CK.Cris.AspNet;
 using CK.TypeScript.CodeGen;
+using System.Diagnostics.CodeAnalysis;
 
 namespace CK.Setup
 {
     public sealed partial class TypeScriptCrisCommandGeneratorImpl
     {
-        static void GenerateCrisModelFile( IActivityMonitor monitor, TypeScriptFile<TypeScriptContext> fModel )
+        [MemberNotNull( nameof( _command ), nameof( _abstractCommand ), nameof( _crisPoco ) )]
+        TypeScriptFile EnsureCrisCommandModel( IActivityMonitor monitor, TypeScriptContext context )
         {
-            fModel.EnsureImport( monitor, typeof( SimpleUserMessage ) );
-            fModel.EnsureImport( monitor, typeof( UserMessageLevel ) );
+            if( _modelFile == null )
+            {
+                _modelFile = context.Root.Root.FindOrCreateFile( "CK/Cris/Model.ts" );
+                GenerateCrisModelFile( monitor, context, _modelFile );
+                var crisEndpointFile = GenerateCrisEndpoint( monitor, _modelFile );
+                GenerateCrisHttpEndpoint( monitor, _modelFile, crisEndpointFile );
+                _crisPoco = new TSBasicType( context.Root.TSTypes, "ICrisPoco", imports => imports.EnsureImport( _modelFile, "ICrisPoco" ), null );
+                _abstractCommand = new TSBasicType( context.Root.TSTypes, "IAbstractCommand", imports => imports.EnsureImport( _modelFile, "IAbstractCommand" ), null );
+                _command = new TSBasicType( context.Root.TSTypes, "ICommand", imports => imports.EnsureImport( _modelFile, "ICommand" ), null );
+            }
+            Throw.DebugAssert( _command != null && _abstractCommand != null && _crisPoco != null );
+            return _modelFile;
 
-            fModel.Body.Append( """
+            static void GenerateCrisModelFile( IActivityMonitor monitor, TypeScriptContext context, TypeScriptFile fModel )
+            {
+                fModel.Imports.EnsureImport( monitor, typeof( SimpleUserMessage ) );
+                fModel.Imports.EnsureImport( monitor, typeof( UserMessageLevel ) );
+                var pocoType = context.Root.TSTypes.ResolveTSType( monitor, typeof( IPoco ) );
+                // Imports the IPoco itself...
+                pocoType.EnsureRequiredImports( fModel.Imports );
+
+                fModel.Body.Append( """
                                 /**
-                                 * Describes a command. 
+                                 * Describes a Command type. 
                                  **/
-                                export type CommandModel<TResult> = {
+                                export interface ICommandModel {
                                     /**
-                                     * Gets the name of the command. 
-                                     **/
-                                    readonly commandName: string;
-                                    /**
-                                     * This supports the CrisEdpoint implementation. This is not to be used directly.
+                                     * This supports the CrisEndpoint implementation. This is not to be used directly.
                                      **/
                                     readonly applyAmbientValues: (command: any, a: any, o: any ) => void;
                                 }
 
                                 /** 
-                                 * Command abstraction: command with or without a result. 
-                                 * **/
-                                export interface ICommand<TResult = void> { 
-                                    /**
-                                     * Gets the command description. 
-                                     **/
-                                    readonly commandModel: CommandModel<TResult>;
+                                 * Abstraction of any Cris objects (currently only commands).
+                                 **/
+                                export interface ICrisPoco extends IPoco
+                                {
+                                    readonly _brand: IPoco["_brand"] & {"ICrisPoco": any};
                                 }
 
+                                /** 
+                                 * Command abstraction.
+                                 **/
+                                export interface IAbstractCommand extends ICrisPoco
+                                {
+                                    /** 
+                                     * Gets the command model.
+                                     **/
+                                    get commandModel(): ICommandModel;
+
+                                    readonly _brand: ICrisPoco["_brand"] & {"ICommand": any};
+                                }
+
+                                /** 
+                                 * Command with or without a result.
+                                 * The C# ICommand (without result) is the TypeScript ICommand<void>.
+                                 **/
+                                export interface ICommand<out TResult = void> extends IAbstractCommand {
+                                    readonly _brand: IAbstractCommand["_brand"] & {"ICommandResult": void extends TResult ? any : TResult};
+                                }
+                                                                
                                 /** 
                                  * Captures the result of a command execution.
                                  **/
@@ -52,18 +87,14 @@ namespace CK.Setup
                                  * Captures communication, validation or execution error.
                                  **/
                                 export class CrisError extends Error {
-                                    /**
-                                     * Get this error type.
-                                     */
+                                   /**
+                                    * Get this error type.
+                                    */
                                     public readonly errorType : "CommunicationError"|"ValidationError"|"ExecutionError";
                                     /**
-                                     * Gets the errors. At least one error is guaranteed to exist.
+                                     * Gets the messages. At least one message is guaranteed to exist.
                                      */
-                                    public readonly errors: ReadonlyArray<string>; 
-                                    /**
-                                     * Gets the validationMessages if any.
-                                     */
-                                    public readonly validationMessages?: ReadonlyArray<SimpleUserMessage>; 
+                                    public readonly messages: ReadonlyArray<SimpleUserMessage>; 
                                     /**
                                      * The Error.cause support is a mess. This replaces it at this level. 
                                      */
@@ -78,25 +109,27 @@ namespace CK.Setup
                                     public readonly command: ICommand<unknown>;
 
                                     constructor( command: ICommand<unknown>, 
+                                                 message: string, 
                                                  isValidationError: boolean,
-                                                 errors: ReadonlyArray<string>, 
-                                                 innerError?: Error,
-                                                 validationMessages?: ReadonlyArray<SimpleUserMessage>,
+                                                 innerError?: Error, 
+                                                 messages?: ReadonlyArray<SimpleUserMessage>,
                                                  logKey?: string ) 
                                     {
-                                        super( errors[0] );
+                                        super( message );
                                         this.command = command;   
                                         this.errorType = isValidationError 
                                                             ? "ValidationError" 
                                                             : innerError ? "CommunicationError" : "ExecutionError";
                                         this.innerError = innerError;
-                                        this.errors = errors;
-                                        this.validationMessages = validationMessages;
+                                        this.messages = messages && messages.length > 0 
+                                                        ? messages
+                                                        : [new SimpleUserMessage(UserMessageLevel.Error,message,0)];
                                         this.logKey = logKey;
                                     }
                                 }
                                 
                                 """ );
+            }
         }
 
     }

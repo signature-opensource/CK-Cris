@@ -30,16 +30,16 @@ namespace CK.Cris.Tests
 
     public interface IUnifiedResult : IMoreResult, IAnotherResult { }
 
-    public interface ICommandWithPocoResult : ICommand<IResult> { }
+    public interface IWithPocoResultCommand : ICommand<IResult> { }
 
-    public interface ICommandWithMorePocoResult : ICommandWithPocoResult, ICommand<IMoreResult> { }
+    public interface IWithMorePocoResultCommand : IWithPocoResultCommand, ICommand<IMoreResult> { }
 
-    public interface ICommandWithAnotherPocoResult : ICommandWithPocoResult, ICommand<IAnotherResult> { }
+    public interface IWithAnotherPocoResultCommand : IWithPocoResultCommand, ICommand<IAnotherResult> { }
 
-    public interface ICommandUnifiedWithTheResult : ICommandWithMorePocoResult, ICommandWithAnotherPocoResult, ICommand<IUnifiedResult> { }
+    public interface IWithTheResultUnifiedCommand : IWithMorePocoResultCommand, IWithAnotherPocoResultCommand, ICommand<IUnifiedResult> { }
 
 
     // Cannot work: the results are NOT unified in a final type.
-    public interface ICommandUnifiedButNotTheResult : ICommandWithMorePocoResult, ICommandWithAnotherPocoResult { }
+    public interface IUnifiedButNotTheResultCommand : IWithMorePocoResultCommand, IWithAnotherPocoResultCommand { }
 
 }

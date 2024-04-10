@@ -49,10 +49,9 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task exceptions_raised_by_validators_are_handled_by_the_RawCrisValidator_Async()
         {
-            var c = TestHelper.CreateStObjCollector(
-                typeof( RawCrisValidator ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
-                typeof( ITestCommand ),
-                typeof( BuggyValidator ) );
+            var c = TestHelper.CreateStObjCollector( typeof( RawCrisValidator ), typeof( CrisDirectory ),
+                                                     typeof( ITestCommand ),
+                                                     typeof( BuggyValidator ) );
             using var services = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
             await TestHelper.StartHostedServicesAsync( services );
 
@@ -102,11 +101,11 @@ namespace CK.Cris.Executor.Tests
         [TestCase( true, true )]
         public async Task the_simplest_validation_is_held_by_a_dependency_free_service_and_is_synchronous_Async( bool scopedService, bool singletonService )
         {
-            var c = TestHelper.CreateStObjCollector( typeof( RawCrisValidator ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
+            var c = TestHelper.CreateStObjCollector( typeof( RawCrisValidator ), typeof( CrisDirectory ),
                                                      typeof( ITestCommand ),
                                                      typeof( ICmdWithoutValidators ) );
-            if( singletonService ) c.RegisterType( typeof( SimplestValidatorEverSingleton ) );
-            if( scopedService ) c.RegisterType( typeof( SimplestValidatorEverScoped ) );
+            if( singletonService ) c.RegisterType( TestHelper.Monitor, typeof( SimplestValidatorEverSingleton ) );
+            if( scopedService ) c.RegisterType( TestHelper.Monitor, typeof( SimplestValidatorEverScoped ) );
 
             using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
             await TestHelper.StopHostedServicesAsync( appServices );

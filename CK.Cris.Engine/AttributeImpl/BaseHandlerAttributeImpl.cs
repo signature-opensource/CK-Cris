@@ -1,5 +1,7 @@
 using CK.Core;
+using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 
@@ -9,7 +11,7 @@ namespace CK.Setup.Cris
     /// Base class for CommandValidatorAttributeImpl, CommandHandlerAttributeImpl, CommandPostHandlerAttributeImpl
     /// and RoutedEventHandlerAttributeImpl.
     /// </summary>
-    abstract class BaseHandlerAttributeImpl
+    abstract class BaseHandlerAttributeImpl : ICSCodeGenerator
     {
         readonly Type _type;
         readonly MethodInfo _method;
@@ -30,23 +32,25 @@ namespace CK.Setup.Cris
             }
         }
 
-        protected (CrisRegistry? Registry, IStObjFinalClass? Impl, MethodInfo Method) Prepare( IActivityMonitor monitor,
-                                                                                               ICSCodeGenerationContext codeGenContext )
+        public CSCodeGenerationResult Implement( IActivityMonitor monitor, ICSCodeGenerationContext c )
         {
-            IStObjFinalClass? impl = codeGenContext.CurrentRun.EngineMap.ToLeaf( _type );
+            var crisTypeRegistry = c.CurrentRun.ServiceContainer.GetService<CrisTypeRegistry>();
+            if( crisTypeRegistry == null ) return CSCodeGenerationResult.Retry;
+
             if( !_method.IsPublic )
             {
                 monitor.Error( $"Method '{_type.FullName}.{_method.Name}' that is a [{AttributeName}] must be public." );
+                return CSCodeGenerationResult.Failed;
             }
-            else if( impl == null )
+            IStObjFinalClass? impl = c.CurrentRun.EngineMap.ToLeaf( _type );
+            if( impl == null )
             {
                 monitor.Error( $"Unable to find a mapping for '{_type.FullName}': attribute [{AttributeName}] on method {_method.Name} cannot be used." );
+                return CSCodeGenerationResult.Failed;
             }
-            else
-            {
-                return (CrisRegistry.FindOrCreate( monitor, codeGenContext ), impl, _method);
-            }
-            return (null, null, _method);
+            return DoImplement( monitor, crisTypeRegistry, impl, _method );
         }
+
+        private protected abstract CSCodeGenerationResult DoImplement( IActivityMonitor monitor, CrisTypeRegistry crisTypeRegistry, IStObjFinalClass impl, MethodInfo method );
     }
 }

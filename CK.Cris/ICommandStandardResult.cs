@@ -26,6 +26,6 @@ namespace CK.Cris
         /// It is easier to use <see cref="UserMessageCollector"/> and the
         /// extension method <see cref="CommandStandardResultExtension.SetUserMessages(ICommandStandardResult, UserMessageCollector, bool)"/>.
         /// </summary>
-        List<UserMessage> UserMessages { get; }
+        IList<UserMessage> UserMessages { get; }
     }
 }

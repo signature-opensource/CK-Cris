@@ -20,9 +20,9 @@ namespace CK.Cris.AspNet.E2ETests
             var targetOutputPath = TestHelper.GetTypeScriptGeneratedOnlyTargetProjectPath();
             TestHelper.GenerateTypeScript( targetOutputPath,
                                            new[] {  typeof( CrisAspNetService ),
-                                                    typeof( Cris.Tests.ICommandUnifiedWithTheResult ),
+                                                    typeof( Cris.Tests.IWithTheResultUnifiedCommand ),
                                                     typeof( Cris.Tests.IUnifiedResult ) },
-                                           new[] { typeof( Cris.Tests.ICommandUnifiedWithTheResult ) } );
+                                           new[] { typeof( Cris.Tests.IWithTheResultUnifiedCommand ) } );
 
             var fCommand = targetOutputPath.Combine( "ck-gen/src/CK/Cris/Tests/CommandWithPocoResult.ts" );
             var fResult = targetOutputPath.Combine( "ck-gen/src/CK/Cris/Tests/Result.ts" );

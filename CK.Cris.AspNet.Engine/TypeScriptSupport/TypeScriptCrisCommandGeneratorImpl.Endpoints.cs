@@ -8,25 +8,21 @@ namespace CK.Setup
 {
     public sealed partial class TypeScriptCrisCommandGeneratorImpl
     {
-        static void GenerateCrisEndpoint( IActivityMonitor monitor, TypeScriptFile<TypeScriptContext> fEndpoint )
+        static TypeScriptFile GenerateCrisEndpoint( IActivityMonitor monitor, TypeScriptFile modelFile )
         {
+            TypeScriptFile fEndpoint = modelFile.Folder.FindOrCreateFile( "CrisEndpoint.ts" );
             // Importing the Model objects.
-            fEndpoint.Imports.Append( "import {ICommand,ExecutedCommand,CrisError} from './Model';" ).NewLine();
-
-            // We don't need to import CrisAspNetService.IAspNetCrisResultError and CrisAspNetService.IAspNetCrisResult because
-            // we parse them "by hand" by analysing the response Json.
-            fEndpoint.EnsureImport( monitor, typeof( UserMessageLevel ),
-                                             typeof( SimpleUserMessage ),
-                                             typeof( IAmbientValues ),
-                                             typeof( IAmbientValuesCollectCommand ) );
+            fEndpoint.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" );
+            fEndpoint.Imports.EnsureImport( monitor, typeof( UserMessageLevel ),
+                                                     typeof( SimpleUserMessage ),
+                                                     typeof( IAmbientValues ),
+                                                     typeof( IAmbientValuesCollectCommand ) );
 
             // AmbientValuesOverride is in the same folder as AmbienValues.ts.
-            var tA = fEndpoint.Root.DeclareTSType(monitor, typeof( IAmbientValues ) );
-            Throw.DebugAssert( tA != null );
-            var relPath = fEndpoint.Folder.GetRelativePathTo( tA.File.Folder );
-            fEndpoint.Imports.Append( "import { AmbientValuesOverride } from '").Append(relPath).Append( "/AmbientValuesOverride';" ).NewLine();
-
-            fEndpoint.Body.Append( """
+            var tA = (ITSFileType)fEndpoint.Root.TSTypes.ResolveTSType( monitor, typeof( IAmbientValues ) );
+            var relPath = fEndpoint.Folder.GetRelativePathTo( tA.TypePart.File.Folder );
+            fEndpoint.Body.Append( "import { AmbientValuesOverride } from '").Append(relPath).Append( "/AmbientValuesOverride';" ).NewLine()
+                          .Append( """
                                    /**
                                     * Abstract Cris endpoint. 
                                     * The doSendAsync protected method must be implemented.
@@ -215,15 +211,16 @@ namespace CK.Setup
                                        }
                                    }
                                    """ );
+            return fEndpoint;
         }
 
 
-        static void GenerateCrisHttpEndpoint( IActivityMonitor monitor, TypeScriptFile<TypeScriptContext> fHttpEndpoint )
+        static void GenerateCrisHttpEndpoint( IActivityMonitor monitor, TypeScriptFile modelFile, TypeScriptFile fEndpoint )
         {
+            TypeScriptFile fHttpEndpoint = modelFile.Folder.FindOrCreateFile( "HttpCrisEndpoint.ts" );
             // Importing the Model objects.
-            fHttpEndpoint.Imports.Append( "import {CrisEndpoint} from './CrisEndpoint';" ).NewLine();
-            fHttpEndpoint.Imports.Append( "import {ICommand,ExecutedCommand,CrisError} from './Model';" ).NewLine();
-
+            fHttpEndpoint.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" );
+            fHttpEndpoint.Imports.EnsureImport( fEndpoint, "CrisEndpoint" );
             fHttpEndpoint.Imports.EnsureImportFromLibrary( new LibraryImport( "axios", "^1.5.1", DependencyKind.Dependency ),
                                                                        "AxiosInstance", "AxiosHeaders", "RawAxiosRequestConfig" );
             fHttpEndpoint.Body.Append( """

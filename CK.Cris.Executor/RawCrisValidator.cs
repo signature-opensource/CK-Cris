@@ -84,6 +84,7 @@ namespace CK.Cris
         /// This method is automatically implemented by RawCrisValidatorImpl in CK.Cris.Executor.Engine.
         /// </summary>
         /// <param name="monitor">The monitor.</param>
+        /// <param name="validationContext">The user message collector.</param>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to validate.</param>
         /// <returns>The awaitable.</returns>
