@@ -22,6 +22,7 @@ namespace CK.Setup.Cris
 
         readonly IPocoType? _commandResultType;
         readonly List<HandlerValidatorMethod> _validators;
+        readonly List<HandlerValidatorMethod> _syntaxValidators;
         readonly List<HandlerPostMethod> _postHandlers;
         readonly IStObjFinalClass? _commandHandlerService;
         HandlerMethod? _commandHandler;
@@ -43,6 +44,12 @@ namespace CK.Setup.Cris
         /// (has no [RoutedEvent] attribute is never handled.
         /// </summary>
         public bool IsHandled => _commandHandler != null || _eventHandlers.Count > 0;
+
+        /// <summary>
+        /// Gets the syntax validator methods.
+        /// Only <see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/> can have validators.
+        /// </summary>
+        public IReadOnlyList<HandlerValidatorMethod> SyntaxValidators => _syntaxValidators;
 
         /// <summary>
         /// Gets the validator methods.
@@ -152,7 +159,7 @@ namespace CK.Setup.Cris
                         }
                         else
                         {
-                            cachedServices.WriteGetService( w, p.ParameterType );
+                            w.Append( cachedServices.GetServiceVariableName( p.ParameterType ) );
                         }
                     }
                     w.Append( " );" ).NewLine();
@@ -174,6 +181,7 @@ namespace CK.Setup.Cris
                            CrisPocoKind kind )
         {
             _crisPocoType = crisPocoType;
+            _syntaxValidators = new List<HandlerValidatorMethod>();
             _validators = new List<HandlerValidatorMethod>();
             _postHandlers = new List<HandlerPostMethod>();
             _eventHandlers = new List<HandlerRoutedEventMethod>();
@@ -264,6 +272,7 @@ namespace CK.Setup.Cris
         }
 
         internal bool AddValidator( IActivityMonitor monitor,
+                                    bool isSyntax,
                                     IStObjFinalClass owner,
                                     MethodInfo method,
                                     ParameterInfo[] parameters,
@@ -273,7 +282,8 @@ namespace CK.Setup.Cris
                                     int lineNumber )
         {
             if( !CheckVoidReturn( monitor, "Validator", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
-            _validators.Add( new HandlerValidatorMethod( this, owner, method, parameters, fileName, lineNumber, commandParameter, validationContextParameter, isRefAsync, isValAsync ) );
+            var h = new HandlerValidatorMethod( this, isSyntax, owner, method, parameters, fileName, lineNumber, commandParameter, validationContextParameter, isRefAsync, isValAsync );
+            (isSyntax ? _syntaxValidators : _validators ).Add( h );
             return true;
         }
 
@@ -371,7 +381,7 @@ namespace CK.Setup.Cris
             (unwrappedReturnType, isRefAsync, isValAsync) = GetReturnParameterInfo( method );
             if( unwrappedReturnType != typeof( void ) )
             {
-                monitor.Error( $"{kind} method '{MethodName( method, parameters )}' must not return any value. Its returned type is '{unwrappedReturnType.Name}'." );
+                monitor.Error( $"{kind} method '{MethodName( method, parameters )}' must not return any value. Its current returned type is '{unwrappedReturnType.Name}'." );
                 return false;
             }
             CheckSyncAsyncMethodName( monitor, method, parameters, isRefAsync || isValAsync );

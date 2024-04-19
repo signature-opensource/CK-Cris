@@ -113,7 +113,10 @@ namespace CK.Setup.Cris
                     else
                     {
                         var allHandlers = e.CommandHandler != null
-                                            ? ((IEnumerable<HandlerBase>)e.Validators).Append( e.CommandHandler ).Concat( e.PostHandlers )
+                                            ? ((IEnumerable<HandlerBase>)e.SyntaxValidators)
+                                                                .Concat( e.Validators )
+                                                                .Append( e.CommandHandler )
+                                                                .Concat( e.PostHandlers )
                                             : e.EventHandlers;
                         Throw.DebugAssert( allHandlers.Any() );
 

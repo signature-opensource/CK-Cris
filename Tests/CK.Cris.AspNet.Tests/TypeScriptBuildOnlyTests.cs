@@ -24,7 +24,7 @@ namespace CK.Cris.AspNet.E2ETests
                                                     typeof( Cris.Tests.IUnifiedResult ) },
                                            new[] { typeof( Cris.Tests.IWithTheResultUnifiedCommand ) } );
 
-            var fCommand = targetOutputPath.Combine( "ck-gen/src/CK/Cris/Tests/CommandWithPocoResult.ts" );
+            var fCommand = targetOutputPath.Combine( "ck-gen/src/CK/Cris/Tests/WithPocoResultCommand.ts" );
             var fResult = targetOutputPath.Combine( "ck-gen/src/CK/Cris/Tests/Result.ts" );
 
             File.Exists( fCommand ).Should().BeTrue();

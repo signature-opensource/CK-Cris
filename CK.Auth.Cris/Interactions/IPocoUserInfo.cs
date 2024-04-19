@@ -23,7 +23,7 @@ namespace CK.Auth
         /// <summary>
         /// See <see cref="IUserInfo.Schemes"/>.
         /// </summary>
-        List<(string Scheme, DateTime LastUsed)> Schemes { get; }
+        IList<(string Scheme, DateTime LastUsed)> Schemes { get; }
 
         /// <summary>
         /// Initializes this Poco from a <see cref="IUserInfo"/>.

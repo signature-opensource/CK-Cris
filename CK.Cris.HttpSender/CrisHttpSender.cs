@@ -13,6 +13,9 @@ using System.Threading;
 using System.Linq;
 using System.Net.Http.Headers;
 using CK.Auth;
+using CK.Poco.Exc.Json;
+using CK.Setup;
+using CK.Cris.AspNet;
 
 namespace CK.Cris.HttpSender
 {
@@ -27,6 +30,7 @@ namespace CK.Cris.HttpSender
         readonly IRemoteParty _remote;
         readonly Uri _endpointUrl;
         readonly PocoDirectory _pocoDirectory;
+        readonly IPocoFactory<IAspNetCrisResult> _resultFactory;
 
         static MCString? _protocolErrorMsg;
         static UserMessage ProtocolErrorMessage => new UserMessage( UserMessageLevel.Error,
@@ -78,6 +82,7 @@ namespace CK.Cris.HttpSender
         internal CrisHttpSender( IRemoteParty remote,
                                  Uri endpointUrl,
                                  PocoDirectory pocoDirectory,
+                                 IPocoFactory<IAspNetCrisResult> resultFactory,
                                  TimeSpan? timeout,
                                  HttpRetryStrategyOptions? retryStrategy )
         {
@@ -94,6 +99,7 @@ namespace CK.Cris.HttpSender
             _remote = remote;
             _endpointUrl = endpointUrl;
             _pocoDirectory = pocoDirectory;
+            _resultFactory = resultFactory;
         }
 
         /// <inheritdoc />
@@ -163,10 +169,7 @@ namespace CK.Cris.HttpSender
             try
             {
                 using var payload = (RecyclableMemoryStream)Util.RecyclableStreamManager.GetStream();
-                using( var wPayload = new Utf8JsonWriter( (IBufferWriter<byte>)payload ) )
-                {
-                    command.Write( wPayload );
-                }
+                _pocoDirectory.WriteJson( (IBufferWriter<byte>)payload, command, withType: true, PocoJsonExportOptions.Default );
                 monitor.Info( CrisDirectory.CrisTag, $"Sending {(payloadString = Encoding.UTF8.GetString( payload.GetReadOnlySequence() ))} to '{_remote.FullName}'.", lineNumber, fileName );
                 using var request = new HttpRequestMessage( HttpMethod.Post, _endpointUrl );
 
@@ -186,17 +189,13 @@ namespace CK.Cris.HttpSender
                     ResilienceContextPool.Shared.Return( ctx );
                 }
 
-                var crisResult = ReadAspNetCrisResult( monitor, _pocoDirectory, payloadResponse, throwError );
-                if( crisResult.HasValue )
+                IAspNetCrisResult? result = _resultFactory.ReadJson( payloadResponse, PocoJsonImportOptions.Default );
+                if( result == null ) throw new Exception( "Received 'null' response." );
+                if( !_skipAutomaticAuthorizationToken )
                 {
-                    if( !_skipAutomaticAuthorizationToken )
-                    {
-                        HandleAutomaticAuthorizationToken( monitor, command, crisResult.Value.Result );
-                    }
-                    return new ExecutedCommand<T>( command, crisResult.Value.Result, null );
+                    HandleAutomaticAuthorizationToken( monitor, command, result.Result );
                 }
-                var protocolError = _pocoDirectory.Create<ICrisResultError>( e => e.Errors.Add( ProtocolErrorMessage ) );
-                return new ExecutedCommand<T>( command, protocolError, null );
+                return new ExecutedCommand<T>( command, result.Result, null );
             }
             catch( Exception ex )
             {
@@ -208,60 +207,6 @@ namespace CK.Cris.HttpSender
                 monitor.Error( CrisDirectory.CrisTag, $"While sending: {payloadString}{errorPayloadResponse}", ex );
                 var internalError = _pocoDirectory.Create<ICrisResultError>( e => e.Errors.Add( InternalErrorMessage ) );
                 return new ExecutedCommand<T>( command, internalError, null );
-            }
-
-            static (object? Result, string? CorrelationId)? ReadAspNetCrisResult( IActivityMonitor monitor,
-                                                                                  PocoDirectory pocoDirectory,
-                                                                                  ReadOnlySpan<byte> payload,
-                                                                                  bool throwError )
-            {
-                var reader = new Utf8JsonReader( payload );
-                Throw.DebugAssert( reader.TokenType == JsonTokenType.None );
-
-                if( reader.Read()
-                    && reader.TokenType == JsonTokenType.StartObject
-                    && reader.Read()
-                    && reader.TokenType == JsonTokenType.PropertyName
-                    && reader.ValueTextEquals( "result" )
-                    && reader.Read() )
-                {
-                    // TODO: expose the internal generated object? ReadAny( ref reader ) on PocoDirectory!
-                    object? result;
-                    switch( reader.TokenType )
-                    {
-                        case JsonTokenType.Null:
-                            reader.Read();
-                            result = null;
-                            break;
-                        case JsonTokenType.String:
-                            result = reader.GetString();
-                            reader.Read();
-                            break;
-                        case JsonTokenType.Number:
-                            result = reader.GetDouble();
-                            reader.Read();
-                            break;
-                        case JsonTokenType.False:
-                            result = false;
-                            reader.Read();
-                            break;
-                        case JsonTokenType.True:
-                            result = true;
-                            reader.Read();
-                            break;
-                        default:
-                            result = pocoDirectory.Read( ref reader );
-                            break;
-                    }
-                    if( reader.TokenType == JsonTokenType.PropertyName && reader.Read() )
-                    {
-                        return (result, reader.GetString());
-                    }
-                }
-                var msg = $"Unable to read Cris result from:{Environment.NewLine}{Encoding.UTF8.GetString( payload )}";
-                if( throwError ) throw new CKException( msg );
-                monitor.Error( msg );
-                return null;
             }
         }
 

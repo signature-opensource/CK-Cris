@@ -4,7 +4,8 @@ using System.Collections.Generic;
 namespace CK.Cris.AspNet
 {
     /// <summary>
-    /// Simplified <see cref="ICrisResultError"/>.
+    /// Simplified <see cref="ICrisResultError"/>: <see cref="Errors"/> are simple strings
+    /// instead of <see cref="UserMessage"/>.
     /// </summary>
     [ExternalName( "AspNetCrisResultError" )]
     public interface IAspNetCrisResultError : IPoco

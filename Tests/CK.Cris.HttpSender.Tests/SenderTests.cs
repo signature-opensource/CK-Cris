@@ -67,7 +67,7 @@ namespace CK.Cris.HttpSender.Tests
                                          typeof( IPocoAuthenticationInfo ),
                                          typeof( IPocoUserInfo ),
                                          typeof( CrisDirectory ),
-                                         typeof( PocoJsonSerializer ),
+                                         typeof( CommonPocoJsonSupport ),
                                          typeof( ApplicationIdentityService ),
                                          typeof( CrisHttpSenderFeatureDriver )};
 
@@ -200,7 +200,7 @@ namespace CK.Cris.HttpSender.Tests
         {
             var callerServices = new[] { typeof( IBeautifulWithOptionsCommand ),
                                          typeof( CrisDirectory ),
-                                         typeof( PocoJsonSerializer ),
+                                         typeof( CommonPocoJsonSupport ),
                                          typeof( ApplicationIdentityService ),
                                          typeof( ApplicationIdentityServiceConfiguration ),
                                          typeof( CrisHttpSenderFeatureDriver )};

@@ -49,54 +49,9 @@ namespace CK.Setup.Cris
                 {
                     if( e.Validators.Count > 0 )
                     {
-                        bool requiresAsync = false;
                         var f = scope.CreateFunction( "static Task V" + e.CrisPocoIndex + "( IActivityMonitor m, UserMessageCollector v, IServiceProvider s, CK.Cris.IAbstractCommand c )" );
 
-                        f.GeneratedByComment().NewLine();
-                        var cachedServices = new VariableCachedServices( f.CreatePart() );
-
-                        foreach( var service in e.Validators.GroupBy( v => v.Owner ) )
-                        {
-                            f.OpenBlock()
-                             .Append( "var h = (" ).AppendGlobalTypeName( service.Key.ClassType ).Append( ")s.GetService(" ).AppendTypeOf( service.Key.ClassType ).Append( ");" ).NewLine();
-                            foreach( var validator in service )
-                            {
-                                if( validator.IsRefAsync || validator.IsValAsync )
-                                {
-                                    f.Append( "await " );
-                                    requiresAsync = true;
-                                }
-                                if( validator.Method.DeclaringType != service.Key.ClassType )
-                                {
-                                    f.Append( "((" ).AppendGlobalTypeName( validator.Method.DeclaringType ).Append( ")h)." );
-                                }
-                                else f.Append( "h." );
-                                f.Append( validator.Method.Name ).Append( "( " );
-
-                                foreach( var p in validator.Parameters )
-                                {
-                                    if( p.Position > 0 ) f.Append( ", " );
-                                    if( typeof( IActivityMonitor ).IsAssignableFrom( p.ParameterType ) )
-                                    {
-                                        f.Append( "m" );
-                                    }
-                                    else if( p == validator.CmdOrPartParameter )
-                                    {
-                                        f.Append( "(" ).AppendGlobalTypeName( validator.CmdOrPartParameter.ParameterType ).Append( ")c" );
-                                    }
-                                    else if( p == validator.ValidationContextParameter )
-                                    {
-                                        f.Append( "v" );
-                                    }
-                                    else
-                                    {
-                                        cachedServices.WriteGetService( f, p.ParameterType );
-                                    }
-                                }
-                                f.Append( " );" ).NewLine();
-                            }
-                            f.CloseBlock();
-                        }
+                        GenerateValidationCode( c.CurrentRun.EngineMap, f, e.Validators, out bool requiresAsync, out _ );
                         if( requiresAsync )
                         {
                             f.Definition.Modifiers |= Modifiers.Async;
@@ -128,6 +83,55 @@ namespace CK.Setup.Cris
                          .Append( "return _validators[command.CrisPocoModel.CrisPocoIndex]( monitor, validationContext, services, command );" );
             }
             return CSCodeGenerationResult.Success;
+        }
+
+        internal static void GenerateValidationCode( IStObjEngineMap engineMap,
+                                                     IFunctionScope f,
+                                                     IEnumerable<HandlerValidatorMethod> validators,
+                                                     out bool requiresAsync,
+                                                     out VariableCachedServices cachedServices )
+        {
+            using var _ = f.Region();
+            cachedServices = new VariableCachedServices( engineMap, f.CreatePart() );
+
+            requiresAsync = false;
+            foreach( var validator in validators )
+            {
+                var owner = cachedServices.GetServiceVariableName( validator.Owner.ClassType );
+                if( validator.IsRefAsync || validator.IsValAsync )
+                {
+                    f.Append( "await " );
+                    requiresAsync = true;
+                }
+                if( validator.Method.DeclaringType != validator.Owner.ClassType )
+                {
+                    f.Append( "((" ).AppendGlobalTypeName( validator.Method.DeclaringType ).Append( ")").Append( owner ).Append(")" );
+                }
+                else f.Append( owner );
+                f.Append(".").Append( validator.Method.Name ).Append( "( " );
+
+                foreach( var p in validator.Parameters )
+                {
+                    if( p.Position > 0 ) f.Append( ", " );
+                    if( typeof( IActivityMonitor ).IsAssignableFrom( p.ParameterType ) )
+                    {
+                        f.Append( "m" );
+                    }
+                    else if( p == validator.CmdOrPartParameter )
+                    {
+                        f.Append( "(" ).AppendGlobalTypeName( validator.CmdOrPartParameter.ParameterType ).Append( ")c" );
+                    }
+                    else if( p == validator.ValidationContextParameter )
+                    {
+                        f.Append( "v" );
+                    }
+                    else
+                    {
+                        f.Append( cachedServices.GetServiceVariableName( p.ParameterType ) );
+                    }
+                }
+                f.Append( " );" ).NewLine();
+            }
         }
     }
 

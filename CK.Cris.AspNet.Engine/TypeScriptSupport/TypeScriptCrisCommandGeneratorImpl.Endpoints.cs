@@ -3,226 +3,204 @@ using CK.Cris.AmbientValues;
 using CK.Cris.AspNet;
 using CK.TypeScript.CodeGen;
 using System;
+using System.Threading;
 
 namespace CK.Setup
 {
     public sealed partial class TypeScriptCrisCommandGeneratorImpl
     {
-        static TypeScriptFile GenerateCrisEndpoint( IActivityMonitor monitor, TypeScriptFile modelFile )
+        void OnAfterCodeGeneration( object? sender, EventMonitoredArgs e )
+        {
+            Throw.DebugAssert( sender is TypeScriptContext );
+            // If model has not been created, skip everything.
+            if( _modelFile != null )
+            {
+                TypeScriptContext context = (TypeScriptContext)sender;
+                var crisEndpointFile = GenerateCrisEndpoint( e.Monitor, context, _modelFile );
+                // If there is no Json serialization, we skip the HttpEndpoint as it uses the CTSType.
+                if( context.PocoCodeGenerator.CTSTypeSystem != null )
+                {
+                    GenerateCrisHttpEndpoint( e.Monitor, _modelFile, crisEndpointFile, context.PocoCodeGenerator.CTSTypeSystem.CTSType );
+                }
+            }
+        }
+
+        static TypeScriptFile GenerateCrisEndpoint( IActivityMonitor monitor, TypeScriptContext context, TypeScriptFile modelFile )
         {
             TypeScriptFile fEndpoint = modelFile.Folder.FindOrCreateFile( "CrisEndpoint.ts" );
-            // Importing the Model objects.
-            fEndpoint.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" );
-            fEndpoint.Imports.EnsureImport( monitor, typeof( UserMessageLevel ),
-                                                     typeof( SimpleUserMessage ),
-                                                     typeof( IAmbientValues ),
-                                                     typeof( IAmbientValuesCollectCommand ) );
 
             // AmbientValuesOverride is in the same folder as AmbienValues.ts.
-            var tA = (ITSFileType)fEndpoint.Root.TSTypes.ResolveTSType( monitor, typeof( IAmbientValues ) );
-            var relPath = fEndpoint.Folder.GetRelativePathTo( tA.TypePart.File.Folder );
-            fEndpoint.Body.Append( "import { AmbientValuesOverride } from '").Append(relPath).Append( "/AmbientValuesOverride';" ).NewLine()
-                          .Append( """
-                                   /**
-                                    * Abstract Cris endpoint. 
-                                    * The doSendAsync protected method must be implemented.
-                                    */
-                                   export abstract class CrisEndpoint
-                                   {
-                                       private _ambientValuesRequest: Promise<AmbientValues>|undefined;
-                                       private _ambientValues: AmbientValues|undefined;
-                                       private _subscribers: Set<( eventSource: CrisEndpoint ) => void>;
-                                       private _isConnected: boolean;
+            var ambientValuesOverride = context.Root.TSTypes.FindByTypeName( "AmbientValuesOverride" );
+            Throw.CheckState( "AmbientValuesOverride is automatically created in the same folder as AmbientValues.ts and IAmbientValues is registered.",
+                              ambientValuesOverride != null );
+            // Importing:
+            // - the Model objects ICommand, ExecutedCommand and CrisError.
+            // - The IAmbientValues and IAmbientValuesCollectCommand.
+            // - The AmbientValuesOverride.
+            fEndpoint.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" )
+                             .EnsureImport( monitor, typeof( IAmbientValues ),
+                                                     typeof( IAmbientValuesCollectCommand ) )
+                             .EnsureImport( ambientValuesOverride );
 
-                                       constructor()
-                                       {
-                                           this.ambientValuesOverride = new AmbientValuesOverride();
-                                           this._isConnected = false;
-                                           this._subscribers = new Set<() => void>();
-                                       }
+            fEndpoint.Body.Append( """
+                            /**
+                            * Abstract Cris endpoint. 
+                            * The doSendAsync protected method must be implemented.
+                            */
+                            export abstract class CrisEndpoint
+                            {
+                                private _ambientValuesRequest: Promise<AmbientValues>|undefined;
+                                private _ambientValues: AmbientValues|undefined;
+                                private _subscribers: Set<( eventSource: CrisEndpoint ) => void>;
+                                private _isConnected: boolean;
 
-                                       /**
-                                       * Enables ambient values to be overridden.
-                                       * Sensible ambient values (like the actorId when CK.Cris.Auth is used) are checked against
-                                       * secured contextual values: overriding them will trigger a ValidationError. 
-                                       **/    
-                                       public readonly ambientValuesOverride: AmbientValuesOverride;
+                                constructor()
+                                {
+                                    this.ambientValuesOverride = new AmbientValuesOverride();
+                                    this._isConnected = false;
+                                    this._subscribers = new Set<() => void>();
+                                }
+
+                                /**
+                                * Enables ambient values to be overridden.
+                                * Sensible ambient values (like the actorId when CK.Cris.Auth is used) are checked against
+                                * secured contextual values: overriding them will trigger a ValidationError. 
+                                **/    
+                                public readonly ambientValuesOverride: AmbientValuesOverride;
 
 
-                                       //#region isConnected
-                                       /** Gets whether this HttpEndpointService is connected: the last command sent  
-                                        *  has been handled by the server. 
-                                        **/
-                                       public get isConnected(): boolean { return this._isConnected; }
+                                //#region isConnected
+                                /** Gets whether this HttpEndpointService is connected: the last command sent  
+                                *  has been handled by the server. 
+                                **/
+                                public get isConnected(): boolean { return this._isConnected; }
 
-                                       /**
-                                        * Registers a callback function that will be called when isConnected changed.
-                                        * @param func A callback function.
-                                        */
-                                       public addOnIsConnectedChanged( func: ( eventSource: CrisEndpoint ) => void ): void 
-                                       {
-                                           if( func ) this._subscribers.add( func );
-                                       }
+                                /**
+                                * Registers a callback function that will be called when isConnected changed.
+                                * @param func A callback function.
+                                */
+                                public addOnIsConnectedChanged( func: ( eventSource: CrisEndpoint ) => void ): void 
+                                {
+                                    if( func ) this._subscribers.add( func );
+                                }
 
-                                       /**
-                                        * Unregister a previously registered callback.
-                                        * @param func The callback function to remove.
-                                        * @returns True if the callback has been found and removed, false otherwise.
-                                        */
-                                       public removeOnIsConnectedChange( func: ( eventSource: CrisEndpoint ) => void ): boolean {
-                                           return this._subscribers.delete( func );
-                                       }
+                                /**
+                                * Unregister a previously registered callback.
+                                * @param func The callback function to remove.
+                                * @returns True if the callback has been found and removed, false otherwise.
+                                */
+                                public removeOnIsConnectedChange( func: ( eventSource: CrisEndpoint ) => void ): boolean {
+                                    return this._subscribers.delete( func );
+                                }
 
-                                       /**
-                                        * Sets whether this endpoint is connected or not. When setting false, this triggers
-                                        * an update of the ambient values that will run until success and eventually set
-                                        * a true isConnected back.
-                                        * @param value Whether the connection mus be considered available or not.
-                                        */
-                                       protected setIsConnected( value: boolean ): void 
-                                       {
-                                           if( this._isConnected !== value )
-                                           {
-                                               this._isConnected = value;
-                                               if( !value ) 
-                                               {
-                                                   this.updateAmbientValuesAsync();
-                                               }
-                                               this._subscribers.forEach( func => func( this ) );
-                                           }
-                                       }
-
-                                       //#endregion
-
-                                       /**
-                                       * Sends a AmbienValuesCollectCommand and waits for its return.
-                                       * Next commands will wait for the ambient values to be received before being sent.
-                                       **/    
-                                       public updateAmbientValuesAsync() : Promise<AmbientValues>
-                                       {
-                                           if( this._ambientValuesRequest ) return this._ambientValuesRequest;
-                                           this._ambientValues = undefined;
-                                           return this._ambientValuesRequest = this.waitForAmbientValuesAsync();
-                                       }
-
-                                       /**
-                                       * Sends a command and returns an ExecutedCommand with the command's result or a CrisError.
-                                       **/    
-                                       public async sendAsync<T>(command: ICommand<T>): Promise<ExecutedCommand<T>>
-                                       {
-                                           let a = this._ambientValues;
-                                           // Don't use coalesce here since there may be no ambient values (an empty object is truthy).
-                                           if( a === undefined ) a = await this.updateAmbientValuesAsync();
-                                           command.commandModel.applyAmbientValues( command, a, this.ambientValuesOverride );
-                                           return await this.doSendAsync( command ); 
-                                       }
-
-                                       /**
-                                       * Sends a command and returns the command's result or throws a CrisError.
-                                       **/    
-                                       public async sendOrThrowAsync<T>( command: ICommand<T> ): Promise<T>
-                                       {
-                                           const r = await this.sendAsync( command );
-                                           if( r.result instanceof CrisError ) throw r.result;
-                                           return r.result;
-                                       }
-
-                                       /**
-                                        * Core method to implement. Can use the handleJsonResponse helper to create 
-                                        * the final ExecutedCommand<T> from a Json object response. 
-                                        * @param command The command to send.
-                                        * @returns The resulting ExecutedCommand<T>.
-                                        */
-                                       protected abstract doSendAsync<T>(command: ICommand<T>): Promise<ExecutedCommand<T>>;
-
-                                        /**
-                                         * Available helper.
-                                         * @param command The sent command.
-                                         * @param data The Json object response.
-                                         * @returns The resulting ExecutedCommand<T>.
-                                         */
-                                        protected handleJsonResponse<T>( command: ICommand<T>, data: any ) : ExecutedCommand<T>
+                                /**
+                                * Sets whether this endpoint is connected or not. When setting false, this triggers
+                                * an update of the ambient values that will run until success and eventually set
+                                * a true isConnected back.
+                                * @param value Whether the connection mus be considered available or not.
+                                */
+                                protected setIsConnected( value: boolean ): void 
+                                {
+                                    if( this._isConnected !== value )
+                                    {
+                                        this._isConnected = value;
+                                        if( !value ) 
                                         {
-                                            if( data.correlationId !== undefined )
-                                            {
-                                               if( ["boolean","string","number","boolean"].includes( typeof(data.result) ) )
-                                               {
-                                                  return {command: command, result: data.result as T, correlationId: data.correlationId };
-                                               }
-                                               else if( data.result instanceof Array && data.result.length === 2 )
-                                               {
-                                                   if( data.result[0] === "AspNetCrisResultError" )
-                                                   {
-                                                          // Normalized null or empty to undefined.
-                                                          data.correlationId = data.correlationId ? data.correlationId : undefined;
-                                                          const e = data.result[1] as {isValidationError?: boolean, logKey?: string, errors?: ReadonlyArray<string>};
-                                                          if( typeof e.isValidationError === "boolean" && e.errors instanceof Array )
-                                                          {
-                                                                let messages: Array<SimpleUserMessage>|undefined = undefined;
-                                                                if( e.isValidationError )
-                                                                {
-                                                                    messages = [];
-                                                                    for( const msg of data.validationMessages )
-                                                                    {
-                                                                        if(!(msg instanceof Array && msg.length === 3)) return invalidResponse(command,e.logKey);
-                                                                        messages.push( new SimpleUserMessage(msg[0],msg[1],msg[2]) );
-                                                                    }
-                                                                }
-                                                              return {command: command, result: new CrisError(command, e.isValidationError, e.errors, undefined, messages, e.logKey), correlationId: data.correlationId };
-                                                          }
-                                                          return invalidResponse( command, data.correlationId );
-                                                   }
-                                                   else if( data.result[0] === "SimpleUserMessage" )
-                                                   {
-                                                       const msg = data.result[1];
-                                                       if(!(msg instanceof Array && msg.length === 3)) return invalidResponse(command, data.correlationId);
-                                                       return {command: command, result: new SimpleUserMessage(msg[0],msg[1],msg[2]) as T, correlationId: data.correlationId};
-                                                   }
-                                                   return {command: command, result: data.result[1] as T, correlationId: data.correlationId };
-                                               }
-                                            }
-                                            return invalidResponse( command );
-
-                                            function invalidResponse( cmd: ICommand<unknown>, cId?: string ) 
-                                            {
-                                                const m = 'Invalid command response.';
-                                                return {command: cmd, result: new CrisError(cmd, false, [m], new Error(m)), correlationId: cId};
-                                            } 
+                                            this.updateAmbientValuesAsync();
                                         }
+                                        this._subscribers.forEach( func => func( this ) );
+                                    }
+                                }
 
-                                       private async waitForAmbientValuesAsync() : Promise<AmbientValues>
-                                       {
-                                           while(true)
-                                           {
-                                               var e = await this.doSendAsync( AmbientValuesCollectCommand.create() );
-                                               if( e.result instanceof CrisError )
-                                               {
-                                                   console.error( "Error while getting AmbientValues. Retrying.", e.result );
-                                                   this.setIsConnected( false );
-                                               }
-                                               else
-                                               {
-                                                   this._ambientValuesRequest = undefined;
-                                                   this._ambientValues = <AmbientValues>e.result;
-                                                   this.setIsConnected( true );
-                                                   return this._ambientValues;
-                                               }
-                                           }
-                                       }
-                                   }
-                                   """ );
+                                //#endregion
+
+                                /**
+                                * Sends a AmbienValuesCollectCommand and waits for its return.
+                                * Next commands will wait for the ambient values to be received before being sent.
+                                **/    
+                                public updateAmbientValuesAsync() : Promise<AmbientValues>
+                                {
+                                    if( this._ambientValuesRequest ) return this._ambientValuesRequest;
+                                    this._ambientValues = undefined;
+                                    return this._ambientValuesRequest = this.waitForAmbientValuesAsync();
+                                }
+
+                                /**
+                                * Sends a command and returns an ExecutedCommand with the command's result or a CrisError.
+                                **/    
+                                public async sendAsync<T>(command: ICommand<T>): Promise<ExecutedCommand<T>>
+                                {
+                                    let a = this._ambientValues;
+                                    // Don't use coalesce here since there may be no ambient values (an empty object is truthy).
+                                    if( a === undefined ) a = await this.updateAmbientValuesAsync();
+                                    command.commandModel.applyAmbientValues( command, a, this.ambientValuesOverride );
+                                    return await this.doSendAsync( command ); 
+                                }
+
+                                /**
+                                * Sends a command and returns the command's result or throws a CrisError.
+                                **/    
+                                public async sendOrThrowAsync<T>( command: ICommand<T> ): Promise<T>
+                                {
+                                    const r = await this.sendAsync( command );
+                                    if( r.result instanceof CrisError ) throw r.result;
+                                    return r.result;
+                                }
+
+                                /**
+                                * Core method to implement. Can use the handleJsonResponse helper to create 
+                                * the final ExecutedCommand<T> from a Json object response. 
+                                * @param command The command to send.
+                                * @returns The resulting ExecutedCommand<T>.
+                                */
+                                protected abstract doSendAsync<T>(command: ICommand<T>): Promise<ExecutedCommand<T>>;
+
+                                private async waitForAmbientValuesAsync() : Promise<AmbientValues>
+                                {
+                                    while(true)
+                                    {
+                                        var e = await this.doSendAsync( new AmbientValuesCollectCommand() );
+                                        if( e.result instanceof CrisError )
+                                        {
+                                            console.error( "Error while getting AmbientValues. Retrying.", e.result );
+                                            this.setIsConnected( false );
+                                        }
+                                        else
+                                        {
+                                            this._ambientValuesRequest = undefined;
+                                            this._ambientValues = <AmbientValues>e.result;
+                                            this.setIsConnected( true );
+                                            return this._ambientValues;
+                                        }
+                                    }
+                                }
+                            }
+                            """ );
             return fEndpoint;
         }
 
 
-        static void GenerateCrisHttpEndpoint( IActivityMonitor monitor, TypeScriptFile modelFile, TypeScriptFile fEndpoint )
+        static void GenerateCrisHttpEndpoint( IActivityMonitor monitor,
+                                              TypeScriptFile modelFile,
+                                              TypeScriptFile fEndpoint,
+                                              ITSType ctsType )
         {
             TypeScriptFile fHttpEndpoint = modelFile.Folder.FindOrCreateFile( "HttpCrisEndpoint.ts" );
-            // Importing the Model objects.
-            fHttpEndpoint.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" );
-            fHttpEndpoint.Imports.EnsureImport( fEndpoint, "CrisEndpoint" );
-            fHttpEndpoint.Imports.EnsureImportFromLibrary( new LibraryImport( "axios", "^1.5.1", DependencyKind.Dependency ),
-                                                                       "AxiosInstance", "AxiosHeaders", "RawAxiosRequestConfig" );
+            // Importing:
+            // - the Model objects ICommand, ExecutedCommand and CrisError.
+            // - The base CrisEndPoint.
+            // - The IAspNetCrisResult server result model.
+            // - Axios to send/receive the POST.
+            // - The CTSType to serialize/deserialize.
+            // - The IAspNetCrisResultError that must be transformed into a CrisError.
+            fHttpEndpoint.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" )
+                                 .EnsureImport( fEndpoint, "CrisEndpoint" )
+                                 .EnsureImport( monitor, typeof( IAspNetCrisResult ) )
+                                 .EnsureImportFromLibrary( new LibraryImport( "axios", "^1.5.1", DependencyKind.Dependency ),
+                                                                       "AxiosInstance", "AxiosHeaders", "RawAxiosRequestConfig" )
+                                 .EnsureImport( ctsType )
+                                 .EnsureImport( monitor, typeof( IAspNetCrisResultError ) );
+
             fHttpEndpoint.Body.Append( """
                                        const defaultCrisAxiosConfig: RawAxiosRequestConfig = {
                                            responseType: 'text',
@@ -256,32 +234,34 @@ namespace CK.Setup
 
                                            protected override async doSendAsync<T>(command: ICommand<T>): Promise<ExecutedCommand<T>>
                                            {
-                                                try
-                                                {
-                                                  let string = `["${command.commandModel.commandName}"`;
-                                                  string += `,${JSON.stringify(command, (key, value) => {
-                                                    return key == "commandModel" ? undefined : value;
-                                                  })}]`;
-                                                  const resp = await this.axios.post<string>(this.crisEndpointUrl, string, this.axiosConfig);
-
-                                                  return this.handleJsonResponse( command, JSON.parse(resp.data) );
-                                                }
-                                                catch( e )
-                                                {
-                                                    var error : Error;
-                                                    if( e instanceof Error)
-                                                    {
-                                                        error = e;
-                                                    }
-                                                    else
-                                                    {
-                                                        // Error.cause is a mess. Log it.
-                                                        console.error( e );
-                                                        error = new Error(`Unhandled error ${e}.`);
-                                                    }
-                                                    this.setIsConnected(false);
-                                                    return {command, result: new CrisError(command, false, ["Communication error"], error )};
-                                                }
+                                              try
+                                              {
+                                                  const req = JSON.stringify(CTSType.toTypedJson(command));
+                                                  const resp = await this.axios.post(this.crisEndpointUrl, req, this.axiosConfig);
+                                                  const netResult = <AspNetResult>CTSType["AspNetResult"].nosj( JSON.parse(resp.data) );
+                                                  let r = netResult.result;
+                                                  if( r instanceof AspNetCrisResultError ) 
+                                                  {
+                                                      r = new CrisError(command,r.errors[0], r.isValidationError, undefined, r.errors, r.logKey);
+                                                  }
+                                                  return {command: command, result: <T|CrisError>r, validationMessages: netResult.validationMessages, correlationId: netResult.correlationId };
+                                              }
+                                              catch( e )
+                                              {
+                                                  var error : Error;
+                                                  if( e instanceof Error)
+                                                  {
+                                                      error = e;
+                                                  }
+                                                  else
+                                                  {
+                                                      // Error.cause is a mess. Log it.
+                                                      console.error( e );
+                                                      error = new Error(`Unhandled error ${e}.`);
+                                                  }
+                                                  this.setIsConnected(false);
+                                                  return {command, result: new CrisError(command, "Communication error", false, error )};
+                                              }
                                            }
                                        }
                                        """ );

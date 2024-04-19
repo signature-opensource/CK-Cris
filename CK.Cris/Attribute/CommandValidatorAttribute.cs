@@ -8,6 +8,17 @@ namespace CK.Cris
     /// Decorates a method that is a command or command part validator.
     /// The method must have at least a <see cref="CK.Core.UserMessageCollector"/> and a
     /// command (or command part) parameters.
+    /// <para>
+    /// This validator is executed right before the command handler, in the same Dependency Injection context
+    /// and Unit of Work as the handler: such validator can be seen as a part of the prologue of the handler
+    /// and could perfectly been directly called by the handler.
+    /// </para>
+    /// <para>
+    /// The <see cref="CommandSyntaxValidatorAttribute"/> defines validators that check the "surface" of a command.
+    /// These validators are called in the context of the endpoints that receive the command.
+    /// When the validation concerns any aspect independent of the command execution itself, it is recommended to use
+    /// the CommandSyntaxValidator.
+    /// </para>
     /// </summary>
     [AttributeUsage( AttributeTargets.Method, AllowMultiple = false, Inherited = false )]
     public sealed class CommandValidatorAttribute : ContextBoundDelegationAttribute

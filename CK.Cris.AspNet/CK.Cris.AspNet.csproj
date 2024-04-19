@@ -7,10 +7,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Temporary? should this be externalized in a CK.Cris.Globalization independent package? -->
-    <PackageReference Include="CK.Globalization" Version="0.6.0" />
-  </ItemGroup>
-  <ItemGroup>
+    <ProjectReference Include="..\CK.Cris.AspNet.IO\CK.Cris.AspNet.IO.csproj" />
     <ProjectReference Include="..\CK.Cris.BackgroundExecutor\CK.Cris.BackgroundExecutor.csproj" />
     <ProjectReference Include="..\CK.Cris.TypeScript\CK.Cris.TypeScript.csproj" />
   </ItemGroup>

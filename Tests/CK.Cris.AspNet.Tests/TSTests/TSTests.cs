@@ -1,6 +1,8 @@
 using CK.Core;
+using FluentAssertions;
 using NUnit.Framework;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
 
@@ -11,6 +13,9 @@ namespace CK.Cris.AspNet.E2ETests
     [TestFixture]
     public class TSTests
     {
+        /// <summary>
+        /// Secondary Poco that defines the "Color" as an ambient value.
+        /// </summary>
         public interface IColoredAmbientValues : AmbientValues.IAmbientValues
         {
             /// <summary>
@@ -19,12 +24,20 @@ namespace CK.Cris.AspNet.E2ETests
             string Color { get; set; }
         }
 
+        /// <summary>
+        /// This command is empty but returns a SimpleUserMessage.
+        /// </summary>
         public interface ICommandWithMessage : ICommand<SimpleUserMessage>
         {
         }
 
         public class ColorAndBuggyService : IAutoService
         {
+            /// <summary>
+            /// Ambient value collector for <see cref="IColoredAmbientValues.Color"/>.
+            /// </summary>
+            /// <param name="cmd">The collec command is here only to trigger the collect.</param>
+            /// <param name="values">The command result to update.</param>
             [CommandPostHandler]
             public void GetColoredAmbientValues( AmbientValues.IAmbientValuesCollectCommand cmd, IColoredAmbientValues values )
             {
@@ -66,6 +79,9 @@ namespace CK.Cris.AspNet.E2ETests
 
         }
 
+        /// <summary>
+        /// Command part with the color ambient property.
+        /// </summary>
         public interface ICommandColored : ICommandPart
         {
             /// <summary>
@@ -75,9 +91,14 @@ namespace CK.Cris.AspNet.E2ETests
             /// CrisEndPoint transparently sets it.
             /// </para>
             /// </summary>
+            [SafeAmbientValue]
             string Color { get; set; }
         }
 
+        /// <summary>
+        /// A beautiful command has a <see cref="Beauty"/> and is a <see cref="ICommandColored"/>:
+        /// the color is managed automatically.
+        /// </summary>
         public interface IBeautifulCommand : ICommandColored, ICommand<string>
         {
             /// <summary>

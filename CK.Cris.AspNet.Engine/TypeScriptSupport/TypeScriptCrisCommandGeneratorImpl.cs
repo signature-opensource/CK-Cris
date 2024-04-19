@@ -24,15 +24,18 @@ namespace CK.Setup
             // we reset the cached instance here.
             _command = null;
 
+            // Those must be TypeScript types: this ensures that they are added to the TypeScript type set.
             return initializer.EnsureRegister( monitor, typeof( IAspNetCrisResult ), mustBePocoType: true )
                    && initializer.EnsureRegister( monitor, typeof( IAspNetCrisResultError ), mustBePocoType: true )
-                   && initializer.EnsureRegister( monitor, typeof( IAmbientValues ), mustBePocoType: true );
+                   && initializer.EnsureRegister( monitor, typeof( IAmbientValues ), mustBePocoType: true )
+                   && initializer.EnsureRegister( monitor, typeof( IAmbientValuesCollectCommand ), mustBePocoType: true );
         }
 
         bool ITSCodeGenerator.StartCodeGeneration( IActivityMonitor monitor, TypeScriptContext context )
         {
             context.PocoCodeGenerator.PrimaryPocoGenerating += OnPrimaryPocoGenerating;
             context.PocoCodeGenerator.AbstractPocoGenerating += OnAbstractPocoGenerating;
+            context.AfterCodeGeneration += OnAfterCodeGeneration;
             return true;
         }
 
@@ -108,7 +111,7 @@ namespace CK.Setup
                 {
                     Throw.DebugAssert( f.TSField.PocoField.Originator is IPocoPropertyInfo );
                     if( ((IPocoPropertyInfo)f.TSField.PocoField.Originator).DeclaredProperties
-                                .Any( p => p.CustomAttributesData.Any( a => a.AttributeType == typeof( AmbientValueAttribute ) ) ) )
+                                .Any( p => p.CustomAttributesData.Any( a => a.AttributeType == typeof( SafeAmbientValueAttribute ) ) ) )
                     {
                         // Documents it.
                         f.DocumentationExtension = b => b.AppendLine( "(This is an Ambient Value.)", startNewLine: true );
@@ -161,8 +164,10 @@ namespace CK.Setup
 
         static void GenerateAmbientValuesOverride( TypeScriptFolder ambientValuesFolder, ImmutableArray<TSNamedCompositeField> fields )
         {
-            var fOverride = ambientValuesFolder.FindOrCreateFile( "AmbientValuesOverride.ts" );
-            var b = fOverride.Body.CreatePart();
+            var b = ambientValuesFolder
+                                .FindOrCreateManualFile( "AmbientValuesOverride.ts" )
+                                .CreateType( "AmbientValuesOverride", null, null )
+                                .TypePart;
             b.Append( """
                     /**
                     * To manage ambient values overrides, we use the null value to NOT override:
@@ -180,8 +185,7 @@ namespace CK.Setup
              .Append( "constructor()" )
                  .OpenBlock()
                  .InsertPart( out var ctorPart )
-                 .CloseBlock()
-             .CloseBlock();
+                 .CloseBlock();
 
             foreach( var f in fields )
             {

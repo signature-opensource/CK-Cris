@@ -11,7 +11,7 @@
   <!--
          The CK.StObj.TypeScript package contains few types: the TypeScriptAttribute (with Folder, FileName,
          TypeName, SameFolderAs and SameFileAs properties) and the TypeScriptAspectConfiguration
-         objects, but it depends on another micro-package: the CK.Poco.Json that generates Json serialization.
+         objects, but it depends on another micro-package: the CK.Poco.Exc.Json that generates Json serialization.
 
          The CK.StObj.TypeScript.Engine is the one that does the job (it triggers TypeScript generation only when the TypeScriptAspect is
          declared and a <TypeScript><OutuptPath>...</OutuptPath></TypeScript> is defined in the BinPathConfiguration).
@@ -21,7 +21,7 @@
         in AssemblyInfo.cs.
     -->
   <ItemGroup>
-    <PackageReference Include="CK.StObj.TypeScript" Version="0.18.1--0046-develop" />
+    <PackageReference Include="CK.StObj.TypeScript" Version="0.18.1--0057-develop" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />

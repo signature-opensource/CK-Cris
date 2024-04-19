@@ -1,23 +1,27 @@
 using CK.Core;
 using FluentAssertions;
 using NUnit.Framework;
-using Other;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 namespace CK.Cris.AspNet.Tests
 {
     [TestFixture]
     public class CommandWithCurrentCultureTests
     {
+        /// <summary>
+        /// Secondary <see cref="ICommandWithCurrentCulture"/> that adds a IsValid property.
+        /// </summary>
         [ExternalName( "TestCommand" )]
         public interface ITestCommand : ICommand<string>, ICommandWithCurrentCulture
         {
+            /// <summary>
+            /// Gets or sets whether this is valid.
+            /// When false, the command will not be valid.
+            /// </summary>
             public bool IsValid { get; set; }
         }
 
@@ -48,10 +52,10 @@ namespace CK.Cris.AspNet.Tests
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""TestCommand"",{""CurrentCultureName"":null,""IsValid"":true}]" );
                     string response = await r.Content.ReadAsStringAsync();
-                    response.Should().Match( @"{""result"":""en"",""validationMessages"":null,""correlationId"":""*""}" );
+                    response.Should().Match( @"{""result"":[""string"",""en""],""validationMessages"":null,""correlationId"":""*""}" );
                 }
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""TestCommand"",{""CurrentCultureName"":null,""IsValid"":false}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri + "?UseSimpleError", @"[""TestCommand"",{""CurrentCultureName"":null,""IsValid"":false}]" );
                     string response = await r.Content.ReadAsStringAsync();
                     response.Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""errors"":[""Sorry, this command is invalid!""],""logKey"":""*""}],""validationMessages"":[[4,""The current culture is en."",0],[16,""Sorry, this command is invalid!"",0]],""correlationId"":""*""}" );
                 }
@@ -67,10 +71,10 @@ namespace CK.Cris.AspNet.Tests
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""TestCommand"",{""CurrentCultureName"":""fr"",""IsValid"":true}]" );
                     string response = await r.Content.ReadAsStringAsync();
-                    response.Should().Match( @"{""result"":""fr"",""validationMessages"":null,""correlationId"":""*""}" );
+                    response.Should().Match( @"{""result"":[""string"",""fr""],""validationMessages"":null,""correlationId"":""*""}" );
                 }
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""TestCommand"",{""CurrentCultureName"":null,""IsValid"":false}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri + "?UseSimpleError", @"[""TestCommand"",{""CurrentCultureName"":null,""IsValid"":false}]" );
                     string response = await r.Content.ReadAsStringAsync();
                     response.Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""errors"":[""Sorry, this command is invalid!""],""logKey"":""*""}],""validationMessages"":[[4,""The current culture is en."",0],[16,""Sorry, this command is invalid!"",0]],""correlationId"":""*""}" );
                 }

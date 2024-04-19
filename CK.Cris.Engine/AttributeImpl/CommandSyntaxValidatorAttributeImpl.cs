@@ -10,11 +10,11 @@ using System.Text;
 namespace CK.Setup.Cris
 {
 
-    sealed class CommandValidatorAttributeImpl : BaseHandlerAttributeImpl
+    sealed class CommandSyntaxValidatorAttributeImpl : BaseHandlerAttributeImpl
     {
-        readonly CommandValidatorAttribute _a;
+        readonly CommandSyntaxValidatorAttribute _a;
 
-        public CommandValidatorAttributeImpl( CommandValidatorAttribute a, Type t, MethodInfo m )
+        public CommandSyntaxValidatorAttributeImpl( CommandSyntaxValidatorAttribute a, Type t, MethodInfo m )
             : base( t, m )
         {
             _a = a;
@@ -22,7 +22,7 @@ namespace CK.Setup.Cris
 
         private protected override CSCodeGenerationResult DoImplement( IActivityMonitor monitor, CrisTypeRegistry crisTypeRegistry, IStObjFinalClass impl, MethodInfo method )
         {
-            return crisTypeRegistry.RegisterValidator( monitor, false, impl!, method, _a.FileName, _a.LineNumber )
+            return crisTypeRegistry.RegisterValidator( monitor, true, impl!, method, _a.FileName, _a.LineNumber )
                     ? CSCodeGenerationResult.Success
                     : CSCodeGenerationResult.Failed;
         }

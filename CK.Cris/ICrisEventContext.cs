@@ -8,7 +8,7 @@ namespace CK.Cris
     /// This interface can appear in any command handler, post handler or event handler.
     /// <para>
     /// It is not available in command validator methods: a validator cannot send events
-    /// or execute commands and is given a validation monitor to emit its errors and
+    /// or execute commands and is given a user message collector to emit its errors and
     /// warnings.
     /// </para>
     /// </summary>

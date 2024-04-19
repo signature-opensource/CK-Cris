@@ -23,8 +23,11 @@ namespace CK.Cris
     public abstract class RawCrisExecutor : ISingletonAutoService
     {
         /// <summary>
-        /// Executes a command by calling the discovered handler and post handlers.
-        /// Any exceptions are thrown (or more precisely are set on the returned <see cref="Task"/>).
+        /// Executes a command by calling the discovered validators (not the syntax validators), handler
+        /// and post handlers.
+        /// Any exceptions are thrown (or more precisely are set on the returned <see cref="Task"/>) except
+        /// for validation errors: a <see cref="CrisValidationResult"/> on error is returned for any validation
+        /// errors.
         /// <para>
         /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisCommandContext"/> (that is
         /// a <see cref="ICrisEventContext"/>) must be resolvable from the <paramref name="services"/>.

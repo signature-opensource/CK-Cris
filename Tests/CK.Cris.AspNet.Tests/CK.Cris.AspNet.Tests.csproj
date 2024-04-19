@@ -4,6 +4,7 @@
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
     <LangVersion>11</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\CK.Cris.Tests\DiamondResultAndCommand.cs" Link="DiamondResultAndCommand.cs" />

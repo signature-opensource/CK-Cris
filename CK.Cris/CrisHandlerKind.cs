@@ -1,12 +1,17 @@
-﻿namespace CK.Cris
+namespace CK.Cris
 {
     /// <summary>
-    /// There are 4 kind of handlers.
+    /// There are 5 kind of handlers.
     /// </summary>
     public enum CrisHandlerKind
     {
         /// <summary>
-        /// Validates a command.
+        /// Validates a command syntaxically (when the command is received).
+        /// </summary>
+        CommandSyntaxValidator,
+
+        /// <summary>
+        /// Validates a command right before it is handled.
         /// </summary>
         CommandValidator,
 

@@ -14,8 +14,6 @@ namespace CK.Setup
             {
                 _modelFile = context.Root.Root.FindOrCreateFile( "CK/Cris/Model.ts" );
                 GenerateCrisModelFile( monitor, context, _modelFile );
-                var crisEndpointFile = GenerateCrisEndpoint( monitor, _modelFile );
-                GenerateCrisHttpEndpoint( monitor, _modelFile, crisEndpointFile );
                 _crisPoco = new TSBasicType( context.Root.TSTypes, "ICrisPoco", imports => imports.EnsureImport( _modelFile, "ICrisPoco" ), null );
                 _abstractCommand = new TSBasicType( context.Root.TSTypes, "IAbstractCommand", imports => imports.EnsureImport( _modelFile, "IAbstractCommand" ), null );
                 _command = new TSBasicType( context.Root.TSTypes, "ICommand", imports => imports.EnsureImport( _modelFile, "ICommand" ), null );
@@ -71,6 +69,7 @@ namespace CK.Setup
                                     readonly _brand: IAbstractCommand["_brand"] & {"ICommandResult": void extends TResult ? any : TResult};
                                 }
                                                                 
+                                
                                 /** 
                                  * Captures the result of a command execution.
                                  **/
@@ -79,10 +78,17 @@ namespace CK.Setup
                                     readonly command: ICommand<T>,
                                     /** The execution result. **/
                                     readonly result: CrisError | T,
+                                    /**
+                                     * An optional list of UserMessageLevel.info, UserMessageLevel.warn or UserMessageLevel.error
+                                     * messages issued by the validation of the command: there can be info or warn messages even if the 
+                                     * command has been succesfully executed. 
+                                     * Validation error messages also appear in the CrisError.messages.
+                                     **/
+                                    readonly validationMessages?: Array<SimpleUserMessage>;
                                     /** Optional correlation identifier. **/
                                     readonly correlationId?: string
                                 };
-
+                                
                                 /**
                                  * Captures communication, validation or execution error.
                                  **/
@@ -92,9 +98,9 @@ namespace CK.Setup
                                     */
                                     public readonly errorType : "CommunicationError"|"ValidationError"|"ExecutionError";
                                     /**
-                                     * Gets the messages. At least one message is guaranteed to exist.
+                                     * Gets the error messages. At least one message is guaranteed to exist.
                                      */
-                                    public readonly messages: ReadonlyArray<SimpleUserMessage>; 
+                                    public readonly messages: ReadonlyArray<string>; 
                                     /**
                                      * The Error.cause support is a mess. This replaces it at this level. 
                                      */
@@ -112,7 +118,7 @@ namespace CK.Setup
                                                  message: string, 
                                                  isValidationError: boolean,
                                                  innerError?: Error, 
-                                                 messages?: ReadonlyArray<SimpleUserMessage>,
+                                                 messages?: ReadonlyArray<string>,
                                                  logKey?: string ) 
                                     {
                                         super( message );
@@ -123,7 +129,7 @@ namespace CK.Setup
                                         this.innerError = innerError;
                                         this.messages = messages && messages.length > 0 
                                                         ? messages
-                                                        : [new SimpleUserMessage(UserMessageLevel.Error,message,0)];
+                                                        : [message];
                                         this.logKey = logKey;
                                     }
                                 }

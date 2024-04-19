@@ -31,11 +31,11 @@ namespace CK.Setup.Cris
                 var h = e.CommandHandler;
                 if( h != null )
                 {
-                    CreateCommandHandler( scope, e, h );
+                    CreateCommandHandler( c.CurrentRun.EngineMap, scope, e, h );
                 }
                 else if( e.EventHandlers.Count > 0 )
                 {
-                    CreateEventHandler( scope, e );
+                    CreateEventHandler( c.CurrentRun.EngineMap, scope, e );
                 }
             }
 
@@ -68,7 +68,7 @@ namespace CK.Setup.Cris
             return CSCodeGenerationResult.Success;
         }
 
-        static void CreateEventHandler( ITypeScope scope, CrisType e )
+        static void CreateEventHandler( IStObjMap engineMap, ITypeScope scope, CrisType e )
         {
             var func = scope.CreateFunction( $"static Task H{e.CrisPocoIndex}(IServiceProvider s, CK.Cris.ICrisPoco c)" );
 
@@ -77,7 +77,7 @@ namespace CK.Setup.Cris
             //     .Append( "( IServiceProvider s, CK.Cris.ICrisPoco c )" )
             //     .OpenBlock();
 
-            var cachedServices = new VariableCachedServices( func.CreatePart() );
+            var cachedServices = new VariableCachedServices( engineMap, func.CreatePart() );
 
             func.GeneratedByComment();
             int syncHandlerCount = 0;
@@ -119,7 +119,7 @@ namespace CK.Setup.Cris
             }
         }
 
-        static void CreateCommandHandler( ITypeScope scope, CrisType e, HandlerMethod h )
+        static void CreateCommandHandler( IStObjMap engineMap, ITypeScope scope, CrisType e, HandlerMethod h )
         {
             bool isVoidReturn = h.UnwrappedReturnType == typeof( void );
             bool isHandlerAsync = h.IsRefAsync || h.IsValAsync;
@@ -132,7 +132,7 @@ namespace CK.Setup.Cris
             scope.Append( "Task<object> H" ).Append( e.CrisPocoIndex ).Append( "( IServiceProvider s, CK.Cris.ICrisPoco c )" )
                  .OpenBlock();
 
-            var cachedServices = new VariableCachedServices( scope.CreatePart() );
+            var cachedServices = new VariableCachedServices( engineMap, scope.CreatePart() );
 
             if( !isVoidReturn ) scope.AppendGlobalTypeName( e.CommandResultType?.Type ).Append( " r = " );
             if( isHandlerAsync ) scope.Append( "await " );
@@ -170,12 +170,12 @@ namespace CK.Setup.Cris
         {
             if( h.Method.DeclaringType != h.Owner.ClassType )
             {
-                w.Append( "((" ).AppendGlobalTypeName( h.Method.DeclaringType ).Append( ")" );
-                cachedServices.WriteGetService( w, h.Owner.ClassType ).Append( ")" );
+                w.Append( "((" ).AppendGlobalTypeName( h.Method.DeclaringType ).Append( ")" )
+                    .Append( cachedServices.GetServiceVariableName( h.Owner.ClassType ) ).Append( ")" );
             }
             else
             {
-                cachedServices.WriteGetService( w, h.Owner.ClassType );
+                w.Append( cachedServices.GetServiceVariableName( h.Owner.ClassType ) );
             }
             w.Append( "." ).Append( h.Method.Name ).Append( "( " );
             foreach( var p in h.Parameters )
@@ -187,7 +187,7 @@ namespace CK.Setup.Cris
                 }
                 else
                 {
-                    cachedServices.WriteGetService( w, p.ParameterType );
+                    w.Append( cachedServices.GetServiceVariableName( p.ParameterType ) );
                 }
             }
             w.Append( " )" );

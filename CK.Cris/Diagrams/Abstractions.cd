@@ -16,9 +16,10 @@
     <Position X="8.25" Y="0.5" Width="1.5" />
     <Members>
       <Method Name="CrisDirectory" Hidden="true" />
+      <Field Name="CrisTag" Hidden="true" />
     </Members>
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAAABAAAAAAACAAAAAAAAAAAAAAA=</HashCode>
       <FileName>CrisDirectory.cs</FileName>
     </TypeIdentifier>
     <Lollipop Position="0.2" />
@@ -55,7 +56,7 @@
   <Interface Name="CK.Cris.ICommand&lt;TResult&gt;" Collapsed="true">
     <Position X="6" Y="3.5" Width="2" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>Command\ICommand{TResult}.cs</FileName>
     </TypeIdentifier>
   </Interface>
@@ -114,7 +115,7 @@
   <Enum Name="CK.Cris.CrisHandlerKind">
     <Position X="2.5" Y="4.5" Width="1.75" />
     <TypeIdentifier>
-      <HashCode>IAAAAAAAAAAAIAAAAAABIAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>IAAAAAAAAAAAIAAAAAABIAAAAAAAAAAAAACAAAAAAAA=</HashCode>
       <FileName>CrisHandlerKind.cs</FileName>
     </TypeIdentifier>
   </Enum>

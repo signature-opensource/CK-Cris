@@ -2,6 +2,7 @@ using CK.Core;
 using CK.Cris;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 
@@ -17,6 +18,8 @@ namespace CK.Setup.Cris
     {
         readonly IReadOnlyDictionary<IPrimaryPocoType, CrisType> _indexedEntries;
         readonly IReadOnlyList<CrisType> _entries;
+        readonly List<(IBaseCompositeType Owner, IBasePocoField Field, bool OwnerHasPostHandler)> _ambientValues;
+
         readonly IPocoTypeSystem _typeSystem;
         readonly IAbstractPocoType? _crisPocoType;
         readonly IAbstractPocoType? _crisCommandType;
@@ -41,6 +44,7 @@ namespace CK.Setup.Cris
             _crisCommandTypePart = crisCommandTypePart;
             _crisEventType = crisEventType;
             _crisEventTypePart = crisEventTypePart;
+            _ambientValues = new List<(IBaseCompositeType Owner, IBasePocoField Field, bool OwnerHasPostHandler)>();
         }
 
         /// <inheritdoc/>
@@ -206,7 +210,7 @@ namespace CK.Setup.Cris
             }
         }
 
-        private static bool CheckNoRoutedOrImmediateAttribute( IActivityMonitor monitor, Type? i )
+        static bool CheckNoRoutedOrImmediateAttribute( IActivityMonitor monitor, Type i )
         {
             bool success = true;
             var attrs = i.GetCustomAttributesData();
@@ -224,6 +228,12 @@ namespace CK.Setup.Cris
                 }
             }
             return success;
+        }
+
+        internal void RegisterAmbientValueDefinitionField( IBaseCompositeType owner, IBasePocoField field )
+        {
+            Throw.DebugAssert( !_ambientValues.Any( a => a.Field == field ) );
+            _ambientValues.Add( (owner,field,false) );
         }
 
         internal bool RegisterHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, bool allowUnclosed, string? fileName, int lineNumber )
@@ -272,70 +282,100 @@ namespace CK.Setup.Cris
             return (null, null, null);
         }
 
-        internal bool RegisterValidator( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber )
+        internal bool RegisterValidator( IActivityMonitor monitor, bool isSyntax, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber )
         {
-            return RegisterValidatorOrRoutedEventHandler( monitor, impl, m, fileName, lineNumber, isValidator: true );
+            return RegisterValidatorOrRoutedEventHandler( monitor,
+                                                          impl,
+                                                          m,
+                                                          fileName,
+                                                          lineNumber,
+                                                          isSyntax ? MultiTarget.CommandSyntaxValidator : MultiTarget.CommandValidator );
         }
 
         internal bool RegisterRoutedEventHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber )
         {
-            return RegisterValidatorOrRoutedEventHandler( monitor, impl, m, fileName, lineNumber, isValidator: false );
+            return RegisterValidatorOrRoutedEventHandler( monitor, impl, m, fileName, lineNumber, MultiTarget.RoutedEventHandler );
         }
 
-        bool RegisterValidatorOrRoutedEventHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber, bool isValidator )
+        enum MultiTarget
         {
-            (ParameterInfo[]? parameters, ParameterInfo? p, IReadOnlyList<IPrimaryPocoType>? candidates) = GetCandidates( monitor, m, expectCommands: isValidator );
-            if( p != null )
+            RoutedEventHandler,
+            CommandSyntaxValidator,
+            CommandServiceConfigurator,
+            CommandValidator
+        }
+
+        bool RegisterValidatorOrRoutedEventHandler( IActivityMonitor monitor,
+                                                    IStObjFinalClass impl,
+                                                    MethodInfo m,
+                                                    string? fileName,
+                                                    int lineNumber,
+                                                    MultiTarget target )
+        {
+            bool expectCommands = target != MultiTarget.RoutedEventHandler;
+            if( !GetCandidates( monitor,
+                                m,
+                                expectCommands,
+                                out ParameterInfo[]? parameters,
+                                out ParameterInfo? foundParameter,
+                                out IReadOnlyList<IPrimaryPocoType>? candidates ) )
             {
-                Throw.DebugAssert( parameters != null );
-                bool success = true;
-                Throw.DebugAssert( "p == null <==> candidates == null", candidates != null );
-                if( candidates.Count == 0 )
+                return false;
+            }
+            bool success = true;
+            if( candidates.Count == 0 )
+            {
+                // If foundParameter is not null, the skipping has already been signaled. 
+                if( foundParameter == null )
                 {
-                    monitor.Info( $"Method {CrisType.MethodName( m, parameters )} is unused since no {(isValidator ? "command" : "event")} match the '{p.Name}' parameter." );
+                    monitor.Info( $"Method {CrisType.MethodName( m, parameters )} is unused since no I{(expectCommands ? "Command" : "Event")}Part exist." );
                 }
-                else
+            }
+            else
+            {
+                Throw.DebugAssert( "We have candidates => we found a parameter.", foundParameter != null );
+                var execContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisCommandContext ) );
+                if( execContext != null )
                 {
-                    var execContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisCommandContext ) );
-                    if( execContext != null )
+                    monitor.Error( $"Invalid parameter '{execContext.Name}' in method '{CrisType.MethodName( m, parameters )}': {nameof(ICrisCommandContext)} cannot " +
+                                    $"be used in a {target} since they cannot execute commands or send events." );
+                    success = false;
+                }
+                ParameterInfo? validatorUserMessageCollector = null;
+                if( target is MultiTarget.CommandSyntaxValidator || target is MultiTarget.CommandValidator )
+                {
+                    var callContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisEventContext ) );
+                    if( callContext != null )
                     {
-                        monitor.Error( $"Invalid parameter '{execContext.Name}' in method '{CrisType.MethodName( m, parameters )}': {nameof(ICrisCommandContext)} cannot " +
-                                       $"be used in a {(isValidator ? "command validator" : "routed event handler")} since they cannot execute commands or send events." );
+                        monitor.Error( $"Invalid parameter '{callContext.Name}' in method '{CrisType.MethodName( m, parameters )}': {nameof(ICrisEventContext)} cannot " +
+                                        $"be used in a command validator since validators cannot execute commands." );
                         success = false;
                     }
-                    ParameterInfo? validatorUserMessageCollector = null;
-                    if( isValidator )
+                    validatorUserMessageCollector = parameters.FirstOrDefault( p => p.ParameterType == typeof( UserMessageCollector ) );
+                    if( validatorUserMessageCollector == null )
                     {
-                        var callContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisEventContext ) );
-                        if( callContext != null )
-                        {
-                            monitor.Error( $"Invalid parameter '{callContext.Name}' in method '{CrisType.MethodName( m, parameters )}': {nameof(ICrisEventContext)} cannot " +
-                                           $"be used in a command validator since validators cannot execute commands." );
-                            success = false;
-                        }
-                        validatorUserMessageCollector = parameters.FirstOrDefault( p => p.ParameterType == typeof( UserMessageCollector ) );
-                        if( validatorUserMessageCollector == null )
-                        {
-                            monitor.Error( $"Command validator method '{CrisType.MethodName( m, parameters )}' must take a 'UserMessageCollector' parameter " +
-                                           $"to collect validation errors, warnings and informations." );
-                            success = false;
-                        }
-                    }
-                    if( success )
-                    {
-                        foreach( var family in candidates )
-                        {
-                            Throw.DebugAssert( _indexedEntries.ContainsKey( family ), "Since parameters are filtered by registered Poco." );
-                            var e = _indexedEntries[family];
-                            success &= isValidator
-                                        ? e.AddValidator( monitor, impl, m, parameters, p, validatorUserMessageCollector!, fileName, lineNumber )
-                                        : e.AddRoutedEventHandler( monitor, impl, m, parameters, p, fileName, lineNumber );
-                        }
+                        monitor.Error( $"Command validator method '{CrisType.MethodName( m, parameters )}' must take a 'UserMessageCollector' parameter " +
+                                        $"to collect validation errors, warnings and informations." );
+                        success = false;
                     }
                 }
-                return success;
+                if( success )
+                {
+                    foreach( var family in candidates )
+                    {
+                        Throw.DebugAssert( _indexedEntries.ContainsKey( family ), "Since parameters are filtered by registered Poco." );
+                        var e = _indexedEntries[family];
+                        success &= target switch
+                        {
+                            MultiTarget.RoutedEventHandler => e.AddRoutedEventHandler( monitor, impl, m, parameters, foundParameter, fileName, lineNumber ),
+                            MultiTarget.CommandSyntaxValidator => e.AddValidator( monitor, true, impl, m, parameters, foundParameter, validatorUserMessageCollector!, fileName, lineNumber ),
+                            MultiTarget.CommandServiceConfigurator => Throw.NotSupportedException<bool>(),
+                            _ => e.AddValidator( monitor, false, impl, m, parameters, foundParameter, validatorUserMessageCollector!, fileName, lineNumber ),
+                        };
+                    }
+                }
             }
-            return false;
+            return success;
         }
 
         (IPrimaryPocoType? P, bool IsCommand) GetPrimary( Type t ) => GetPrimary( _typeSystem.FindByType( t ) );
@@ -360,6 +400,7 @@ namespace CK.Setup.Cris
             return (null, false);
         }
 
+        // Parameters == null ==> Error.
         (ParameterInfo[]? Parameters, ParameterInfo? Param, IPrimaryPocoType? Candidate) TryGetCrisTypeCandidate( IActivityMonitor monitor,
                                                                                                                   MethodInfo m,
                                                                                                                   bool expectCommand )
@@ -395,73 +436,100 @@ namespace CK.Setup.Cris
             return (parameters, paramInfo, candidates[0].Item2.P);
         }
 
-        (ParameterInfo[]? Parameters, ParameterInfo? Param, IReadOnlyList<IPrimaryPocoType>? Candidates) GetCandidates( IActivityMonitor monitor,
-                                                                                                                        MethodInfo m,
-                                                                                                                        bool expectCommands )
+        bool GetCandidates( IActivityMonitor monitor,
+                            MethodInfo m,
+                            bool expectCommands,
+                            [NotNullWhen( true )] out ParameterInfo[]? parameters,
+                            out ParameterInfo? foundParameter,
+                            [NotNullWhen( true )] out IReadOnlyList<IPrimaryPocoType>? candidates )
         {
-            (ParameterInfo[]? parameters, ParameterInfo? p, IPrimaryPocoType? candidate) = TryGetCrisTypeCandidate( monitor, m, expectCommands );
-            if( parameters == null ) return (null, null, null);
-            if( p != null )
+            (parameters, foundParameter, IPrimaryPocoType? candidate) = TryGetCrisTypeCandidate( monitor, m, expectCommands );
+            if( parameters == null )
+            {
+                candidates = null;
+                return false;
+            }
+            if( foundParameter != null )
             {
                 Throw.DebugAssert( "Since we have the parameter.", candidate != null );
-                return (parameters, p, new IPrimaryPocoType[] { candidate });
+                candidates = new IPrimaryPocoType[] { candidate };
+                return true;
             }
             // Looking for parts.
-            var (param, candidates) = FromPart( monitor, _typeSystem, expectCommands ? _crisCommandTypePart : _crisEventTypePart, m, parameters, expectCommands );
-            if( param != null )
+            var partBase = expectCommands ? _crisCommandTypePart : _crisEventTypePart;
+            if( partBase != null )
             {
-                return (parameters, param, candidates);
+                return FromPart( monitor, _typeSystem, partBase, m, parameters, expectCommands, out foundParameter, out candidates );
             }
-            return (parameters, null, null);
+            // Not found but it is not an error.
+            // If foundParameter is null its because the there is no IEventPart or ICommandPart at all.
+            candidates = Array.Empty<IPrimaryPocoType>();
+            return true;
 
-            static (ParameterInfo? Parameter, IReadOnlyList<IPrimaryPocoType>? Candidates) FromPart( IActivityMonitor monitor,
-                                                                                                     IPocoTypeSystem typeSystem,
-                                                                                                     IAbstractPocoType? eventOrCommandPartType,
-                                                                                                     MethodInfo m,
-                                                                                                     ParameterInfo[] parameters,
-                                                                                                     bool expectCommands )
+            static bool FromPart( IActivityMonitor monitor,
+                                  IPocoTypeSystem typeSystem,
+                                  IAbstractPocoType eventOrCommandPartType,
+                                  MethodInfo m,
+                                  ParameterInfo[] parameters,
+                                  bool expectCommands,
+                                  [NotNullWhen( true )] out ParameterInfo? foundParameter,
+                                  [NotNullWhen( true )] out IReadOnlyList<IPrimaryPocoType>? candidates )
             {
-                ParameterInfo? pResult = null;
-                IReadOnlyList<IPrimaryPocoType>? result = null;
+                foundParameter = null;
+                candidates = null;
                 List<ParameterInfo>? tooMuch = null;
                 foreach( var param in parameters )
                 {
                     var a = typeSystem.FindByType<IAbstractPocoType>( param.ParameterType );
-                    if( a != null )
+                    bool isTheOne = a != null && a.NonNullable.Generalizations.Contains( eventOrCommandPartType );
+                    bool isTheOneEvenDisabled = isTheOne || eventOrCommandPartType.Type.IsAssignableFrom( param.ParameterType );
+                    if( isTheOneEvenDisabled )
                     {
-                        a = a.NonNullable;
-                        if( a.Generalizations.Contains( eventOrCommandPartType ) )
+                        if( foundParameter == null )
                         {
-                            if( pResult == null )
+                            foundParameter = param;
+                            if( isTheOne )
                             {
-                                pResult = param;
-                                result = a.PrimaryPocoTypes;
+                                Throw.DebugAssert( a != null );
+                                candidates = a.NonNullable.PrimaryPocoTypes;
                             }
                             else
                             {
-                                tooMuch ??= new List<ParameterInfo>();
-                                tooMuch.Add( param );
+                                monitor.Info( $"Method {CrisType.MethodName( m, parameters )}: parameter '{param.Name}' is " +
+                                                $"a 'I{(expectCommands ? "Command" : "Event")}Part' but no command of type '{param.ParameterType:C}' exist. " +
+                                                $"It is ignored." );
+                                candidates = Array.Empty<IPrimaryPocoType>();
                             }
+                        }
+                        else
+                        {
+                            tooMuch ??= new List<ParameterInfo>();
+                            tooMuch.Add( param );
                         }
                     }
                 }
-                if( pResult != null && tooMuch == null )
+                // If we found a parameter, candidate may be empty but it is not an error.
+                if( foundParameter != null && tooMuch == null )
                 {
-                    return (pResult, result);
+                    Throw.DebugAssert( candidates != null );
+                    return true;
                 }
                 var expected = expectCommands ? "ICommand, ICommand<TResult> or ICommandPart" : "IEvent or IEventPart";
                 if( tooMuch != null )
                 {
-                    Throw.DebugAssert( pResult != null );
+                    Throw.DebugAssert( foundParameter != null );
                     var t = tooMuch.Select( p => $"{p.ParameterType.ToCSharpName()} {p.Name}" ).Concatenate( "', '" );
                     monitor.Error( $"Method {CrisType.MethodName( m, parameters )} cannot have more than one {expected} parameter. " +
-                        $"Found '{pResult.ParameterType.ToCSharpName()} {pResult.Name}', cannot allow '{t}'." );
+                                    $"Found '{foundParameter.ParameterType.ToCSharpName()} {foundParameter.Name}', cannot allow '{t}'." );
+                    return false;
                 }
-                else
+                if( candidates == null ) 
                 {
                     monitor.Error( $"Method {CrisType.MethodName( m, parameters )}: missing a {expected} parameter." );
+                    return false;
                 }
-                return (null, null);
+                Throw.DebugAssert( foundParameter != null );
+                return true;
             }
 
 
