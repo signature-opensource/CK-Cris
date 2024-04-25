@@ -1,13 +1,14 @@
 using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
-using CK.Cris.EndpointValues;
+using CK.Cris.UbiquitousValues;
 using CK.Cris.AspNet;
 using CK.Setup.Cris;
 using CK.TypeScript.CodeGen;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CK.Setup
 {
@@ -27,8 +28,8 @@ namespace CK.Setup
             // Those must be TypeScript types: this ensures that they are added to the TypeScript type set.
             return initializer.EnsureRegister( monitor, typeof( IAspNetCrisResult ), mustBePocoType: true )
                    && initializer.EnsureRegister( monitor, typeof( IAspNetCrisResultError ), mustBePocoType: true )
-                   && initializer.EnsureRegister( monitor, typeof( IEndpointValues ), mustBePocoType: true )
-                   && initializer.EnsureRegister( monitor, typeof( IEndpointValuesCollectCommand ), mustBePocoType: true );
+                   && initializer.EnsureRegister( monitor, typeof( IUbiquitousValues ), mustBePocoType: true )
+                   && initializer.EnsureRegister( monitor, typeof( IUbiquitousValuesCollectCommand ), mustBePocoType: true );
         }
 
         bool ITSCodeGenerator.StartCodeGeneration( IActivityMonitor monitor, TypeScriptContext context )
@@ -83,11 +84,11 @@ namespace CK.Setup
 
         void OnPrimaryPocoGenerating( object? sender, GeneratingPrimaryPocoEventArgs e )
         {
-            if( e.PrimaryPocoType.Type == typeof(IEndpointValues) )
+            if( e.PrimaryPocoType.Type == typeof(IUbiquitousValues) )
             {
-                // Generate the EndpointValuesOverride when generating the EndpointValues:
-                // we use the EndpointValues fields.
-                GenerateEndpointValuesOverride( e.PocoTypePart.File.Folder, e.Fields );
+                // Generate the UbiquitousValuesOverride when generating the UbiquitousValues:
+                // we use the UbiquitousValues fields.
+                GenerateUbiquitousValuesOverride( e.PocoTypePart.File.Folder, e.Fields );
             }
             else if( HasICommand( e.PrimaryPocoType, e.ImplementedInterfaces, out var mustRemoveICommand ) )
             {
@@ -101,20 +102,25 @@ namespace CK.Setup
                     .NewLine()
                     .Append( "static #m = " )
                     .OpenBlock()
-                        .Append( "applyEndpointValues( command: any, a: any, o: any )" )
+                        .Append( "applyUbiquitousValues( command: any, a: any, o: any )" )
                         .OpenBlock()
                         .InsertPart( out var applyPart )
                         .CloseBlock()
                     .CloseBlock();
+
+                // Totally horrible service locator: this is where CK.ReaDI can shine.
+                var crisDirectory = e.TypeScriptContext.CodeContext.CurrentRun.ServiceContainer.GetRequiredService<ICrisDirectoryServiceEngine>();
+
                 bool atLeastOne = false;
                 foreach( var f in e.Fields )
                 {
-                    Throw.DebugAssert( f.TSField.PocoField.Originator is IPocoPropertyInfo );
-                    if( ((IPocoPropertyInfo)f.TSField.PocoField.Originator).DeclaredProperties
-                                .Any( p => p.CustomAttributesData.Any( a => a.AttributeType == typeof( EndpointValueAttribute ) ) ) )
+                    Throw.DebugAssert( f.TSField.PocoField is IPrimaryPocoField );
+                    var pocoField = (IPrimaryPocoField)f.TSField.PocoField;
+                    // No need to test non nullable properties: ubiquitous values are nullable.
+                    if( pocoField.Type.IsNullable && crisDirectory.IsUbiquitousValueField( pocoField ) )
                     {
                         // Documents it.
-                        f.DocumentationExtension = b => b.AppendLine( "(This is an Ambient Value.)", startNewLine: true );
+                        f.DocumentationExtension = b => b.AppendLine( "(This is a Ubiquitous Value.)", startNewLine: true );
                         // Adds the assignment: this property comes from its ambient value.
                         if( atLeastOne ) applyPart.NewLine();
                         // Generates:
@@ -162,11 +168,11 @@ namespace CK.Setup
             return true;
         }
 
-        static void GenerateEndpointValuesOverride( TypeScriptFolder endpointValuesFolder, ImmutableArray<TSNamedCompositeField> fields )
+        static void GenerateUbiquitousValuesOverride( TypeScriptFolder endpointValuesFolder, ImmutableArray<TSNamedCompositeField> fields )
         {
             var b = endpointValuesFolder
-                                .FindOrCreateManualFile( "EndpointValuesOverride.ts" )
-                                .CreateType( "EndpointValuesOverride", null, null )
+                                .FindOrCreateManualFile( "UbiquitousValuesOverride.ts" )
+                                .CreateType( "UbiquitousValuesOverride", null, null )
                                 .TypePart;
             b.Append( """
                     /**
@@ -179,7 +185,7 @@ namespace CK.Setup
                     **/
 
                     """ )
-             .Append( "export class EndpointValuesOverride" )
+             .Append( "export class UbiquitousValuesOverride" )
              .OpenBlock()
              .InsertPart( out var propertiesPart )
              .Append( "constructor()" )

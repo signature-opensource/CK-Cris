@@ -5,25 +5,26 @@ using System.Runtime.CompilerServices;
 namespace CK.Cris
 {
     /// <summary>
-    /// Base class for command executors bound to a specific <see cref="EndpointDefinition{TScopeData}"/>.
+    /// Base class for command executors bound to a specific <see cref="DIContainerDefinition{TScopeData}"/>.
     /// Its responsibility is to expose a "Start" or "Submit" method that takes a <see cref="ICommand"/> or <see cref="ICommand{TResult}"/>
     /// (and any other parameter), setup a <see cref="CrisJob"/> and call <see cref="CrisExecutionHost.StartJob(CrisJob)"/>.
     /// <para>
-    /// It can optionally override the <see cref="EndpointCommandExecutor"/> virtual methods to communicate execution outcomes
+    /// It can optionally override the <see cref="ContainerCommandExecutor"/> virtual methods to communicate execution outcomes
     /// to the external world.
     /// </para>
     /// <para>
-    /// The "Start" or "Submit" method may setup and return a <see cref="IExecutingCommand{T}"/> if needed.
+    /// The "Start" or "Submit" method may setup and return a <see cref="IExecutingCommand{T}"/> if needed: this is what the
+    /// CrisBackgroundExecutorService does (in CK.Cris.BackgroundExecutor package).
     /// </para>
     /// </summary>
     /// <typeparam name="T">The scoped data type of the endpoint.</typeparam>
     [CKTypeDefiner]
-    public abstract class EndpointCommandExecutor<T> : EndpointCommandExecutor, ISingletonAutoService where T : class, DIContainerDefinition.IScopedData
+    public abstract class ContainerCommandExecutor<T> : ContainerCommandExecutor, ISingletonAutoService where T : class, DIContainerDefinition.IScopedData
     {
         readonly CrisExecutionHost _executionHost;
         readonly IDIContainer<T> _container;
 
-        public EndpointCommandExecutor( CrisExecutionHost executionHost, IDIContainer<T> container )
+        public ContainerCommandExecutor( CrisExecutionHost executionHost, IDIContainer<T> container )
         {
             _executionHost = executionHost;
             _container = container;

@@ -1,5 +1,5 @@
 using CK.Core;
-using CK.Cris.EndpointValues;
+using CK.Cris.UbiquitousValues;
 using CK.Poco.Exc.Json;
 using CK.Setup;
 using Microsoft.AspNetCore.Http;
@@ -25,7 +25,7 @@ namespace CK.Cris.AspNet
     [AlsoRegisterType( typeof( IAspNetCrisResult ) )]
     [AlsoRegisterType( typeof( IAspNetCrisResultError ) )]
     [AlsoRegisterType( typeof( CrisBackgroundExecutorService ) )]
-    [AlsoRegisterType( typeof( IEndpointValuesCollectCommand ) )]
+    [AlsoRegisterType( typeof( IUbiquitousValuesCollectCommand ) )]
     public partial class CrisAspNetService : ISingletonAutoService
     {
         readonly RawCrisValidator _validator;
@@ -149,7 +149,7 @@ namespace CK.Cris.AspNet
         }
 
         // Temporary:
-        // TODO: Handle this "context matching" in a generic way ([ConfigureEndpointServices] attribute).
+        // TODO: Handle this "context matching" in a generic way ([ConfigureAmbientServices] attribute).
         AmbientServiceHub? HandleEndpointUbiquitousInfoConfigurator( IServiceProvider requestServices, IAbstractCommand? cmd )
         {
             AmbientServiceHub? info = null;

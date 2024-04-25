@@ -11,44 +11,44 @@ using static CK.Testing.StObjEngineTestHelper;
 namespace CK.Cris.Tests
 {
     [TestFixture]
-    public class EndpointValuesTests
+    public class UbiquitousValuesTests
     {
         public interface IInvalid1Command : ICommand
         {
-            [EndpointValue]
+            [UbiquitousValue]
             int NoWay { get; set; }
         }
 
         public interface IInvalid2Command : ICommand
         {
-            [EndpointValue]
+            [UbiquitousValue]
             string NoWay { get; set; }
         }
 
         [TestCase( typeof( IInvalid1Command ), "int" )]
         [TestCase( typeof( IInvalid2Command ), "string" )]
-        public void EndpointValues_must_be_nullable( Type t, string badType )
+        public void UbiquitousValues_must_be_nullable( Type t, string badType )
         {
             var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), t );
-            TestHelper.GetFailedAutomaticServicesConfiguration( c, $"Endpoint value '{badType} CK.Cris.Tests.EndpointValuesTests.{t.Name}.NoWay' must be nullable. Endpoint values must always be nullable." );
+            TestHelper.GetFailedAutomaticServicesConfiguration( c, $"Ubiquitous value '{badType} CK.Cris.Tests.UbiquitousValuesTests.{t.Name}.NoWay' must be nullable. Ubiquitous values must always be nullable." );
         }
 
-        public interface IInvalid1Values : EndpointValues.IEndpointValues
+        public interface IInvalid1Values : UbiquitousValues.IUbiquitousValues
         {
             int? NoWay { get; set; }
         }
 
-        public interface IInvalid2Values : EndpointValues.IEndpointValues
+        public interface IInvalid2Values : UbiquitousValues.IUbiquitousValues
         {
             string? NoWay { get; set; }
         }
 
         [TestCase( typeof( IInvalid1Values ), "int" )]
         [TestCase( typeof( IInvalid2Values ), "string" )]
-        public void IEndpointValues_properties_must_not_be_nullable( Type t, string badType )
+        public void IUbiquitousValues_properties_must_not_be_nullable( Type t, string badType )
         {
             var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), t );
-            TestHelper.GetFailedAutomaticServicesConfiguration( c, $"IEndpointValues properties cannot be nullable: {badType}? NoWay." );
+            TestHelper.GetFailedAutomaticServicesConfiguration( c, $"IUbiquitousValues properties cannot be nullable: {badType}? NoWay." );
         }
     }
 }

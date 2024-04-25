@@ -17,7 +17,7 @@ namespace CK.Auth
         /// The default <see cref="CrisAuthenticationService"/> validates this field against the
         /// current <see cref="IAuthenticationInfo.DeviceId"/>.
         /// </summary>
-        [EndpointValue]
+        [UbiquitousValue]
         string? DeviceId { get; set; }
     }
 }

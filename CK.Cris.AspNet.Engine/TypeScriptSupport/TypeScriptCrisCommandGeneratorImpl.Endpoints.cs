@@ -1,5 +1,5 @@
 using CK.Core;
-using CK.Cris.EndpointValues;
+using CK.Cris.UbiquitousValues;
 using CK.Cris.AspNet;
 using CK.TypeScript.CodeGen;
 using System;
@@ -29,18 +29,18 @@ namespace CK.Setup
         {
             TypeScriptFile fEndpoint = modelFile.Folder.FindOrCreateFile( "CrisEndpoint.ts" );
 
-            // EndpointValuesOverride is in the same folder as AmbienValues.ts.
-            var endpointValuesOverride = context.Root.TSTypes.FindByTypeName( "EndpointValuesOverride" );
-            Throw.CheckState( "EndpointValuesOverride is automatically created in the same folder as EndpointValues.ts and IEndpointValues is registered.",
-                              endpointValuesOverride != null );
+            // UbiquitousValuesOverride is in the same folder as AmbienValues.ts.
+            var ubiquitousValuesOverride = context.Root.TSTypes.FindByTypeName( "UbiquitousValuesOverride" );
+            Throw.CheckState( "UbiquitousValuesOverride is automatically created in the same folder as UbiquitousValues.ts and IUbiquitousValues is a registered type.",
+                              ubiquitousValuesOverride != null );
             // Importing:
             // - the Model objects ICommand, ExecutedCommand and CrisError.
-            // - The IEndpointValues and IEndpointValuesCollectCommand.
-            // - The EndpointValuesOverride.
+            // - The IUbiquitousValues and IUbiquitousValuesCollectCommand.
+            // - The UbiquitousValuesOverride.
             fEndpoint.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" )
-                             .EnsureImport( monitor, typeof( IEndpointValues ),
-                                                     typeof( IEndpointValuesCollectCommand ) )
-                             .EnsureImport( endpointValuesOverride );
+                             .EnsureImport( monitor, typeof( IUbiquitousValues ),
+                                                     typeof( IUbiquitousValuesCollectCommand ) )
+                             .EnsureImport( ubiquitousValuesOverride );
 
             fEndpoint.Body.Append( """
                             /**
@@ -49,24 +49,24 @@ namespace CK.Setup
                             */
                             export abstract class CrisEndpoint
                             {
-                                private _endpointValuesRequest: Promise<EndpointValues>|undefined;
-                                private _endpointValues: EndpointValues|undefined;
+                                private _ubiquitousValuesRequest: Promise<UbiquitousValues>|undefined;
+                                private _ubiquitousValues: UbiquitousValues|undefined;
                                 private _subscribers: Set<( eventSource: CrisEndpoint ) => void>;
                                 private _isConnected: boolean;
 
                                 constructor()
                                 {
-                                    this.endpointValuesOverride = new EndpointValuesOverride();
+                                    this.ubiquitousValuesOverride = new UbiquitousValuesOverride();
                                     this._isConnected = false;
                                     this._subscribers = new Set<() => void>();
                                 }
 
                                 /**
-                                * Enables endpoint values to be overridden.
-                                * Sensible endpoint values (like the actorId when CK.Cris.Auth is used) are checked against
+                                * Enables ubiquitous values to be overridden.
+                                * Sensible ubiquitous values (like the actorId when CK.Cris.Auth is used) are checked against
                                 * secured contextual values: overriding them will trigger a ValidationError. 
                                 **/    
-                                public readonly endpointValuesOverride: EndpointValuesOverride;
+                                public readonly ubiquitousValuesOverride: UbiquitousValuesOverride;
 
 
                                 //#region isConnected
@@ -106,7 +106,7 @@ namespace CK.Setup
                                         this._isConnected = value;
                                         if( !value ) 
                                         {
-                                            this.updateEndpointValuesAsync();
+                                            this.updateUbiquitousValuesAsync();
                                         }
                                         this._subscribers.forEach( func => func( this ) );
                                     }
@@ -115,14 +115,14 @@ namespace CK.Setup
                                 //#endregion
 
                                 /**
-                                * Sends a EndpointValuesCollectCommand and waits for its return.
-                                * Next commands will wait for the endpoint values to be received before being sent.
+                                * Sends a UbiquitousValuesCollectCommand and waits for its return.
+                                * Next commands will wait for the ubiquitous values to be received before being sent.
                                 **/    
-                                public updateEndpointValuesAsync() : Promise<EndpointValues>
+                                public updateUbiquitousValuesAsync() : Promise<UbiquitousValues>
                                 {
-                                    if( this._endpointValuesRequest ) return this._endpointValuesRequest;
-                                    this._endpointValues = undefined;
-                                    return this._endpointValuesRequest = this.waitForEndpointValuesAsync();
+                                    if( this._ubiquitousValuesRequest ) return this._ubiquitousValuesRequest;
+                                    this._ubiquitousValues = undefined;
+                                    return this._ubiquitousValuesRequest = this.waitForUbiquitousValuesAsync();
                                 }
 
                                 /**
@@ -130,10 +130,10 @@ namespace CK.Setup
                                 **/    
                                 public async sendAsync<T>(command: ICommand<T>): Promise<ExecutedCommand<T>>
                                 {
-                                    let a = this._endpointValues;
-                                    // Don't use coalesce here since there may be no endpoint values (an empty object is truthy).
-                                    if( a === undefined ) a = await this.updateEndpointValuesAsync();
-                                    command.commandModel.applyEndpointValues( command, a, this.endpointValuesOverride );
+                                    let a = this._ubiquitousValues;
+                                    // Don't use coalesce here since there may be no ubiquitous values (an empty object is truthy).
+                                    if( a === undefined ) a = await this.updateUbiquitousValuesAsync();
+                                    command.commandModel.applyUbiquitousValues( command, a, this.ubiquitousValuesOverride );
                                     return await this.doSendAsync( command ); 
                                 }
 
@@ -155,22 +155,22 @@ namespace CK.Setup
                                 */
                                 protected abstract doSendAsync<T>(command: ICommand<T>): Promise<ExecutedCommand<T>>;
 
-                                private async waitForEndpointValuesAsync() : Promise<EndpointValues>
+                                private async waitForUbiquitousValuesAsync() : Promise<UbiquitousValues>
                                 {
                                     while(true)
                                     {
-                                        var e = await this.doSendAsync( new EndpointValuesCollectCommand() );
+                                        var e = await this.doSendAsync( new UbiquitousValuesCollectCommand() );
                                         if( e.result instanceof CrisError )
                                         {
-                                            console.error( "Error while getting EndpointValues. Retrying.", e.result );
+                                            console.error( "Error while getting UbiquitousValues. Retrying.", e.result );
                                             this.setIsConnected( false );
                                         }
                                         else
                                         {
-                                            this._endpointValuesRequest = undefined;
-                                            this._endpointValues = <EndpointValues>e.result;
+                                            this._ubiquitousValuesRequest = undefined;
+                                            this._ubiquitousValues = <UbiquitousValues>e.result;
                                             this.setIsConnected( true );
-                                            return this._endpointValues;
+                                            return this._ubiquitousValues;
                                         }
                                     }
                                 }

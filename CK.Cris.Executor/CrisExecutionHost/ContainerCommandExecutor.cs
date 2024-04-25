@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace CK.Cris
 {
     /// <summary>
-    /// Non generic base class for <see cref="EndpointCommandExecutor{T}"/>.
+    /// Non generic base class for <see cref="ContainerCommandExecutor{T}"/>.
     /// A <see cref="CrisExecutionHost"/> relies on an executor to:
     /// <list type="bullet">
     ///   <item>
@@ -20,9 +20,9 @@ namespace CK.Cris
     ///   </item>
     /// </list>
     /// </summary>
-    public abstract class EndpointCommandExecutor
+    public abstract class ContainerCommandExecutor
     {
-        internal EndpointCommandExecutor() { }
+        internal ContainerCommandExecutor() { }
 
         internal abstract AsyncServiceScope CreateAsyncScope( CrisJob job );
 

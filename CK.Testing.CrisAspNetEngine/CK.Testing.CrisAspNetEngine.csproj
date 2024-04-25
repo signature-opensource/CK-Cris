@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CK.AspNet.Auth" Version="22.0.1--0007-develop" />
-    <PackageReference Include="CK.Testing.StObjTypeScriptEngine" Version="0.18.1--0071-develop" />
+    <PackageReference Include="CK.Testing.StObjTypeScriptEngine" Version="0.18.1--0072-develop" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris.AspNet.Engine\CK.Cris.AspNet.Engine.csproj" />

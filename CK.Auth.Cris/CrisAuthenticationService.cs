@@ -1,13 +1,13 @@
 using CK.Core;
 using CK.Cris;
-using CK.Cris.EndpointValues;
+using CK.Cris.UbiquitousValues;
 using System;
 using System.Collections.Generic;
 
 namespace CK.Auth
 {
     /// <summary>
-    /// Authentication service registers <see cref="IAuthEndpointValues"/> (<c>ActorId</c>, <c>ActualActorId</c> and <c>DeviceId</c>)
+    /// Authentication service registers <see cref="IAuthUbiquitousValues"/> (<c>ActorId</c>, <c>ActualActorId</c> and <c>DeviceId</c>)
     /// and validates the <see cref="ICommandAuthUnsafe"/>, <see cref="ICommandAuthNormal"/>, <see cref="ICommandAuthCritical"/>, <see cref="ICommandAuthDeviceId"/>
     /// and <see cref="ICommandAuthImpersonation"/>.
     /// </summary>
@@ -17,13 +17,13 @@ namespace CK.Auth
     public class CrisAuthenticationService : IAutoService
     {
         /// <summary>
-        /// Fills the <see cref="IAuthEndpointValues"/> from the current <paramref name="authInfo"/>.
+        /// Fills the <see cref="IAuthUbiquitousValues"/> from the current <paramref name="authInfo"/>.
         /// </summary>
-        /// <param name="cmd">The ambient values collector command .</param>
+        /// <param name="cmd">The ubiquitous values collector command.</param>
         /// <param name="authInfo">The current authentication information.</param>
         /// <param name="values">The result collector.</param>
         [CommandPostHandler]
-        public virtual void GetEndpointValues( IEndpointValuesCollectCommand cmd, IAuthenticationInfo authInfo, IAuthEndpointValues values )
+        public virtual void GetAuthenticationValues( IUbiquitousValuesCollectCommand cmd, IAuthenticationInfo authInfo, IAuthUbiquitousValues values )
         {
             values.ActorId = authInfo.User.UserId;
             values.ActualActorId = authInfo.ActualUser.UserId;
@@ -32,7 +32,7 @@ namespace CK.Auth
 
         /// <summary>
         /// Checks whether <see cref="ICommandAuthNormal.ActorId"/> is the same as the current <see cref="IAuthenticationInfo.User"/>
-        /// identifier and if not, emits an error in the <paramref name="monitor"/>.
+        /// identifier and if not, emits an error in the message collector.
         /// <para>
         /// If the command is marked with <see cref="ICommandAuthCritical"/>, the <see cref="IAuthenticationInfo.Level"/> must be
         /// critical otherwise an error is emitted.
@@ -49,7 +49,7 @@ namespace CK.Auth
         {
             // Temporary:
             // - This will be handled by Poco validation.
-            // - The [EndpointValue] is a INullInvalidAttribute, null will be rejected.
+            // - The [UbiquitousValue] is a INullInvalidAttribute, null will be rejected.
             if( !cmd.ActorId.HasValue )
             {
                 c.Error( $"Invalid property: {nameof(ICommandAuthUnsafe.ActorId)} cannot be null." );
@@ -76,7 +76,7 @@ namespace CK.Auth
 
         /// <summary>
         /// Checks whether <see cref="ICommandAuthDeviceId.DeviceId"/> is the same as the current <see cref="IAuthenticationInfo.DeviceId"/>
-        /// and if not, emits an error in the <paramref name="c"/>.
+        /// and if not, emits an error in the message collector.
         /// </summary>
         /// <param name="c">The message collector.</param>
         /// <param name="cmd">The command to validate.</param>
@@ -86,7 +86,7 @@ namespace CK.Auth
         {
             // Temporary:
             // - This will be handled by Poco validation.
-            // - The [EndpointValue] is a INullInvalidAttribute, null will be rejected.
+            // - The [UbiquitousValue] is a INullInvalidAttribute, null will be rejected.
             if( cmd.DeviceId == null )
             {
                 c.Error( $"Invalid property: {nameof( ICommandAuthDeviceId.DeviceId )} cannot be null." );
@@ -99,7 +99,7 @@ namespace CK.Auth
 
         /// <summary>
         /// Checks whether <see cref="ICommandAuthImpersonation.ActualActorId"/> is the same as the current <see cref="IAuthenticationInfo.ActualUser"/>
-        /// identifier and if not, emits an error in the <paramref name="c"/>.
+        /// identifier and if not, emits an error in the message collector.
         /// </summary>
         /// <param name="c">The message collector.</param>
         /// <param name="cmd">The command to validate.</param>
@@ -109,7 +109,7 @@ namespace CK.Auth
         {
             // Temporary:
             // - This will be handled by Poco validation.
-            // - The [EndpointValue] is a INullInvalidAttribute, null will be rejected.
+            // - The [UbiquitousValue] is a INullInvalidAttribute, null will be rejected.
             if( !cmd.ActorId.HasValue )
             {
                 c.Error( $"Invalid property: {nameof( ICommandAuthImpersonation.ActualActorId )} cannot be null." );

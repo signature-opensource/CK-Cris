@@ -1,11 +1,12 @@
 using CK.Core;
 using CK.Cris;
-using CK.Cris.EndpointValues;
+using CK.Cris.UbiquitousValues;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace CK.Setup.Cris
 {
@@ -19,7 +20,9 @@ namespace CK.Setup.Cris
     {
         readonly IReadOnlyDictionary<IPrimaryPocoType, CrisType> _indexedEntries;
         readonly IReadOnlyList<CrisType> _entries;
-        readonly List<(IBaseCompositeType Owner, IBasePocoField Field, bool OwnerHasPostHandler)> _endpointValues;
+        readonly List<(IBaseCompositeType Owner, IBasePocoField Field, bool OwnerHasPostHandler)> _ubiquitousCommandFields;
+        // Filled by CloseRegistration.
+        readonly HashSet<IPrimaryPocoField> _allUbiquitousFields;
 
         readonly IPocoTypeSystem _typeSystem;
         readonly IAbstractPocoType? _crisPocoType;
@@ -48,7 +51,8 @@ namespace CK.Setup.Cris
             _crisEventType = crisEventType;
             _crisEventTypePart = crisEventTypePart;
             _ubiquitousValues = ubiquitousValues;
-            _endpointValues = new List<(IBaseCompositeType Owner, IBasePocoField Field, bool OwnerHasPostHandler)>();
+            _ubiquitousCommandFields = new List<(IBaseCompositeType Owner, IBasePocoField Field, bool OwnerHasPostHandler)>();
+            _allUbiquitousFields = new HashSet<IPrimaryPocoField>();
         }
 
         /// <inheritdoc/>
@@ -60,18 +64,21 @@ namespace CK.Setup.Cris
         /// <inheritdoc/>
         public CrisType? Find( IPrimaryPocoType poco ) => _indexedEntries.GetValueOrDefault( poco );
 
+        /// <inheritdoc/>
+        public bool IsUbiquitousValueField( IPrimaryPocoField field ) => _allUbiquitousFields.Contains( field );
+
         internal static CrisTypeRegistry? Create( IActivityMonitor monitor, IPocoTypeSystem typeSystem, IStObjEngineMap services )
         {
             bool success = true;
             var entries = new List<CrisType>();
             var indexedEntries = new Dictionary<IPrimaryPocoType, CrisType>();
 
-            IPrimaryPocoType? ubiquitousValues = typeSystem.FindByType<IPrimaryPocoType>( typeof( IEndpointValues ) );
+            IPrimaryPocoType? ubiquitousValues = typeSystem.FindByType<IPrimaryPocoType>( typeof( IUbiquitousValues ) );
             if( ubiquitousValues != null
                 && ubiquitousValues.Fields.Any( f => f.Type.IsNullable ) )
             {
                 var culprits = ubiquitousValues.Fields.Where( f => f.Type.IsNullable );
-                monitor.Error( $"{nameof( IEndpointValues )} properties cannot be nullable: {culprits.Select( f => $"{f.Type.CSharpName} {f.Name}" ).Concatenate()}." );
+                monitor.Error( $"{nameof( IUbiquitousValues )} properties cannot be nullable: {culprits.Select( f => $"{f.Type.CSharpName} {f.Name}" ).Concatenate()}." );
                 success = false;
             }
 
@@ -253,6 +260,27 @@ namespace CK.Setup.Cris
             }
         }
 
+        internal void CloseRegistration( IActivityMonitor monitor )
+        {
+            foreach( var f in _ubiquitousCommandFields )
+            {
+                if( !f.OwnerHasPostHandler )
+                {
+                    monitor.Warn( $"A [PostHandler] method for '{f.Owner.NonNullable.CSharpName}' has not been found.{Environment.NewLine}" +
+                                  $"The [UbiquitousValue] property '{f.Field.Type.CSharpName} {f.Field.Name}' may not be initialized." );
+                }
+                if( f.Field is IAbstractPocoField a )
+                {
+                    _allUbiquitousFields.AddRange( a.Implementations );
+                }
+                else if( f.Field is IPrimaryPocoField b )
+                {
+                    _allUbiquitousFields.Add( b );
+                }
+            }
+        }
+
+
         static bool CheckNoRoutedOrImmediateAttribute( IActivityMonitor monitor, Type i )
         {
             bool success = true;
@@ -273,10 +301,10 @@ namespace CK.Setup.Cris
             return success;
         }
 
-        internal void RegisterEndpointValueDefinitionField( IBaseCompositeType owner, IBasePocoField field )
+        internal void RegisterUbiquitousValueDefinitionField( IBaseCompositeType owner, IBasePocoField field )
         {
-            Throw.DebugAssert( !_endpointValues.Any( a => a.Field == field ) );
-            _endpointValues.Add( (owner,field,false) );
+            Throw.DebugAssert( !_ubiquitousCommandFields.Any( a => a.Field == field ) );
+            _ubiquitousCommandFields.Add( (owner,field,false) );
         }
 
         internal bool RegisterHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, bool allowUnclosed, string? fileName, int lineNumber )
@@ -302,6 +330,11 @@ namespace CK.Setup.Cris
             (CrisType? e, ParameterInfo[]? parameters, ParameterInfo? p) = GetSingleCommandEntry( monitor, "PostHandler", m );
             if( e == null ) return false;
             Throw.DebugAssert( parameters != null && p != null );
+            var idxUbiquitousField = _ubiquitousCommandFields.IndexOf( cf => cf.Owner == e.CrisPocoType );
+            if( idxUbiquitousField >= 0 )
+            {
+                CollectionsMarshal.AsSpan( _ubiquitousCommandFields )[idxUbiquitousField].OwnerHasPostHandler = true;
+            }
             return e.AddPostHandler( monitor, _typeSystem, impl, m, parameters, p, fileName, lineNumber );
         }
 

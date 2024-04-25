@@ -23,6 +23,13 @@ namespace CK.Setup.Cris
         /// <param name="poco">The poco definition.</param>
         /// <returns>The entry or null.</returns>
         CrisType? Find( IPrimaryPocoType poco );
+
+        /// <summary>
+        /// Gets whether a field (of a command) is an [UbiquitousValue].
+        /// </summary>
+        /// <param name="field">The field to test.</param>
+        /// <returns>True if the field is an ubiquitous value.</returns>
+        bool IsUbiquitousValueField( IPrimaryPocoField field );
     }
 
 }

@@ -16,7 +16,7 @@ namespace CK.Cris
         readonly IAbstractCommand _command;
         internal readonly DIContainerDefinition.IScopedData _scopedData;
         readonly ActivityMonitor.Token _issuerToken;
-        internal readonly EndpointCommandExecutor _executor;
+        internal readonly ContainerCommandExecutor _executor;
         internal readonly bool _skipValidation;
         internal readonly ExecutingCommand? _executingCommand;
 
@@ -32,7 +32,7 @@ namespace CK.Cris
         /// <param name="issuerToken">The issuer token.</param>
         /// <param name="skipValidation">Whether command validation must be skipped (because it has already been done).</param>
         /// <param name="executingCommand">The executing command if there's one.</param>
-        public CrisJob( EndpointCommandExecutor executor,
+        public CrisJob( ContainerCommandExecutor executor,
                         DIContainerDefinition.IScopedData scopedData,
                         IAbstractCommand command,
                         ActivityMonitor.Token issuerToken,

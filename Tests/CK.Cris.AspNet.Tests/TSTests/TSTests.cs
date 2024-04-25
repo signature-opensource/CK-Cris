@@ -16,7 +16,7 @@ namespace CK.Cris.AspNet.E2ETests
         /// <summary>
         /// Secondary Poco that defines the "Color" as a Endpoint value.
         /// </summary>
-        public interface IColoredEndpointValues : EndpointValues.IEndpointValues
+        public interface IColoredEndpointValues : UbiquitousValues.IUbiquitousValues
         {
             /// <summary>
             /// The color of <see cref="ICommandColored"/> commands.
@@ -39,7 +39,7 @@ namespace CK.Cris.AspNet.E2ETests
             /// <param name="cmd">The collec command is here only to trigger the collect.</param>
             /// <param name="values">The command result to update.</param>
             [CommandPostHandler]
-            public void GetColoredAmbientValues( EndpointValues.IEndpointValuesCollectCommand cmd, IColoredEndpointValues values )
+            public void GetColoredAmbientValues( UbiquitousValues.IUbiquitousValuesCollectCommand cmd, IColoredEndpointValues values )
             {
                 values.Color = "Red";
             }
@@ -87,11 +87,11 @@ namespace CK.Cris.AspNet.E2ETests
             /// <summary>
             /// Gets or sets the color.
             /// <para>
-            /// This is an ambient value: the caller can set it but if not, the TypeScript
+            /// This is an ubiquitous value: the caller can set it but if not, the TypeScript
             /// CrisEndPoint transparently sets it.
             /// </para>
             /// </summary>
-            [EndpointValue]
+            [UbiquitousValue]
             string? Color { get; set; }
         }
 
@@ -139,7 +139,7 @@ namespace CK.Cris.AspNet.E2ETests
                                                             // the first command...
                                                             typeof( IBeautifulCommand ),
                                                             typeof( ICommandColored ),
-                                                            typeof( EndpointValues.EndpointValuesService ),
+                                                            typeof( UbiquitousValues.UbiquitousValuesService ),
                                                             typeof( IColoredEndpointValues ),
                                                             typeof( ColorAndBuggyService ),
                                                             typeof( IBuggyCommand ),

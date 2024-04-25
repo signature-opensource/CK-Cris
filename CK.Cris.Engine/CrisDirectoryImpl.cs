@@ -1,10 +1,8 @@
 using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
-using CK.Cris.EndpointValues;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
@@ -15,10 +13,10 @@ namespace CK.Setup.Cris
     /// </summary>
     public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextBoundInitializer
     {
-        // Auto registers IEndpointValues, ICrisResultError so that tests don't have to register them explicitly: registering CrisDirectory is enough.
+        // Auto registers IUbiquitousValues, ICrisResultError so that tests don't have to register them explicitly: registering CrisDirectory is enough.
         void IAttributeContextBoundInitializer.Initialize( IActivityMonitor monitor, ITypeAttributesCache owner, MemberInfo m, Action<Type> alsoRegister )
         {
-            alsoRegister( typeof( CK.Cris.EndpointValues.IEndpointValues ) );
+            alsoRegister( typeof( CK.Cris.UbiquitousValues.IUbiquitousValues ) );
             alsoRegister( typeof( ICrisResultError ) );
         }
 
@@ -40,7 +38,7 @@ namespace CK.Setup.Cris
                 // Expose the internal CrisTypeRegistry type. Attribute handlers use it to register the handlers.
                 c.CurrentRun.ServiceContainer.Add( registry );
                 // One more step to let the attributes register their handlers.
-                // Once done, the public ICrisTypeDirectory is will be published.
+                // Once done, the public ICrisDirectoryServiceEngine will be published.
                 return new CSCodeGenerationResult( nameof( DoImplement ) );
             }
         }
@@ -151,6 +149,10 @@ namespace CK.Setup.Cris
             scope.Append( "};" ).NewLine()
                  .Append( "return list;" )
                  .CloseBlock();
+
+            // Before exposing the ICrisDirectoryServiceEngine, computes once for all all the
+            // Primaty Poco fields that are ubiquitous values.
+            registry.CloseRegistration( monitor );
 
             // Expose the public ICrisDirectoryServiceEngine.
             c.CurrentRun.ServiceContainer.Add<ICrisDirectoryServiceEngine>( registry );

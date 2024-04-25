@@ -6,8 +6,8 @@ namespace CK.Cris
     /// <summary>
     /// Background execution service of <see cref="IAbstractCommand"/>.
     /// <para>
-    /// This is a scoped helper service that captures the current <see cref="EndpointUbiquitousInfo"/>
-    /// so that calling <see cref="CrisBackgroundExecutorService.Submit{T}(IActivityMonitor, T, EndpointUbiquitousInfo, bool, ActivityMonitor.Token?)"/>
+    /// This is a scoped helper service that captures the current <see cref="AmbientServiceHub"/>
+    /// so that calling <see cref="CrisBackgroundExecutorService.Submit{T}(IActivityMonitor, T, AmbientServiceHub, bool, ActivityMonitor.Token?)"/>
     /// is simpler.
     /// </para>
     /// </summary>

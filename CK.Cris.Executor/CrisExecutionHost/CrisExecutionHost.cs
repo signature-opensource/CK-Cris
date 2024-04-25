@@ -11,7 +11,7 @@ using static Microsoft.IO.RecyclableMemoryStreamManager;
 namespace CK.Cris
 {
     /// <summary>
-    /// A Cris execution host handles <see cref="CrisJob"/> (submitted by <see cref="EndpointCommandExecutor"/>)
+    /// A Cris execution host handles <see cref="CrisJob"/> (submitted by <see cref="ContainerCommandExecutor"/>)
     /// in the background thanks to a variable count of parallel runners.
     /// <para>
     /// This is a <see cref="ISingletonAutoService"/>: the default instance is available in all the DI containers

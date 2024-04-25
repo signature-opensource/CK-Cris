@@ -1,5 +1,5 @@
 import axios from "axios"; 
-import { HttpCrisEndpoint, EndpointValues, CrisError, UserMessageLevel, SimpleUserMessage, AspNetCrisResultError } from "@local/ck-gen"; 
+import { HttpCrisEndpoint, UbiquitousValues, CrisError, UserMessageLevel, SimpleUserMessage, AspNetCrisResultError } from "@local/ck-gen"; 
 import { BeautifulCommand, BuggyCommand, WithMessageCommand } from "@local/ck-gen"; 
 
 // Trick from https://stackoverflow.com/a/77047461/190380
@@ -23,7 +23,7 @@ it( 'default endpoint color is red.', async () =>
   // Endpoint values are not exposed since they are refreshable: 
   // hiding them avoids a potential use of stale data.
   // An explicit update is required.
-  const a = await ep.updateEndpointValuesAsync();
+  const a = await ep.updateUbiquitousValuesAsync();
   expect( a.color ).toBe('Red');
 });
 
@@ -34,7 +34,7 @@ it( 'endpoint values are set on sent command.', async () =>
   // color is and endpoint value: it is automatically set
   // when sending the command if it not set before. 
   expect( cmd.color ).toBeUndefined();
-  const a = await ep.updateEndpointValuesAsync();
+  const a = await ep.updateUbiquitousValuesAsync();
   // The BeatifulCommand handler returns a string that is "Color - Beauty".
   const executedCommand = await ep.sendAsync( cmd );
   expect( cmd.color ).toBe( "Red" );
@@ -45,7 +45,7 @@ it( 'endpoint values can be overridden.', async () =>
 {
   const ep = new HttpCrisEndpoint( axios, crisEndpoint );
   const cmd = new BeautifulCommand( "Superb" );
-  ep.endpointValuesOverride.color = "Black";
+  ep.ubiquitousValuesOverride.color = "Black";
   // color is and endpoint value: it is automatically set
   // when sending the command if it not set before. 
   expect( cmd.color ).toBeUndefined();

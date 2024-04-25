@@ -23,7 +23,7 @@ namespace CK.Cris.Executor.Tests
         public async Task when_there_is_no_validation_methods_the_validation_succeeds_Async()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( RawCrisValidator ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( EndpointValues.IEndpointValues ),
+                typeof( RawCrisValidator ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( UbiquitousValues.IUbiquitousValues ),
                 typeof( ITestCommand ) );
 
             using var services = TestHelper.CreateAutomaticServices( c ).Services;
@@ -181,7 +181,7 @@ namespace CK.Cris.Executor.Tests
         public async Task part_with_parameter_injection_Async()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( RawCrisValidator ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( EndpointValues.IEndpointValues ),
+                typeof( RawCrisValidator ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( UbiquitousValues.IUbiquitousValues ),
                 typeof( ITestSecureCommand ),
                 typeof( AuthenticationValidator ),
                 typeof( SimplestValidatorEverScoped ),
@@ -254,7 +254,7 @@ namespace CK.Cris.Executor.Tests
         public async Task Validators_can_log_if_they_want_Async()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( RawCrisValidator ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( EndpointValues.IEndpointValues ),
+                typeof( RawCrisValidator ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( UbiquitousValues.IUbiquitousValues ),
                 typeof( ITestCommand ),
                 typeof( ValidatorWithLogs ) );
 

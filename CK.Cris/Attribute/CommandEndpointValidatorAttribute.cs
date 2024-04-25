@@ -14,14 +14,14 @@ namespace CK.Cris
     /// </para>
     /// </summary>
     [AttributeUsage( AttributeTargets.Method, AllowMultiple = false, Inherited = false )]
-    public sealed class CommandEnspointValidatorAttribute : ContextBoundDelegationAttribute
+    public sealed class CommandEndpointValidatorAttribute : ContextBoundDelegationAttribute
     {
         /// <summary>
-        /// Initializes a new <see cref="CommandEnspointValidatorAttribute"/>.
+        /// Initializes a new <see cref="CommandEndpointValidatorAttribute"/>.
         /// </summary>
         /// <param name="fileName">Captures the source file name of the validator definition.</param>
         /// <param name="lineNumber">Captures the source line number of the validator definition.</param>
-        public CommandEnspointValidatorAttribute( [CallerFilePath] string? fileName = null, [CallerLineNumber] int lineNumber = 0 )
+        public CommandEndpointValidatorAttribute( [CallerFilePath] string? fileName = null, [CallerLineNumber] int lineNumber = 0 )
             : base( "CK.Setup.Cris.CommandValidatorAttributeImpl, CK.Cris.Engine" )
         {
             FileName = fileName;

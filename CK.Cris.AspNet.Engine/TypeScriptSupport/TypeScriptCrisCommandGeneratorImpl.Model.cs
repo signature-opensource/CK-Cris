@@ -37,7 +37,7 @@ namespace CK.Setup
                                     /**
                                      * This supports the CrisEndpoint implementation. This is not to be used directly.
                                      **/
-                                    readonly applyEndpointValues: (command: any, a: any, o: any ) => void;
+                                    readonly applyUbiquitousValues: (command: any, a: any, o: any ) => void;
                                 }
 
                                 /** 

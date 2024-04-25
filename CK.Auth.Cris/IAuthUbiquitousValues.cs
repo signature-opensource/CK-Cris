@@ -6,10 +6,11 @@ using System.Text;
 namespace CK.Auth
 {
     /// <summary>
-    /// Defines the authentication properties that are considered as ambient values: command
-    /// properties with these names are automatically configured.
+    /// Defines the authentication properties that are ambient values (coming
+    /// from <see cref="IAuthenticationInfo"/> ambient service): command properties
+    /// with these names are automatically configured.
     /// </summary>
-    public interface IAuthEndpointValues : CK.Cris.EndpointValues.IEndpointValues
+    public interface IAuthUbiquitousValues : CK.Cris.UbiquitousValues.IUbiquitousValues
     {
         /// <summary>
         /// Gets or sets the <see cref="IAuthenticationInfo.User"/> identifier.

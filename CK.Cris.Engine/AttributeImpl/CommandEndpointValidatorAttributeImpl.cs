@@ -8,9 +8,9 @@ namespace CK.Setup.Cris
 
     sealed class CommandEndpointValidatorAttributeImpl : BaseHandlerAttributeImpl
     {
-        readonly CommandEnspointValidatorAttribute _a;
+        readonly CommandEndpointValidatorAttribute _a;
 
-        public CommandEndpointValidatorAttributeImpl( CommandEnspointValidatorAttribute a, Type t, MethodInfo m )
+        public CommandEndpointValidatorAttributeImpl( CommandEndpointValidatorAttribute a, Type t, MethodInfo m )
             : base( t, m )
         {
             _a = a;

@@ -3,7 +3,7 @@ using CK.AspNet.Auth;
 using CK.AspNet.Auth.Cris;
 using CK.Auth;
 using CK.Core;
-using CK.Cris.EndpointValues;
+using CK.Cris.UbiquitousValues;
 using CK.Cris.AspNet;
 using CK.Testing.StObjEngine;
 using FluentAssertions;
@@ -31,7 +31,7 @@ namespace CK.Cris.HttpSender.Tests
                                                     typeof( CrisAspNetService ),
                                                     typeof( IBeautifulWithOptionsCommand ),
                                                     typeof( INakedCommand ),
-                                                    typeof( EndpointValuesService ),
+                                                    typeof( UbiquitousValuesService ),
                                                     typeof( ColorAndNakedService ),
                                                     typeof( WithOptionsService ),
                                                     typeof( ITotalCommand ),

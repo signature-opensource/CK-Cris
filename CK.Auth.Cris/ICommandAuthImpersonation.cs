@@ -16,7 +16,7 @@ namespace CK.Auth
         /// Gets or sets the actual actor identifier: the one that is connected, regardless of any impersonation.
         /// The default <see cref="CrisAuthenticationService"/> validates this field against the current <see cref="IAuthenticationInfo.ActualUser"/>.
         /// </summary>
-        [EndpointValue]
+        [UbiquitousValue]
         int? ActualActorId { get; set; }
     }
 }

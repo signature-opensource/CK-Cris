@@ -5,14 +5,14 @@ namespace CK.Cris
     /// <summary>
     /// Background execution service of <see cref="IAbstractCommand"/>. The interface is limited to:
     /// <list type="bullet">
-    ///     <item>The <see cref="Submit{T}(IActivityMonitor, T, EndpointUbiquitousInfo, bool, ActivityMonitor.Token?)"/> method to submit a command.</item>
+    ///     <item>The <see cref="Submit{T}(IActivityMonitor, T, AmbientServiceHub, bool, ActivityMonitor.Token?)"/> method to submit a command.</item>
     ///     <item>The <see cref="IExecutingCommand{T}"/> returned instance to track the execution.</item>
     /// </list>
-    /// You may use the <see cref="CrisBackgroundExecutor"/> that is a scoped service and handles kindly the <see cref="EndpointUbiquitousInfo"/>.
+    /// You may use the <see cref="CrisBackgroundExecutor"/> that is a scoped service and handles kindly the <see cref="AmbientServiceHub"/>.
     /// </summary>
     [Setup.AlsoRegisterType( typeof( CrisExecutionHost ) )]
     [Setup.AlsoRegisterType( typeof( CrisBackgroundDIContainerDefinition ) )]
-    public class CrisBackgroundExecutorService : EndpointCommandExecutor<CrisBackgroundDIContainerDefinition.Data>, ISingletonAutoService
+    public class CrisBackgroundExecutorService : ContainerCommandExecutor<CrisBackgroundDIContainerDefinition.Data>, ISingletonAutoService
     {
         public CrisBackgroundExecutorService( CrisExecutionHost executionHost,
                                               IDIContainer<CrisBackgroundDIContainerDefinition.Data> endpoint )
