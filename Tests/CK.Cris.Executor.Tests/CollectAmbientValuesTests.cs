@@ -1,6 +1,6 @@
 using CK.Auth;
 using CK.Core;
-using CK.Cris.AmbientValues;
+using CK.Cris.EndpointValues;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -19,7 +19,7 @@ namespace CK.Cris.Executor.Tests
         /// <summary>
         /// Defines a set of ambient values that will be filled by the pseudo <see cref="AuthService"/> below.
         /// </summary>
-        public interface IAuthAmbientValues : IAmbientValues
+        public interface IAuthAmbientValues : IEndpointValues
         {
             int ActorId { get; set; }
             int ActualActorId { get; set; }
@@ -32,7 +32,7 @@ namespace CK.Cris.Executor.Tests
         public class AuthService : IAutoService
         {
             [CommandPostHandler]
-            public void GetValues( IAmbientValuesCollectCommand cmd, IAuthenticationInfo info, IAuthAmbientValues values )
+            public void GetValues( IEndpointValuesCollectCommand cmd, IAuthenticationInfo info, IAuthAmbientValues values )
             {
                 values.ActorId = info.User.UserId;
                 values.ActualActorId = info.ActualUser.UserId;
@@ -43,7 +43,7 @@ namespace CK.Cris.Executor.Tests
         /// <summary>
         /// Another example: exposes a set of roles.
         /// </summary>
-        public interface ISecurityAmbientValues : IAmbientValues
+        public interface ISecurityAmbientValues : IEndpointValues
         {
             string[] Roles { get; set; }
         }
@@ -56,7 +56,7 @@ namespace CK.Cris.Executor.Tests
         public class SecurityService : IAutoService
         {
             [CommandPostHandler]
-            public async Task GetValuesAsync( IAmbientValuesCollectCommand cmd, IActivityMonitor monitor, IAuthenticationInfo info, ISecurityAmbientValues values )
+            public async Task GetValuesAsync( IEndpointValuesCollectCommand cmd, IActivityMonitor monitor, IAuthenticationInfo info, ISecurityAmbientValues values )
             {
                 await Task.Delay( 25 );
                 monitor.Info( $"User {info.User.UserName} roles have been read from the database." );
@@ -68,8 +68,8 @@ namespace CK.Cris.Executor.Tests
         public async Task CommandPostHandler_fills_the_resulting_ambient_values_Async()
         {
             var c = TestHelper.CreateStObjCollector( typeof( RawCrisExecutor ),
-                                                     typeof( IAmbientValuesCollectCommand ),
-                                                     typeof( AmbientValuesService ),
+                                                     typeof( IEndpointValuesCollectCommand ),
+                                                     typeof( EndpointValuesService ),
                                                      typeof( AuthService ),
                                                      typeof( IAuthAmbientValues ),
                                                      typeof( SecurityService ),
@@ -89,7 +89,7 @@ namespace CK.Cris.Executor.Tests
             {
                 var services = scope.ServiceProvider;
                 var executor = services.GetRequiredService<RawCrisExecutor>();
-                var cmd = services.GetRequiredService<IPocoFactory<IAmbientValuesCollectCommand>>().Create();
+                var cmd = services.GetRequiredService<IPocoFactory<IEndpointValuesCollectCommand>>().Create();
 
                 var r = await executor.RawExecuteAsync( services, cmd );
                 Throw.DebugAssert( r != null );

@@ -3,7 +3,7 @@ using CK.AspNet.Auth;
 using CK.AspNet.Auth.Cris;
 using CK.Auth;
 using CK.Core;
-using CK.Cris.AmbientValues;
+using CK.Cris.EndpointValues;
 using CK.Cris.AspNet;
 using CK.Testing.StObjEngine;
 using FluentAssertions;
@@ -31,7 +31,7 @@ namespace CK.Cris.HttpSender.Tests
                                                     typeof( CrisAspNetService ),
                                                     typeof( IBeautifulWithOptionsCommand ),
                                                     typeof( INakedCommand ),
-                                                    typeof( AmbientValuesService ),
+                                                    typeof( EndpointValuesService ),
                                                     typeof( ColorAndNakedService ),
                                                     typeof( WithOptionsService ),
                                                     typeof( ITotalCommand ),
@@ -80,6 +80,9 @@ namespace CK.Cris.HttpSender.Tests
 
             // ITotalCommand requires Normal authentication. 
             var totalCommand = callerPoco.Create<ITotalCommand>();
+            // We don't have the UbiquitosValues here to apply them.
+            // ActorId is set to its default 0 (this would have been the default value).
+            totalCommand.ActorId = 0;
             var totalExecutedCommand = await sender.SendAsync( TestHelper.Monitor, totalCommand );
             totalExecutedCommand.Result.Should().BeAssignableTo<ICrisResultError>();
             var error = (ICrisResultError)totalExecutedCommand.Result!;

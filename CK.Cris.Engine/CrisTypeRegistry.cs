@@ -1,5 +1,6 @@
 using CK.Core;
 using CK.Cris;
+using CK.Cris.EndpointValues;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -18,7 +19,7 @@ namespace CK.Setup.Cris
     {
         readonly IReadOnlyDictionary<IPrimaryPocoType, CrisType> _indexedEntries;
         readonly IReadOnlyList<CrisType> _entries;
-        readonly List<(IBaseCompositeType Owner, IBasePocoField Field, bool OwnerHasPostHandler)> _ambientValues;
+        readonly List<(IBaseCompositeType Owner, IBasePocoField Field, bool OwnerHasPostHandler)> _endpointValues;
 
         readonly IPocoTypeSystem _typeSystem;
         readonly IAbstractPocoType? _crisPocoType;
@@ -26,6 +27,7 @@ namespace CK.Setup.Cris
         readonly IAbstractPocoType? _crisCommandTypePart;
         readonly IAbstractPocoType? _crisEventType;
         readonly IAbstractPocoType? _crisEventTypePart;
+        readonly IPrimaryPocoType? _ubiquitousValues;
 
         CrisTypeRegistry( IReadOnlyDictionary<IPrimaryPocoType,CrisType> index,
                           IReadOnlyList<CrisType> entries,
@@ -34,7 +36,8 @@ namespace CK.Setup.Cris
                           IAbstractPocoType? crisCommandType,
                           IAbstractPocoType? crisCommandTypePart,
                           IAbstractPocoType? crisEventType,
-                          IAbstractPocoType? crisEventTypePart )
+                          IAbstractPocoType? crisEventTypePart,
+                          IPrimaryPocoType? ubiquitousValues )
         {
             _indexedEntries = index;
             _entries = entries;
@@ -44,7 +47,8 @@ namespace CK.Setup.Cris
             _crisCommandTypePart = crisCommandTypePart;
             _crisEventType = crisEventType;
             _crisEventTypePart = crisEventTypePart;
-            _ambientValues = new List<(IBaseCompositeType Owner, IBasePocoField Field, bool OwnerHasPostHandler)>();
+            _ubiquitousValues = ubiquitousValues;
+            _endpointValues = new List<(IBaseCompositeType Owner, IBasePocoField Field, bool OwnerHasPostHandler)>();
         }
 
         /// <inheritdoc/>
@@ -62,6 +66,15 @@ namespace CK.Setup.Cris
             var entries = new List<CrisType>();
             var indexedEntries = new Dictionary<IPrimaryPocoType, CrisType>();
 
+            IPrimaryPocoType? ubiquitousValues = typeSystem.FindByType<IPrimaryPocoType>( typeof( IEndpointValues ) );
+            if( ubiquitousValues != null
+                && ubiquitousValues.Fields.Any( f => f.Type.IsNullable ) )
+            {
+                var culprits = ubiquitousValues.Fields.Where( f => f.Type.IsNullable );
+                monitor.Error( $"{nameof( IEndpointValues )} properties cannot be nullable: {culprits.Select( f => $"{f.Type.CSharpName} {f.Name}" ).Concatenate()}." );
+                success = false;
+            }
+
             IPocoGenericTypeDefinition? commandWithResultType = typeSystem.FindGenericTypeDefinition( typeof( ICommand<> ) );
 
             IAbstractPocoType? crisCommandTypePart = GetAbstractPocoType( monitor, typeSystem, typeof( ICommandPart ) );
@@ -78,7 +91,7 @@ namespace CK.Setup.Cris
                 crisPocoType = crisCommandType.Generalizations.Single();
                 foreach( var command in crisCommandType.PrimaryPocoTypes )
                 {
-                    CrisType? entry = CreateCommandEntry( monitor, commandWithResultType, crisEventType, services, entries.Count, command );
+                    CrisType? entry = CreateCommandEntry( monitor, commandWithResultType, crisEventType, crisCommandTypePart, services, entries.Count, command );
                     if( entry == null ) success = false;
                     else
                     {
@@ -115,7 +128,15 @@ namespace CK.Setup.Cris
                 monitor.Trace( $"Found {entries.Count - commandCount} Cris commands." );
             }
             return success
-                    ? new CrisTypeRegistry( indexedEntries, entries, typeSystem, crisPocoType, crisCommandType, crisCommandTypePart, crisEventType, crisEventTypePart )
+                    ? new CrisTypeRegistry( indexedEntries,
+                                            entries,
+                                            typeSystem,
+                                            crisPocoType,
+                                            crisCommandType,
+                                            crisCommandTypePart,
+                                            crisEventType,
+                                            crisEventTypePart,
+                                            ubiquitousValues )
                     : null;
 
             static IAbstractPocoType? GetAbstractPocoType( IActivityMonitor monitor, IPocoTypeSystem typeSystem, Type type )
@@ -137,6 +158,7 @@ namespace CK.Setup.Cris
             static CrisType? CreateCommandEntry( IActivityMonitor monitor,
                                                  IPocoGenericTypeDefinition? commandWithResultType,
                                                  IAbstractPocoType? crisEventType,
+                                                 IAbstractPocoType? crisCommandTypePart,
                                                  IStObjEngineMap services,
                                                  int crisPocoIndex,
                                                  IPrimaryPocoType command )
@@ -146,7 +168,7 @@ namespace CK.Setup.Cris
                     monitor.Error( $"Cris '{command}' cannot be both a IEvent and a IAbstractCommand." );
                     return null;
                 }
-                bool success = true;
+                bool success = CheckCommandTypeNames( monitor, crisCommandTypePart, command );
                 CrisPocoKind kind = CrisPocoKind.Command;
                 IPocoType? resultType = null;
                 if( commandWithResultType != null )
@@ -166,10 +188,10 @@ namespace CK.Setup.Cris
                     }
                 }
                 var handlerServices = command.SecondaryTypes.Select( s => s.Type ).Append( command.Type )
-                                                .Select( i => typeof( ICommandHandler<> ).MakeGenericType( i ) )
-                                                .Select( gI => (itf: gI, impl: services.ToLeaf( gI )) )
-                                                .Where( m => m.impl != null )
-                                                .GroupBy( m => m.impl );
+                                                            .Select( i => typeof( ICommandHandler<> ).MakeGenericType( i ) )
+                                                            .Select( gI => (itf: gI, impl: services.ToLeaf( gI )) )
+                                                            .Where( m => m.impl != null )
+                                                            .GroupBy( m => m.impl );
                 IStObjFinalClass? commandHandlerService = handlerServices.FirstOrDefault()?.Key;
                 if( commandHandlerService != null && handlerServices.Count() > 1 )
                 {
@@ -177,6 +199,27 @@ namespace CK.Setup.Cris
                     success = false;
                 }
                 return success ? new CrisType( command, crisPocoIndex, resultType, commandHandlerService, kind ) : null;
+
+                static bool CheckCommandTypeNames( IActivityMonitor monitor, IAbstractPocoType? crisCommandTypePart, IPrimaryPocoType command )
+                {
+                    bool success = true;
+                    var badCommands = command.SecondaryTypes.OfType<IPocoType>().Prepend( command ).Where( c => !c.CSharpName.EndsWith( "Command", StringComparison.Ordinal ) );
+                    if( badCommands.Any() )
+                    {
+                        monitor.Error( $"Invalid type name for Cris '{badCommands.Select( c => c.ToString()).Concatenate("', '")}': IAbstractCommand type name must end with \"Command\"." );
+                        success = false;
+                    }
+                    if( crisCommandTypePart != null )
+                    {
+                        var badParts = command.AbstractTypes.Where( p => !p.Type.Name.StartsWith( "ICommand", StringComparison.Ordinal ) && p.Generalizations.Contains( crisCommandTypePart ) );
+                        if( badParts.Any() )
+                        {
+                            monitor.Error( $"Invalid type name for Cris '{badParts.Select( c => c.ToString() ).Concatenate( "', '" )}': ICommandPart type name must start with \"ICommand\"." );
+                            success = false;
+                        }
+                    }
+                    return success;
+                }
             }
 
             static CrisType? CreateEventEntry( IActivityMonitor monitor,
@@ -230,10 +273,10 @@ namespace CK.Setup.Cris
             return success;
         }
 
-        internal void RegisterAmbientValueDefinitionField( IBaseCompositeType owner, IBasePocoField field )
+        internal void RegisterEndpointValueDefinitionField( IBaseCompositeType owner, IBasePocoField field )
         {
-            Throw.DebugAssert( !_ambientValues.Any( a => a.Field == field ) );
-            _ambientValues.Add( (owner,field,false) );
+            Throw.DebugAssert( !_endpointValues.Any( a => a.Field == field ) );
+            _endpointValues.Add( (owner,field,false) );
         }
 
         internal bool RegisterHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, bool allowUnclosed, string? fileName, int lineNumber )
@@ -289,7 +332,7 @@ namespace CK.Setup.Cris
                                                           m,
                                                           fileName,
                                                           lineNumber,
-                                                          isSyntax ? MultiTarget.CommandSyntaxValidator : MultiTarget.CommandValidator );
+                                                          isSyntax ? MultiTarget.CommandEndpointValidator : MultiTarget.CommandValidator );
         }
 
         internal bool RegisterRoutedEventHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber )
@@ -300,7 +343,7 @@ namespace CK.Setup.Cris
         enum MultiTarget
         {
             RoutedEventHandler,
-            CommandSyntaxValidator,
+            CommandEndpointValidator,
             CommandServiceConfigurator,
             CommandValidator
         }
@@ -342,7 +385,7 @@ namespace CK.Setup.Cris
                     success = false;
                 }
                 ParameterInfo? validatorUserMessageCollector = null;
-                if( target is MultiTarget.CommandSyntaxValidator || target is MultiTarget.CommandValidator )
+                if( target is MultiTarget.CommandEndpointValidator || target is MultiTarget.CommandValidator )
                 {
                     var callContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisEventContext ) );
                     if( callContext != null )
@@ -368,7 +411,7 @@ namespace CK.Setup.Cris
                         success &= target switch
                         {
                             MultiTarget.RoutedEventHandler => e.AddRoutedEventHandler( monitor, impl, m, parameters, foundParameter, fileName, lineNumber ),
-                            MultiTarget.CommandSyntaxValidator => e.AddValidator( monitor, true, impl, m, parameters, foundParameter, validatorUserMessageCollector!, fileName, lineNumber ),
+                            MultiTarget.CommandEndpointValidator => e.AddValidator( monitor, true, impl, m, parameters, foundParameter, validatorUserMessageCollector!, fileName, lineNumber ),
                             MultiTarget.CommandServiceConfigurator => Throw.NotSupportedException<bool>(),
                             _ => e.AddValidator( monitor, false, impl, m, parameters, foundParameter, validatorUserMessageCollector!, fileName, lineNumber ),
                         };

@@ -1,13 +1,13 @@
 using CK.Core;
 using CK.Cris;
-using CK.Cris.AmbientValues;
+using CK.Cris.EndpointValues;
 using System;
 using System.Collections.Generic;
 
 namespace CK.Auth
 {
     /// <summary>
-    /// Authentication service registers <see cref="IAuthAmbientValues"/> (<c>ActorId</c>, <c>ActualActorId</c> and <c>DeviceId</c>)
+    /// Authentication service registers <see cref="IAuthEndpointValues"/> (<c>ActorId</c>, <c>ActualActorId</c> and <c>DeviceId</c>)
     /// and validates the <see cref="ICommandAuthUnsafe"/>, <see cref="ICommandAuthNormal"/>, <see cref="ICommandAuthCritical"/>, <see cref="ICommandAuthDeviceId"/>
     /// and <see cref="ICommandAuthImpersonation"/>.
     /// </summary>
@@ -17,13 +17,13 @@ namespace CK.Auth
     public class CrisAuthenticationService : IAutoService
     {
         /// <summary>
-        /// Fills the <see cref="IAuthAmbientValues"/> from the current <paramref name="authInfo"/>.
+        /// Fills the <see cref="IAuthEndpointValues"/> from the current <paramref name="authInfo"/>.
         /// </summary>
         /// <param name="cmd">The ambient values collector command .</param>
         /// <param name="authInfo">The current authentication information.</param>
         /// <param name="values">The result collector.</param>
         [CommandPostHandler]
-        public virtual void GetAmbientValues( IAmbientValuesCollectCommand cmd, IAuthenticationInfo authInfo, IAuthAmbientValues values )
+        public virtual void GetEndpointValues( IEndpointValuesCollectCommand cmd, IAuthenticationInfo authInfo, IAuthEndpointValues values )
         {
             values.ActorId = authInfo.User.UserId;
             values.ActualActorId = authInfo.ActualUser.UserId;
@@ -34,7 +34,7 @@ namespace CK.Auth
         /// Checks whether <see cref="ICommandAuthNormal.ActorId"/> is the same as the current <see cref="IAuthenticationInfo.User"/>
         /// identifier and if not, emits an error in the <paramref name="monitor"/>.
         /// <para>
-        /// If the command is marked with <see cref="ICommandAuthenticatedCritical"/>, the <see cref="IAuthenticationInfo.Level"/> must be
+        /// If the command is marked with <see cref="ICommandAuthCritical"/>, the <see cref="IAuthenticationInfo.Level"/> must be
         /// critical otherwise an error is emitted.
         /// </para>
         /// </summary>
@@ -47,7 +47,14 @@ namespace CK.Auth
         [CommandValidator]
         public virtual void ValidateAuthenticatedPart( UserMessageCollector c, ICommandAuthUnsafe cmd, IAuthenticationInfo info )
         {
-            if( cmd.ActorId != info.UnsafeUser.UserId )
+            // Temporary:
+            // - This will be handled by Poco validation.
+            // - The [EndpointValue] is a INullInvalidAttribute, null will be rejected.
+            if( !cmd.ActorId.HasValue )
+            {
+                c.Error( $"Invalid property: {nameof(ICommandAuthUnsafe.ActorId)} cannot be null." );
+            }
+            else if( cmd.ActorId != info.UnsafeUser.UserId )
             {
                 c.Error( "Invalid actor identifier: the command provided identifier doesn't match the current authentication." );
             }
@@ -77,7 +84,14 @@ namespace CK.Auth
         [CommandValidator]
         public virtual void ValidateDevicePart( UserMessageCollector c, ICommandAuthDeviceId cmd, IAuthenticationInfo info )
         {
-            if( cmd.DeviceId != info.DeviceId )
+            // Temporary:
+            // - This will be handled by Poco validation.
+            // - The [EndpointValue] is a INullInvalidAttribute, null will be rejected.
+            if( cmd.DeviceId == null )
+            {
+                c.Error( $"Invalid property: {nameof( ICommandAuthDeviceId.DeviceId )} cannot be null." );
+            }
+            else if( cmd.DeviceId != info.DeviceId )
             {
                 c.Error( "Invalid device identifier: the command provided identifier doesn't match the current authentication." );
             }
@@ -93,7 +107,14 @@ namespace CK.Auth
         [CommandValidator]
         public virtual void ValidateImpersonationPart( UserMessageCollector c, ICommandAuthImpersonation cmd, IAuthenticationInfo info )
         {
-            if( cmd.ActualActorId != info.ActualUser.UserId )
+            // Temporary:
+            // - This will be handled by Poco validation.
+            // - The [EndpointValue] is a INullInvalidAttribute, null will be rejected.
+            if( !cmd.ActorId.HasValue )
+            {
+                c.Error( $"Invalid property: {nameof( ICommandAuthImpersonation.ActualActorId )} cannot be null." );
+            }
+            else if( cmd.ActualActorId != info.ActualUser.UserId )
             {
                 c.Error( "Invalid actual actor identifier: the command provided identifier doesn't match the current authentication." );
             }

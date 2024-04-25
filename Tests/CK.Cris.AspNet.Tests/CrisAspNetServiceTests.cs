@@ -13,7 +13,7 @@ namespace Other
     /// Test command is in "Other" namespace.
     /// </summary>
     [ExternalName( "Test" )]
-    public interface ICmdTest : ICommand
+    public interface ITestCommand : ICommand
     {
         /// <summary>
         /// Gets or sets the value.
@@ -26,13 +26,13 @@ namespace Other
         public static bool Called;
 
         [CommandHandler]
-        public void Execute( ICmdTest cmd )
+        public void Execute( ITestCommand cmd )
         {
             Called = true;
         }
 
         [CommandValidator]
-        public void Validate( UserMessageCollector c, ICmdTest cmd )
+        public void Validate( UserMessageCollector c, ITestCommand cmd )
         {
             if( cmd.Value <= 0 ) c.Error( "Value must be positive." );
         }
@@ -41,7 +41,7 @@ namespace Other
     public class BuggyValidator : IAutoService
     {
         [CommandValidator]
-        public void ValidateCommand( UserMessageCollector c, ICmdTest cmd )
+        public void ValidateCommand( UserMessageCollector c, ITestCommand cmd )
         {
             throw new Exception( "This should not happen!" );
         }
@@ -68,7 +68,7 @@ namespace CK.Cris.AspNet.Tests
         [Test]
         public async Task basic_call_to_a_command_handler_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( ICmdTest ), typeof( TestHandler ), typeof( CrisExecutionContext ) );
+            var c = TestHelper.CreateStObjCollector( typeof( ITestCommand ), typeof( TestHandler ), typeof( CrisExecutionContext ) );
             using( var s = new CrisTestHostServer( c ) )
             {
                 // Value: 3712 is fine (it must be positive).
@@ -100,7 +100,7 @@ namespace CK.Cris.AspNet.Tests
         [Test]
         public async Task exceptions_raised_by_validators_are_handled_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( ICmdTest ), typeof( BuggyValidator ) );
+            var c = TestHelper.CreateStObjCollector( typeof( ITestCommand ), typeof( BuggyValidator ) );
             using( var s = new CrisTestHostServer( c ) )
             {
                 HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri+ "?UseSimpleError", @"[""Test"",{""Value"":3712}]" );

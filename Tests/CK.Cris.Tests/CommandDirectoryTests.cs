@@ -13,14 +13,14 @@ namespace CK.Cris.Tests
     public class CrisDirectoryTests
     {
         [ExternalName( "Test", "PreviousTest1", "PreviousTest2" )]
-        public interface ICmdTest : ICommand
+        public interface ITestCommand : ICommand
         {
         }
 
         [Test]
         public void simple_command_models()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( ICmdTest ) );
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( ITestCommand ) );
             using var services = TestHelper.CreateAutomaticServices( c ).Services;
             var poco = services.GetRequiredService<PocoDirectory>();
 
@@ -36,7 +36,7 @@ namespace CK.Cris.Tests
             cmd.CrisPocoModel.Should().BeSameAs( m );
         }
 
-        public interface ICmdTestSpec : ICmdTest, IEvent
+        public interface ITestSpecCommand : ITestCommand, IEvent
         {
         }
 
@@ -45,9 +45,9 @@ namespace CK.Cris.Tests
         {
             using( TestHelper.Monitor.CollectTexts( out var texts ) )
             {
-                var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( ICmdTestSpec ) );
+                var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( ITestSpecCommand ) );
                 TestHelper.GenerateCode( c, null ).Success.Should().BeFalse();
-                texts.Should().Contain( "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ICmdTest' cannot be both a IEvent and a IAbstractCommand." );
+                texts.Should().Contain( "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ITestCommand' cannot be both a IEvent and a IAbstractCommand." );
             }
         }
 

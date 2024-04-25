@@ -14,7 +14,7 @@ namespace CK.Cris
     public sealed partial class CrisJob
     {
         readonly IAbstractCommand _command;
-        internal readonly EndpointDefinition.IScopedData _scopedData;
+        internal readonly DIContainerDefinition.IScopedData _scopedData;
         readonly ActivityMonitor.Token _issuerToken;
         internal readonly EndpointCommandExecutor _executor;
         internal readonly bool _skipValidation;
@@ -33,7 +33,7 @@ namespace CK.Cris
         /// <param name="skipValidation">Whether command validation must be skipped (because it has already been done).</param>
         /// <param name="executingCommand">The executing command if there's one.</param>
         public CrisJob( EndpointCommandExecutor executor,
-                        EndpointDefinition.IScopedData scopedData,
+                        DIContainerDefinition.IScopedData scopedData,
                         IAbstractCommand command,
                         ActivityMonitor.Token issuerToken,
                         bool skipValidation,

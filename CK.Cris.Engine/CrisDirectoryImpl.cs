@@ -1,6 +1,7 @@
 using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
+using CK.Cris.EndpointValues;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,10 +15,10 @@ namespace CK.Setup.Cris
     /// </summary>
     public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextBoundInitializer
     {
-        // Auto registers IAmbientValues, ICrisResultError so that tests don't have to register them explicitly: registering CrisDirectory is enough.
+        // Auto registers IEndpointValues, ICrisResultError so that tests don't have to register them explicitly: registering CrisDirectory is enough.
         void IAttributeContextBoundInitializer.Initialize( IActivityMonitor monitor, ITypeAttributesCache owner, MemberInfo m, Action<Type> alsoRegister )
         {
-            alsoRegister( typeof( CK.Cris.AmbientValues.IAmbientValues ) );
+            alsoRegister( typeof( CK.Cris.EndpointValues.IEndpointValues ) );
             alsoRegister( typeof( ICrisResultError ) );
         }
 
@@ -113,7 +114,7 @@ namespace CK.Setup.Cris
                     else
                     {
                         var allHandlers = e.CommandHandler != null
-                                            ? ((IEnumerable<HandlerBase>)e.SyntaxValidators)
+                                            ? ((IEnumerable<HandlerBase>)e.EndpointValidators)
                                                                 .Concat( e.Validators )
                                                                 .Append( e.CommandHandler )
                                                                 .Concat( e.PostHandlers )

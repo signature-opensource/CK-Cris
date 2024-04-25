@@ -5,12 +5,12 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CK.AppIdentity" Version="0.4.1--0009-develop" />
-    <PackageReference Include="CK.Poco.Exc.Json" Version="25.0.1--0108-develop" />
+    <PackageReference Include="CK.Poco.Exc.Json" Version="25.0.1--0128-develop" />
     <PackageReference Include="Polly.Core" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Auth.Cris\CK.Auth.Cris.csproj" />
-    <ProjectReference Include="..\CK.Cris.AspNet.IO\CK.Cris.AspNet.IO.csproj" />
+    <ProjectReference Include="..\CK.IO.AspNet\CK.IO.AspNet.csproj" />
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
   </ItemGroup>
 </Project>

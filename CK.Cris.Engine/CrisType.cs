@@ -22,7 +22,7 @@ namespace CK.Setup.Cris
 
         readonly IPocoType? _commandResultType;
         readonly List<HandlerValidatorMethod> _validators;
-        readonly List<HandlerValidatorMethod> _syntaxValidators;
+        readonly List<HandlerValidatorMethod> _endpointValidators;
         readonly List<HandlerPostMethod> _postHandlers;
         readonly IStObjFinalClass? _commandHandlerService;
         HandlerMethod? _commandHandler;
@@ -46,10 +46,10 @@ namespace CK.Setup.Cris
         public bool IsHandled => _commandHandler != null || _eventHandlers.Count > 0;
 
         /// <summary>
-        /// Gets the syntax validator methods.
+        /// Gets the endpoint validator methods.
         /// Only <see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/> can have validators.
         /// </summary>
-        public IReadOnlyList<HandlerValidatorMethod> SyntaxValidators => _syntaxValidators;
+        public IReadOnlyList<HandlerValidatorMethod> EndpointValidators => _endpointValidators;
 
         /// <summary>
         /// Gets the validator methods.
@@ -181,7 +181,7 @@ namespace CK.Setup.Cris
                            CrisPocoKind kind )
         {
             _crisPocoType = crisPocoType;
-            _syntaxValidators = new List<HandlerValidatorMethod>();
+            _endpointValidators = new List<HandlerValidatorMethod>();
             _validators = new List<HandlerValidatorMethod>();
             _postHandlers = new List<HandlerPostMethod>();
             _eventHandlers = new List<HandlerRoutedEventMethod>();
@@ -272,7 +272,7 @@ namespace CK.Setup.Cris
         }
 
         internal bool AddValidator( IActivityMonitor monitor,
-                                    bool isSyntax,
+                                    bool isEndpoint,
                                     IStObjFinalClass owner,
                                     MethodInfo method,
                                     ParameterInfo[] parameters,
@@ -282,8 +282,8 @@ namespace CK.Setup.Cris
                                     int lineNumber )
         {
             if( !CheckVoidReturn( monitor, "Validator", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
-            var h = new HandlerValidatorMethod( this, isSyntax, owner, method, parameters, fileName, lineNumber, commandParameter, validationContextParameter, isRefAsync, isValAsync );
-            (isSyntax ? _syntaxValidators : _validators ).Add( h );
+            var h = new HandlerValidatorMethod( this, isEndpoint, owner, method, parameters, fileName, lineNumber, commandParameter, validationContextParameter, isRefAsync, isValAsync );
+            (isEndpoint ? _endpointValidators : _validators ).Add( h );
             return true;
         }
 

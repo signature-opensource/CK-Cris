@@ -1,5 +1,5 @@
 using CK.Core;
-using CK.Cris.AmbientValues;
+using CK.Cris.EndpointValues;
 using CK.Poco.Exc.Json;
 using CK.Setup;
 using Microsoft.AspNetCore.Http;
@@ -25,7 +25,7 @@ namespace CK.Cris.AspNet
     [AlsoRegisterType( typeof( IAspNetCrisResult ) )]
     [AlsoRegisterType( typeof( IAspNetCrisResultError ) )]
     [AlsoRegisterType( typeof( CrisBackgroundExecutorService ) )]
-    [AlsoRegisterType( typeof( IAmbientValuesCollectCommand ) )]
+    [AlsoRegisterType( typeof( IEndpointValuesCollectCommand ) )]
     public partial class CrisAspNetService : ISingletonAutoService
     {
         readonly RawCrisValidator _validator;
@@ -96,7 +96,7 @@ namespace CK.Cris.AspNet
                 {
                     Throw.DebugAssert( cmd != null && typeFilterName != null );
                     //
-                    EndpointUbiquitousInfo? info = HandleEndpointUbiquitousInfoConfigurator( requestServices, cmd );
+                    AmbientServiceHub? info = HandleEndpointUbiquitousInfoConfigurator( requestServices, cmd );
                     if( info != null )
                     {
                         var c = _backgroundExecutor.Submit( monitor, cmd, info, issuerToken: depToken );
@@ -150,12 +150,12 @@ namespace CK.Cris.AspNet
 
         // Temporary:
         // TODO: Handle this "context matching" in a generic way ([ConfigureEndpointServices] attribute).
-        EndpointUbiquitousInfo? HandleEndpointUbiquitousInfoConfigurator( IServiceProvider requestServices, IAbstractCommand? cmd )
+        AmbientServiceHub? HandleEndpointUbiquitousInfoConfigurator( IServiceProvider requestServices, IAbstractCommand? cmd )
         {
-            EndpointUbiquitousInfo? info = null;
+            AmbientServiceHub? info = null;
             if( cmd is ICommandWithCurrentCulture c )
             {
-                info = requestServices.GetRequiredService<EndpointUbiquitousInfo>();
+                info = requestServices.GetRequiredService<AmbientServiceHub>();
                 CrisCultureService.ConfigureCurrentCulture( c, info );
                 if( !info.IsDirty ) info = null;
             }

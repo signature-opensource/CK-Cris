@@ -1,7 +1,7 @@
 using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
-using CK.Cris.AmbientValues;
+using CK.Cris.EndpointValues;
 using CK.Cris.AspNet;
 using CK.Setup.Cris;
 using CK.TypeScript.CodeGen;
@@ -27,8 +27,8 @@ namespace CK.Setup
             // Those must be TypeScript types: this ensures that they are added to the TypeScript type set.
             return initializer.EnsureRegister( monitor, typeof( IAspNetCrisResult ), mustBePocoType: true )
                    && initializer.EnsureRegister( monitor, typeof( IAspNetCrisResultError ), mustBePocoType: true )
-                   && initializer.EnsureRegister( monitor, typeof( IAmbientValues ), mustBePocoType: true )
-                   && initializer.EnsureRegister( monitor, typeof( IAmbientValuesCollectCommand ), mustBePocoType: true );
+                   && initializer.EnsureRegister( monitor, typeof( IEndpointValues ), mustBePocoType: true )
+                   && initializer.EnsureRegister( monitor, typeof( IEndpointValuesCollectCommand ), mustBePocoType: true );
         }
 
         bool ITSCodeGenerator.StartCodeGeneration( IActivityMonitor monitor, TypeScriptContext context )
@@ -83,11 +83,11 @@ namespace CK.Setup
 
         void OnPrimaryPocoGenerating( object? sender, GeneratingPrimaryPocoEventArgs e )
         {
-            if( e.PrimaryPocoType.Type == typeof(IAmbientValues) )
+            if( e.PrimaryPocoType.Type == typeof(IEndpointValues) )
             {
-                // Generate the AmbientValuesOverride when generating the AmbientValues:
-                // we use the AmbientValues fields.
-                GenerateAmbientValuesOverride( e.PocoTypePart.File.Folder, e.Fields );
+                // Generate the EndpointValuesOverride when generating the EndpointValues:
+                // we use the EndpointValues fields.
+                GenerateEndpointValuesOverride( e.PocoTypePart.File.Folder, e.Fields );
             }
             else if( HasICommand( e.PrimaryPocoType, e.ImplementedInterfaces, out var mustRemoveICommand ) )
             {
@@ -101,7 +101,7 @@ namespace CK.Setup
                     .NewLine()
                     .Append( "static #m = " )
                     .OpenBlock()
-                        .Append( "applyAmbientValues( command: any, a: any, o: any )" )
+                        .Append( "applyEndpointValues( command: any, a: any, o: any )" )
                         .OpenBlock()
                         .InsertPart( out var applyPart )
                         .CloseBlock()
@@ -111,7 +111,7 @@ namespace CK.Setup
                 {
                     Throw.DebugAssert( f.TSField.PocoField.Originator is IPocoPropertyInfo );
                     if( ((IPocoPropertyInfo)f.TSField.PocoField.Originator).DeclaredProperties
-                                .Any( p => p.CustomAttributesData.Any( a => a.AttributeType == typeof( SafeAmbientValueAttribute ) ) ) )
+                                .Any( p => p.CustomAttributesData.Any( a => a.AttributeType == typeof( EndpointValueAttribute ) ) ) )
                     {
                         // Documents it.
                         f.DocumentationExtension = b => b.AppendLine( "(This is an Ambient Value.)", startNewLine: true );
@@ -162,15 +162,15 @@ namespace CK.Setup
             return true;
         }
 
-        static void GenerateAmbientValuesOverride( TypeScriptFolder ambientValuesFolder, ImmutableArray<TSNamedCompositeField> fields )
+        static void GenerateEndpointValuesOverride( TypeScriptFolder endpointValuesFolder, ImmutableArray<TSNamedCompositeField> fields )
         {
-            var b = ambientValuesFolder
-                                .FindOrCreateManualFile( "AmbientValuesOverride.ts" )
-                                .CreateType( "AmbientValuesOverride", null, null )
+            var b = endpointValuesFolder
+                                .FindOrCreateManualFile( "EndpointValuesOverride.ts" )
+                                .CreateType( "EndpointValuesOverride", null, null )
                                 .TypePart;
             b.Append( """
                     /**
-                    * To manage ambient values overrides, we use the null value to NOT override:
+                    * To manage endpoint values overrides, we use the null value to NOT override:
                     *  - We decided to map C# null to undefined because working with both null
                     *    and undefined is difficult.
                     *  - Here, the null is used, so that undefined can be used to override with an undefined that will
@@ -179,7 +179,7 @@ namespace CK.Setup
                     **/
 
                     """ )
-             .Append( "export class AmbientValuesOverride" )
+             .Append( "export class EndpointValuesOverride" )
              .OpenBlock()
              .InsertPart( out var propertiesPart )
              .Append( "constructor()" )

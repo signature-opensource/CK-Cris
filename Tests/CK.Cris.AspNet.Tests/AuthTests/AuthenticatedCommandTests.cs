@@ -37,8 +37,8 @@ namespace CK.Cris.AspNet.Tests.AuthTests
         /// <summary>
         /// Same as <see cref="IUnsafeCommand"/> but with a result that is list of integers.
         /// </summary>
-        [ExternalName( "UnsafeCommandWithResult" )]
-        public interface IUnsafeCommandWithResult : ICommand<List<int>>, ICommandAuthUnsafe
+        [ExternalName( "UnsafeWithResultCommand" )]
+        public interface IUnsafeWithResultCommand : ICommand<List<int>>, ICommandAuthUnsafe
         {
             string UserInfo { get; set; }
         }
@@ -56,7 +56,7 @@ namespace CK.Cris.AspNet.Tests.AuthTests
             }
 
             [CommandHandler]
-            public List<int> Execute( IUnsafeCommandWithResult cmd )
+            public List<int> Execute( IUnsafeWithResultCommand cmd )
             {
                 cmd.UserInfo.Should().NotStartWith( "NO" );
                 LastUserInfo = cmd.UserInfo;
@@ -70,7 +70,7 @@ namespace CK.Cris.AspNet.Tests.AuthTests
         public async Task ICommandAuthUnsafe_cannot_be_fooled_on_its_ActorId_Async()
         {
             var c = TestHelper.CreateStObjCollector( typeof( IUnsafeCommand ),
-                                                     typeof( IUnsafeCommandWithResult ),
+                                                     typeof( IUnsafeWithResultCommand ),
                                                      typeof( UnsafeHandler ),
                                                      typeof( CrisExecutionContext ) );
             using( var s = new CrisTestHostServer( c, withAuthentication: true ) )
@@ -82,10 +82,10 @@ namespace CK.Cris.AspNet.Tests.AuthTests
                     result.ToString().Should().Be( @"{""Result"":null,""ValidationMessages"":null,""CorrelationId"":null}" );
                 }
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""UnsafeCommandWithResult"",{""UserInfo"":""YES. There is no ActorId in the Json => it is 0 by default.""}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri + "?UseSimpleError", @"[""UnsafeWithResultCommand"",{""UserInfo"":""YES. There is no ActorId in the Json => it is let to null.""}]" );
                     Throw.DebugAssert( r != null );
                     var result = await s.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                    result.ToString().Should().Be( @"{""Result"":[""L(int)"",[42,3712]],""ValidationMessages"":null,""CorrelationId"":null}" );
+                    result.ToString().Should().Match( """{"Result":["AspNetCrisResultError",{"IsValidationError":true,"Errors":["Invalid property: ActorId cannot be null."],"LogKey":"*"}],"ValidationMessages":[[16,"Invalid property: ActorId cannot be null.",0]],"CorrelationId":null}""" );
                 }
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri + "?UseSimpleError", @"[""UnsafeCommand"",{""UserInfo"":""NO WAY!"",""ActorId"":3712}]" );

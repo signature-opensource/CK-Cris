@@ -18,15 +18,15 @@ namespace CK.Cris
     /// </summary>
     /// <typeparam name="T">The scoped data type of the endpoint.</typeparam>
     [CKTypeDefiner]
-    public abstract class EndpointCommandExecutor<T> : EndpointCommandExecutor, ISingletonAutoService where T : class, EndpointDefinition.IScopedData
+    public abstract class EndpointCommandExecutor<T> : EndpointCommandExecutor, ISingletonAutoService where T : class, DIContainerDefinition.IScopedData
     {
         readonly CrisExecutionHost _executionHost;
-        readonly IEndpointType<T> _endpoint;
+        readonly IDIContainer<T> _container;
 
-        public EndpointCommandExecutor( CrisExecutionHost executionHost, IEndpointType<T> endpoint )
+        public EndpointCommandExecutor( CrisExecutionHost executionHost, IDIContainer<T> container )
         {
             _executionHost = executionHost;
-            _endpoint = endpoint;
+            _container = container;
         }
 
         /// <summary>
@@ -37,13 +37,13 @@ namespace CK.Cris
         public CrisExecutionHost ExecutionHost => _executionHost;
 
         /// <summary>
-        /// Gets the endpoint that executes the commands.
+        /// Gets the container that executes the commands.
         /// </summary>
-        public IEndpointType<T> Endpoint => _endpoint;
+        public IDIContainer<T> DIContainer => _container;
 
         internal override AsyncServiceScope CreateAsyncScope( CrisJob job )
         {
-            return _endpoint.GetContainer().CreateAsyncScope( Unsafe.As<T>( job._scopedData ) );
+            return _container.GetContainer().CreateAsyncScope( Unsafe.As<T>( job._scopedData ) );
         }
     }
 

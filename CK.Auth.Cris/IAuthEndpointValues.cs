@@ -9,7 +9,7 @@ namespace CK.Auth
     /// Defines the authentication properties that are considered as ambient values: command
     /// properties with these names are automatically configured.
     /// </summary>
-    public interface IAuthAmbientValues : CK.Cris.AmbientValues.IAmbientValues
+    public interface IAuthEndpointValues : CK.Cris.EndpointValues.IEndpointValues
     {
         /// <summary>
         /// Gets or sets the <see cref="IAuthenticationInfo.User"/> identifier.

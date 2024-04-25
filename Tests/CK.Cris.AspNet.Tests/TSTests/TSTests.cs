@@ -14,9 +14,9 @@ namespace CK.Cris.AspNet.E2ETests
     public class TSTests
     {
         /// <summary>
-        /// Secondary Poco that defines the "Color" as an ambient value.
+        /// Secondary Poco that defines the "Color" as a Endpoint value.
         /// </summary>
-        public interface IColoredAmbientValues : AmbientValues.IAmbientValues
+        public interface IColoredEndpointValues : EndpointValues.IEndpointValues
         {
             /// <summary>
             /// The color of <see cref="ICommandColored"/> commands.
@@ -27,19 +27,19 @@ namespace CK.Cris.AspNet.E2ETests
         /// <summary>
         /// This command is empty but returns a SimpleUserMessage.
         /// </summary>
-        public interface ICommandWithMessage : ICommand<SimpleUserMessage>
+        public interface IWithMessageCommand : ICommand<SimpleUserMessage>
         {
         }
 
         public class ColorAndBuggyService : IAutoService
         {
             /// <summary>
-            /// Ambient value collector for <see cref="IColoredAmbientValues.Color"/>.
+            /// Ambient value collector for <see cref="IColoredEndpointValues.Color"/>.
             /// </summary>
             /// <param name="cmd">The collec command is here only to trigger the collect.</param>
             /// <param name="values">The command result to update.</param>
             [CommandPostHandler]
-            public void GetColoredAmbientValues( AmbientValues.IAmbientValuesCollectCommand cmd, IColoredAmbientValues values )
+            public void GetColoredAmbientValues( EndpointValues.IEndpointValuesCollectCommand cmd, IColoredEndpointValues values )
             {
                 values.Color = "Red";
             }
@@ -51,7 +51,7 @@ namespace CK.Cris.AspNet.E2ETests
             }
 
             [CommandHandler]
-            public SimpleUserMessage Handle( CurrentCultureInfo culture, ICommandWithMessage cmd )
+            public SimpleUserMessage Handle( CurrentCultureInfo culture, IWithMessageCommand cmd )
             {
                 return culture.InfoMessage( $"Local servert time is {DateTime.Now}." );
             }
@@ -80,7 +80,7 @@ namespace CK.Cris.AspNet.E2ETests
         }
 
         /// <summary>
-        /// Command part with the color ambient property.
+        /// Command part with the color endpoint property.
         /// </summary>
         public interface ICommandColored : ICommandPart
         {
@@ -91,8 +91,8 @@ namespace CK.Cris.AspNet.E2ETests
             /// CrisEndPoint transparently sets it.
             /// </para>
             /// </summary>
-            [SafeAmbientValue]
-            string Color { get; set; }
+            [EndpointValue]
+            string? Color { get; set; }
         }
 
         /// <summary>
@@ -138,13 +138,14 @@ namespace CK.Cris.AspNet.E2ETests
                                                             // on the IAmbientValues so that the ambient values are known when handling
                                                             // the first command...
                                                             typeof( IBeautifulCommand ),
-                                                            typeof( AmbientValues.AmbientValuesService ),
-                                                            typeof( IColoredAmbientValues ),
+                                                            typeof( ICommandColored ),
+                                                            typeof( EndpointValues.EndpointValuesService ),
+                                                            typeof( IColoredEndpointValues ),
                                                             typeof( ColorAndBuggyService ),
                                                             typeof( IBuggyCommand ),
-                                                            typeof( ICommandWithMessage ),
+                                                            typeof( IWithMessageCommand ),
                                                             typeof( CrisAspNetService ) },
-                                                    new[] { typeof( IBeautifulCommand ), typeof( IBuggyCommand ), typeof( ICommandWithMessage ) },
+                                                    new[] { typeof( IBeautifulCommand ), typeof( IBuggyCommand ), typeof( IWithMessageCommand ) },
                                                     resume =>
                                                     resume );
         }

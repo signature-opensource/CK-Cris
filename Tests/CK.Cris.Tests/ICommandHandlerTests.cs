@@ -199,7 +199,7 @@ namespace CK.Cris.Tests
             result.Val.Should().Be( 3712, "Calling the base method naturally uses the overridden method." );
         }
 
-        public interface ICmdTest : ICommand<int>
+        public interface ITestCommand : ICommand<int>
         {
             string Text { get; set; }
         }
@@ -209,14 +209,14 @@ namespace CK.Cris.Tests
         public class BaseClassWithHandler
         {
             [CommandHandler]
-            public int Run( ICmdTest cmd ) => cmd.Text.Length;
+            public int Run( ITestCommand cmd ) => cmd.Text.Length;
         }
 
         [Test]
         public void Handler_method_on_regular_class_is_NOT_discovered()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
-                                                     typeof( ICmdTest ),
+                                                     typeof( ITestCommand ),
                                                      typeof( BaseClassWithHandler ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CrisDirectory>();
@@ -231,8 +231,8 @@ namespace CK.Cris.Tests
         [Test]
         public void Handler_method_of_base_class_is_discovered_by_inheritance()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( AmbientValues.IAmbientValues ),
-                                                     typeof( ICmdTest ),
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( EndpointValues.IEndpointValues ),
+                                                     typeof( ITestCommand ),
                                                      typeof( SpecializedBaseClassService ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CrisDirectory>();

@@ -5,11 +5,11 @@ namespace CK.Cris
     public class CrisCultureService : IAutoService
     {
         //[EndpointUbiquitousInfoConfigurator]
-        public static void ConfigureCurrentCulture( ICommandWithCurrentCulture cmd, EndpointUbiquitousInfo ubiquitousInfo )
+        public static void ConfigureCurrentCulture( ICommandWithCurrentCulture cmd, AmbientServiceHub ambientServices )
         {
             if( cmd.CurrentCultureName != null )
             {
-                ubiquitousInfo.Override( ExtendedCultureInfo.GetExtendedCultureInfo( cmd.CurrentCultureName ) );
+                ambientServices.Override( ExtendedCultureInfo.GetExtendedCultureInfo( cmd.CurrentCultureName ) );
             }
         }
 

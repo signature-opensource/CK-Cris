@@ -1,5 +1,5 @@
 using CK.Core;
-using CK.Cris.AmbientValues;
+using CK.Cris.EndpointValues;
 using CK.Cris.AspNet;
 using CK.TypeScript.CodeGen;
 using System;
@@ -29,18 +29,18 @@ namespace CK.Setup
         {
             TypeScriptFile fEndpoint = modelFile.Folder.FindOrCreateFile( "CrisEndpoint.ts" );
 
-            // AmbientValuesOverride is in the same folder as AmbienValues.ts.
-            var ambientValuesOverride = context.Root.TSTypes.FindByTypeName( "AmbientValuesOverride" );
-            Throw.CheckState( "AmbientValuesOverride is automatically created in the same folder as AmbientValues.ts and IAmbientValues is registered.",
-                              ambientValuesOverride != null );
+            // EndpointValuesOverride is in the same folder as AmbienValues.ts.
+            var endpointValuesOverride = context.Root.TSTypes.FindByTypeName( "EndpointValuesOverride" );
+            Throw.CheckState( "EndpointValuesOverride is automatically created in the same folder as EndpointValues.ts and IEndpointValues is registered.",
+                              endpointValuesOverride != null );
             // Importing:
             // - the Model objects ICommand, ExecutedCommand and CrisError.
-            // - The IAmbientValues and IAmbientValuesCollectCommand.
-            // - The AmbientValuesOverride.
+            // - The IEndpointValues and IEndpointValuesCollectCommand.
+            // - The EndpointValuesOverride.
             fEndpoint.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" )
-                             .EnsureImport( monitor, typeof( IAmbientValues ),
-                                                     typeof( IAmbientValuesCollectCommand ) )
-                             .EnsureImport( ambientValuesOverride );
+                             .EnsureImport( monitor, typeof( IEndpointValues ),
+                                                     typeof( IEndpointValuesCollectCommand ) )
+                             .EnsureImport( endpointValuesOverride );
 
             fEndpoint.Body.Append( """
                             /**
@@ -49,24 +49,24 @@ namespace CK.Setup
                             */
                             export abstract class CrisEndpoint
                             {
-                                private _ambientValuesRequest: Promise<AmbientValues>|undefined;
-                                private _ambientValues: AmbientValues|undefined;
+                                private _endpointValuesRequest: Promise<EndpointValues>|undefined;
+                                private _endpointValues: EndpointValues|undefined;
                                 private _subscribers: Set<( eventSource: CrisEndpoint ) => void>;
                                 private _isConnected: boolean;
 
                                 constructor()
                                 {
-                                    this.ambientValuesOverride = new AmbientValuesOverride();
+                                    this.endpointValuesOverride = new EndpointValuesOverride();
                                     this._isConnected = false;
                                     this._subscribers = new Set<() => void>();
                                 }
 
                                 /**
-                                * Enables ambient values to be overridden.
-                                * Sensible ambient values (like the actorId when CK.Cris.Auth is used) are checked against
+                                * Enables endpoint values to be overridden.
+                                * Sensible endpoint values (like the actorId when CK.Cris.Auth is used) are checked against
                                 * secured contextual values: overriding them will trigger a ValidationError. 
                                 **/    
-                                public readonly ambientValuesOverride: AmbientValuesOverride;
+                                public readonly endpointValuesOverride: EndpointValuesOverride;
 
 
                                 //#region isConnected
@@ -95,7 +95,7 @@ namespace CK.Setup
 
                                 /**
                                 * Sets whether this endpoint is connected or not. When setting false, this triggers
-                                * an update of the ambient values that will run until success and eventually set
+                                * an update of the endpoint values that will run until success and eventually set
                                 * a true isConnected back.
                                 * @param value Whether the connection mus be considered available or not.
                                 */
@@ -106,7 +106,7 @@ namespace CK.Setup
                                         this._isConnected = value;
                                         if( !value ) 
                                         {
-                                            this.updateAmbientValuesAsync();
+                                            this.updateEndpointValuesAsync();
                                         }
                                         this._subscribers.forEach( func => func( this ) );
                                     }
@@ -115,14 +115,14 @@ namespace CK.Setup
                                 //#endregion
 
                                 /**
-                                * Sends a AmbienValuesCollectCommand and waits for its return.
-                                * Next commands will wait for the ambient values to be received before being sent.
+                                * Sends a EndpointValuesCollectCommand and waits for its return.
+                                * Next commands will wait for the endpoint values to be received before being sent.
                                 **/    
-                                public updateAmbientValuesAsync() : Promise<AmbientValues>
+                                public updateEndpointValuesAsync() : Promise<EndpointValues>
                                 {
-                                    if( this._ambientValuesRequest ) return this._ambientValuesRequest;
-                                    this._ambientValues = undefined;
-                                    return this._ambientValuesRequest = this.waitForAmbientValuesAsync();
+                                    if( this._endpointValuesRequest ) return this._endpointValuesRequest;
+                                    this._endpointValues = undefined;
+                                    return this._endpointValuesRequest = this.waitForEndpointValuesAsync();
                                 }
 
                                 /**
@@ -130,10 +130,10 @@ namespace CK.Setup
                                 **/    
                                 public async sendAsync<T>(command: ICommand<T>): Promise<ExecutedCommand<T>>
                                 {
-                                    let a = this._ambientValues;
-                                    // Don't use coalesce here since there may be no ambient values (an empty object is truthy).
-                                    if( a === undefined ) a = await this.updateAmbientValuesAsync();
-                                    command.commandModel.applyAmbientValues( command, a, this.ambientValuesOverride );
+                                    let a = this._endpointValues;
+                                    // Don't use coalesce here since there may be no endpoint values (an empty object is truthy).
+                                    if( a === undefined ) a = await this.updateEndpointValuesAsync();
+                                    command.commandModel.applyEndpointValues( command, a, this.endpointValuesOverride );
                                     return await this.doSendAsync( command ); 
                                 }
 
@@ -155,22 +155,22 @@ namespace CK.Setup
                                 */
                                 protected abstract doSendAsync<T>(command: ICommand<T>): Promise<ExecutedCommand<T>>;
 
-                                private async waitForAmbientValuesAsync() : Promise<AmbientValues>
+                                private async waitForEndpointValuesAsync() : Promise<EndpointValues>
                                 {
                                     while(true)
                                     {
-                                        var e = await this.doSendAsync( new AmbientValuesCollectCommand() );
+                                        var e = await this.doSendAsync( new EndpointValuesCollectCommand() );
                                         if( e.result instanceof CrisError )
                                         {
-                                            console.error( "Error while getting AmbientValues. Retrying.", e.result );
+                                            console.error( "Error while getting EndpointValues. Retrying.", e.result );
                                             this.setIsConnected( false );
                                         }
                                         else
                                         {
-                                            this._ambientValuesRequest = undefined;
-                                            this._ambientValues = <AmbientValues>e.result;
+                                            this._endpointValuesRequest = undefined;
+                                            this._endpointValues = <EndpointValues>e.result;
                                             this.setIsConnected( true );
-                                            return this._ambientValues;
+                                            return this._endpointValues;
                                         }
                                     }
                                 }

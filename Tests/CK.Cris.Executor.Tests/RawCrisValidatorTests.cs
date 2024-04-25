@@ -23,7 +23,7 @@ namespace CK.Cris.Executor.Tests
         public async Task when_there_is_no_validation_methods_the_validation_succeeds_Async()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( RawCrisValidator ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
+                typeof( RawCrisValidator ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( EndpointValues.IEndpointValues ),
                 typeof( ITestCommand ) );
 
             using var services = TestHelper.CreateAutomaticServices( c ).Services;
@@ -71,7 +71,7 @@ namespace CK.Cris.Executor.Tests
         }
 
         [ExternalName( "NoValidators" )]
-        public interface ICmdWithoutValidators : ICommand
+        public interface IWithoutValidatorsCommand : ICommand
         {
             int AnyValue { get; set; }
         }
@@ -103,7 +103,7 @@ namespace CK.Cris.Executor.Tests
         {
             var c = TestHelper.CreateStObjCollector( typeof( RawCrisValidator ), typeof( CrisDirectory ),
                                                      typeof( ITestCommand ),
-                                                     typeof( ICmdWithoutValidators ) );
+                                                     typeof( IWithoutValidatorsCommand ) );
             if( singletonService ) c.RegisterType( TestHelper.Monitor, typeof( SimplestValidatorEverSingleton ) );
             if( scopedService ) c.RegisterType( TestHelper.Monitor, typeof( SimplestValidatorEverScoped ) );
 
@@ -145,7 +145,7 @@ namespace CK.Cris.Executor.Tests
             }
         }
 
-        public interface IAuthenticatedCommandPart : ICommandPart
+        public interface ICommandAuthenticatedPart : ICommandPart
         {
             int ActorId { get; set; }
         }
@@ -153,13 +153,13 @@ namespace CK.Cris.Executor.Tests
         public class AuthenticationValidator : IAutoService
         {
             [CommandValidator]
-            public void ValidateCommand( UserMessageCollector c, IAuthenticatedCommandPart cmd, IAuthenticationInfo info )
+            public void ValidateCommand( UserMessageCollector c, ICommandAuthenticatedPart cmd, IAuthenticationInfo info )
             {
                 if( cmd.ActorId != info.User.UserId ) c.Error( "Security error." );
             }
         }
 
-        public interface ICmdTestSecure : ITestCommand, IAuthenticatedCommandPart
+        public interface ITestSecureCommand : ITestCommand, ICommandAuthenticatedPart
         {
             bool WarnByAsyncValidator { get; set; }
         }
@@ -168,7 +168,7 @@ namespace CK.Cris.Executor.Tests
         public class AsyncValidator : IAutoService
         {
             [CommandValidator]
-            public async Task ValidateCommandAsync( UserMessageCollector c, ICmdTestSecure cmd )
+            public async Task ValidateCommandAsync( UserMessageCollector c, ITestSecureCommand cmd )
             {
                 c.Info( "AsyncValidator waiting for result..." );
                 await Task.Delay( 20 );
@@ -181,8 +181,8 @@ namespace CK.Cris.Executor.Tests
         public async Task part_with_parameter_injection_Async()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( RawCrisValidator ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
-                typeof( ICmdTestSecure ),
+                typeof( RawCrisValidator ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( EndpointValues.IEndpointValues ),
+                typeof( ITestSecureCommand ),
                 typeof( AuthenticationValidator ),
                 typeof( SimplestValidatorEverScoped ),
                 typeof( AsyncValidator ) );
@@ -203,7 +203,7 @@ namespace CK.Cris.Executor.Tests
                 var directory = services.GetRequiredService<CrisDirectory>();
                 var validator = services.GetRequiredService<RawCrisValidator>();
 
-                var cmd = services.GetRequiredService<IPocoFactory<ICmdTestSecure>>().Create( c => c.Value = 1 );
+                var cmd = services.GetRequiredService<IPocoFactory<ITestSecureCommand>>().Create( c => c.Value = 1 );
                 var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeFalse();
                 result.Messages.Should().HaveCount( 3 )
@@ -254,7 +254,7 @@ namespace CK.Cris.Executor.Tests
         public async Task Validators_can_log_if_they_want_Async()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( RawCrisValidator ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
+                typeof( RawCrisValidator ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( EndpointValues.IEndpointValues ),
                 typeof( ITestCommand ),
                 typeof( ValidatorWithLogs ) );
 

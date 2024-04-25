@@ -5,7 +5,7 @@ environment:
   CODECAKEBUILDER_SECRET_KEY:
     secure: 8VAzdXgUQaJyFoU3WLf2iPFV/8zPDm9qV4TfOpx8/rg=
 install:
-- ps: Install-Product node 18 x64
+- ps: Install-Product node 20 x64
 test: false
 on_finish:
 - ps: "'Get-ChildItem -Recurse *.log -exclude LastRun.log | % { Push-AppveyorArtifact $_.FullName }'"

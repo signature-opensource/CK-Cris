@@ -16,45 +16,45 @@ namespace CK.Cris.Tests
     [TestFixture]
     public class CommandResultTypeTests
     {
-        public interface ICInt : ICommand<int>
+        public interface IIntCommand : ICommand<int>
         {
         }
 
         [Test]
         public void simple_basic_return()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( ICInt ) );
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( IIntCommand ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
 
             var d = s.GetRequiredService<CrisDirectory>();
             d.CrisPocoModels[0].ResultType.Should().Be( typeof( int ) );
         }
 
-        public interface ICIntButObject : ICInt, ICommand<object>
+        public interface IIntButObjectCommand : IIntCommand, ICommand<object>
         {
         }
 
         [Test]
         public void a_specialized_command_can_generalize_the_initial_result_type()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( ICIntButObject ) );
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( IIntButObjectCommand ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
             var d = s.GetRequiredService<CrisDirectory>();
             var cmdModel = d.CrisPocoModels[0];
-            cmdModel.CommandType.Should().BeAssignableTo( typeof( ICIntButObject ) );
+            cmdModel.CommandType.Should().BeAssignableTo( typeof( IIntButObjectCommand ) );
             cmdModel.ResultType.Should().Be( typeof( int ) );
         }
 
-        public interface ICIntButString : ICInt, ICommand<string>
+        public interface IIntButStringCommand : IIntCommand, ICommand<string>
         {
         }
 
         [Test]
         public void incompatible_result_type()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( ICIntButString ) );
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( IIntButStringCommand ) );
             TestHelper.GenerateCode( c, engineConfigurator: null ).Success.Should().BeFalse();
-            //=> Invalid command Result type for 'CK.Cris.Tests.CommandResultTypeTests+ICInt': result types 'Int32', 'String' must resolve to a common most specific type.
+            //=> Invalid command Result type for 'CK.Cris.Tests.CommandResultTypeTests+IIntCommand': result types 'Int32', 'String' must resolve to a common most specific type.
         }
 
         [Test]

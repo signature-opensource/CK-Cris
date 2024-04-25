@@ -5,16 +5,16 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace CK.Cris
 {
-    [EndpointDefinition( EndpointKind.Back )]
-    public abstract class CrisBackgroundEndpointDefinition : EndpointDefinition<CrisBackgroundEndpointDefinition.Data>
+    [DIContainerDefinition( DIContainerKind.Backend )]
+    public abstract class CrisBackgroundDIContainerDefinition : DIContainerDefinition<CrisBackgroundDIContainerDefinition.Data>
     {
-        public sealed class Data : BackScopedData
+        public sealed class Data : BackendScopedData
         {
             [AllowNull]
             internal CrisJob _job;
 
-            internal Data( EndpointUbiquitousInfo ubiquitousInfo )
-                : base( ubiquitousInfo ) 
+            internal Data( AmbientServiceHub ambientServiceHub )
+                : base( ambientServiceHub ) 
             {
             }
         }
