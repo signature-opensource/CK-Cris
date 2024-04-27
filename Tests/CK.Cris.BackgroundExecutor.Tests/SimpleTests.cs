@@ -101,7 +101,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
                 var commands = Enumerable.Range( 0, 20 )
                                          .Select( i => back.Submit( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ) );
                 TestHelper.Monitor.Info( "Waiting for commands to be executed." );
-                await Task.WhenAll( commands.Select( c => c.SafeCompletion ) );
+                await Task.WhenAll( commands.Select( c => c.ExecutedCommand ) );
                 var all = Traces.Concatenate();
                 var expected = Enumerable.Range( 0, 20 )
                                          .Select( i => $"In '{i}'., Out '{i}'." )
@@ -128,7 +128,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
                 var commands = Enumerable.Range( 0, 20 )
                                          .Select( i => back.Submit( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ) );
                 TestHelper.Monitor.Info( "Waiting for the commands to be executed." );
-                await Task.WhenAll( commands.Select( c => c.SafeCompletion ) );
+                await Task.WhenAll( commands.Select( c => c.ExecutedCommand ) );
                 Traces.Should().HaveCount( 2 * 20 );
 
                 var all = Traces.Concatenate();
@@ -153,7 +153,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
                 var commands = Enumerable.Range( 0, 20 )
                                          .Select( i => back.Submit( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ambientServices ) );
                 TestHelper.Monitor.Info( "Waiting for the commands to be executed." );
-                await Task.WhenAll( commands.Select( c => c.SafeCompletion ) );
+                await Task.WhenAll( commands.Select( c => c.ExecutedCommand ) );
                 Traces.Should().HaveCount( 2 * 20 );
 
                 var all = Traces.Concatenate();
@@ -201,7 +201,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
                     for( int i = 0; i < countChange; i++ )
                     {
                         var ambient = scope.ServiceProvider.GetRequiredService<AmbientServiceHub>();
-                        await back.Submit( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ambient ).SafeCompletion;
+                        await back.Submit( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ambient ).ExecutedCommand;
                     }
                     back.ExecutionHost.ParallelRunnerCount = eventualRunnerCount;
                 } );

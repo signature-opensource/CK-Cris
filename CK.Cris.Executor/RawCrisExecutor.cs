@@ -3,7 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
+using static CK.Core.CheckedWriteStream;
 
 namespace CK.Cris
 {
@@ -23,20 +25,28 @@ namespace CK.Cris
     public abstract class RawCrisExecutor : ISingletonAutoService
     {
         /// <summary>
-        /// Executes a command by calling the discovered validators (not the syntax validators), handler
-        /// and post handlers.
-        /// Any exceptions are thrown (or more precisely are set on the returned <see cref="Task"/>) except
-        /// for validation errors: a <see cref="CrisValidationResult"/> on error is returned for any validation
-        /// errors.
+        /// Captures the result of <see cref="RawExecuteAsync(IServiceProvider, IAbstractCommand)"/>.
+        /// </summary>
+        /// <param name="Result">The execution result. See <see cref="IExecutedCommand.Result"/>.</param>
+        /// <param name="ValidationMessages">
+        /// Optional user validation messages.
+        /// This is never null if the result is a <see cref="ICrisResultError"/> validation error (and at least one
+        /// of the message is an error message) or if [CommandValidator] methods have emitted <see cref="UserMessageLevel.Info"/>
+        /// or <see cref="UserMessageLevel.Warn"/> messages.
+        /// </param>
+        public readonly record struct RawResult( object? Result, UserMessageCollector? ValidationMessages );
+
+        /// <summary>
+        /// Executes a command by calling the discovered validators (not the <see cref="CommandEndpointValidatorAttribute"/>),
+        /// the handler and the post handlers.
         /// <para>
-        /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisCommandContext"/> (that is
-        /// a <see cref="ICrisEventContext"/>) must be resolvable from the <paramref name="services"/>.
+        /// This never throws: a <see cref="ICrisResultError"/> is the <see cref="RawResult.Result"/> on error.
         /// </para>
         /// </summary>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to execute.</param>
-        /// <returns>The result of the <see cref="ICommand{TResult}"/> if the command has a result.</returns>
-        public abstract Task<object?> RawExecuteAsync( IServiceProvider services, IAbstractCommand command );
+        /// <returns>The raw result.</returns>
+        public abstract Task<RawResult> RawExecuteAsync( IServiceProvider services, IAbstractCommand command );
 
         /// <summary>
         /// Dispatches an event by calling the discovered routed event handlers.
@@ -44,7 +54,7 @@ namespace CK.Cris
         /// <para>
         /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisCommandContext"/> (that is
         /// a <see cref="ICrisEventContext"/>) must be resolvable from the <paramref name="services"/>.
-        /// (The execution context cannot be used directly by an event handler, it may be used by the commands that
+        /// (The execution context cannot be used directly by an event handler, it may be used by commands that
         /// an event handler can execute).
         /// </para>
         /// </summary>
@@ -59,7 +69,7 @@ namespace CK.Cris
         /// <para>
         /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisCommandContext"/> (that is
         /// a <see cref="ICrisEventContext"/>) must be resolvable from the <paramref name="services"/>.
-        /// (The execution context cannot be used directly by an event handler, it may be used by the commands that
+        /// (The execution context cannot be used directly by an event handler, it may be used by commands that
         /// an event handler can execute).
         /// </para>
         /// </summary>
@@ -67,5 +77,17 @@ namespace CK.Cris
         /// <param name="e">The event to dispatch to its routed event handlers.</param>
         /// <returns>True on success, false if an exception has been caught and logged.</returns>
         public abstract Task<bool> SafeDispatchEventAsync( IServiceProvider services, IEvent e );
+
+        protected static string? LogValidationError( IServiceProvider services, ICrisPoco command, UserMessageCollector c )
+        {
+            IActivityMonitor? monitor = (IActivityMonitor?)services.GetService( typeof( IActivityMonitor ) );
+            if( monitor != null )
+            {
+                return RawCrisEndpointValidator.LogValidationError( monitor, command, c, "handling", null );
+            }
+            ActivityMonitor.StaticLogger.Error( $"Command '{command.CrisPocoModel.PocoName}' handling validation error. (No IActivityMonitor available.)" );
+            return null;
+        }
+
     }
 }

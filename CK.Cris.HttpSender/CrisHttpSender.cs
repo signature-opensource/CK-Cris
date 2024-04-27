@@ -195,7 +195,7 @@ namespace CK.Cris.HttpSender
                 {
                     HandleAutomaticAuthorizationToken( monitor, command, result.Result );
                 }
-                return new ExecutedCommand<T>( command, result.Result, null );
+                return new ExecutedCommand<T>( command, result.Result, events: null );
             }
             catch( Exception ex )
             {
@@ -206,7 +206,7 @@ namespace CK.Cris.HttpSender
                                 : null;
                 monitor.Error( CrisDirectory.CrisTag, $"While sending: {payloadString}{errorPayloadResponse}", ex );
                 var internalError = _pocoDirectory.Create<ICrisResultError>( e => e.Errors.Add( InternalErrorMessage ) );
-                return new ExecutedCommand<T>( command, internalError, null );
+                return new ExecutedCommand<T>( command, internalError, events: null );
             }
         }
 

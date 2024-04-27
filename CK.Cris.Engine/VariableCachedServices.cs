@@ -15,18 +15,43 @@ namespace CK.Setup.Cris
     public sealed class VariableCachedServices
     {
         readonly IStObjMap _engineMap;
-        readonly ICodeWriter _variablesPart;
         readonly string _serviceProviderName;
         readonly Dictionary<Type, string> _cached;
+        readonly IFunctionScope _function;
+        ICodeWriter _variablesPart;
 
-        public VariableCachedServices( IStObjMap engineMap, ICodeWriter variablesPart, string serviceProviderName = "s" )
+        /// <summary>
+        /// Initializes a ne< <see cref="VariableCachedServices"/>.
+        /// </summary>
+        /// <param name="engineMap">The engine map.</param>
+        /// <param name="function">The function scope.</param>
+        /// <param name="serviceProviderName">Default IServiceProvider variable name is "s".</param>
+        public VariableCachedServices( IStObjMap engineMap, IFunctionScope function, string serviceProviderName = "s" )
         {
             _engineMap = engineMap;
-            _variablesPart = variablesPart;
+            _function = function;
             _serviceProviderName = serviceProviderName;
             _cached = new Dictionary<Type, string>();
+            _variablesPart = function.CreatePart();
         }
 
+        /// <summary>
+        /// Starts a new cached variable section is the function body.
+        /// <para>
+        /// This is used to avoid a resolution of all the services for nothing if an exit condition makes
+        /// them useless.
+        /// </para>
+        /// </summary>
+        public void StartNewCachedVariablesPart()
+        {
+            _variablesPart = _function.CreatePart();
+        }
+
+        /// <summary>
+        /// Gets the reusable local variable name to use for a registered DI service.
+        /// </summary>
+        /// <param name="serviceType">Type of the service to resolve.</param>
+        /// <returns>The local variable name.</returns>
         public string GetServiceVariableName( Type serviceType )
         {
             serviceType = _engineMap.ToLeaf( serviceType )?.ClassType ?? serviceType;
@@ -39,9 +64,34 @@ namespace CK.Setup.Cris
                               .Append( " = (" )
                               .Append( typeName )
                               .Append( ")" ).Append( _serviceProviderName ).Append( ".GetService( typeof(" ).Append( typeName ).Append( ") );" ).NewLine();
-                _cached[ serviceType ] = name;
+                _cached[serviceType] = name;
             }
             return name;
+        }
+
+        /// <summary>
+        /// Writes either <see cref="GetServiceVariableName(Type)"/> of the <paramref name="serviceType"/>
+        /// or <c>((FinalType)serviceVariableName)</c> if <paramref name="finalType"/> is not the same as <paramref name="serviceType"/>.
+        /// <para>
+        /// This nicely handles explicit implementation methods on <paramref name="finalType"/>.
+        /// </para>
+        /// </summary>
+        /// <param name="w">The writer.</param>
+        /// <param name="finalType">The final type to obtain.</param>
+        /// <param name="serviceType">The registered DI service.</param>
+        /// <returns>The writer.</returns>
+        public ICodeWriter WriteExactType( ICodeWriter w, Type? finalType, Type serviceType )
+        {
+            if( finalType != null && finalType != serviceType )
+            {
+                w.Append( "((" ).AppendGlobalTypeName( finalType ).Append( ")" )
+                    .Append( GetServiceVariableName( serviceType ) ).Append( ")" );
+            }
+            else
+            {
+                w.Append( GetServiceVariableName( serviceType ) );
+            }
+            return w;
         }
     }
 

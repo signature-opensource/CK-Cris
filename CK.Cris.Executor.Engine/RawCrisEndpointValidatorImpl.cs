@@ -9,11 +9,11 @@ using System.Linq;
 
 namespace CK.Setup.Cris
 {
-    public class RawCrisValidatorImpl : CSCodeGeneratorType
+    public class RawCrisEndpointValidatorImpl : CSCodeGeneratorType
     {
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
-            Throw.CheckArgument( "Applies only to the RawCrisValidator class.", classType == typeof( RawCrisValidator ) );
+            Throw.CheckArgument( "Applies only to the RawCrisEndpointValidator class.", classType == typeof( RawCrisEndpointValidator ) );
 
             var crisEngineService = c.CurrentRun.ServiceContainer.GetService<ICrisDirectoryServiceEngine>();
             if( crisEngineService == null ) return CSCodeGenerationResult.Retry;
@@ -28,10 +28,10 @@ namespace CK.Setup.Cris
                                                             typeof( IServiceProvider ),
                                                             typeof( IAbstractCommand )
                                                         } );
-            Throw.DebugAssert( "This is the signature of the central method.", validateMethod != null );
+            Throw.DebugAssert( validateMethod != null );
 
             var mValidate = scope.CreateSealedOverride( validateMethod );
-            if( !crisEngineService.CrisTypes.Any( e => e.Validators.Count > 0 ) )
+            if( !crisEngineService.CrisTypes.Any( e => e.EndpointValidators.Count > 0 ) )
             {
                 mValidate.Definition.Modifiers &= ~Modifiers.Async;
                 mValidate.GeneratedByComment().NewLine()
@@ -47,11 +47,12 @@ namespace CK.Setup.Cris
 
                 foreach( var e in crisEngineService.CrisTypes )
                 {
-                    if( e.Validators.Count > 0 )
+                    if( e.EndpointValidators.Count > 0 )
                     {
-                        var f = scope.CreateFunction( "static Task V" + e.CrisPocoIndex + "( IActivityMonitor m, UserMessageCollector v, IServiceProvider s, CK.Cris.IAbstractCommand c )" );
+                        var f = scope.CreateFunction( $"static Task V{e.CrisPocoIndex}( IActivityMonitor m, UserMessageCollector v, IServiceProvider s, CK.Cris.IAbstractCommand c )" );
 
-                        GenerateValidationCode( c.CurrentRun.EngineMap, f, e.Validators, out bool requiresAsync, out _ );
+                        var cachedServices = new VariableCachedServices( c.CurrentRun.EngineMap, f );
+                        GenerateValidationCode( f, e.EndpointValidators, cachedServices, out bool requiresAsync );
                         if( requiresAsync )
                         {
                             f.Definition.Modifiers |= Modifiers.Async;
@@ -63,11 +64,11 @@ namespace CK.Setup.Cris
                     }
                 }
 
-                scope.Append( "readonly " ).Append( funcSignature ).Append( "[] _validators = new " ).Append( funcSignature ).Append( "[" ).Append( crisEngineService.CrisTypes.Count ).Append( "]{" );
+                scope.Append( "readonly " ).Append( funcSignature ).Append( "[] _validators = new " ).Append( funcSignature ).Append( "[]{" );
                 foreach( var e in crisEngineService.CrisTypes )
                 {
                     if( e.CrisPocoIndex != 0 ) scope.Append( ", " );
-                    if( e.Validators.Count == 0 )
+                    if( e.EndpointValidators.Count == 0 )
                     {
                         scope.Append( "Success" );
                     }
@@ -85,31 +86,23 @@ namespace CK.Setup.Cris
             return CSCodeGenerationResult.Success;
         }
 
-        internal static void GenerateValidationCode( IStObjEngineMap engineMap,
-                                                     IFunctionScope f,
-                                                     IEnumerable<HandlerValidatorMethod> validators,
-                                                     out bool requiresAsync,
-                                                     out VariableCachedServices cachedServices )
+        internal static void GenerateValidationCode( IFunctionScope f,
+                                                     IReadOnlyList<HandlerValidatorMethod> validators,
+                                                     VariableCachedServices cachedServices,
+                                                     out bool requiresAsync )
         {
-            using var _ = f.Region();
-            cachedServices = new VariableCachedServices( engineMap, f.CreatePart() );
-
             requiresAsync = false;
+            if( validators.Count == 0 ) return;
+
+            using var _ = f.Region();
             foreach( var validator in validators )
             {
-                var owner = cachedServices.GetServiceVariableName( validator.Owner.ClassType );
                 if( validator.IsRefAsync || validator.IsValAsync )
                 {
                     f.Append( "await " );
                     requiresAsync = true;
                 }
-                if( validator.Method.DeclaringType != validator.Owner.ClassType )
-                {
-                    f.Append( "((" ).AppendGlobalTypeName( validator.Method.DeclaringType ).Append( ")").Append( owner ).Append(")" );
-                }
-                else f.Append( owner );
-                f.Append(".").Append( validator.Method.Name ).Append( "( " );
-
+                cachedServices.WriteExactType( f, validator.Method.DeclaringType, validator.Owner.ClassType ).Append(".").Append( validator.Method.Name ).Append( "( " );
                 foreach( var p in validator.Parameters )
                 {
                     if( p.Position > 0 ) f.Append( ", " );

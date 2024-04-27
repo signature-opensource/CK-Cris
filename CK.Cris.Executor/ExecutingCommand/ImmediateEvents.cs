@@ -43,7 +43,7 @@ namespace CK.Cris
                 _last.Next = n;
             }
             ++_count;
-            return _immediate.SafeRaiseAsync( monitor, v );
+            return _immediate.RaiseAsync( monitor, v );
         }
 
         /// <summary>

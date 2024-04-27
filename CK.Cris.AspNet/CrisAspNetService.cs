@@ -14,6 +14,7 @@ using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using static CK.Core.CheckedWriteStream;
 
 namespace CK.Cris.AspNet
 {
@@ -21,14 +22,14 @@ namespace CK.Cris.AspNet
     [AlsoRegisterType( typeof( CrisDirectory ) )]
     [AlsoRegisterType( typeof( TypeScriptCrisCommandGenerator ) )]
     [AlsoRegisterType( typeof( CommonPocoJsonSupport ) )]
-    [AlsoRegisterType( typeof( RawCrisValidator ) )]
+    [AlsoRegisterType( typeof( RawCrisEndpointValidator ) )]
     [AlsoRegisterType( typeof( IAspNetCrisResult ) )]
     [AlsoRegisterType( typeof( IAspNetCrisResultError ) )]
     [AlsoRegisterType( typeof( CrisBackgroundExecutorService ) )]
     [AlsoRegisterType( typeof( IUbiquitousValuesCollectCommand ) )]
     public partial class CrisAspNetService : ISingletonAutoService
     {
-        readonly RawCrisValidator _validator;
+        readonly RawCrisEndpointValidator _validator;
         readonly CrisBackgroundExecutorService _backgroundExecutor;
         internal readonly PocoDirectory _pocoDirectory;
         readonly IPocoFactory<IAspNetCrisResult> _resultFactory;
@@ -36,7 +37,7 @@ namespace CK.Cris.AspNet
         readonly IPocoFactory<ICrisResultError> _crisErrorResultFactory;
 
         public CrisAspNetService( PocoDirectory poco,
-                                  RawCrisValidator validator,
+                                  RawCrisEndpointValidator validator,
                                   CrisBackgroundExecutorService backgroundExecutor,
                                   IPocoFactory<IAspNetCrisResult> resultFactory,
                                   IPocoFactory<IAspNetCrisResultError> errorResultFactory,
@@ -86,48 +87,71 @@ namespace CK.Cris.AspNet
             using( HandleIncomingCKDepToken( monitor, request, out var depToken ) )
             {
                 // If we cannot read the command, it is considered as a Validation error.
-                (IAbstractCommand? cmd, IAspNetCrisResult? result, string? typeFilterName) = await ReadCommandAsync( monitor,
-                                                                                                                     request,
-                                                                                                                     reader,
-                                                                                                                     currentCultureInfo,
-                                                                                                                     readOptions );
-                // No result => no validation error (and we have a valid TypeFilterName).
+                var readResult = await ReadCommandAsync( monitor,
+                                                         request,
+                                                         reader,
+                                                         currentCultureInfo,
+                                                         readOptions,
+                                                         useSimpleError );
+                IEnumerable<UserMessage> allValidationMessages = readResult.ValidationMessages.UserMessages;
+                IAspNetCrisResult? result = readResult.ReadResultError;
                 if( result == null )
                 {
-                    Throw.DebugAssert( cmd != null && typeFilterName != null );
-                    //
-                    AmbientServiceHub? info = HandleEndpointUbiquitousInfoConfigurator( requestServices, cmd );
-                    if( info != null )
+                    // No read error => no validation error (and we have a command and a valid TypeFilterName).
+                    Throw.DebugAssert( readResult.Command != null && readResult.TypeFilterName != null );
+                    // Incoming command validation.
+                    CrisValidationResult validation = await _validator.ValidateCommandAsync( monitor, requestServices, readResult.Command );
+                    allValidationMessages = allValidationMessages.Concat( validation.ValidationMessages );
+                    if( !validation.Success )
                     {
-                        var c = _backgroundExecutor.Submit( monitor, cmd, info, issuerToken: depToken );
-                        var o = await c.SafeCompletion;
-                        result = _resultFactory.Create();
-                        result.Result = o;
+                        result = CreateValidationErrorResult( allValidationMessages, validation.LogKey, useSimpleError );
+                    }
+                }
+                if( result == null )
+                {
+                    // Incoming validation succeeded. Challenge the Ambient service configuration.
+                    Throw.DebugAssert( readResult.Command != null && readResult.TypeFilterName != null );
+                    AmbientServiceHub? info = HandleEndpointUbiquitousInfoConfigurator( requestServices, readResult.Command );
+
+                    IExecutedCommand? executedCommand = null;
+                    if( info != null && info.IsDirty )
+                    {
+                        var executing = _backgroundExecutor.Submit( monitor, readResult.Command, info, issuerToken: depToken );
+                        executedCommand = await executing.ExecutedCommand;
                     }
                     else
                     {
-                        result = await ValidateAndExecuteInlineAsync( monitor, requestServices, cmd );
+                        var execContext = requestServices.GetRequiredService<CrisExecutionContext>();
+                        executedCommand = await execContext.ExecuteRootCommandAsync( readResult.Command );
+                    }
+                    result = _resultFactory.Create();
+                    result.Result = executedCommand.Result;
+                    if( allValidationMessages.Any() || executedCommand.ValidationMessages.Length > 0 )
+                    {
+                        result.ValidationMessages = allValidationMessages
+                                                        .Concat( executedCommand.ValidationMessages )
+                                                        .Select( m => m.AsSimpleUserMessage() )
+                                                        .ToList();
+                    }
+                    if( useSimpleError && result.Result is ICrisResultError error )
+                    {
+                        IAspNetCrisResultError simpleError = _errorResultFactory.Create();
+                        simpleError.Errors.AddRange( error.Errors.Select( m => m.Text ) );
+                        simpleError.IsValidationError = error.IsValidationError;
+                        simpleError.LogKey = error.LogKey;
+                        result.Result = simpleError;
                     }
                 }
-                result.CorrelationId ??= monitor.CreateToken().ToString();
-                if( useSimpleError && result.Result is ICrisResultError error )
+                var correlationToken = monitor.CreateToken();
+                result.CorrelationId = correlationToken.ToString();
+                // If its an error without LogKey, use the one of the correlation token.
+                if( result.Result is ICrisResultError e && e.LogKey == null )
                 {
-                    IAspNetCrisResultError simpleError = _errorResultFactory.Create();
-                    // On validation errors, the IAspNetCrisResult.ValidationMessages contains all the messages.
-                    // The simplified IAspNetCrisResultError always contains
-                    // only the errors as string.
-                    simpleError.Errors.AddRange( error.Errors.Where( e => e.Level == UserMessageLevel.Error ).Select( m => m.Text ) );
-                    if( error.IsValidationError )
-                    {
-                        result.ValidationMessages = error.Errors.Select( m => m.AsSimpleUserMessage() ).ToList();
-                        simpleError.IsValidationError = true;
-                    }
-                    simpleError.LogKey = error.LogKey;
-                    result.Result = simpleError;
+                    e.LogKey = correlationToken.Key;
                 }
                 /// A Cris result HTTP status code must always be 200 OK (except on Internal Server Error).
                 request.HttpContext.Response.StatusCode = 200;
-                return (result, typeFilterName ?? "TypeScript");
+                return (result, readResult.TypeFilterName ?? "TypeScript");
             }
         }
 
@@ -150,66 +174,31 @@ namespace CK.Cris.AspNet
 
         // Temporary:
         // TODO: Handle this "context matching" in a generic way ([ConfigureAmbientServices] attribute).
-        AmbientServiceHub? HandleEndpointUbiquitousInfoConfigurator( IServiceProvider requestServices, IAbstractCommand? cmd )
+        AmbientServiceHub? HandleEndpointUbiquitousInfoConfigurator( IServiceProvider requestServices, IAbstractCommand cmd )
         {
             AmbientServiceHub? info = null;
             if( cmd is ICommandWithCurrentCulture c )
             {
                 info = requestServices.GetRequiredService<AmbientServiceHub>();
                 CrisCultureService.ConfigureCurrentCulture( c, info );
-                if( !info.IsDirty ) info = null;
             }
             return info;
         }
 
-        /// <summary>
-        /// Validates and executes the command in the context of the end point.
-        /// </summary>
-        async Task<IAspNetCrisResult> ValidateAndExecuteInlineAsync( IActivityMonitor monitor,
-                                                                     IServiceProvider requestServices,
-                                                                     IAbstractCommand cmd )
-        {
-            IAspNetCrisResult result = _resultFactory.Create();
-            CrisValidationResult validation = await _validator.ValidateCommandAsync( monitor, requestServices, cmd );
-            if( !validation.Success )
-            {
-                ICrisResultError error = _crisErrorResultFactory.Create();
-                error.Errors.AddRange( validation.Messages );
-                error.LogKey = validation.LogKey;
-                error.IsValidationError = true;
-                result.Result = error;
-                return result;
-            }
-            // Valid command: calls the execution handler.
-            Throw.DebugAssert( cmd != null );
-            try
-            {
-                var execContext = requestServices.GetRequiredService<CrisExecutionContext>();
-                var (o, _) = await execContext.ExecuteAsync( cmd );
-                result.Result = o;
-            }
-            catch( Exception ex )
-            {
-                var currentCulture = requestServices.GetRequiredService<CurrentCultureInfo>();
-                ICrisResultError error = _crisErrorResultFactory.Create();
-                error.LogKey = PocoFactoryExtensions.OnUnhandledError( monitor, ex, cmd, true, currentCulture, error.Errors.Add );
-                result.Result = error;
-            }
-            return result;
-        }
+        record struct ReadResult( IAbstractCommand? Command, IAspNetCrisResult? ReadResultError, string? TypeFilterName, UserMessageCollector ValidationMessages );
 
-
-        async Task<(IAbstractCommand? Command, IAspNetCrisResult? Error, string? TypeFilterName)> ReadCommandAsync( IActivityMonitor monitor,
-                                                                                                                    HttpRequest request,
-                                                                                                                    CommandRequestReader reader,
-                                                                                                                    CurrentCultureInfo? currentCultureInfo,
-                                                                                                                    PocoJsonImportOptions? readOptions )
+        async Task<ReadResult> ReadCommandAsync( IActivityMonitor monitor,
+                                                 HttpRequest request,
+                                                 CommandRequestReader reader,
+                                                 CurrentCultureInfo? currentCultureInfo,
+                                                 PocoJsonImportOptions? readOptions,
+                                                 bool useSimpleError )
         {
             currentCultureInfo ??= request.HttpContext.RequestServices.GetRequiredService<CurrentCultureInfo>();
             var messageCollector = new UserMessageCollector( currentCultureInfo );
             if( readOptions == null && !TryCreateJsonImportOptions( request, messageCollector, out readOptions ) )
             {
-                return (null, CreateValidationErrorResult( messageCollector, null ), null);
+                return new ReadResult( null, CreateValidationErrorResult( messageCollector.UserMessages, null, useSimpleError ), null, messageCollector );
             }
             int length = -1;
             using( var buffer = (RecyclableMemoryStream)Util.RecyclableStreamManager.GetStream() )
@@ -225,7 +214,7 @@ namespace CK.Cris.AspNet
                         {
                             if( messageCollector.ErrorCount > 0 )
                             {
-                                using( monitor.OpenWarn( $"Command '{cmd}' has been successfuly read but {messageCollector.ErrorCount} have been emitted." ) )
+                                using( monitor.OpenWarn( $"Command '{cmd}' has been successfuly read but {messageCollector.ErrorCount} error messages have been emitted." ) )
                                 {
                                     foreach( var e in messageCollector.UserMessages.Where( m => m.Level == UserMessageLevel.Error ) )
                                     {
@@ -233,7 +222,7 @@ namespace CK.Cris.AspNet
                                     }
                                 }
                             }
-                            return (cmd, null, readOptions.TypeFilterName);
+                            return new ReadResult( cmd, null, readOptions.TypeFilterName, messageCollector );
                         }
                         else
                         {
@@ -248,7 +237,7 @@ namespace CK.Cris.AspNet
                     {
                         messageCollector.Error( "Unable to read Command Poco from empty request body.", "Cris.AspNet.EmptyBody" );
                     }
-                    return (null, CreateValidationErrorResult( messageCollector, null ), null);
+                    return new ReadResult( null, CreateValidationErrorResult( messageCollector.UserMessages, null, useSimpleError ), null, messageCollector );
                 }
                 catch( Exception ex )
                 {
@@ -263,7 +252,7 @@ namespace CK.Cris.AspNet
                     {
                         monitor.Error( "Error while tracing request body.", error );
                     }
-                    return (null, CreateValidationErrorResult( messageCollector, gError.GetLogKeyString() ), null);
+                    return new ReadResult( null, CreateValidationErrorResult( messageCollector.UserMessages, gError.GetLogKeyString(), useSimpleError ), null, messageCollector );
                 }
             }
 
@@ -407,22 +396,39 @@ namespace CK.Cris.AspNet
             return ValueTask.FromResult<IAbstractCommand?>( c );
         }
 
-        IAspNetCrisResult CreateValidationErrorResult( UserMessageCollector messages, string? logKey )
+        IAspNetCrisResult CreateValidationErrorResult( IEnumerable<UserMessage> messages, string? logKey, bool useSimpleError )
         {
             IAspNetCrisResult result = _resultFactory.Create();
-            ICrisResultError e = _crisErrorResultFactory.Create();
+            ICrisResultError? error = null;
+            IAspNetCrisResultError? simpleError = null;
+
+            if( useSimpleError )
+            {
+                simpleError = _errorResultFactory.Create();
+                simpleError.IsValidationError = true;
+                simpleError.LogKey = logKey;
+                result.Result = simpleError;
+            }
+            else
+            {
+                error = _crisErrorResultFactory.Create();
+                error.IsValidationError = true;
+                error.LogKey = logKey;
+                result.Result = error;
+            }
 
             var validationMessages = new List<SimpleUserMessage>();
-            foreach( var message in messages.UserMessages )
+            foreach( var message in messages )
             {
-                if( message.Level == UserMessageLevel.Error ) e.Errors.Add( message );
+                if( message.Level == UserMessageLevel.Error )
+                {
+                    if( useSimpleError ) simpleError!.Errors.Add( message.Text );
+                    else error!.Errors.Add( message );
+                }
                 validationMessages.Add( message );
             }
             result.ValidationMessages = validationMessages;
 
-            e.IsValidationError = true;
-            e.LogKey = logKey;
-            result.Result = e;
             return result;
         }
 

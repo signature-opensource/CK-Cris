@@ -4,14 +4,30 @@ namespace CK.Cris
 {
     public class CrisCultureService : IAutoService
     {
+        [CommandEndpointValidator]
+        public void CheckCultureName( UserMessageCollector validator, ICommandWithCurrentCulture cmd )
+        {
+            var n = cmd.CurrentCultureName;
+            if( string.IsNullOrEmpty( n ) || ExtendedCultureInfo.FindExtendedCultureInfo( n ) == null )
+            {
+                validator.Warn( $"Culture name '{n}' is unkown. It will be ignored." );
+            }
+        }
+
         //[EndpointUbiquitousInfoConfigurator]
         public static void ConfigureCurrentCulture( ICommandWithCurrentCulture cmd, AmbientServiceHub ambientServices )
         {
-            if( cmd.CurrentCultureName != null )
+            var n = cmd.CurrentCultureName;
+            if( !string.IsNullOrWhiteSpace( n ) )
             {
-                ambientServices.Override( ExtendedCultureInfo.GetExtendedCultureInfo( cmd.CurrentCultureName ) );
+                var c = ExtendedCultureInfo.FindExtendedCultureInfo( n );
+                if( c != null )
+                {
+                    ambientServices.Override( c );
+                }
             }
         }
+
 
     }
 }

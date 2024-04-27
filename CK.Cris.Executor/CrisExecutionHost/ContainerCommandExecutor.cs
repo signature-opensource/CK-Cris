@@ -2,6 +2,7 @@ using CK.Core;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
@@ -74,7 +75,7 @@ namespace CK.Cris
         /// <param name="events">Non empty events raised by the command execution.</param>
         /// <param name="r">The final command result.</param>
         /// <returns>The awaitable.</returns>
-        internal protected virtual Task SetFinalResultAsync( IActivityMonitor monitor, CrisJob job, IReadOnlyList<IEvent> events, CrisExecutionHost.ICrisJobResult r ) => Task.CompletedTask;
+        internal protected virtual Task SetFinalResultAsync( IActivityMonitor monitor, CrisJob job, object? result, ImmutableArray<UserMessage> validationMessages, ImmutableArray<IEvent> events ) => Task.CompletedTask;
 
     }
 

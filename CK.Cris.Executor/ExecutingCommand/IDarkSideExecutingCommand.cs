@@ -1,6 +1,7 @@
 using CK.Core;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Threading.Tasks;
 
 namespace CK.Cris
@@ -12,15 +13,6 @@ namespace CK.Cris
     public interface IDarkSideExecutingCommand
     {
         /// <summary>
-        /// Sets the validation result of a command. There is no "TrySetValidationResult": the validation result must be set once and only once.
-        /// If <see cref="CrisValidationResult.Success"/> is false, a non nul <paramref name="validationError"/> is provided and
-        /// this immediately completes the execution.
-        /// </summary>
-        /// <param name="v">The validation result.</param>
-        /// <param name="validationError">The <see cref="ICrisResultError"/> built from the validation result or null if the command is valid.</param>
-        void SetValidationResult( CrisValidationResult v, ICrisResultError? validationError );
-
-        /// <summary>
         /// Adds an immediate event to the <see cref="IExecutedCommand.ImmediateEvents"/> collector.
         /// The <see cref="ImmediateEvents.Added"/> event is immediately raised.
         /// </summary>
@@ -30,17 +22,13 @@ namespace CK.Cris
         Task AddImmediateEventAsync( IActivityMonitor monitor, IEvent e );
 
         /// <summary>
-        /// Sets the final result. There is no "TrySetFinalResult": the result must be set once and only once.
+        /// Sets the final result.
+        /// There is no "TrySetResult": the result must be set once and only once.
         /// </summary>
-        /// <param name="events">Events emitted by the command if the command succeeded. Always empty on error.</param>
-        /// <param name="result">The request result. Null for command without result.</param>
-        void SetResult( IReadOnlyList<IEvent> events, object? result );
-
-        /// <summary>
-        /// Sets an execution error. The <see cref="IExecutingCommand.SafeCompletion"/> task is faulted.
-        /// </summary>
-        /// <param name="ex">The execution exception.</param>
-        void SetException( Exception ex );
+        /// <param name="result">The command result.</param>
+        /// <param name="validationMessages">The optional validation messages.</param>
+        /// <param name="events">Rooted events raised by the command.</param>
+        void SetResult( object? result, ImmutableArray<UserMessage> validationMessages, ImmutableArray<IEvent> events );
 
     }
 

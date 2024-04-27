@@ -114,6 +114,8 @@ namespace CK.Setup.Cris
         /// <param name="cachedServices">GetService cache.</param>
         public void GeneratePostHandlerCallCode( ICodeWriter w, VariableCachedServices cachedServices )
         {
+            if( _postHandlers.Count == 0 ) return;
+
             using var region = w.Region();
             foreach( var h in _postHandlers.Where( h => !h.IsRefAsync && !h.IsValAsync ).GroupBy( h => h.Owner ) )
             {

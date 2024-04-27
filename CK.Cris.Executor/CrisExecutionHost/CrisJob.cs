@@ -17,7 +17,7 @@ namespace CK.Cris
         internal readonly DIContainerDefinition.IScopedData _scopedData;
         readonly ActivityMonitor.Token _issuerToken;
         internal readonly ContainerCommandExecutor _executor;
-        internal readonly bool _skipValidation;
+        internal readonly bool _incomingValidationCheck;
         internal readonly ExecutingCommand? _executingCommand;
 
         internal IActivityMonitor? _runnerMonitor;
@@ -30,14 +30,22 @@ namespace CK.Cris
         /// <param name="scopedData">Scoped data required to create the scoped context when executing the command.</param>
         /// <param name="command">The command.</param>
         /// <param name="issuerToken">The issuer token.</param>
-        /// <param name="skipValidation">Whether command validation must be skipped (because it has already been done).</param>
         /// <param name="executingCommand">The executing command if there's one.</param>
+        /// <param name="incomingValidationCheck">
+        /// Whether incoming command validation should be done again.
+        /// This should not be necessary because a command that reaches an execution context should already
+        /// have been submitted to the incoming command validators.
+        /// <para>
+        /// When not specified, this defaults to <see cref="CoreApplicationIdentity.IsDevelopmentOrUninitialized"/>:
+        /// in "#Dev" or when the identity is not yet settled, the incoming validation is ran.
+        /// </para>
+        /// </param>
         public CrisJob( ContainerCommandExecutor executor,
                         DIContainerDefinition.IScopedData scopedData,
                         IAbstractCommand command,
                         ActivityMonitor.Token issuerToken,
-                        bool skipValidation,
-                        ExecutingCommand? executingCommand )
+                        ExecutingCommand? executingCommand,
+                        bool? incomingValidationCheck = null )
         {
             Throw.CheckNotNullArgument( executor );
             Throw.CheckNotNullArgument( scopedData );
@@ -46,7 +54,7 @@ namespace CK.Cris
             _executor = executor;
             _command = command;
             _issuerToken = issuerToken;
-            _skipValidation = skipValidation;
+            _incomingValidationCheck = incomingValidationCheck ?? (!CoreApplicationIdentity.IsInitialized || CoreApplicationIdentity.Instance.EnvironmentName == CoreApplicationIdentity.DefaultEnvironmentName);
             _executingCommand = executingCommand;
             _scopedData = scopedData;
         }

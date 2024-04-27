@@ -1,6 +1,7 @@
 using CK.Core;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
 namespace CK.Cris
@@ -15,16 +16,28 @@ namespace CK.Cris
         /// Initializes a new <see cref="ExecutedCommand{T}"/>.
         /// </summary>
         /// <param name="command">The executed command.</param>
-        /// <param name="result">The command result (if any).</param>
-        /// <param name="events">The emitted events (if any)</param>
-        public ExecutedCommand( T command, object? result, IReadOnlyList<IEvent>? events )
-            : base( command, result, events )
+        /// <param name="result">The command result.</param>
+        /// <param name="validationMessages">The validation messages.</param>
+        /// <param name="events">The emitted events.</param>
+        public ExecutedCommand( T command, object? result, ImmutableArray<UserMessage> validationMessages, ImmutableArray<IEvent> events )
+            : base( command, result, validationMessages, events )
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new <see cref="ExecutedCommand{T}"/>.
+        /// </summary>
+        /// <param name="command">The executed command.</param>
+        /// <param name="result">The command result.</param>
+        /// <param name="validationMessages">The validation messages.</param>
+        /// <param name="events">The emitted events.</param>
+        public ExecutedCommand( T command, object? result, IEnumerable<UserMessage>? validationMessages = null, IEnumerable<IEvent>? events = null )
+            : base( command, result, validationMessages, events )
         {
         }
 
         /// <inheritdoc />
         public new T Command => Unsafe.As<T>( base.Command );
-
 
         sealed class ResultAdapter<TResult> : IExecutedCommand<T>.IWithResult<TResult>
         {
@@ -39,7 +52,9 @@ namespace CK.Cris
 
             public T Command => _command.Command;
 
-            public IReadOnlyList<IEvent> Events => _command.Events;
+            public ImmutableArray<UserMessage> ValidationMessages => _command.ValidationMessages;
+
+            public ImmutableArray<IEvent> Events => _command.Events;
 
             IAbstractCommand IExecutedCommand.Command => _command.Command;
 

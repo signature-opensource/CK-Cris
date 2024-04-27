@@ -3,6 +3,7 @@ using CK.Cris;
 using CK.PerfectEvent;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,6 +29,12 @@ namespace CK.Cris
         /// <inheritdoc />
         public new T Command => Unsafe.As<T>( base.Command );
 
+        private protected override IExecutedCommand Create( object? result, ImmutableArray<UserMessage> validationMessages, ImmutableArray<IEvent> events )
+        {
+            return new ExecutedCommand<T>( Command, result, validationMessages, events );
+        }
+
+
         sealed class ResultAdapter<TResult> : IExecutingCommand<T>.IResultAdapter<TResult>
         {
             readonly ExecutingCommand<T> _command;
@@ -37,14 +44,14 @@ namespace CK.Cris
             {
                 _command = command;
                 _result = new TaskCompletionSource<TResult>( TaskCreationOptions.RunContinuationsAsynchronously );
-                _ = _command.SafeCompletion.ContinueWith( OnRequestCompletion!,
+                _ = _command.ExecutedCommand.ContinueWith( OnRequestCompletion!,
                                                              _result,
                                                              CancellationToken.None,
                                                              TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default );
             }
 
             [System.Diagnostics.CodeAnalysis.SuppressMessage( "Usage", "VSTHRD002:Avoid problematic synchronous waits", Justification = "This is called on a completed task." )]
-            static void OnRequestCompletion( Task<object?> c, object target )
+            static void OnRequestCompletion( Task<IExecutedCommand> c, object target )
             {
                 var result = (TaskCompletionSource<TResult>)target;
                 // Don't take any risk: even if there should not be Faulted or Canceled state
@@ -54,7 +61,7 @@ namespace CK.Cris
                 else
                 {
                     // If the completion is a ICrisResultError, resolves the result task with an exception.
-                    object? r = c.Result;
+                    object? r = c.Result.Result;
                     // The completion is null or an instance of some type (the most precise type among
                     // the different ICommand<TResult> TResult types. It may be a ICrisResultError and if
                     // the TResult is a ICrisResultError this is fine:
@@ -108,8 +115,6 @@ namespace CK.Cris
 
             public T Command => _command.Command;
 
-            public Task<CrisValidationResult> ValidationResult => _command.ValidationResult;
-
             public ImmediateEvents ImmediateEvents => _command.ImmediateEvents;
 
             IAbstractCommand IExecutingCommand.Command => _command.Command;
@@ -118,11 +123,9 @@ namespace CK.Cris
 
             public DateTime CreationDate => _command.CreationDate;
 
-            public Task<object?> SafeCompletion => _command.SafeCompletion;
+            public Task<IExecutedCommand<T>> ExecutedCommand => Unsafe.As<Task<IExecutedCommand<T>>>( _command.ExecutedCommand );
 
-            public Task<object?> Completion => _command.Completion;
-
-            public IReadOnlyList<IEvent> Events => _command.Events;
+            Task<IExecutedCommand> IExecutingCommand.ExecutedCommand => _command.ExecutedCommand;
         }
 
         /// <summary>

@@ -40,7 +40,7 @@ namespace CK.Cris
             issuerToken ??= monitor.CreateToken( $"CrisBackgroundExecutor handling '{command.CrisPocoModel.PocoName}' command." );
             var cmd = new ExecutingCommand<T>( command, issuerToken );
             var scopedData = new CrisBackgroundDIContainerDefinition.Data( ambientServiceHub );
-            var job = new CrisJob( this, scopedData, command, issuerToken, skipValidation, cmd );
+            var job = new CrisJob( this, scopedData, command, issuerToken, cmd, skipValidation );
             scopedData._job = job;
             ExecutionHost.StartJob( job );
             return cmd;

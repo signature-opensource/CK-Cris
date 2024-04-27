@@ -98,16 +98,34 @@ namespace CK.Cris.AspNet.Tests
         }
 
         [Test]
-        public async Task exceptions_raised_by_validators_are_handled_Async()
+        public async Task when_there_is_no_CommandHandler_it_is_directly_an_Execution_error_Async()
         {
             var c = TestHelper.CreateStObjCollector( typeof( ITestCommand ), typeof( BuggyValidator ) );
+            using( var s = new CrisTestHostServer( c ) )
+            {
+                HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri + "?UseSimpleError", @"[""Test"",{""Value"":3712}]" );
+                Throw.DebugAssert( r != null );
+                var result = await s.GetCrisResultAsync( r );
+                result.ValidationMessages.Should().BeNull( "Since there is no handler, there's no validation at all." );
+                Throw.DebugAssert( result.Result != null );
+                var resultError = (IAspNetCrisResultError)result.Result;
+                resultError.IsValidationError.Should().BeFalse();    
+            }
+        }
+
+        [Test]
+        public async Task exceptions_raised_by_validators_are_handled_Async()
+        {
+            // To leak all exceptions in messages, CoreApplicationIdentity must be initialized and be in "#Dev" environment name.  
+            CoreApplicationIdentity.Initialize();
+
+            var c = TestHelper.CreateStObjCollector( typeof( ITestCommand ), typeof( BuggyValidator ), typeof( TestHandler ) );
             using( var s = new CrisTestHostServer( c ) )
             {
                 HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri+ "?UseSimpleError", @"[""Test"",{""Value"":3712}]" );
                 Throw.DebugAssert( r != null );
                 var result = await s.GetCrisResultAsync( r );
                 result.CorrelationId.Should().NotBeNullOrWhiteSpace();
-                // We activated the "UseSimpleError" mode: there are ValidationMessages.
                 Throw.DebugAssert( result.ValidationMessages != null );
                 result.ValidationMessages[0].Message.Should().Match( "An unhandled error occurred while validating command 'Test' (LogKey: *)." );
                 result.ValidationMessages[1].Message.Should().Match( "This should not happen!" );

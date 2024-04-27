@@ -92,13 +92,13 @@ namespace CK.Cris.Executor.Tests
                 var cmd = services.GetRequiredService<IPocoFactory<IUbiquitousValuesCollectCommand>>().Create();
 
                 var r = await executor.RawExecuteAsync( services, cmd );
-                Throw.DebugAssert( r != null );
-                var auth = (IAuthAmbientValues)r;
+                Throw.DebugAssert( r.Result != null );
+                var auth = (IAuthAmbientValues)r.Result;
                 auth.ActorId.Should().Be( 3712 );
                 auth.ActualActorId.Should().Be( 3712 );
                 auth.DeviceId.Should().Be( authInfo.DeviceId );
 
-                var sec = (ISecurityAmbientValues)r;
+                var sec = (ISecurityAmbientValues)r.Result;
                 sec.Roles.Should().BeEquivalentTo( "Administrator", "Tester", "Approver" );
             }
         }

@@ -1,0 +1,122 @@
+using CK.Core;
+using CK.Setup;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Threading.Tasks;
+
+namespace CK.Cris
+{
+    /// <summary>
+    /// Command validation service.
+    /// </summary>
+    [ContextBoundDelegation( "CK.Setup.Cris.RawCrisEndpointValidatorImpl, CK.Cris.Executor.Engine" )]
+    // To simplify testing.
+    [AlsoRegisterType( typeof( NormalizedCultureInfoUbiquitousServiceDefault ) )]
+    [AlsoRegisterType( typeof( TranslationService ) )]
+    [AlsoRegisterType( typeof( NormalizedCultureInfo ) )]
+    [AlsoRegisterType( typeof( CurrentCultureInfo ) )]
+    public abstract class RawCrisEndpointValidator : ISingletonAutoService
+    {
+        protected CrisDirectory Directory;
+
+        /// <summary>
+        /// Initializes a new <see cref="RawCrisEndpointValidator"/>.
+        /// </summary>
+        /// <param name="directory">The command directory.</param>
+        public RawCrisEndpointValidator( CrisDirectory directory )
+        {
+            Directory = directory;
+        }
+
+        /// <summary>
+        /// Validates a command by calling all the discovered validators.
+        /// <para>
+        /// This never throws: exceptions are handled (logged and appear in the error messages) by this method.
+        /// </para>
+        /// </summary>
+        /// <param name="monitor">The monitor.</param>
+        /// <param name="services">The service context from which any required dependencies must be resolved.</param>
+        /// <param name="command">The command to validate.</param>
+        /// <param name="commandLogGroup">Optional opened group for the command handling.</param>
+        /// <param name="culture">Optional culture to use instead of the one from <paramref name="services"/>.</param>
+        /// <returns>The validation result.</returns>
+        public async Task<CrisValidationResult> ValidateCommandAsync( IActivityMonitor monitor,
+                                                                      IServiceProvider services,
+                                                                      IAbstractCommand command,
+                                                                      IDisposableGroup? commandLogGroup = null,
+                                                                      CurrentCultureInfo? currentCulture = null )
+        {
+            Throw.CheckNotNullArgument( monitor );
+            Throw.CheckNotNullArgument( services );
+            Throw.CheckNotNullArgument( command );
+
+            // We handle the (unexpected) case where the CurrentCultureInfo or the TranslationService is not
+            // available in the DI by catching the GetRequiredService exception.
+            try
+            {
+                if( command is ICommandWithCurrentCulture cC && !String.IsNullOrWhiteSpace( cC.CurrentCultureName ) )
+                {
+                    // Do not use GetExtendedCultureInfo here. We don't want to be flood by random strings
+                    // that will damage the cache.
+                    var fromCommand = ExtendedCultureInfo.FindExtendedCultureInfo( cC.CurrentCultureName );
+                    if( fromCommand != null )
+                    {
+                        currentCulture = new CurrentCultureInfo( services.GetRequiredService<TranslationService>(), fromCommand );
+                    }
+                    else
+                    {
+                        monitor.Warn( $"Unexisting CurrentCultureName '{cC.CurrentCultureName}' while validating command '{command.CrisPocoModel.PocoName}'. Ignoring it." );
+                    }
+                }
+                currentCulture ??= services.GetRequiredService<CurrentCultureInfo>();
+                var c = new UserMessageCollector( currentCulture );
+                await DoValidateCommandAsync( monitor, c, services, command );
+                if( c.ErrorCount > 0 )
+                {
+                    string logKey = LogValidationError( monitor, command, c, "incoming", commandLogGroup );
+                    return new CrisValidationResult( c.UserMessages, logKey );
+                }
+                return c.UserMessages.Count == 0
+                        ? CrisValidationResult.SuccessResult
+                        : new CrisValidationResult( c.UserMessages, null );
+            }
+            catch( Exception ex )
+            {
+                var messages = ImmutableArray.CreateBuilder<UserMessage>();
+                var k = PocoFactoryExtensions.OnUnhandledError( monitor, ex, command, false, currentCulture, messages.Add );
+                return new CrisValidationResult( messages.ToImmutableArray(), k );
+            }
+        }
+
+        internal static string LogValidationError( IActivityMonitor monitor, ICrisPoco command, UserMessageCollector c, string incomingOrHandling, IDisposableGroup? commandLogGroup )
+        {
+            // Don't open a new group if there's one and it is not rejected.
+            bool errorOpened = false;
+            if( commandLogGroup == null || commandLogGroup.IsRejectedGroup )
+            {
+                errorOpened = true;
+                commandLogGroup = monitor.UnfilteredOpenGroup( LogLevel.Error | LogLevel.IsFiltered, CrisDirectory.CrisTag, $"Command '{command.CrisPocoModel.PocoName}' {incomingOrHandling} validation error.", null );
+            }
+            string? logKey = commandLogGroup.GetLogKeyString();
+            Throw.DebugAssert( "The group is not rejected.", logKey != null );
+            c.DumpLogs( monitor );
+            if( errorOpened ) monitor.CloseGroup();
+            return logKey;
+        }
+
+        /// <summary>
+        /// This method is automatically implemented by RawCrisValidatorImpl in CK.Cris.Executor.Engine.
+        /// </summary>
+        /// <param name="monitor">The monitor.</param>
+        /// <param name="validationContext">The user message collector.</param>
+        /// <param name="services">The service context from which any required dependencies must be resolved.</param>
+        /// <param name="command">The command to validate.</param>
+        /// <returns>The awaitable.</returns>
+        protected abstract Task DoValidateCommandAsync( IActivityMonitor monitor,
+                                                        UserMessageCollector validationContext,
+                                                        IServiceProvider services,
+                                                        IAbstractCommand command );
+    }
+}

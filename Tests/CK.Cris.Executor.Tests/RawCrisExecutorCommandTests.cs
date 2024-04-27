@@ -72,8 +72,8 @@ namespace CK.Cris.Executor.Tests
 
                 CmdSyncHandler.Called = false;
 
-                var result = await executor.RawExecuteAsync( services, cmd );
-                result.Should().BeNull();
+                var raw = await executor.RawExecuteAsync( services, cmd );
+                raw.Result.Should().BeNull();
                 CmdSyncHandler.Called.Should().BeTrue();
             }
         }
@@ -139,8 +139,8 @@ namespace CK.Cris.Executor.Tests
 
                 CmdIntSyncHandler.Called = false;
 
-                var result = await executor.RawExecuteAsync( services, cmd );
-                result.Should().Be( 3712 );
+                var raw = await executor.RawExecuteAsync( services, cmd );
+                raw.Result.Should().Be( 3712 );
                 CmdIntSyncHandler.Called.Should().BeTrue();
             }
         }
@@ -266,8 +266,8 @@ namespace CK.Cris.Executor.Tests
 
                 CommandHandlerImpl.Called = false;
 
-                var result = await executor.RawExecuteAsync( services, cmd );
-                result.Should().BeNull();
+                var raw = await executor.RawExecuteAsync( services, cmd );
+                raw.Result.Should().BeNull();
 
                 CommandHandlerImpl.Called.Should().BeTrue();
             }
@@ -303,8 +303,8 @@ namespace CK.Cris.Executor.Tests
 
                 CommandHandlerExplicitImpl.Called = false;
 
-                var result = await executor.RawExecuteAsync( services, cmd );
-                result.Should().BeNull();
+                var raw = await executor.RawExecuteAsync( services, cmd );
+                raw.Result.Should().BeNull();
 
                 CommandHandlerExplicitImpl.Called.Should().BeTrue();
             }
@@ -331,9 +331,9 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task calling_a_base_class_implementation_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof(RawCrisExecutor),
-                                                     typeof(IIntResultCommand),
-                                                     typeof(SpecializedBaseClassService));
+            var c = TestHelper.CreateStObjCollector( typeof( RawCrisExecutor ),
+                                                     typeof( IIntResultCommand ),
+                                                     typeof( SpecializedBaseClassService ) );
             using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
             using( var scope = appServices.CreateScope() )
             {
@@ -341,8 +341,8 @@ namespace CK.Cris.Executor.Tests
                 var executor = services.GetRequiredService<RawCrisExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<IIntResultCommand>>().Create();
 
-                var result = await executor.RawExecuteAsync( services, cmd );
-                result.Should().Be( cmd.GetHashCode() );
+                var raw = await executor.RawExecuteAsync( services, cmd );
+                raw.Result.Should().Be( cmd.GetHashCode() );
             }
         }
 
