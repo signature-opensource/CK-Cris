@@ -1,14 +1,12 @@
 using CK.Core;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Reflection;
 
 namespace CK.Setup.Cris
 {
     /// <summary>
-    /// Base class for CommandValidatorAttributeImpl, CommandHandlerAttributeImpl, CommandPostHandlerAttributeImpl
+    /// Base class for CommandHandlingValidatorAttributeImpl, CommandHandlerAttributeImpl, CommandPostHandlerAttributeImpl
     /// and RoutedEventHandlerAttributeImpl.
     /// </summary>
     abstract class BaseHandlerAttributeImpl : ICSCodeGenerator

@@ -17,7 +17,7 @@ namespace CK.Cris.HttpSender.Tests
 
     public sealed class TotalCommandService : ISingletonAutoService
     {
-        [CommandValidator]
+        [CommandHandlingValidator]
         public void Validate( UserMessageCollector validator, ITotalCommand cmd )
         {
             if( !string.IsNullOrEmpty( cmd.Action )

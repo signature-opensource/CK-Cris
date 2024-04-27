@@ -31,7 +31,7 @@ namespace Other
             Called = true;
         }
 
-        [CommandValidator]
+        [CommandHandlingValidator]
         public void Validate( UserMessageCollector c, ITestCommand cmd )
         {
             if( cmd.Value <= 0 ) c.Error( "Value must be positive." );
@@ -40,7 +40,7 @@ namespace Other
 
     public class BuggyValidator : IAutoService
     {
-        [CommandValidator]
+        [CommandHandlingValidator]
         public void ValidateCommand( UserMessageCollector c, ITestCommand cmd )
         {
             throw new Exception( "This should not happen!" );

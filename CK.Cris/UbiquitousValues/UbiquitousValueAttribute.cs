@@ -18,7 +18,7 @@ namespace CK.Cris
     ///     A [CommandPostHandler] must update the <see cref="IUbiquitousValues"/> 
     ///     </item>
     /// </list>
-    /// Whether a [CommandEndpointValidator] method exists that validates the value against one or more services
+    /// Whether a [CommandIncomingValidator] method exists that validates the value against one or more services
     /// or a [ConfigureAmbientServices] method exists that configures the Ambient services from it, or the value
     /// is used as-is depends on the semantics of the value.
     /// </summary>

@@ -56,7 +56,7 @@ namespace CK.Cris.AspNet.E2ETests
                 return culture.InfoMessage( $"Local servert time is {DateTime.Now}." );
             }
 
-            [CommandValidator]
+            [CommandHandlingValidator]
             public void ValidateBuggyCommand( UserMessageCollector collector, IBuggyCommand cmd )
             {
                 using( collector.OpenInfo( "This is an info from the command validation." ) )

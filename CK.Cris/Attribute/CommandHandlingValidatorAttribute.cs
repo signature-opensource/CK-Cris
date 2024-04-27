@@ -14,22 +14,22 @@ namespace CK.Cris
     /// and could perfectly been directly called by the handler.
     /// </para>
     /// <para>
-    /// The <see cref="CommandEndpointValidatorAttribute"/> defines validators that check the "surface" of a command.
+    /// The <see cref="CommandIncomingValidatorAttribute"/> defines validators that check the "surface" of a command.
     /// These validators are called in the context of the endpoints that receive the command.
     /// When the validation concerns any aspect independent of the command execution itself, it is recommended to use
     /// the CommandSyntaxValidator.
     /// </para>
     /// </summary>
     [AttributeUsage( AttributeTargets.Method, AllowMultiple = false, Inherited = false )]
-    public sealed class CommandValidatorAttribute : ContextBoundDelegationAttribute
+    public sealed class CommandHandlingValidatorAttribute : ContextBoundDelegationAttribute
     {
         /// <summary>
-        /// Initializes a new <see cref="CommandValidatorAttribute"/>.
+        /// Initializes a new <see cref="CommandHandlingValidatorAttribute"/>.
         /// </summary>
         /// <param name="fileName">Captures the source file name of the validator definition.</param>
         /// <param name="lineNumber">Captures the source line number of the validator definition.</param>
-        public CommandValidatorAttribute( [CallerFilePath] string? fileName = null, [CallerLineNumber] int lineNumber = 0 )
-            : base( "CK.Setup.Cris.CommandValidatorAttributeImpl, CK.Cris.Engine" )
+        public CommandHandlingValidatorAttribute( [CallerFilePath] string? fileName = null, [CallerLineNumber] int lineNumber = 0 )
+            : base( "CK.Setup.Cris.CommandHandlingValidatorAttributeImpl, CK.Cris.Engine" )
         {
             FileName = fileName;
             LineNumber = lineNumber;

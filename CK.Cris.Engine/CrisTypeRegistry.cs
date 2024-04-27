@@ -365,7 +365,7 @@ namespace CK.Setup.Cris
                                                           m,
                                                           fileName,
                                                           lineNumber,
-                                                          isSyntax ? MultiTarget.CommandEndpointValidator : MultiTarget.CommandValidator );
+                                                          isSyntax ? MultiTarget.CommandIncomingValidator : MultiTarget.CommandHandlingValidator );
         }
 
         internal bool RegisterRoutedEventHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber )
@@ -376,9 +376,9 @@ namespace CK.Setup.Cris
         enum MultiTarget
         {
             RoutedEventHandler,
-            CommandEndpointValidator,
+            CommandIncomingValidator,
             CommandServiceConfigurator,
-            CommandValidator
+            CommandHandlingValidator
         }
 
         bool RegisterValidatorOrRoutedEventHandler( IActivityMonitor monitor,
@@ -418,7 +418,7 @@ namespace CK.Setup.Cris
                     success = false;
                 }
                 ParameterInfo? validatorUserMessageCollector = null;
-                if( target is MultiTarget.CommandEndpointValidator || target is MultiTarget.CommandValidator )
+                if( target is MultiTarget.CommandIncomingValidator || target is MultiTarget.CommandHandlingValidator )
                 {
                     var callContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisEventContext ) );
                     if( callContext != null )
@@ -444,7 +444,7 @@ namespace CK.Setup.Cris
                         success &= target switch
                         {
                             MultiTarget.RoutedEventHandler => e.AddRoutedEventHandler( monitor, impl, m, parameters, foundParameter, fileName, lineNumber ),
-                            MultiTarget.CommandEndpointValidator => e.AddValidator( monitor, true, impl, m, parameters, foundParameter, validatorUserMessageCollector!, fileName, lineNumber ),
+                            MultiTarget.CommandIncomingValidator => e.AddValidator( monitor, true, impl, m, parameters, foundParameter, validatorUserMessageCollector!, fileName, lineNumber ),
                             MultiTarget.CommandServiceConfigurator => Throw.NotSupportedException<bool>(),
                             _ => e.AddValidator( monitor, false, impl, m, parameters, foundParameter, validatorUserMessageCollector!, fileName, lineNumber ),
                         };

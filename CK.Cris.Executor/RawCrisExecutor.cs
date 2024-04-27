@@ -31,13 +31,13 @@ namespace CK.Cris
         /// <param name="ValidationMessages">
         /// Optional user validation messages.
         /// This is never null if the result is a <see cref="ICrisResultError"/> validation error (and at least one
-        /// of the message is an error message) or if [CommandValidator] methods have emitted <see cref="UserMessageLevel.Info"/>
+        /// of the message is an error message) or if [CommandHandlingValidator] methods have emitted <see cref="UserMessageLevel.Info"/>
         /// or <see cref="UserMessageLevel.Warn"/> messages.
         /// </param>
         public readonly record struct RawResult( object? Result, UserMessageCollector? ValidationMessages );
 
         /// <summary>
-        /// Executes a command by calling the discovered validators (not the <see cref="CommandEndpointValidatorAttribute"/>),
+        /// Executes a command by calling the discovered handling validators (not the <see cref="CommandIncomingValidatorAttribute"/>),
         /// the handler and the post handlers.
         /// <para>
         /// This never throws: a <see cref="ICrisResultError"/> is the <see cref="RawResult.Result"/> on error.

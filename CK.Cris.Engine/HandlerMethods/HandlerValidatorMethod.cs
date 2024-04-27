@@ -8,15 +8,15 @@ namespace CK.Setup.Cris
 {
     public sealed class HandlerValidatorMethod : HandlerBase
     {
-        readonly bool _isSyntax;
-        public override CrisHandlerKind Kind => _isSyntax ? CrisHandlerKind.CommandSyntaxValidator : CrisHandlerKind.CommandValidator;
+        readonly bool _isIncoming;
+        public override CrisHandlerKind Kind => _isIncoming ? CrisHandlerKind.CommandIncomingValidator : CrisHandlerKind.CommandHandlingValidator;
         public readonly ParameterInfo CmdOrPartParameter;
         public readonly ParameterInfo ValidationContextParameter;
         public readonly bool IsRefAsync;
         public readonly bool IsValAsync;
 
         internal HandlerValidatorMethod( CrisType crisType,
-                                         bool isSyntax,
+                                         bool isIncoming,
                                          IStObjFinalClass owner,
                                          MethodInfo method,
                                          ParameterInfo[] parameters,
@@ -28,7 +28,7 @@ namespace CK.Setup.Cris
                                          bool isValAsync )
             : base( crisType, owner, method, parameters, fileName, lineNumber )
         {
-            _isSyntax = isSyntax;
+            _isIncoming = isIncoming;
             CmdOrPartParameter = cmdOrPartParameter;
             ValidationContextParameter = validationContextParameter;
             IsRefAsync = isRefAsync;

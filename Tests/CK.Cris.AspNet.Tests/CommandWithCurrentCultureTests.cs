@@ -39,14 +39,14 @@ namespace CK.Cris.AspNet.Tests
                 return culture.CurrentCulture.Name;
             }
 
-            [CommandEndpointValidator]
+            [CommandIncomingValidator]
             public void IncomingValidate( UserMessageCollector c, ITestCommand cmd, CurrentCultureInfo culture )
             {
                 c.Info( $"The collector is '{c.Culture}' The current is '{culture.CurrentCulture}'.", "Test.Info" );
                 if( !cmd.IsIncomingValid ) c.Error( $"Sorry, this command is INCOMING invalid!", "Test.InvalidIncomingCommand" );
             }
 
-            [CommandValidator]
+            [CommandHandlingValidator]
             public void HandlingValidate( UserMessageCollector c, ITestCommand cmd, CurrentCultureInfo culture )
             {
                 Throw.DebugAssert( c.CurrentCultureInfo == culture );

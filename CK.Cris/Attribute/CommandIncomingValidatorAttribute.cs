@@ -10,19 +10,19 @@ namespace CK.Cris
     /// or processwide singletons services (typically related to authentication, tenancy, culture, etc.).
     /// <para>
     /// Using "execution" services that are close to the execution of the command, should be avoided:
-    /// to validate a command in the same Unit of Work as its execution, use <see cref="CommandValidatorAttribute"/> instead.
+    /// to validate a command in the same Unit of Work as its execution, use <see cref="CommandHandlingValidatorAttribute"/> instead.
     /// </para>
     /// </summary>
     [AttributeUsage( AttributeTargets.Method, AllowMultiple = false, Inherited = false )]
-    public sealed class CommandEndpointValidatorAttribute : ContextBoundDelegationAttribute
+    public sealed class CommandIncomingValidatorAttribute : ContextBoundDelegationAttribute
     {
         /// <summary>
-        /// Initializes a new <see cref="CommandEndpointValidatorAttribute"/>.
+        /// Initializes a new <see cref="CommandIncomingValidatorAttribute"/>.
         /// </summary>
         /// <param name="fileName">Captures the source file name of the validator definition.</param>
         /// <param name="lineNumber">Captures the source line number of the validator definition.</param>
-        public CommandEndpointValidatorAttribute( [CallerFilePath] string? fileName = null, [CallerLineNumber] int lineNumber = 0 )
-            : base( "CK.Setup.Cris.CommandEndpointValidatorAttributeImpl, CK.Cris.Engine" )
+        public CommandIncomingValidatorAttribute( [CallerFilePath] string? fileName = null, [CallerLineNumber] int lineNumber = 0 )
+            : base( "CK.Setup.Cris.CommandIncomingValidatorAttributeImpl, CK.Cris.Engine" )
         {
             FileName = fileName;
             LineNumber = lineNumber;

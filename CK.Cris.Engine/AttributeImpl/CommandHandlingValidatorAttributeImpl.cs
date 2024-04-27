@@ -1,20 +1,16 @@
 using CK.Core;
 using CK.Cris;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace CK.Setup.Cris
 {
 
-    sealed class CommandValidatorAttributeImpl : BaseHandlerAttributeImpl
+    sealed class CommandHandlingValidatorAttributeImpl : BaseHandlerAttributeImpl
     {
-        readonly CommandValidatorAttribute _a;
+        readonly CommandHandlingValidatorAttribute _a;
 
-        public CommandValidatorAttributeImpl( CommandValidatorAttribute a, Type t, MethodInfo m )
+        public CommandHandlingValidatorAttributeImpl( CommandHandlingValidatorAttribute a, Type t, MethodInfo m )
             : base( t, m )
         {
             _a = a;

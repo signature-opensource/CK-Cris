@@ -6,11 +6,11 @@ using System.Reflection;
 namespace CK.Setup.Cris
 {
 
-    sealed class CommandEndpointValidatorAttributeImpl : BaseHandlerAttributeImpl
+    sealed class CommandIncomingValidatorAttributeImpl : BaseHandlerAttributeImpl
     {
-        readonly CommandEndpointValidatorAttribute _a;
+        readonly CommandIncomingValidatorAttribute _a;
 
-        public CommandEndpointValidatorAttributeImpl( CommandEndpointValidatorAttribute a, Type t, MethodInfo m )
+        public CommandIncomingValidatorAttributeImpl( CommandIncomingValidatorAttribute a, Type t, MethodInfo m )
             : base( t, m )
         {
             _a = a;

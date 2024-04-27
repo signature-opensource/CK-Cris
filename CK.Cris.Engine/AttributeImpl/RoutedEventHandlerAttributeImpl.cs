@@ -1,7 +1,6 @@
 using CK.Core;
 using CK.Cris;
 using System;
-using System.Diagnostics;
 using System.Reflection;
 
 namespace CK.Setup.Cris

@@ -8,12 +8,12 @@ namespace CK.Cris
         /// <summary>
         /// Validates a command syntaxically (when the command is received).
         /// </summary>
-        CommandSyntaxValidator,
+        CommandIncomingValidator,
 
         /// <summary>
         /// Validates a command right before it is handled.
         /// </summary>
-        CommandValidator,
+        CommandHandlingValidator,
 
         /// <summary>
         /// Handles a command.
