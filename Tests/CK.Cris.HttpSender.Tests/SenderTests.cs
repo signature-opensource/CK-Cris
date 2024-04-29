@@ -25,7 +25,7 @@ namespace CK.Cris.HttpSender.Tests
         public async Task sending_commands_Async()
         {
             // We need the fr culture for this test.
-            NormalizedCultureInfo.GetNormalizedCultureInfo( "fr" );
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
 
             await using var runningServer = await TestHelper.RunAspNetServerAsync(
                                                 new[]

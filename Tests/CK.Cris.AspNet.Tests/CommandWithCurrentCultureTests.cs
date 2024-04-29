@@ -86,7 +86,7 @@ namespace CK.Cris.AspNet.Tests
         [Test]
         public async Task command_with_culture_Async()
         {
-            NormalizedCultureInfo.GetNormalizedCultureInfo( "fr" ).SetCachedTranslations( new[] {
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" ).SetCachedTranslations( new[] {
                 ("Test.Info", "Le validateur est en '{0}', la culture courante en '{1}'."),
                 ("Test.InvalidIncomingCommand", "Désolé, INCOMING invalide."),
                 ("Test.InvalidHandlingCommand", "Désolé, HANDLING invalide."),
