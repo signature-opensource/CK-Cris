@@ -78,12 +78,19 @@ namespace CK.Cris
         /// <returns>True on success, false if an exception has been caught and logged.</returns>
         public abstract Task<bool> SafeDispatchEventAsync( IServiceProvider services, IEvent e );
 
+        /// <summary>
+        /// Infrastructure code not intended to be used directly.
+        /// </summary>
+        /// <param name="services">The services.</param>
+        /// <param name="command">The command.</param>
+        /// <param name="c">The collector with errors.</param>
+        /// <returns>The LogKey (may be null).</returns>
         protected static string? LogValidationError( IServiceProvider services, ICrisPoco command, UserMessageCollector c )
         {
             IActivityMonitor? monitor = (IActivityMonitor?)services.GetService( typeof( IActivityMonitor ) );
             if( monitor != null )
             {
-                return RawCrisEndpointValidator.LogValidationError( monitor, command, c, "handling", null );
+                return RawCrisReceiver.LogValidationError( monitor, command, c, "handling", null );
             }
             ActivityMonitor.StaticLogger.Error( $"Command '{command.CrisPocoModel.PocoName}' handling validation error. (No IActivityMonitor available.)" );
             return null;

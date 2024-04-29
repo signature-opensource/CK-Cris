@@ -9,29 +9,33 @@ using System.Threading.Tasks;
 namespace CK.Cris
 {
     /// <summary>
-    /// Command validation service.
+    /// Command receiver service.
+    /// <para>
+    /// This is a processwide singleton that can validate the incoming commands and
+    /// configure ambient services to execute the command in another DI container. 
+    /// </para>
     /// </summary>
-    [ContextBoundDelegation( "CK.Setup.Cris.RawCrisEndpointValidatorImpl, CK.Cris.Executor.Engine" )]
+    [ContextBoundDelegation( "CK.Setup.Cris.RawCrisReceiverImpl, CK.Cris.Executor.Engine" )]
     // To simplify testing.
     [AlsoRegisterType( typeof( NormalizedCultureInfoUbiquitousServiceDefault ) )]
     [AlsoRegisterType( typeof( TranslationService ) )]
     [AlsoRegisterType( typeof( NormalizedCultureInfo ) )]
     [AlsoRegisterType( typeof( CurrentCultureInfo ) )]
-    public abstract class RawCrisEndpointValidator : ISingletonAutoService
+    public abstract class RawCrisReceiver : ISingletonAutoService
     {
         protected CrisDirectory Directory;
 
         /// <summary>
-        /// Initializes a new <see cref="RawCrisEndpointValidator"/>.
+        /// Initializes a new <see cref="RawCrisReceiver"/>.
         /// </summary>
         /// <param name="directory">The command directory.</param>
-        public RawCrisEndpointValidator( CrisDirectory directory )
+        public RawCrisReceiver( CrisDirectory directory )
         {
             Directory = directory;
         }
 
         /// <summary>
-        /// Validates a command by calling all the discovered validators.
+        /// Validates a command by calling all the discovered [CommandIncomingValidator] validators.
         /// <para>
         /// This never throws: exceptions are handled (logged and appear in the error messages) by this method.
         /// </para>
@@ -40,13 +44,13 @@ namespace CK.Cris
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to validate.</param>
         /// <param name="commandLogGroup">Optional opened group for the command handling.</param>
-        /// <param name="culture">Optional culture to use instead of the one from <paramref name="services"/>.</param>
+        /// <param name="currentCulture">Optional culture to use instead of the one from <paramref name="services"/>.</param>
         /// <returns>The validation result.</returns>
-        public async Task<CrisValidationResult> ValidateCommandAsync( IActivityMonitor monitor,
-                                                                      IServiceProvider services,
-                                                                      IAbstractCommand command,
-                                                                      IDisposableGroup? commandLogGroup = null,
-                                                                      CurrentCultureInfo? currentCulture = null )
+        public async Task<CrisValidationResult> IncomingValidateAsync( IActivityMonitor monitor,
+                                                                       IServiceProvider services,
+                                                                       IAbstractCommand command,
+                                                                       IDisposableGroup? commandLogGroup = null,
+                                                                       CurrentCultureInfo? currentCulture = null )
         {
             Throw.CheckNotNullArgument( monitor );
             Throw.CheckNotNullArgument( services );
@@ -58,7 +62,7 @@ namespace CK.Cris
             {
                 if( command is ICommandWithCurrentCulture cC && !String.IsNullOrWhiteSpace( cC.CurrentCultureName ) )
                 {
-                    // Do not use GetExtendedCultureInfo here. We don't want to be flood by random strings
+                    // Do not use EnsureExtendedCultureInfo here. We don't want to be flood by random strings
                     // that will damage the cache.
                     var fromCommand = ExtendedCultureInfo.FindExtendedCultureInfo( cC.CurrentCultureName );
                     if( fromCommand != null )
@@ -90,7 +94,11 @@ namespace CK.Cris
             }
         }
 
-        internal static string LogValidationError( IActivityMonitor monitor, ICrisPoco command, UserMessageCollector c, string incomingOrHandling, IDisposableGroup? commandLogGroup )
+        internal static string LogValidationError( IActivityMonitor monitor,
+                                                   ICrisPoco command,
+                                                   UserMessageCollector c,
+                                                   string incomingOrHandling,
+                                                   IDisposableGroup? commandLogGroup )
         {
             // Don't open a new group if there's one and it is not rejected.
             bool errorOpened = false;

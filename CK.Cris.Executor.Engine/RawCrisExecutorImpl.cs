@@ -3,7 +3,6 @@ using CK.Core;
 using CK.Cris;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
@@ -171,7 +170,7 @@ namespace CK.Setup.Cris
                 f.Append( "v = new UserMessageCollector( " ).Append( cachedServices.GetServiceVariableName( typeof( CurrentCultureInfo ) ) ).Append( " );" ).NewLine()
                  .Append( "try" )
                  .OpenBlock();
-                RawCrisEndpointValidatorImpl.GenerateValidationCode( f, e.Validators, cachedServices, out var validatorsRequireAsync );
+                RawCrisReceiverImpl.GenerateValidationCode( f, e.Validators, cachedServices, out var validatorsRequireAsync );
                 isOverallAsync |= validatorsRequireAsync;
 
                 f.CloseBlock()

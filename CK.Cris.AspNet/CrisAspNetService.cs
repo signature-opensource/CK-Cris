@@ -22,14 +22,14 @@ namespace CK.Cris.AspNet
     [AlsoRegisterType( typeof( CrisDirectory ) )]
     [AlsoRegisterType( typeof( TypeScriptCrisCommandGenerator ) )]
     [AlsoRegisterType( typeof( CommonPocoJsonSupport ) )]
-    [AlsoRegisterType( typeof( RawCrisEndpointValidator ) )]
+    [AlsoRegisterType( typeof( RawCrisReceiver ) )]
     [AlsoRegisterType( typeof( IAspNetCrisResult ) )]
     [AlsoRegisterType( typeof( IAspNetCrisResultError ) )]
     [AlsoRegisterType( typeof( CrisBackgroundExecutorService ) )]
     [AlsoRegisterType( typeof( IUbiquitousValuesCollectCommand ) )]
     public partial class CrisAspNetService : ISingletonAutoService
     {
-        readonly RawCrisEndpointValidator _validator;
+        readonly RawCrisReceiver _validator;
         readonly CrisBackgroundExecutorService _backgroundExecutor;
         internal readonly PocoDirectory _pocoDirectory;
         readonly IPocoFactory<IAspNetCrisResult> _resultFactory;
@@ -37,7 +37,7 @@ namespace CK.Cris.AspNet
         readonly IPocoFactory<ICrisResultError> _crisErrorResultFactory;
 
         public CrisAspNetService( PocoDirectory poco,
-                                  RawCrisEndpointValidator validator,
+                                  RawCrisReceiver validator,
                                   CrisBackgroundExecutorService backgroundExecutor,
                                   IPocoFactory<IAspNetCrisResult> resultFactory,
                                   IPocoFactory<IAspNetCrisResultError> errorResultFactory,
@@ -100,7 +100,7 @@ namespace CK.Cris.AspNet
                     // No read error => no validation error (and we have a command and a valid TypeFilterName).
                     Throw.DebugAssert( readResult.Command != null && readResult.TypeFilterName != null );
                     // Incoming command validation.
-                    CrisValidationResult validation = await _validator.ValidateCommandAsync( monitor, requestServices, readResult.Command );
+                    CrisValidationResult validation = await _validator.IncomingValidateAsync( monitor, requestServices, readResult.Command );
                     allValidationMessages = allValidationMessages.Concat( validation.ValidationMessages );
                     if( !validation.Success )
                     {

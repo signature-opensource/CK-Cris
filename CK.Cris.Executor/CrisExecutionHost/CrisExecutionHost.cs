@@ -19,13 +19,13 @@ namespace CK.Cris
     /// (but nothing prevents other host to be instantiated and used independently).
     /// </para>
     /// </summary>
-    [Setup.AlsoRegisterType( typeof( RawCrisEndpointValidator ) )]
+    [Setup.AlsoRegisterType( typeof( RawCrisReceiver ) )]
     [Setup.AlsoRegisterType( typeof( CrisExecutionContext ) )]
     public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAutoService
     {
         readonly IPocoFactory<ICrisResultError> _errorResultFactory;
         readonly DarkSideCrisEventHub _eventHub;
-        readonly RawCrisEndpointValidator _commandValidator;
+        readonly RawCrisReceiver _commandValidator;
         internal readonly RawCrisExecutor _rawExecutor;
 
         readonly PerfectEventSender<ICrisExecutionHost> _parallelRunnerCountChanged;
@@ -47,7 +47,7 @@ namespace CK.Cris
         /// <param name="eventHub">The cris event hub.</param>
         /// <param name="validator">The command validator.</param>
         /// <param name="executor">The command executor.</param>
-        public CrisExecutionHost( DarkSideCrisEventHub eventHub, RawCrisEndpointValidator validator, RawCrisExecutor executor )
+        public CrisExecutionHost( DarkSideCrisEventHub eventHub, RawCrisReceiver validator, RawCrisExecutor executor )
         {
             Throw.CheckNotNullArgument( eventHub );
             Throw.CheckNotNullArgument( validator );
@@ -118,7 +118,7 @@ namespace CK.Cris
 
                 if( job._incomingValidationCheck )
                 {
-                    var validation = await _commandValidator.ValidateCommandAsync( monitor, scoped.ServiceProvider, job.Command, gLog );
+                    var validation = await _commandValidator.IncomingValidateAsync( monitor, scoped.ServiceProvider, job.Command, gLog );
                     if( !validation.Success )
                     {
                         var error = _errorResultFactory.Create();

@@ -4,16 +4,15 @@ using CK.Cris;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 namespace CK.Setup.Cris
 {
-    public class RawCrisEndpointValidatorImpl : CSCodeGeneratorType
+    public class RawCrisReceiverImpl : CSCodeGeneratorType
     {
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
-            Throw.CheckArgument( "Applies only to the RawCrisEndpointValidator class.", classType == typeof( RawCrisEndpointValidator ) );
+            Throw.CheckArgument( "Applies only to the RawCrisReceiver class.", classType == typeof( RawCrisReceiver ) );
 
             var crisEngineService = c.CurrentRun.ServiceContainer.GetService<ICrisDirectoryServiceEngine>();
             if( crisEngineService == null ) return CSCodeGenerationResult.Retry;

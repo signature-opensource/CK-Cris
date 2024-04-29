@@ -11,7 +11,7 @@ using static CK.Testing.StObjEngineTestHelper;
 namespace CK.Cris.Executor.Tests
 {
     [TestFixture]
-    public class RawCrisEndpointValidatorTests
+    public class RawCrisReceiverTests
     {
         [ExternalName( "Test" )]
         public interface ITestCommand : ICommand
@@ -23,7 +23,7 @@ namespace CK.Cris.Executor.Tests
         public async Task when_there_is_no_validation_methods_the_validation_succeeds_Async()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( RawCrisEndpointValidator ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( UbiquitousValues.IUbiquitousValues ),
+                typeof( RawCrisReceiver ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( UbiquitousValues.IUbiquitousValues ),
                 typeof( ITestCommand ) );
 
             using var services = TestHelper.CreateAutomaticServices( c ).Services;
@@ -32,8 +32,8 @@ namespace CK.Cris.Executor.Tests
             var directory = services.GetRequiredService<PocoDirectory>();
             var cmd = directory.Create<ITestCommand>();
 
-            var validator = services.GetRequiredService<RawCrisEndpointValidator>();
-            var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+            var validator = services.GetRequiredService<RawCrisReceiver>();
+            var result = await validator.IncomingValidateAsync( TestHelper.Monitor, services, cmd );
             result.Success.Should().BeTrue();
         }
 
@@ -47,12 +47,12 @@ namespace CK.Cris.Executor.Tests
         }
 
         [Test]
-        public async Task exceptions_raised_by_validators_are_handled_by_the_RawCrisEndpointValidator_Async()
+        public async Task exceptions_raised_by_validators_are_handled_by_the_RawCrisReceiver_Async()
         {
             // To leak all exceptions in messages, CoreApplicationIdentity must be initialized and be in "#Dev" environment name.  
             CoreApplicationIdentity.Initialize();
 
-            var c = TestHelper.CreateStObjCollector( typeof( RawCrisEndpointValidator ), typeof( CrisDirectory ),
+            var c = TestHelper.CreateStObjCollector( typeof( RawCrisReceiver ), typeof( CrisDirectory ),
                                                      typeof( ITestCommand ),
                                                      typeof( BuggyValidator ) );
             using var services = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
@@ -61,8 +61,8 @@ namespace CK.Cris.Executor.Tests
             var directory = services.GetRequiredService<PocoDirectory>();
             var cmd = directory.Create<ITestCommand>();
 
-            var validator = services.GetRequiredService<RawCrisEndpointValidator>();
-            var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+            var validator = services.GetRequiredService<RawCrisReceiver>();
+            var result = await validator.IncomingValidateAsync( TestHelper.Monitor, services, cmd );
             result.Success.Should().BeFalse();
             result.ErrorMessages.Should().HaveCount( 2 )
                        .And.Contain( m => m.Level == UserMessageLevel.Error
@@ -104,7 +104,7 @@ namespace CK.Cris.Executor.Tests
         [TestCase( true, true )]
         public async Task the_simplest_validation_is_held_by_a_dependency_free_service_and_is_synchronous_Async( bool scopedService, bool singletonService )
         {
-            var c = TestHelper.CreateStObjCollector( typeof( RawCrisEndpointValidator ), typeof( CrisDirectory ),
+            var c = TestHelper.CreateStObjCollector( typeof( RawCrisReceiver ), typeof( CrisDirectory ),
                                                      typeof( ITestCommand ),
                                                      typeof( IWithoutValidatorsCommand ) );
             if( singletonService ) c.RegisterType( TestHelper.Monitor, typeof( SimplestValidatorEverSingleton ) );
@@ -118,10 +118,10 @@ namespace CK.Cris.Executor.Tests
                 var services = scope.ServiceProvider;
 
                 var directory = services.GetRequiredService<CrisDirectory>();
-                var validator = services.GetRequiredService<RawCrisEndpointValidator>();
+                var validator = services.GetRequiredService<RawCrisReceiver>();
 
                 var cmd = services.GetRequiredService<IPocoFactory<ITestCommand>>().Create( c => c.Value = -1 );
-                var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+                var result = await validator.IncomingValidateAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeFalse();
                 if( scopedService )
                 {
@@ -133,7 +133,7 @@ namespace CK.Cris.Executor.Tests
                 }
 
                 cmd.Value = 0;
-                result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+                result = await validator.IncomingValidateAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeTrue();
                 result.ValidationMessages.Any( m => m.Level == UserMessageLevel.Warn ).Should().BeTrue();
                 if( scopedService )
@@ -184,7 +184,7 @@ namespace CK.Cris.Executor.Tests
         public async Task part_with_parameter_injection_Async()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( RawCrisEndpointValidator ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( UbiquitousValues.IUbiquitousValues ),
+                typeof( RawCrisReceiver ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( UbiquitousValues.IUbiquitousValues ),
                 typeof( ITestSecureCommand ),
                 typeof( AuthenticationValidator ),
                 typeof( SimplestValidatorEverScoped ),
@@ -204,10 +204,10 @@ namespace CK.Cris.Executor.Tests
                 var services = scope.ServiceProvider;
 
                 var directory = services.GetRequiredService<CrisDirectory>();
-                var validator = services.GetRequiredService<RawCrisEndpointValidator>();
+                var validator = services.GetRequiredService<RawCrisReceiver>();
 
                 var cmd = services.GetRequiredService<IPocoFactory<ITestSecureCommand>>().Create( c => c.Value = 1 );
-                var result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+                var result = await validator.IncomingValidateAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeFalse();
                 result.ValidationMessages.Should().HaveCount( 3 )
                         .And.Contain( m => m.Level == UserMessageLevel.Error && m.Text == "Security error." )
@@ -215,7 +215,7 @@ namespace CK.Cris.Executor.Tests
                         .And.Contain( m => m.Level == UserMessageLevel.Info && m.Text == "AsyncValidator is fine." );
 
                 cmd.ActorId = 3712;
-                result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+                result = await validator.IncomingValidateAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeTrue();
                 result.ValidationMessages.Any( m => m.Level == UserMessageLevel.Warn ).Should().BeFalse();
                 result.ValidationMessages.Should().HaveCount( 2 )
@@ -223,7 +223,7 @@ namespace CK.Cris.Executor.Tests
                        .And.Contain( m => m.Level == UserMessageLevel.Info && m.Text == "AsyncValidator is fine." );
 
                 cmd.Value = 0;
-                result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+                result = await validator.IncomingValidateAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeTrue();
                 result.ValidationMessages.Should().HaveCount( 3 )
                        .And.Contain( m => m.Level == UserMessageLevel.Warn && m.Text == "[Scoped]A positive Value would be better." )
@@ -232,7 +232,7 @@ namespace CK.Cris.Executor.Tests
 
                 cmd.ActorId = 3712;
                 cmd.WarnByAsyncValidator = true;
-                result = await validator.ValidateCommandAsync( TestHelper.Monitor, services, cmd );
+                result = await validator.IncomingValidateAsync( TestHelper.Monitor, services, cmd );
                 result.Success.Should().BeTrue();
                 result.ValidationMessages.Should().HaveCount( 3 )
                        .And.Contain( m => m.Level == UserMessageLevel.Warn && m.Text == "[Scoped]A positive Value would be better." )
@@ -255,7 +255,7 @@ namespace CK.Cris.Executor.Tests
         public async Task Validators_can_log_if_they_want_Async()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( RawCrisEndpointValidator ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( UbiquitousValues.IUbiquitousValues ),
+                typeof( RawCrisReceiver ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( UbiquitousValues.IUbiquitousValues ),
                 typeof( ITestCommand ),
                 typeof( ValidatorWithLogs ) );
 
@@ -265,13 +265,13 @@ namespace CK.Cris.Executor.Tests
             using( var scope = appServices.CreateScope() )
             {
                 var directory = scope.ServiceProvider.GetRequiredService<PocoDirectory>();
-                var validator = scope.ServiceProvider.GetRequiredService<RawCrisEndpointValidator>();
+                var validator = scope.ServiceProvider.GetRequiredService<RawCrisReceiver>();
 
                 var cmd = directory.Create<ITestCommand>();
 
                 using( TestHelper.Monitor.CollectTexts( out var logs ) )
                 {
-                    var result = await validator.ValidateCommandAsync( TestHelper.Monitor, scope.ServiceProvider, cmd );
+                    var result = await validator.IncomingValidateAsync( TestHelper.Monitor, scope.ServiceProvider, cmd );
                     result.Success.Should().BeTrue();
                     result.ValidationMessages.Should().BeEmpty();
                     logs.Should().HaveCount( 1 )
