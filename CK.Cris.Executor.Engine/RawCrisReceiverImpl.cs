@@ -17,8 +17,8 @@ namespace CK.Setup.Cris
             var crisEngineService = c.CurrentRun.ServiceContainer.GetService<ICrisDirectoryServiceEngine>();
             if( crisEngineService == null ) return CSCodeGenerationResult.Retry;
 
-            // DoValidateCommandAsync is protected, we cannot use nameof() here.
-            var validateMethod = classType.GetMethod( "DoValidateCommandAsync",
+            // DoIncomingValidateAsync is protected, we cannot use nameof() here.
+            var validateMethod = classType.GetMethod( "DoIncomingValidateAsync",
                                                        System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance,
                                                        new[]
                                                         {
@@ -30,7 +30,7 @@ namespace CK.Setup.Cris
             Throw.DebugAssert( validateMethod != null );
 
             var mValidate = scope.CreateSealedOverride( validateMethod );
-            if( !crisEngineService.CrisTypes.Any( e => e.EndpointValidators.Count > 0 ) )
+            if( !crisEngineService.CrisTypes.Any( e => e.IncomingValidators.Count > 0 ) )
             {
                 mValidate.Definition.Modifiers &= ~Modifiers.Async;
                 mValidate.GeneratedByComment().NewLine()
@@ -46,12 +46,12 @@ namespace CK.Setup.Cris
 
                 foreach( var e in crisEngineService.CrisTypes )
                 {
-                    if( e.EndpointValidators.Count > 0 )
+                    if( e.IncomingValidators.Count > 0 )
                     {
                         var f = scope.CreateFunction( $"static Task V{e.CrisPocoIndex}( IActivityMonitor m, UserMessageCollector v, IServiceProvider s, CK.Cris.IAbstractCommand c )" );
 
                         var cachedServices = new VariableCachedServices( c.CurrentRun.EngineMap, f );
-                        GenerateValidationCode( f, e.EndpointValidators, cachedServices, out bool requiresAsync );
+                        GenerateValidationCode( f, e.IncomingValidators, cachedServices, out bool requiresAsync );
                         if( requiresAsync )
                         {
                             f.Definition.Modifiers |= Modifiers.Async;
@@ -67,7 +67,7 @@ namespace CK.Setup.Cris
                 foreach( var e in crisEngineService.CrisTypes )
                 {
                     if( e.CrisPocoIndex != 0 ) scope.Append( ", " );
-                    if( e.EndpointValidators.Count == 0 )
+                    if( e.IncomingValidators.Count == 0 )
                     {
                         scope.Append( "Success" );
                     }

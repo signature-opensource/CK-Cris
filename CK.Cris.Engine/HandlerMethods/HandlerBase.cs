@@ -5,7 +5,7 @@ using System.Reflection;
 namespace CK.Setup.Cris
 {
     /// <summary>
-    /// Generalizes the 4 kind of handler methods.
+    /// Generalizes the 5 kind of handler methods.
     /// Engine implementation of <see cref="ICrisPocoModel.IHandler"/>.
     /// </summary>
     public abstract class HandlerBase

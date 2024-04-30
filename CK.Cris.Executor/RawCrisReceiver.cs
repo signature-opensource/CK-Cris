@@ -76,7 +76,7 @@ namespace CK.Cris
                 }
                 currentCulture ??= services.GetRequiredService<CurrentCultureInfo>();
                 var c = new UserMessageCollector( currentCulture );
-                await DoValidateCommandAsync( monitor, c, services, command );
+                await DoIncomingValidateAsync( monitor, c, services, command );
                 if( c.ErrorCount > 0 )
                 {
                     string logKey = LogValidationError( monitor, command, c, "incoming", commandLogGroup );
@@ -122,7 +122,7 @@ namespace CK.Cris
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to validate.</param>
         /// <returns>The awaitable.</returns>
-        protected abstract Task DoValidateCommandAsync( IActivityMonitor monitor,
+        protected abstract Task DoIncomingValidateAsync( IActivityMonitor monitor,
                                                         UserMessageCollector validationContext,
                                                         IServiceProvider services,
                                                         IAbstractCommand command );

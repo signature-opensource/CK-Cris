@@ -5,7 +5,6 @@ using System.Reflection;
 
 namespace CK.Setup.Cris
 {
-
     sealed class CommandIncomingValidatorAttributeImpl : BaseHandlerAttributeImpl
     {
         readonly CommandIncomingValidatorAttribute _a;
@@ -18,7 +17,7 @@ namespace CK.Setup.Cris
 
         private protected override CSCodeGenerationResult DoImplement( IActivityMonitor monitor, CrisTypeRegistry crisTypeRegistry, IStObjFinalClass impl, MethodInfo method )
         {
-            return crisTypeRegistry.RegisterValidator( monitor, true, impl!, method, _a.FileName, _a.LineNumber )
+            return crisTypeRegistry.RegisterMultiTargetHandler( monitor, MultiTargetHandlerKind.CommandIncomingValidator, impl!, method, _a.FileName, _a.LineNumber )
                     ? CSCodeGenerationResult.Success
                     : CSCodeGenerationResult.Failed;
         }

@@ -27,30 +27,34 @@ namespace CK.Setup.Cris
             var crisTypeRegistry = c.CurrentRun.ServiceContainer.GetService<CrisTypeRegistry>();
             if( crisTypeRegistry == null ) return CSCodeGenerationResult.Retry;
 
-            var definer = crisTypeRegistry.TypeSystem.FindByType( _type );
-            if( definer == null || definer.ImplementationLess )
+            var ownerType = crisTypeRegistry.TypeSystem.FindByType( _type );
+            if( ownerType == null || ownerType.ImplementationLess || crisTypeRegistry.CrisPocoType == null )
             {
                 monitor.Trace( $"Ubiquitous value '{_type:C}.{_prop.Name}' ignored as the defining type is unused." );
                 return CSCodeGenerationResult.Success;
             }
-            definer = definer.NonNullable;
-            if( definer is ISecondaryPocoType s ) definer = s.PrimaryPocoType;
-            if( definer.Kind is not PocoTypeKind.PrimaryPoco and not PocoTypeKind.AbstractPoco )
+            ownerType = ownerType.NonNullable;
+            if( ownerType is ISecondaryPocoType s ) ownerType = s.PrimaryPocoType;
+            if( ownerType.Kind is not PocoTypeKind.PrimaryPoco and not PocoTypeKind.AbstractPoco
+                || !crisTypeRegistry.CrisPocoType.CanReadFrom( ownerType ) )
             {
-                monitor.Error( $"Invalid [UbiquitousValue] '{definer.CSharpName}.{_prop.Name}' on {definer.Kind}. Only IPoco fields can be Ubiquitous values." );
+                monitor.Error( $"Invalid [UbiquitousValue] '{ownerType.CSharpName}.{_prop.Name}' on {ownerType.Kind}. Only ICrisPoco properties can be Ubiquitous values." );
                 return CSCodeGenerationResult.Failed;
             }
-            IBaseCompositeType owner = (IBaseCompositeType)definer;
+            // The owner can be a Primary or an Abstract Poco type. The [UbiquitousValue] field is
+            // a IBasePocoField.
+            IBaseCompositeType owner = (IBaseCompositeType)ownerType;
             var f = owner.Fields.FirstOrDefault( f => f.Name == _prop.Name );
             if( f == null )
             {
-                monitor.Error( $"Ubiquitous value '{definer.CSharpName}.{_prop.Name}' doesn't appear on '{definer}'. Available fields are: " +
+                // This should not happen. Defensive programming here.
+                monitor.Error( $"Ubiquitous value '{ownerType.CSharpName}.{_prop.Name}' doesn't appear on '{ownerType}'. Available fields are: " +
                                 $"{owner.Fields.Select( f => f.Name ).Concatenate()}." );
                 return CSCodeGenerationResult.Failed;
             }
             if( !f.Type.IsNullable )
             {
-                monitor.Error( $"Ubiquitous value '{f.Type.CSharpName} {definer.CSharpName}.{f.Name}' must be nullable. Ubiquitous values must always be nullable." );
+                monitor.Error( $"Ubiquitous value '{f.Type.CSharpName} {ownerType.CSharpName}.{f.Name}' must be nullable. Ubiquitous values must always be nullable." );
                 return CSCodeGenerationResult.Failed;
             }
             crisTypeRegistry.RegisterUbiquitousValueDefinitionField( owner, f );

@@ -5,11 +5,11 @@ using System.Reflection;
 
 namespace CK.Setup.Cris
 {
-    sealed class RoutedEventHandlerAttributeImpl : BaseHandlerAttributeImpl
+    sealed class ConfigureAmbientServicesAttributeImpl : BaseHandlerAttributeImpl
     {
-        readonly RoutedEventHandlerAttribute _a;
+        readonly ConfigureAmbientServicesAttribute _a;
 
-        public RoutedEventHandlerAttributeImpl( RoutedEventHandlerAttribute a, Type t, MethodInfo m )
+        public ConfigureAmbientServicesAttributeImpl( ConfigureAmbientServicesAttribute a, Type t, MethodInfo m )
             : base( t, m )
         {
             _a = a;
@@ -17,7 +17,7 @@ namespace CK.Setup.Cris
 
         private protected override CSCodeGenerationResult DoImplement( IActivityMonitor monitor, CrisTypeRegistry crisTypeRegistry, IStObjFinalClass impl, MethodInfo method )
         {
-            return crisTypeRegistry.RegisterMultiTargetHandler( monitor, MultiTargetHandlerKind.RoutedEventHandler, impl!, method, _a.FileName, _a.LineNumber )
+            return crisTypeRegistry.RegisterMultiTargetHandler( monitor, MultiTargetHandlerKind.ConfigureAmbientServices, impl!, method, _a.FileName, _a.LineNumber )
                     ? CSCodeGenerationResult.Success
                     : CSCodeGenerationResult.Failed;
         }

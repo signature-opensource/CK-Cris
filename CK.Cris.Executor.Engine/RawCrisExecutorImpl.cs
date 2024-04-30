@@ -164,13 +164,13 @@ namespace CK.Setup.Cris
             f.Append( "try" )
              .OpenBlock();
 
-            if( e.Validators.Count > 0 )
+            if( e.HandlingValidators.Count > 0 )
             {
-                f.GeneratedByComment( $"There are {e.Validators.Count} validators." );
+                f.GeneratedByComment( $"There are {e.HandlingValidators.Count} validators." );
                 f.Append( "v = new UserMessageCollector( " ).Append( cachedServices.GetServiceVariableName( typeof( CurrentCultureInfo ) ) ).Append( " );" ).NewLine()
                  .Append( "try" )
                  .OpenBlock();
-                RawCrisReceiverImpl.GenerateValidationCode( f, e.Validators, cachedServices, out var validatorsRequireAsync );
+                RawCrisReceiverImpl.GenerateValidationCode( f, e.HandlingValidators, cachedServices, out var validatorsRequireAsync );
                 isOverallAsync |= validatorsRequireAsync;
 
                 f.CloseBlock()

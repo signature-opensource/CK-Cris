@@ -14,8 +14,8 @@ namespace CK.Cris
             }
         }
 
-        //[EndpointUbiquitousInfoConfigurator]
-        public static void ConfigureCurrentCulture( ICommandWithCurrentCulture cmd, AmbientServiceHub ambientServices )
+        [ConfigureAmbientServices]
+        public void ConfigureCurrentCulture( ICommandWithCurrentCulture cmd, AmbientServiceHub ambientServices )
         {
             var n = cmd.CurrentCultureName;
             if( !string.IsNullOrWhiteSpace( n ) )
@@ -27,7 +27,5 @@ namespace CK.Cris
                 }
             }
         }
-
-
     }
 }

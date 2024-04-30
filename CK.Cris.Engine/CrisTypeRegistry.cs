@@ -55,6 +55,8 @@ namespace CK.Setup.Cris
             _allUbiquitousFields = new HashSet<IPrimaryPocoField>();
         }
 
+        public IAbstractPocoType? CrisPocoType => _crisPocoType;
+
         /// <inheritdoc/>
         public IPocoTypeSystem TypeSystem => _typeSystem;
 
@@ -93,7 +95,7 @@ namespace CK.Setup.Cris
                                                     ?? GetAbstractPocoType( monitor, typeSystem, typeof( IEvent ) );
             IAbstractPocoType? crisPocoType = null;
 
-            if( crisCommandType != null )
+            if( crisCommandType != null && !crisCommandType.ImplementationLess )
             {
                 crisPocoType = crisCommandType.Generalizations.Single();
                 foreach( var command in crisCommandType.PrimaryPocoTypes )
@@ -106,12 +108,14 @@ namespace CK.Setup.Cris
                         indexedEntries.Add( entry.CrisPocoType, entry );
                     }
                 }
-                monitor.Trace( $"Found {entries.Count} Cris commands." );
             }
             // Don't handle events of command handling failed.
             if( !success ) return null;
 
-            if( crisEventType != null )
+            int commandCount = entries.Count;
+            monitor.Trace( $"Found {entries.Count} Cris commands." );
+
+            if( crisEventType != null && !crisEventType.ImplementationLess )
             {
                 crisPocoType ??= crisEventType.Generalizations.Single();
                 if( crisEventTypePart != null )
@@ -121,7 +125,6 @@ namespace CK.Setup.Cris
                         success &= CheckNoRoutedOrImmediateAttribute( monitor, evPart.Type );
                     }
                 }
-                int commandCount = entries.Count;
                 foreach( var ev in crisEventType.PrimaryPocoTypes )
                 {
                     CrisType? entry = CreateEventEntry( monitor, crisCommandType, entries.Count, ev );
@@ -133,6 +136,10 @@ namespace CK.Setup.Cris
                     }
                 }
                 monitor.Trace( $"Found {entries.Count - commandCount} Cris commands." );
+            }
+            if( crisPocoType == null )
+            {
+                monitor.Warn( $"No Cris commands nor events found." );
             }
             return success
                     ? new CrisTypeRegistry( indexedEntries,
@@ -257,45 +264,65 @@ namespace CK.Setup.Cris
                     }
                     return success;
                 }
-            }
-        }
 
-        internal void CloseRegistration( IActivityMonitor monitor )
-        {
-            foreach( var f in _ubiquitousCommandFields )
+            }
+
+            static bool CheckNoRoutedOrImmediateAttribute( IActivityMonitor monitor, Type i )
             {
-                if( !f.OwnerHasPostHandler )
+                bool success = true;
+                var attrs = i.GetCustomAttributesData();
+                foreach( var a in attrs )
                 {
-                    monitor.Warn( $"A [PostHandler] method for '{f.Owner.NonNullable.CSharpName}' has not been found.{Environment.NewLine}" +
-                                  $"The [UbiquitousValue] property '{f.Field.Type.CSharpName} {f.Field.Name}' may not be initialized." );
+                    if( a.AttributeType == typeof( RoutedEventAttribute ) )
+                    {
+                        monitor.Error( $"Interface '{i:C}' cannot be decorated with [RoutedEvent]. Only a primary IEvent interface can use this attribute." );
+                        success = false;
+                    }
+                    if( a.AttributeType == typeof( ImmediateEventAttribute ) )
+                    {
+                        monitor.Error( $"Interface '{i:C}' cannot be decorated with [ImmediateEvent]. Only a primary IEvent interface can use this attribute." );
+                        success = false;
+                    }
                 }
-                if( f.Field is IAbstractPocoField a )
-                {
-                    _allUbiquitousFields.AddRange( a.Implementations );
-                }
-                else if( f.Field is IPrimaryPocoField b )
-                {
-                    _allUbiquitousFields.Add( b );
-                }
+                return success;
             }
+
         }
 
-
-        static bool CheckNoRoutedOrImmediateAttribute( IActivityMonitor monitor, Type i )
+        internal bool CloseRegistration( IActivityMonitor monitor )
         {
             bool success = true;
-            var attrs = i.GetCustomAttributesData();
-            foreach( var a in attrs )
+            if( _ubiquitousCommandFields.Count > 0 )
             {
-                if( a.AttributeType == typeof( RoutedEventAttribute ) )
+                var byName = new Dictionary<string, (IBaseCompositeType FirstOwner, IPocoType PropertyType)>();
+                foreach( var f in _ubiquitousCommandFields )
                 {
-                    monitor.Error( $"Interface '{i:C}' cannot be decorated with [RoutedEvent]. Only a primary IEvent interface can use this attribute." );
-                    success = false;
-                }
-                if( a.AttributeType == typeof( ImmediateEventAttribute ) )
-                {
-                    monitor.Error( $"Interface '{i:C}' cannot be decorated with [ImmediateEvent]. Only a primary IEvent interface can use this attribute." );
-                    success = false;
+                    if( byName.TryGetValue( f.Field.Name, out var already ) )
+                    {
+                        if( already.PropertyType != f.Field.Type )
+                        {
+                            monitor.Error( $"[UbiquitousValue] property type '{f.Field.Name}' differ: it is '{already.PropertyType.CSharpName}' for '{already.FirstOwner}' " +
+                                           $"and  '{f.Field.Type.CSharpName}' for '{f.Owner.CSharpName}'." );
+                            success = false;
+                        }
+                    }
+                    if( !f.OwnerHasPostHandler )
+                    {
+                        monitor.Warn( $"A [PostHandler] method for '{f.Owner.NonNullable.CSharpName}' has not been found.{Environment.NewLine}" +
+                                        $"The [UbiquitousValue] property '{f.Field.Type.CSharpName} {f.Field.Name}' may not be initialized." );
+                    }
+                    if( f.Field is IAbstractPocoField a )
+                    {
+                        foreach( var impl in a.Implementations )
+                        {
+
+                            _allUbiquitousFields.Add( impl );
+                        }
+                    }
+                    else if( f.Field is IPrimaryPocoField b )
+                    {
+                        _allUbiquitousFields.Add( b );
+                    }
                 }
             }
             return success;
@@ -358,37 +385,14 @@ namespace CK.Setup.Cris
             return (null, null, null);
         }
 
-        internal bool RegisterValidator( IActivityMonitor monitor, bool isSyntax, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber )
+        internal bool RegisterMultiTargetHandler( IActivityMonitor monitor,
+                                                   MultiTargetHandlerKind target,
+                                                   IStObjFinalClass impl,
+                                                   MethodInfo m,
+                                                   string? fileName,
+                                                   int lineNumber )
         {
-            return RegisterValidatorOrRoutedEventHandler( monitor,
-                                                          impl,
-                                                          m,
-                                                          fileName,
-                                                          lineNumber,
-                                                          isSyntax ? MultiTarget.CommandIncomingValidator : MultiTarget.CommandHandlingValidator );
-        }
-
-        internal bool RegisterRoutedEventHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber )
-        {
-            return RegisterValidatorOrRoutedEventHandler( monitor, impl, m, fileName, lineNumber, MultiTarget.RoutedEventHandler );
-        }
-
-        enum MultiTarget
-        {
-            RoutedEventHandler,
-            CommandIncomingValidator,
-            CommandServiceConfigurator,
-            CommandHandlingValidator
-        }
-
-        bool RegisterValidatorOrRoutedEventHandler( IActivityMonitor monitor,
-                                                    IStObjFinalClass impl,
-                                                    MethodInfo m,
-                                                    string? fileName,
-                                                    int lineNumber,
-                                                    MultiTarget target )
-        {
-            bool expectCommands = target != MultiTarget.RoutedEventHandler;
+            bool expectCommands = target != MultiTargetHandlerKind.RoutedEventHandler;
             if( !GetCandidates( monitor,
                                 m,
                                 expectCommands,
@@ -409,29 +413,41 @@ namespace CK.Setup.Cris
             }
             else
             {
-                Throw.DebugAssert( "We have candidates => we found a parameter.", foundParameter != null );
+                Throw.DebugAssert( "We have candidates => we found a parameter (a IEvent or a ICommand or ICommandPart).", foundParameter != null );
+                // This check applies to all command based handlers: command handlers and post handlers accept ICrisCommandContext.
                 var execContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisCommandContext ) );
                 if( execContext != null )
                 {
                     monitor.Error( $"Invalid parameter '{execContext.Name}' in method '{CrisType.MethodName( m, parameters )}': {nameof(ICrisCommandContext)} cannot " +
-                                    $"be used in a {target} since they cannot execute commands or send events." );
+                                   $"be used in a command [{target}] since it cannot execute commands or send events." );
                     success = false;
                 }
-                ParameterInfo? validatorUserMessageCollector = null;
-                if( target is MultiTarget.CommandIncomingValidator || target is MultiTarget.CommandHandlingValidator )
+                ParameterInfo? messageCollectorOrAmbientServiceHub = null;
+                if( target is not MultiTargetHandlerKind.RoutedEventHandler )
                 {
+                    Throw.DebugAssert( target is MultiTargetHandlerKind.CommandIncomingValidator or MultiTargetHandlerKind.CommandHandlingValidator or MultiTargetHandlerKind.ConfigureAmbientServices );
                     var callContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisEventContext ) );
                     if( callContext != null )
                     {
                         monitor.Error( $"Invalid parameter '{callContext.Name}' in method '{CrisType.MethodName( m, parameters )}': {nameof(ICrisEventContext)} cannot " +
-                                        $"be used in a command validator since validators cannot execute commands." );
+                                       $"be used in a command [{target}] since it cannot execute commands." );
                         success = false;
                     }
-                    validatorUserMessageCollector = parameters.FirstOrDefault( p => p.ParameterType == typeof( UserMessageCollector ) );
-                    if( validatorUserMessageCollector == null )
+                    messageCollectorOrAmbientServiceHub = parameters.FirstOrDefault( p => p.ParameterType == (target == MultiTargetHandlerKind.ConfigureAmbientServices
+                                                                                                                ? typeof( AmbientServiceHub )
+                                                                                                                : typeof( UserMessageCollector )) );
+                    if( messageCollectorOrAmbientServiceHub == null )
                     {
-                        monitor.Error( $"Command validator method '{CrisType.MethodName( m, parameters )}' must take a 'UserMessageCollector' parameter " +
-                                        $"to collect validation errors, warnings and informations." );
+                        if( target == MultiTargetHandlerKind.ConfigureAmbientServices )
+                        {
+                            monitor.Error( $"[ConfigureAmbientServices] method '{CrisType.MethodName( m, parameters )}' must take a 'AmbientServiceHub' parameter " +
+                                           $"to configure the ambient services." );
+                        }
+                        else
+                        {
+                            monitor.Error( $"Command validator method '{CrisType.MethodName( m, parameters )}' must take a 'UserMessageCollector' parameter " +
+                                           $"to collect validation errors, warnings and informations." );
+                        }
                         success = false;
                     }
                 }
@@ -440,14 +456,15 @@ namespace CK.Setup.Cris
                     foreach( var family in candidates )
                     {
                         Throw.DebugAssert( _indexedEntries.ContainsKey( family ), "Since parameters are filtered by registered Poco." );
-                        var e = _indexedEntries[family];
-                        success &= target switch
-                        {
-                            MultiTarget.RoutedEventHandler => e.AddRoutedEventHandler( monitor, impl, m, parameters, foundParameter, fileName, lineNumber ),
-                            MultiTarget.CommandIncomingValidator => e.AddValidator( monitor, true, impl, m, parameters, foundParameter, validatorUserMessageCollector!, fileName, lineNumber ),
-                            MultiTarget.CommandServiceConfigurator => Throw.NotSupportedException<bool>(),
-                            _ => e.AddValidator( monitor, false, impl, m, parameters, foundParameter, validatorUserMessageCollector!, fileName, lineNumber ),
-                        };
+                        success &= _indexedEntries[family].AddMultiTargetHandler( monitor,
+                                                                                  target,
+                                                                                  impl,
+                                                                                  m,
+                                                                                  parameters,
+                                                                                  foundParameter,
+                                                                                  messageCollectorOrAmbientServiceHub,
+                                                                                  fileName,
+                                                                                  lineNumber );
                     }
                 }
             }

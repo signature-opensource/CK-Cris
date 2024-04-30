@@ -13,6 +13,12 @@ namespace CK.Setup.Cris
         IPocoTypeSystem TypeSystem { get; }
 
         /// <summary>
+        /// Gets a non null abstract CrisPocoType only if at least one concrete event
+        /// or command exists.
+        /// </summary>
+        IAbstractPocoType CrisPocoType { get; }
+
+        /// <summary>
         /// Gets all the discovered commands and events ordered by their <see cref="CrisType.CrisPocoIndex"/>.
         /// </summary>
         IReadOnlyList<CrisType> CrisTypes { get; }

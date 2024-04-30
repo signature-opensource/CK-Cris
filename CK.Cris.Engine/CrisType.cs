@@ -5,7 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace CK.Setup.Cris
 {
@@ -18,12 +20,13 @@ namespace CK.Setup.Cris
         readonly CrisPocoKind _kind;
         readonly int _crisPocoIndex;
 
-        readonly List<HandlerRoutedEventMethod> _eventHandlers;
+        IList<HandlerRoutedEventMethod>? _eventHandlers;
 
         readonly IPocoType? _commandResultType;
-        readonly List<HandlerValidatorMethod> _validators;
-        readonly List<HandlerValidatorMethod> _endpointValidators;
-        readonly List<HandlerPostMethod> _postHandlers;
+        IList<HandlerValidatorMethod>? _incomingValidators;
+        IList<HandlerConfigureServiceMethod>? _ambientServicesConfigurators;
+        IList<HandlerValidatorMethod>? _handlingValidators;
+        IList<HandlerPostMethod>? _postHandlers;
         readonly IStObjFinalClass? _commandHandlerService;
         HandlerMethod? _commandHandler;
 
@@ -43,31 +46,37 @@ namespace CK.Setup.Cris
         /// an event must have at least one <see cref="EventHandlers"/>. A <see cref="IEvent"/> that is not routed
         /// (has no [RoutedEvent] attribute is never handled.
         /// </summary>
-        public bool IsHandled => _commandHandler != null || _eventHandlers.Count > 0;
+        public bool IsHandled => _commandHandler != null || (_eventHandlers != null && _eventHandlers.Count > 0);
 
         /// <summary>
-        /// Gets the endpoint validator methods.
+        /// Gets the incoming validator methods.
         /// Only <see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/> can have validators.
         /// </summary>
-        public IReadOnlyList<HandlerValidatorMethod> EndpointValidators => _endpointValidators;
+        public IReadOnlyList<HandlerValidatorMethod> IncomingValidators => (IReadOnlyList<HandlerValidatorMethod>)_incomingValidators!;
 
         /// <summary>
-        /// Gets the validator methods.
+        /// Gets the ambient services configurator validator methods.
         /// Only <see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/> can have validators.
         /// </summary>
-        public IReadOnlyList<HandlerValidatorMethod> Validators => _validators;
+        public IReadOnlyList<HandlerConfigureServiceMethod> AmbientServicesConfigurators => (IReadOnlyList<HandlerConfigureServiceMethod>)_ambientServicesConfigurators!;
+
+        /// <summary>
+        /// Gets the handling validator methods.
+        /// Only <see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/> can have validators.
+        /// </summary>
+        public IReadOnlyList<HandlerValidatorMethod> HandlingValidators => (IReadOnlyList<HandlerValidatorMethod>)_handlingValidators!;
 
         /// <summary>
         /// Gets the post handler methods.
         /// Only <see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/> can have post handlers.
         /// </summary>
-        public IReadOnlyList<HandlerPostMethod> PostHandlers => _postHandlers;
+        public IReadOnlyList<HandlerPostMethod> PostHandlers => (IReadOnlyList<HandlerPostMethod>)_postHandlers!;
 
         /// <summary>
         /// Gets the event handlers methods.
         /// Only <see cref="CrisPocoKind.RoutedImmediateEvent"/> and <see cref="CrisPocoKind.RoutedEvent"/> can have event handlers.
         /// </summary>
-        public IReadOnlyList<HandlerRoutedEventMethod> EventHandlers => _eventHandlers;
+        public IReadOnlyList<HandlerRoutedEventMethod> EventHandlers => (IReadOnlyList<HandlerRoutedEventMethod>)_eventHandlers!;
 
         /// <summary>
         /// Gets the name of this command or event (this is the <see cref="INamedPocoType.ExternalOrCSharpName"/>).
@@ -95,7 +104,7 @@ namespace CK.Setup.Cris
         /// </summary>
         /// <param name="e">The entry.</param>
         /// <returns>True if asynchronous calls must be made.</returns>
-        public bool HasPostHandlerAsyncCall => _postHandlers.Any( h => h.IsRefAsync || h.IsValAsync );
+        public bool HasPostHandlerAsyncCall => _postHandlers != null && _postHandlers.Any( h => h.IsRefAsync || h.IsValAsync );
 
         /// <summary>
         /// Gets the <see cref="IAutoService"/> that must implement the handler method.
@@ -114,7 +123,7 @@ namespace CK.Setup.Cris
         /// <param name="cachedServices">GetService cache.</param>
         public void GeneratePostHandlerCallCode( ICodeWriter w, VariableCachedServices cachedServices )
         {
-            if( _postHandlers.Count == 0 ) return;
+            if( _postHandlers == null || _postHandlers.Count == 0 ) return;
 
             using var region = w.Region();
             foreach( var h in _postHandlers.Where( h => !h.IsRefAsync && !h.IsValAsync ).GroupBy( h => h.Owner ) )
@@ -183,14 +192,67 @@ namespace CK.Setup.Cris
                            CrisPocoKind kind )
         {
             _crisPocoType = crisPocoType;
-            _endpointValidators = new List<HandlerValidatorMethod>();
-            _validators = new List<HandlerValidatorMethod>();
-            _postHandlers = new List<HandlerPostMethod>();
-            _eventHandlers = new List<HandlerRoutedEventMethod>();
             _commandHandlerService = handlerService;
             _kind = kind;
             _crisPocoIndex = crisPocoIdx;
             _commandResultType = resultType;
+        }
+
+        internal void CloseRegistration( IActivityMonitor monitor )
+        {
+            if( _kind is CrisPocoKind.Command or CrisPocoKind.CommandWithResult )
+            {
+                Throw.DebugAssert( _eventHandlers == null );
+                _eventHandlers = Array.Empty<HandlerRoutedEventMethod>();
+                // Whether the command is handled or not is not the problem of the
+                // incoming validators: this enables RawCrisReceiver to be used in
+                // a "relay" gateway (that doesn't currently exist but tests exist
+                // that are happy to not register a fake handler to test validators!).
+                _incomingValidators ??= Array.Empty<HandlerValidatorMethod>();
+                if( _commandHandler == null )
+                {
+                    monitor.Warn( $"Command '{_crisPocoType.ExternalOrCSharpName}' is not handled." );
+                    _ambientServicesConfigurators = Array.Empty<HandlerConfigureServiceMethod>();
+                    _handlingValidators = Array.Empty<HandlerValidatorMethod>();
+                    _postHandlers = Array.Empty<HandlerPostMethod>();
+                }
+                else
+                {
+                    _ambientServicesConfigurators ??= Array.Empty<HandlerConfigureServiceMethod>();
+                    _handlingValidators ??= Array.Empty<HandlerValidatorMethod>();
+                    _postHandlers ??= Array.Empty<HandlerPostMethod>();
+                }
+            }
+            else if( _kind is CrisPocoKind.RoutedImmediateEvent or CrisPocoKind.RoutedEvent )
+            {
+                Throw.DebugAssert( _incomingValidators == null );
+                _incomingValidators = Array.Empty<HandlerValidatorMethod>();
+                Throw.DebugAssert( _ambientServicesConfigurators == null );
+                _ambientServicesConfigurators = Array.Empty<HandlerConfigureServiceMethod>();
+                Throw.DebugAssert( _handlingValidators == null );
+                _handlingValidators = Array.Empty<HandlerValidatorMethod>();
+                Throw.DebugAssert( _postHandlers == null );
+                _postHandlers = Array.Empty<HandlerPostMethod>();
+                if( _eventHandlers == null )
+                {
+                    monitor.Warn( $"Routed event '{_crisPocoType.ExternalOrCSharpName}' is not handled." );
+                    _eventHandlers = Array.Empty<HandlerRoutedEventMethod>();
+                }
+            }
+            else
+            {
+                Throw.DebugAssert( _kind is CrisPocoKind.CallerOnlyImmediateEvent or CrisPocoKind.CallerOnlyEvent );
+                Throw.DebugAssert( _incomingValidators == null );
+                _incomingValidators = Array.Empty<HandlerValidatorMethod>();
+                Throw.DebugAssert( _ambientServicesConfigurators == null );
+                _ambientServicesConfigurators = Array.Empty<HandlerConfigureServiceMethod>();
+                Throw.DebugAssert( _handlingValidators == null );
+                _handlingValidators = Array.Empty<HandlerValidatorMethod>();
+                Throw.DebugAssert( _postHandlers == null );
+                _postHandlers = Array.Empty<HandlerPostMethod>();
+                Throw.DebugAssert( _eventHandlers == null );
+                _eventHandlers = Array.Empty<HandlerRoutedEventMethod>();
+            }
         }
 
         internal static string MethodName( MethodInfo m, ParameterInfo[]? parameters = null ) => $"{m.DeclaringType!.Name}.{m.Name}( {(parameters ?? m.GetParameters()).Select( p => p.ParameterType.Name + " " + p.Name ).Concatenate()} )";
@@ -273,19 +335,74 @@ namespace CK.Setup.Cris
             }
         }
 
-        internal bool AddValidator( IActivityMonitor monitor,
-                                    bool isEndpoint,
-                                    IStObjFinalClass owner,
-                                    MethodInfo method,
-                                    ParameterInfo[] parameters,
-                                    ParameterInfo commandParameter,
-                                    ParameterInfo validationContextParameter,
-                                    string? fileName,
-                                    int lineNumber )
+        internal bool AddMultiTargetHandler( IActivityMonitor monitor,
+                                             MultiTargetHandlerKind target,
+                                             IStObjFinalClass owner,
+                                             MethodInfo method,
+                                             ParameterInfo[] parameters,
+                                             ParameterInfo cmdOrPartParameter,
+                                             ParameterInfo? messageCollectorOrAmbientServiceHub,
+                                             string? fileName,
+                                             int lineNumber )
         {
-            if( !CheckVoidReturn( monitor, "Validator", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
-            var h = new HandlerValidatorMethod( this, isEndpoint, owner, method, parameters, fileName, lineNumber, commandParameter, validationContextParameter, isRefAsync, isValAsync );
-            (isEndpoint ? _endpointValidators : _validators ).Add( h );
+            if( !CheckVoidReturn( monitor,
+                                  Enum.GetName( typeof( MultiTargetHandlerKind ), target )!,
+                                  method,
+                                  parameters,
+                                  out bool isRefAsync,
+                                  out bool isValAsync ) )
+            {
+                return false;
+            }
+            switch( target )
+            {
+                case MultiTargetHandlerKind.CommandIncomingValidator:
+                case MultiTargetHandlerKind.CommandHandlingValidator:
+                    Throw.DebugAssert( messageCollectorOrAmbientServiceHub != null );
+                    bool isIncoming = target is MultiTargetHandlerKind.CommandIncomingValidator;
+                    var h = new HandlerValidatorMethod( this,
+                                                        isIncoming
+                                                                ? CrisHandlerKind.CommandIncomingValidator
+                                                                : CrisHandlerKind.CommandHandlingValidator,
+                                                        owner,
+                                                        method,
+                                                        parameters,
+                                                        fileName,
+                                                        lineNumber,
+                                                        cmdOrPartParameter,
+                                                        messageCollectorOrAmbientServiceHub,
+                                                        isRefAsync,
+                                                        isValAsync );
+                    if( isIncoming )
+                    {
+                        _incomingValidators ??= new List<HandlerValidatorMethod>();
+                        _incomingValidators.Add( h );
+                    }
+                    else
+                    {
+                        _handlingValidators ??= new List<HandlerValidatorMethod>();
+                        _handlingValidators.Add( h );
+                    }
+                    break;
+
+                case MultiTargetHandlerKind.ConfigureAmbientServices:
+                    Throw.DebugAssert( messageCollectorOrAmbientServiceHub != null );
+                    _ambientServicesConfigurators ??= new List<HandlerConfigureServiceMethod>();
+                    _ambientServicesConfigurators.Add( new HandlerConfigureServiceMethod( this, owner, method, parameters, fileName, lineNumber, cmdOrPartParameter, messageCollectorOrAmbientServiceHub, isRefAsync, isValAsync ) );
+                    break;
+
+                case MultiTargetHandlerKind.RoutedEventHandler:
+                    if( _kind != CrisPocoKind.RoutedImmediateEvent && _kind != CrisPocoKind.RoutedEvent )
+                    {
+                        monitor.Warn( $"Method '{MethodName( method, parameters )}' will never be called: event '{PocoName}' is not decorated with [RoutedEvent] attribute (it can only be observed by the caller)." );
+                    }
+                    else
+                    {
+                        _eventHandlers ??= new List<HandlerRoutedEventMethod>();
+                        _eventHandlers.Add( new HandlerRoutedEventMethod( this, owner, method, parameters, fileName, lineNumber, cmdOrPartParameter, isRefAsync, isValAsync ) );
+                    }
+                    break;
+            }
             return true;
         }
 
@@ -298,7 +415,7 @@ namespace CK.Setup.Cris
                                       string? fileName,
                                       int lineNumber )
         {
-            if( !CheckVoidReturn( monitor, "PostHandler", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
+            if( !CheckVoidReturn( monitor, "CommandPostHandler", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
 
             // Looking for the command result in the parameters.
             bool mustCastResultParameter = false;
@@ -313,6 +430,7 @@ namespace CK.Setup.Cris
             {
                 monitor.Trace( $"PostHandler method '{MethodName( method, parameters )}': parameter '{resultParameter.Name}' is the Command's result." );
             }
+            _postHandlers ??= new List<HandlerPostMethod>();
             _postHandlers.Add( new HandlerPostMethod( this,
                                                       owner,
                                                       method,
@@ -324,26 +442,6 @@ namespace CK.Setup.Cris
                                                       mustCastResultParameter,
                                                       isRefAsync,
                                                       isValAsync ) );
-            return true;
-        }
-
-        internal bool AddRoutedEventHandler( IActivityMonitor monitor,
-                                             IStObjFinalClass owner,
-                                             MethodInfo method,
-                                             ParameterInfo[] parameters,
-                                             ParameterInfo commandParameter,
-                                             string? fileName,
-                                             int lineNumber )
-        {
-            if( !CheckVoidReturn( monitor, "EventHandler", method, parameters, out bool isRefAsync, out bool isValAsync ) ) return false;
-            if( _kind != CrisPocoKind.RoutedImmediateEvent && _kind != CrisPocoKind.RoutedEvent )
-            {
-                monitor.Warn( $"Method '{MethodName( method, parameters )}' will never be called: event '{PocoName}' is not decorated with [RoutedEvent] attribute (it can only be observed by the caller)." );
-            }
-            else
-            {
-                _eventHandlers.Add( new HandlerRoutedEventMethod( this, owner, method, parameters, fileName, lineNumber, commandParameter, isRefAsync, isValAsync ) );
-            }
             return true;
         }
 
@@ -377,13 +475,13 @@ namespace CK.Setup.Cris
             return (t, isRefAsync, isValAsync);
         }
 
-        static bool CheckVoidReturn( IActivityMonitor monitor, string kind, MethodInfo method, ParameterInfo[] parameters, out bool isRefAsync, out bool isValAsync )
+        static bool CheckVoidReturn( IActivityMonitor monitor, string attrName, MethodInfo method, ParameterInfo[] parameters, out bool isRefAsync, out bool isValAsync )
         {
             Type unwrappedReturnType;
             (unwrappedReturnType, isRefAsync, isValAsync) = GetReturnParameterInfo( method );
             if( unwrappedReturnType != typeof( void ) )
             {
-                monitor.Error( $"{kind} method '{MethodName( method, parameters )}' must not return any value. Its current returned type is '{unwrappedReturnType.Name}'." );
+                monitor.Error( $"[{attrName}] method '{MethodName( method, parameters )}' must not return any value. Its current returned type is '{unwrappedReturnType.Name}'." );
                 return false;
             }
             CheckSyncAsyncMethodName( monitor, method, parameters, isRefAsync || isValAsync );

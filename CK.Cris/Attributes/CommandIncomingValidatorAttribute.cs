@@ -4,8 +4,9 @@ using System.Runtime.CompilerServices;
 
 namespace CK.Cris
 {
+
     /// <summary>
-    /// Decorates a method that is a command or command part endpoint validator.
+    /// Decorates a method that is a command or command part incoming validator.
     /// The validator is called in the context of the endpoint that receive the command: it can use any ambient
     /// or processwide singletons services (typically related to authentication, tenancy, culture, etc.).
     /// <para>

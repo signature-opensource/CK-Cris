@@ -18,7 +18,7 @@ namespace CK.Setup.Cris
 
         private protected override CSCodeGenerationResult DoImplement( IActivityMonitor monitor, CrisTypeRegistry crisTypeRegistry, IStObjFinalClass impl, MethodInfo method )
         {
-            return crisTypeRegistry.RegisterValidator( monitor, false, impl!, method, _a.FileName, _a.LineNumber )
+            return crisTypeRegistry.RegisterMultiTargetHandler( monitor, MultiTargetHandlerKind.CommandHandlingValidator, impl!, method, _a.FileName, _a.LineNumber )
                     ? CSCodeGenerationResult.Success
                     : CSCodeGenerationResult.Failed;
         }

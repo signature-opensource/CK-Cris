@@ -91,8 +91,13 @@ namespace CK.Setup.Cris
                  .OpenBlock()
                  .Append( "var list = new CK.Cris.ICrisPocoModel[]" ).NewLine()
                  .Append( "{" ).NewLine();
+            // Before using the CrisTypes and exposing the ICrisDirectoryServiceEngine:
+            //  - computes once for all all the Primaty Poco fields that are ubiquitous values.
+            //  - sets the handler lists to an empty list if they are null (or useless because the CrisType is not handled).
+            registry.CloseRegistration( monitor );
             foreach( var e in registry.CrisTypes )
             {
+                e.CloseRegistration( monitor );
                 var f = scope.Namespace.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoType.FamilyInfo.PocoFactoryClass );
                 using( f.Region() )
                 {
@@ -102,23 +107,18 @@ namespace CK.Setup.Cris
                      .Append( "public string PocoName => Name;" ).NewLine()
                      .Append( "public CK.Cris.CrisPocoKind Kind => " ).Append( e.Kind ).Append( ";" ).NewLine()
                      .Append( "public Type ResultType => " ).AppendTypeOf( e.CommandResultType?.Type ?? typeof(void) ).Append( ";" ).NewLine()
-                     .Append( "CK.Cris.ICrisPoco CK.Cris.ICrisPocoModel.Create() => (CK.Cris.ICrisPoco)Create();" ).NewLine();
+                     .Append( "CK.Cris.ICrisPoco CK.Cris.ICrisPocoModel.Create() => (CK.Cris.ICrisPoco)Create();" ).NewLine()
+                     .Append( "public bool IsHandled => " ).Append( e.IsHandled ).Append(";").NewLine()
+                     .Append( "public bool HasAmbientServicesConfigurators => " ).Append( e.EventHandlers.Any( h => h.Kind == CrisHandlerKind.CommandConfigureServices ) ).Append( ";" ).NewLine();
 
-                    if( !e.IsHandled )
+                    // Follow the order of the handlers.
+                    IEnumerable<HandlerBase> allHandlers = ((IEnumerable<HandlerBase>)e.IncomingValidators)
+                                                            .Concat( e.HandlingValidators );
+                    if( e.CommandHandler != null ) allHandlers = allHandlers.Append( e.CommandHandler );
+                    allHandlers = allHandlers.Concat( e.PostHandlers )
+                                             .Concat( e.EventHandlers )!;
+                    if( allHandlers.Any() )
                     {
-                        f.Append( "public bool IsHandled => false;" ).NewLine()
-                         .Append( "public IReadOnlyList<CK.Cris.ICrisPocoModel.IHandler> Handlers => Array.Empty<CK.Cris.ICrisPocoModel.IHandler>();" );
-                    }
-                    else
-                    {
-                        var allHandlers = e.CommandHandler != null
-                                            ? ((IEnumerable<HandlerBase>)e.EndpointValidators)
-                                                                .Concat( e.Validators )
-                                                                .Append( e.CommandHandler )
-                                                                .Concat( e.PostHandlers )
-                                            : e.EventHandlers;
-                        Throw.DebugAssert( allHandlers.Any() );
-
                         f.Append( "static readonly CK.Cris.ICrisPocoModel.IHandler[] _handlers = new [] {" ).NewLine();
                         foreach( var handler in allHandlers )
                         {
@@ -131,10 +131,12 @@ namespace CK.Setup.Cris
                              .Append( handler.LineNumber )
                              .Append( ")," ).NewLine();
                         }
-                        f.Append( "};" ).NewLine();
-
-                        f.Append( "public bool IsHandled => true;" ).NewLine()
+                        f.Append( "};" ).NewLine()
                          .Append( "public IReadOnlyList<CK.Cris.ICrisPocoModel.IHandler> Handlers => _handlers;" );
+                    }
+                    else
+                    {
+                        f.Append( "public IReadOnlyList<CK.Cris.ICrisPocoModel.IHandler> Handlers => Array.Empty<CK.Cris.ICrisPocoModel.IHandler>();" );
                     }
                     f.NewLine();
                 }
@@ -149,10 +151,6 @@ namespace CK.Setup.Cris
             scope.Append( "};" ).NewLine()
                  .Append( "return list;" )
                  .CloseBlock();
-
-            // Before exposing the ICrisDirectoryServiceEngine, computes once for all all the
-            // Primaty Poco fields that are ubiquitous values.
-            registry.CloseRegistration( monitor );
 
             // Expose the public ICrisDirectoryServiceEngine.
             c.CurrentRun.ServiceContainer.Add<ICrisDirectoryServiceEngine>( registry );
@@ -177,10 +175,6 @@ namespace CK.Setup.Cris
                         monitor.Error( $"Service '{c.ExpectedHandlerService.ClassType:N}' must implement a command handler method for unclosed command {c.PocoName} of primary type {c.CrisPocoType.FamilyInfo.PrimaryInterface.PocoInterface:N}." );
                     }
                     success = false;
-                }
-                else
-                {
-                    monitor.Warn( $"Cris command '{c.CrisPocoType}' has no associated handler." );
                 }
             }
             return success;

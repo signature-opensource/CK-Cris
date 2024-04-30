@@ -1,6 +1,7 @@
 using CK.Core;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Reflection;
 
 namespace CK.Cris
@@ -48,8 +49,19 @@ namespace CK.Cris
         Type ResultType { get; }
 
         /// <summary>
+        /// Gets whether this command or event must configure the <see cref="AmbientServiceHub"/> before
+        /// being handled.
+        /// </summary>
+        bool HasAmbientServicesConfigurators { get; }
+
+        /// <summary>
+        /// Gets all the [UbiquitousValue] property names that this command or event exposes.
+        /// </summary>
+        ImmutableArray<string> UbiquitousValues { get; }
+
+        /// <summary>
         /// Gets whether this command or event is handled: <see cref="Handlers"/> is not empty.
-        /// A <see cref="CrisPocoKind.CallerOnlyEvent"/> (a <see cref="IEvent"/> without [RoutedEventAttribute]
+        /// A <see cref="CrisPocoKind.CallerOnlyEvent"/> (a <see cref="IEvent"/> without [RoutedEvent]
         /// is never handled.
         /// </summary>
         bool IsHandled { get; }

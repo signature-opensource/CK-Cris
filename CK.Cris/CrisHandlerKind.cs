@@ -1,3 +1,5 @@
+using CK.Core;
+
 namespace CK.Cris
 {
     /// <summary>
@@ -6,9 +8,14 @@ namespace CK.Cris
     public enum CrisHandlerKind
     {
         /// <summary>
-        /// Validates a command syntaxically (when the command is received).
+        /// Validates an incoming command or command part (when the command is received).
         /// </summary>
         CommandIncomingValidator,
+
+        /// <summary>
+        /// Configures the <see cref="AmbientServiceHub"/> from a command or a command part.
+        /// </summary>
+        CommandConfigureServices,
 
         /// <summary>
         /// Validates a command right before it is handled.
