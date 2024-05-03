@@ -26,7 +26,7 @@ namespace CK.Cris
         readonly IPocoFactory<ICrisResultError> _errorResultFactory;
         readonly DarkSideCrisEventHub _eventHub;
         readonly RawCrisReceiver _commandValidator;
-        internal readonly RawCrisExecutor _rawExecutor;
+        private readonly RawCrisExecutor _rawExecutor;
 
         readonly PerfectEventSender<ICrisExecutionHost> _parallelRunnerCountChanged;
         // We use null as the close signal for runners and push int values to regulate the count of

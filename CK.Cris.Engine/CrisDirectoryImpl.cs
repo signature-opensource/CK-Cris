@@ -3,6 +3,8 @@ using CK.Core;
 using CK.Cris;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 
@@ -13,10 +15,11 @@ namespace CK.Setup.Cris
     /// </summary>
     public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextBoundInitializer
     {
-        // Auto registers IUbiquitousValues, ICrisResultError so that tests don't have to register them explicitly: registering CrisDirectory is enough.
+        // Auto registers IAmbientValues, ICrisResultError so that tests don't have to register them explicitly: registering CrisDirectory is enough.
         void IAttributeContextBoundInitializer.Initialize( IActivityMonitor monitor, ITypeAttributesCache owner, MemberInfo m, Action<Type> alsoRegister )
         {
-            alsoRegister( typeof( CK.Cris.UbiquitousValues.IUbiquitousValues ) );
+            alsoRegister( typeof( CK.Cris.ICrisPocoPart ) );
+            alsoRegister( typeof( CK.Cris.AmbientValues.IAmbientValues ) );
             alsoRegister( typeof( ICrisResultError ) );
         }
 
@@ -92,37 +95,55 @@ namespace CK.Setup.Cris
                  .Append( "var list = new CK.Cris.ICrisPocoModel[]" ).NewLine()
                  .Append( "{" ).NewLine();
             // Before using the CrisTypes and exposing the ICrisDirectoryServiceEngine:
-            //  - computes once for all all the Primaty Poco fields that are ubiquitous values.
-            //  - sets the handler lists to an empty list if they are null (or useless because the CrisType is not handled).
-            registry.CloseRegistration( monitor );
+            //  - Analyze the AmbientServiceValues.
+            //  - sets, for each of them, the handler lists to an empty list if they are null (or useless because the CrisType is not handled).
+            if( !registry.SettleAmbientValues( monitor ) )
+            {
+                return CSCodeGenerationResult.Failed;
+            }
             foreach( var e in registry.CrisTypes )
             {
                 e.CloseRegistration( monitor );
-                var f = scope.Namespace.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoType.FamilyInfo.PocoFactoryClass );
-                using( f.Region() )
+                var classScope = scope.Namespace.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoType.FamilyInfo.PocoFactoryClass );
+                using( classScope.Region() )
                 {
-                    f.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICrisPocoModel" ) );
-                    f.Append( "public Type CommandType => PocoClassType;" ).NewLine()
+                    bool hasAmbientServicesConfigurators = e.AmbientServicesConfigurators.Count > 0;
+                    classScope.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICrisPocoModel" ) );
+                    classScope.Append( "public Type CommandType => PocoClassType;" ).NewLine()
                      .Append( "public int CrisPocoIndex => " ).Append( e.CrisPocoIndex ).Append( ";" ).NewLine()
                      .Append( "public string PocoName => Name;" ).NewLine()
                      .Append( "public CK.Cris.CrisPocoKind Kind => " ).Append( e.Kind ).Append( ";" ).NewLine()
                      .Append( "public Type ResultType => " ).AppendTypeOf( e.CommandResultType?.Type ?? typeof(void) ).Append( ";" ).NewLine()
                      .Append( "CK.Cris.ICrisPoco CK.Cris.ICrisPocoModel.Create() => (CK.Cris.ICrisPoco)Create();" ).NewLine()
                      .Append( "public bool IsHandled => " ).Append( e.IsHandled ).Append(";").NewLine()
-                     .Append( "public bool HasAmbientServicesConfigurators => " ).Append( e.EventHandlers.Any( h => h.Kind == CrisHandlerKind.CommandConfigureServices ) ).Append( ";" ).NewLine();
+                     .Append( "public bool HasAmbientServicesConfigurators => " ).Append( hasAmbientServicesConfigurators ).Append( ";" ).NewLine();
 
-                    // Follow the order of the handlers.
+                    // ImmutableArray<string> AmbientValuePropertyNames
+                    if( e.AmbientValueFields.Count > 0 )
+                    {
+                        classScope.Append( "static readonly ImmutableArray<string> _ambientValues = ImmutableArray.Create( " )
+                         .AppendArray( e.AmbientValueFields.Select( f => f.Name ) ).Append( " );" ).NewLine()
+                         .Append( "public ImmutableArray<string> AmbientValuePropertyNames => _ambientValues;" ).NewLine();
+                    }
+                    else
+                    {
+                         classScope.Append( "public ImmutableArray<string> AmbientValuePropertyNames => ImmutableArray<string>.Empty;" ).NewLine();
+                    }
+
+                    // ImmutableArray<CK.Cris.ICrisPocoModel.IHandler> Handlers
+                    // Follow the logical order of the handlers.
                     IEnumerable<HandlerBase> allHandlers = ((IEnumerable<HandlerBase>)e.IncomingValidators)
                                                             .Concat( e.HandlingValidators );
                     if( e.CommandHandler != null ) allHandlers = allHandlers.Append( e.CommandHandler );
                     allHandlers = allHandlers.Concat( e.PostHandlers )
                                              .Concat( e.EventHandlers )!;
+
                     if( allHandlers.Any() )
                     {
-                        f.Append( "static readonly CK.Cris.ICrisPocoModel.IHandler[] _handlers = new [] {" ).NewLine();
+                        classScope.Append( "static readonly ImmutableArray<CK.Cris.ICrisPocoModel.IHandler> _handlers = ImmutableArray.Create( new CK.Cris.ICrisPocoModel.IHandler[] {" ).NewLine();
                         foreach( var handler in allHandlers )
                         {
-                            f.Append( "new CK.Cris.CrisHandlerDescriptor(" ).NewLine()
+                            classScope.Append( "new CK.Cris.CrisHandlerDescriptor(" ).NewLine()
                              .Append( "CK.StObj.GeneratedRootContext.ToLeaf( " ).AppendTypeOf( handler.Owner.ClassType ).Append( " )," ).NewLine()
                              .AppendSourceString( handler.Method.Name ).Append( "," ).NewLine()
                              .AppendArray( handler.Parameters.Select( p => p.ParameterType ) ).Append( "," )
@@ -131,14 +152,43 @@ namespace CK.Setup.Cris
                              .Append( handler.LineNumber )
                              .Append( ")," ).NewLine();
                         }
-                        f.Append( "};" ).NewLine()
-                         .Append( "public IReadOnlyList<CK.Cris.ICrisPocoModel.IHandler> Handlers => _handlers;" );
+                        classScope.Append( "} );" ).NewLine()
+                         .Append( "public ImmutableArray<CK.Cris.ICrisPocoModel.IHandler> Handlers => _handlers;" );
                     }
                     else
                     {
-                        f.Append( "public IReadOnlyList<CK.Cris.ICrisPocoModel.IHandler> Handlers => Array.Empty<CK.Cris.ICrisPocoModel.IHandler>();" );
+                        classScope.Append( "public ImmutableArray<CK.Cris.ICrisPocoModel.IHandler> Handlers => ImmutableArray<CK.Cris.ICrisPocoModel.IHandler>.Empty;" );
                     }
-                    f.NewLine();
+                    classScope.NewLine();
+
+                    Throw.DebugAssert( nameof( ICrisPocoModel.ConfigureAmbientServices ) == "ConfigureAmbientServices" );
+                    var fConfigure = classScope.CreateFunction( "public void ConfigureAmbientServices( IAbstractCommand c, AmbientServiceHub hub )" );
+                    if( hasAmbientServicesConfigurators )
+                    {
+                        var cachedServices = new VariableCachedServices( c.CurrentRun.EngineMap, fConfigure );
+                        foreach( var h in e.AmbientServicesConfigurators )
+                        {
+                            cachedServices.WriteExactType( fConfigure, h.Method.DeclaringType, h.Owner.ClassType ).Append( "." ).Append( h.Method.Name ).Append( "( " );
+                            foreach( var param in h.Parameters )
+                            {
+                                if( param.Position > 0 ) fConfigure.Append( ", " );
+                                if( param == h.CmdOrPartParameter )
+                                {
+                                    fConfigure.Append( "(" ).AppendGlobalTypeName( h.CmdOrPartParameter.ParameterType ).Append( ")c" );
+                                }
+                                else if( param == h.AmbientServiceHubParameter )
+                                {
+                                    fConfigure.Append( "hub" );
+                                }
+                                else
+                                {
+                                    fConfigure.Append( cachedServices.GetServiceVariableName( param.ParameterType ) );
+                                }
+                            }
+                            fConfigure.Append( " );" ).NewLine();
+                        }
+                    }
+
                 }
 
                 // The CrisPocoModel is the _factory field.

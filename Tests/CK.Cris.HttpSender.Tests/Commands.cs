@@ -12,12 +12,12 @@ namespace CK.Cris.HttpSender.Tests
         string Color { get; set; }
     }
 
-    public interface IColoredEndpointValues : UbiquitousValues.IUbiquitousValues
+    public interface IColoredEndpointValues : AmbientValues.IAmbientValues
     {
         /// <summary>
         /// The color of <see cref="ICommandColored"/> part.
         /// </summary>
-        [UbiquitousValue]
+        [AmbientServiceValue]
         string? Color { get; set; }
     }
 
@@ -38,7 +38,7 @@ namespace CK.Cris.HttpSender.Tests
     public class ColorAndNakedService : IAutoService
     {
         [CommandPostHandler]
-        public void GetColoredEndpointValues( UbiquitousValues.IUbiquitousValuesCollectCommand cmd, IColoredEndpointValues values )
+        public void GetColoredEndpointValues( AmbientValues.IAmbientValuesCollectCommand cmd, IColoredEndpointValues values )
         {
             values.Color = "Red";
         }

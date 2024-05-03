@@ -33,15 +33,23 @@ namespace CK.Cris
         /// <typeparam name="T">Command type.</typeparam>
         /// <param name="monitor">The monitor.</param>
         /// <param name="command">The command to execute.</param>
-        /// <param name="skipValidation">True to skip command validation. This should be true only if the command has already been validated.</param>
         /// <param name="ambientServicesOverride">Optional ambient service configurator that can override ambient service intances.</param>
         /// <param name="issuerToken">The issuer token to use. When null a new token is obtained from the <paramref name="monitor"/>.</param>
+        /// <param name="incomingValidationCheck">
+        /// Whether incoming command validation should be done again.
+        /// This should not be necessary because a command that reaches an execution context should already
+        /// have been submitted to the incoming command validators.
+        /// <para>
+        /// When not specified, this defaults to <see cref="CoreApplicationIdentity.IsDevelopmentOrUninitialized"/>:
+        /// in "#Dev" or when the identity is not yet settled, the incoming validation is ran.
+        /// </para>
+        /// </param>
         /// <returns>The executing command that can be used to track the execution.</returns>
         public IExecutingCommand<T> Submit<T>( IActivityMonitor monitor,
                                                T command,
-                                               bool skipValidation = false,
                                                Action<AmbientServiceHub>? ambientServicesOverride = null,
-                                               ActivityMonitor.Token? issuerToken = null )
+                                               ActivityMonitor.Token? issuerToken = null,
+                                               bool? incomingValidationCheck = null )
             where T : class, IAbstractCommand
         {
             var ubiq = _ambientServiceHub;
@@ -50,7 +58,12 @@ namespace CK.Cris
                 ubiq = _ambientServiceHub.CleanClone();
                 ambientServicesOverride( ubiq );
             }
-            return _service.Submit( monitor, command, ubiq, skipValidation, issuerToken );
+            if( command.CrisPocoModel.HasAmbientServicesConfigurators )
+            {
+                if( ubiq.IsLocked ) ubiq = ubiq.CleanClone();
+                command.CrisPocoModel.ConfigureAmbientServices( command, ubiq );
+            }
+            return _service.Submit( monitor, command, ubiq, issuerToken, incomingValidationCheck );
         }
     }
 

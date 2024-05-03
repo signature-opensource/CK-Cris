@@ -30,6 +30,8 @@ namespace CK.Setup.Cris
         readonly IStObjFinalClass? _commandHandlerService;
         HandlerMethod? _commandHandler;
 
+        IList<IPrimaryPocoField>? _ambientValues;
+
         /// <summary>
         /// Gets the command or event type.
         /// </summary>
@@ -77,6 +79,11 @@ namespace CK.Setup.Cris
         /// Only <see cref="CrisPocoKind.RoutedImmediateEvent"/> and <see cref="CrisPocoKind.RoutedEvent"/> can have event handlers.
         /// </summary>
         public IReadOnlyList<HandlerRoutedEventMethod> EventHandlers => (IReadOnlyList<HandlerRoutedEventMethod>)_eventHandlers!;
+
+        /// <summary>
+        /// Gets the fields of this Poco that are marked with <see cref="AmbientServiceValueAttribute"/>.
+        /// </summary>
+        public IReadOnlyList<IPrimaryPocoField> AmbientValueFields => (IReadOnlyList<IPrimaryPocoField>)_ambientValues!;
 
         /// <summary>
         /// Gets the name of this command or event (this is the <see cref="INamedPocoType.ExternalOrCSharpName"/>).
@@ -200,6 +207,8 @@ namespace CK.Setup.Cris
 
         internal void CloseRegistration( IActivityMonitor monitor )
         {
+            _ambientValues ??= Array.Empty<IPrimaryPocoField>();
+
             if( _kind is CrisPocoKind.Command or CrisPocoKind.CommandWithResult )
             {
                 Throw.DebugAssert( _eventHandlers == null );
@@ -253,6 +262,12 @@ namespace CK.Setup.Cris
                 Throw.DebugAssert( _eventHandlers == null );
                 _eventHandlers = Array.Empty<HandlerRoutedEventMethod>();
             }
+        }
+
+        internal void AddAmbientValueField( IPrimaryPocoField f )
+        {
+            _ambientValues ??= new List<IPrimaryPocoField>();
+            _ambientValues.Add( f );
         }
 
         internal static string MethodName( MethodInfo m, ParameterInfo[]? parameters = null ) => $"{m.DeclaringType!.Name}.{m.Name}( {(parameters ?? m.GetParameters()).Select( p => p.ParameterType.Name + " " + p.Name ).Concatenate()} )";

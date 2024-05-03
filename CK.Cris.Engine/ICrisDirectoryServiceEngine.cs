@@ -16,7 +16,7 @@ namespace CK.Setup.Cris
         /// Gets a non null abstract CrisPocoType only if at least one concrete event
         /// or command exists.
         /// </summary>
-        IAbstractPocoType CrisPocoType { get; }
+        IAbstractPocoType? CrisPocoType { get; }
 
         /// <summary>
         /// Gets all the discovered commands and events ordered by their <see cref="CrisType.CrisPocoIndex"/>.
@@ -31,11 +31,11 @@ namespace CK.Setup.Cris
         CrisType? Find( IPrimaryPocoType poco );
 
         /// <summary>
-        /// Gets whether a field (of a command) is an [UbiquitousValue].
+        /// Gets whether a field (of a command) is an [AmbientServiceValue].
         /// </summary>
         /// <param name="field">The field to test.</param>
         /// <returns>True if the field is an ubiquitous value.</returns>
-        bool IsUbiquitousValueField( IPrimaryPocoField field );
+        bool IsAmbientServiceValueField( IPrimaryPocoField field );
     }
 
 }

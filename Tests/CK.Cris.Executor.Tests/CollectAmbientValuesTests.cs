@@ -1,6 +1,6 @@
 using CK.Auth;
 using CK.Core;
-using CK.Cris.UbiquitousValues;
+using CK.Cris.AmbientValues;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -19,7 +19,7 @@ namespace CK.Cris.Executor.Tests
         /// <summary>
         /// Defines a set of ambient values that will be filled by the pseudo <see cref="AuthService"/> below.
         /// </summary>
-        public interface IAuthAmbientValues : IUbiquitousValues
+        public interface IAuthAmbientValues : IAmbientValues
         {
             int ActorId { get; set; }
             int ActualActorId { get; set; }
@@ -32,7 +32,7 @@ namespace CK.Cris.Executor.Tests
         public class AuthService : IAutoService
         {
             [CommandPostHandler]
-            public void GetValues( IUbiquitousValuesCollectCommand cmd, IAuthenticationInfo info, IAuthAmbientValues values )
+            public void GetValues( IAmbientValuesCollectCommand cmd, IAuthenticationInfo info, IAuthAmbientValues values )
             {
                 values.ActorId = info.User.UserId;
                 values.ActualActorId = info.ActualUser.UserId;
@@ -43,7 +43,7 @@ namespace CK.Cris.Executor.Tests
         /// <summary>
         /// Another example: exposes a set of roles.
         /// </summary>
-        public interface ISecurityAmbientValues : IUbiquitousValues
+        public interface ISecurityAmbientValues : IAmbientValues
         {
             string[] Roles { get; set; }
         }
@@ -56,7 +56,7 @@ namespace CK.Cris.Executor.Tests
         public class SecurityService : IAutoService
         {
             [CommandPostHandler]
-            public async Task GetValuesAsync( IUbiquitousValuesCollectCommand cmd, IActivityMonitor monitor, IAuthenticationInfo info, ISecurityAmbientValues values )
+            public async Task GetValuesAsync( IAmbientValuesCollectCommand cmd, IActivityMonitor monitor, IAuthenticationInfo info, ISecurityAmbientValues values )
             {
                 await Task.Delay( 25 );
                 monitor.Info( $"User {info.User.UserName} roles have been read from the database." );
@@ -68,9 +68,11 @@ namespace CK.Cris.Executor.Tests
         public async Task CommandPostHandler_fills_the_resulting_ambient_values_Async()
         {
             var c = TestHelper.CreateStObjCollector( typeof( RawCrisExecutor ),
-                                                     typeof( IUbiquitousValuesCollectCommand ),
-                                                     typeof( UbiquitousValuesService ),
+                                                     typeof( IAmbientValuesCollectCommand ),
+                                                     typeof( AmbientValuesService ),
                                                      typeof( AuthService ),
+                                                     typeof( IAuthenticationInfo ),
+                                                     typeof( StdAuthenticationTypeSystem ),
                                                      typeof( IAuthAmbientValues ),
                                                      typeof( SecurityService ),
                                                      typeof( ISecurityAmbientValues ) );
@@ -89,7 +91,7 @@ namespace CK.Cris.Executor.Tests
             {
                 var services = scope.ServiceProvider;
                 var executor = services.GetRequiredService<RawCrisExecutor>();
-                var cmd = services.GetRequiredService<IPocoFactory<IUbiquitousValuesCollectCommand>>().Create();
+                var cmd = services.GetRequiredService<IPocoFactory<IAmbientValuesCollectCommand>>().Create();
 
                 var r = await executor.RawExecuteAsync( services, cmd );
                 Throw.DebugAssert( r.Result != null );
@@ -101,6 +103,39 @@ namespace CK.Cris.Executor.Tests
                 var sec = (ISecurityAmbientValues)r.Result;
                 sec.Roles.Should().BeEquivalentTo( "Administrator", "Tester", "Approver" );
             }
+        }
+
+
+        public interface ISomePart : ICrisPocoPart
+        {
+            [AmbientServiceValue]
+            int? Something { get; set; }
+        }
+
+        public interface ISomeCommand : ICommand, ISomePart
+        {
+        }
+
+        public class  FakeHandlerButRequiredOtherwiseCommandIsSkipped 
+        {
+            [CommandHandler]
+            public void Handle( ISomeCommand command )
+            {
+            }
+        }
+
+        [Test]
+        public void IAmbiantValues_must_cover_all_AmbientServiceValue_properties()
+        {
+            var c = TestHelper.CreateStObjCollector( typeof( RawCrisExecutor ),
+                                                     typeof( IAmbientValuesCollectCommand ),
+                                                     typeof( AmbientValuesService ),
+                                                     typeof( ISomePart ),
+                                                     typeof( ISomeCommand ),
+                                                     typeof( FakeHandlerButRequiredOtherwiseCommandIsSkipped ) );
+            TestHelper.GetFailedAutomaticServicesConfiguration( c, 
+                "Missing IAmbientValues properties for [AmbientServiceValue] properties.",
+                new[] { "'int Something { get; set; }'" } );
         }
 
     }

@@ -41,7 +41,7 @@ namespace CK.Cris.AspNet.Tests
                     typeof( FakeWebFrontLoginService ),
                     typeof( CrisAuthenticationService ),
                     typeof( AuthenticationInfoTokenService ),
-                    typeof( IAuthUbiquitousValues ),
+                    typeof( IAuthAmbientValues ),
                     typeof( ICommandAuthUnsafe ),
                     typeof( ICommandAuthNormal ),
                     typeof( ICommandAuthCritical ),

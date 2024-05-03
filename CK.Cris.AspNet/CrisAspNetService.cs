@@ -1,5 +1,5 @@
 using CK.Core;
-using CK.Cris.UbiquitousValues;
+using CK.Cris.AmbientValues;
 using CK.Poco.Exc.Json;
 using CK.Setup;
 using Microsoft.AspNetCore.Http;
@@ -26,7 +26,7 @@ namespace CK.Cris.AspNet
     [AlsoRegisterType( typeof( IAspNetCrisResult ) )]
     [AlsoRegisterType( typeof( IAspNetCrisResultError ) )]
     [AlsoRegisterType( typeof( CrisBackgroundExecutorService ) )]
-    [AlsoRegisterType( typeof( IUbiquitousValuesCollectCommand ) )]
+    [AlsoRegisterType( typeof( IAmbientValuesCollectCommand ) )]
     public partial class CrisAspNetService : ISingletonAutoService
     {
         readonly RawCrisReceiver _validator;
@@ -109,21 +109,32 @@ namespace CK.Cris.AspNet
                 }
                 if( result == null )
                 {
-                    // Incoming validation succeeded. Challenge the Ambient service configuration.
                     Throw.DebugAssert( readResult.Command != null && readResult.TypeFilterName != null );
-                    AmbientServiceHub? info = HandleEndpointUbiquitousInfoConfigurator( requestServices, readResult.Command );
+
+                    // Incoming validation succeeded. Challenge the Ambient service configuration.
 
                     IExecutedCommand? executedCommand = null;
-                    if( info != null && info.IsDirty )
+                    // Do we need the background executor?
+                    if( readResult.Command.CrisPocoModel.HasAmbientServicesConfigurators )
                     {
-                        var executing = _backgroundExecutor.Submit( monitor, readResult.Command, info, issuerToken: depToken );
-                        executedCommand = await executing.ExecutedCommand;
+                        var hub = requestServices.GetRequiredService<AmbientServiceHub>();
+                        Throw.DebugAssert( hub.IsLocked );
+                        hub = hub.CleanClone();
+                        readResult.Command.CrisPocoModel.ConfigureAmbientServices( readResult.Command, hub );
+                        // Do we really need it?
+                        if( hub.IsDirty )
+                        {
+                            var executing = _backgroundExecutor.Submit( monitor, readResult.Command, hub, issuerToken: depToken );
+                            executedCommand = await executing.ExecutedCommand;
+                        }
                     }
-                    else
+                    // Inline execution otherwise.
+                    if( executedCommand == null )
                     {
                         var execContext = requestServices.GetRequiredService<CrisExecutionContext>();
                         executedCommand = await execContext.ExecuteRootCommandAsync( readResult.Command );
                     }
+                    // Build the IAspNetCrisResult.
                     result = _resultFactory.Create();
                     result.Result = executedCommand.Result;
                     if( allValidationMessages.Any() || executedCommand.ValidationMessages.Length > 0 )
@@ -133,6 +144,7 @@ namespace CK.Cris.AspNet
                                                         .Select( m => m.AsSimpleUserMessage() )
                                                         .ToList();
                     }
+                    // Simplifies the error if asked to to.
                     if( useSimpleError && result.Result is ICrisResultError error )
                     {
                         IAspNetCrisResultError simpleError = _errorResultFactory.Create();
@@ -170,19 +182,6 @@ namespace CK.Cris.AspNet
             }
             token = null;
             return null;
-        }
-
-        // Temporary:
-        // TODO: Handle this "context matching" in a generic way ([ConfigureAmbientServices] attribute).
-        AmbientServiceHub? HandleEndpointUbiquitousInfoConfigurator( IServiceProvider requestServices, IAbstractCommand cmd )
-        {
-            AmbientServiceHub? info = null;
-            if( cmd is ICommandWithCurrentCulture c )
-            {
-                info = requestServices.GetRequiredService<AmbientServiceHub>();
-                CrisCultureService.ConfigureCurrentCulture( c, info );
-            }
-            return info;
         }
 
         record struct ReadResult( IAbstractCommand? Command, IAspNetCrisResult? ReadResultError, string? TypeFilterName, UserMessageCollector ValidationMessages );

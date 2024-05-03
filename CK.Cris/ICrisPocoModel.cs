@@ -55,9 +55,19 @@ namespace CK.Cris
         bool HasAmbientServicesConfigurators { get; }
 
         /// <summary>
-        /// Gets all the [UbiquitousValue] property names that this command or event exposes.
+        /// Configures the ambient services hub by calling the [ConfigureAmbientService] methods for the command, event or its parts.
+        /// This must be called before executing the command or handling the event in a background context, <see cref="AmbientServiceHub.IsLocked"/>
+        /// must be false.
+        /// This does nothing if <see cref="HasAmbientServicesConfigurators"/> is false.
         /// </summary>
-        ImmutableArray<string> UbiquitousValues { get; }
+        /// <param name="command">The command that will be executed.</param>
+        /// <param name="ambientServices">The ambient services hub.</param>
+        void ConfigureAmbientServices( IAbstractCommand command, AmbientServiceHub ambientServices );
+
+        /// <summary>
+        /// Gets all the [AmbientServiceValue] property names that this command or event exposes.
+        /// </summary>
+        ImmutableArray<string> AmbientValuePropertyNames { get; }
 
         /// <summary>
         /// Gets whether this command or event is handled: <see cref="Handlers"/> is not empty.
@@ -114,7 +124,7 @@ namespace CK.Cris
         /// When empty, no handler has been found and the command or events cannot
         /// be executed in this process.
         /// </summary>
-        IReadOnlyList<IHandler> Handlers { get; }
+        ImmutableArray<IHandler> Handlers { get; }
     }
 
 }

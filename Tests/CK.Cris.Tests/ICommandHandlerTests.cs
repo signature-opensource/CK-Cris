@@ -231,7 +231,7 @@ namespace CK.Cris.Tests
         [Test]
         public void Handler_method_of_base_class_is_discovered_by_inheritance()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( UbiquitousValues.IUbiquitousValues ),
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( AmbientValues.IAmbientValues ),
                                                      typeof( ITestCommand ),
                                                      typeof( SpecializedBaseClassService ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;

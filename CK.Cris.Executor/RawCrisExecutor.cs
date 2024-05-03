@@ -1,11 +1,6 @@
 using CK.Core;
-using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
-using static CK.Core.CheckedWriteStream;
 
 namespace CK.Cris
 {

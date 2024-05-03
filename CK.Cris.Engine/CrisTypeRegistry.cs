@@ -1,6 +1,6 @@
 using CK.Core;
 using CK.Cris;
-using CK.Cris.UbiquitousValues;
+using CK.Cris.AmbientValues;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -16,13 +16,12 @@ namespace CK.Setup.Cris
     /// Attributes (<see cref="HandlerBase"/>) wait for it to register their handlers.
     /// Once done, the public ICrisDirectoryServiceEngine is published so that Cris dependent components can use it.
     /// </summary>
-    internal sealed class CrisTypeRegistry : ICrisDirectoryServiceEngine
+    internal sealed partial class CrisTypeRegistry : ICrisDirectoryServiceEngine
     {
-        readonly IReadOnlyDictionary<IPrimaryPocoType, CrisType> _indexedEntries;
-        readonly IReadOnlyList<CrisType> _entries;
-        readonly List<(IBaseCompositeType Owner, IBasePocoField Field, bool OwnerHasPostHandler)> _ubiquitousCommandFields;
-        // Filled by CloseRegistration.
-        readonly HashSet<IPrimaryPocoField> _allUbiquitousFields;
+        readonly IReadOnlyDictionary<IPrimaryPocoType, CrisType> _indexedTypes;
+        readonly IReadOnlyList<CrisType> _allTypes;
+        readonly Dictionary<string, AmbientValueEntry> _ambientValues;
+        readonly HashSet<IPrimaryPocoField> _allAmbientValueFields;
 
         readonly IPocoTypeSystem _typeSystem;
         readonly IAbstractPocoType? _crisPocoType;
@@ -30,7 +29,8 @@ namespace CK.Setup.Cris
         readonly IAbstractPocoType? _crisCommandTypePart;
         readonly IAbstractPocoType? _crisEventType;
         readonly IAbstractPocoType? _crisEventTypePart;
-        readonly IPrimaryPocoType? _ubiquitousValues;
+        readonly IAbstractPocoType? _crisPocoTypePart;
+        readonly IPrimaryPocoType? _ambientValuesType;
 
         CrisTypeRegistry( IReadOnlyDictionary<IPrimaryPocoType,CrisType> index,
                           IReadOnlyList<CrisType> entries,
@@ -40,19 +40,21 @@ namespace CK.Setup.Cris
                           IAbstractPocoType? crisCommandTypePart,
                           IAbstractPocoType? crisEventType,
                           IAbstractPocoType? crisEventTypePart,
-                          IPrimaryPocoType? ubiquitousValues )
+                          IAbstractPocoType? crisPocoTypePart,
+                          IPrimaryPocoType? ambientValuesType )
         {
-            _indexedEntries = index;
-            _entries = entries;
+            _indexedTypes = index;
+            _allTypes = entries;
             _typeSystem = typeSystem;
             _crisPocoType = crisPocoType;
             _crisCommandType = crisCommandType;
             _crisCommandTypePart = crisCommandTypePart;
             _crisEventType = crisEventType;
             _crisEventTypePart = crisEventTypePart;
-            _ubiquitousValues = ubiquitousValues;
-            _ubiquitousCommandFields = new List<(IBaseCompositeType Owner, IBasePocoField Field, bool OwnerHasPostHandler)>();
-            _allUbiquitousFields = new HashSet<IPrimaryPocoField>();
+            _crisPocoTypePart = crisPocoTypePart;
+            _ambientValuesType = ambientValuesType;
+            _ambientValues = new Dictionary<string, AmbientValueEntry>();
+            _allAmbientValueFields = new HashSet<IPrimaryPocoField>();
         }
 
         public IAbstractPocoType? CrisPocoType => _crisPocoType;
@@ -61,13 +63,13 @@ namespace CK.Setup.Cris
         public IPocoTypeSystem TypeSystem => _typeSystem;
 
         /// <inheritdoc/>
-        public IReadOnlyList<CrisType> CrisTypes => _entries;
+        public IReadOnlyList<CrisType> CrisTypes => _allTypes;
 
         /// <inheritdoc/>
-        public CrisType? Find( IPrimaryPocoType poco ) => _indexedEntries.GetValueOrDefault( poco );
+        public CrisType? Find( IPrimaryPocoType poco ) => _indexedTypes.GetValueOrDefault( poco );
 
         /// <inheritdoc/>
-        public bool IsUbiquitousValueField( IPrimaryPocoField field ) => _allUbiquitousFields.Contains( field );
+        public bool IsAmbientServiceValueField( IPrimaryPocoField field ) => _allAmbientValueFields.Contains( field );
 
         internal static CrisTypeRegistry? Create( IActivityMonitor monitor, IPocoTypeSystem typeSystem, IStObjEngineMap services )
         {
@@ -75,12 +77,12 @@ namespace CK.Setup.Cris
             var entries = new List<CrisType>();
             var indexedEntries = new Dictionary<IPrimaryPocoType, CrisType>();
 
-            IPrimaryPocoType? ubiquitousValues = typeSystem.FindByType<IPrimaryPocoType>( typeof( IUbiquitousValues ) );
-            if( ubiquitousValues != null
-                && ubiquitousValues.Fields.Any( f => f.Type.IsNullable ) )
+            IPrimaryPocoType? ambientValuesType = typeSystem.FindByType<IPrimaryPocoType>( typeof( IAmbientValues ) );
+            if( ambientValuesType != null
+                && ambientValuesType.Fields.Any( f => f.Type.IsNullable ) )
             {
-                var culprits = ubiquitousValues.Fields.Where( f => f.Type.IsNullable );
-                monitor.Error( $"{nameof( IUbiquitousValues )} properties cannot be nullable: {culprits.Select( f => $"{f.Type.CSharpName} {f.Name}" ).Concatenate()}." );
+                var culprits = ambientValuesType.Fields.Where( f => f.Type.IsNullable );
+                monitor.Error( $"IAmbientValues properties cannot be nullable: {culprits.Select( f => $"{f.Type.CSharpName} {f.Name}" ).Concatenate()}." );
                 success = false;
             }
 
@@ -137,9 +139,20 @@ namespace CK.Setup.Cris
                 }
                 monitor.Trace( $"Found {entries.Count - commandCount} Cris commands." );
             }
+            IAbstractPocoType? crisPocoTypePart;
             if( crisPocoType == null )
             {
                 monitor.Warn( $"No Cris commands nor events found." );
+                crisPocoTypePart = null;
+            }
+            else
+            {
+                crisPocoTypePart = typeSystem.FindByType<IAbstractPocoType>( typeof( ICrisPocoPart ) );
+                if( crisPocoTypePart == null )
+                {
+                    monitor.Error( "At least one Cris command or event found, ICrisPocoPart cannot be excluded." );
+                    success = false;
+                }
             }
             return success
                     ? new CrisTypeRegistry( indexedEntries,
@@ -150,7 +163,8 @@ namespace CK.Setup.Cris
                                             crisCommandTypePart,
                                             crisEventType,
                                             crisEventTypePart,
-                                            ubiquitousValues )
+                                            crisPocoTypePart,
+                                            ambientValuesType )
                     : null;
 
             static IAbstractPocoType? GetAbstractPocoType( IActivityMonitor monitor, IPocoTypeSystem typeSystem, Type type )
@@ -289,51 +303,6 @@ namespace CK.Setup.Cris
 
         }
 
-        internal bool CloseRegistration( IActivityMonitor monitor )
-        {
-            bool success = true;
-            if( _ubiquitousCommandFields.Count > 0 )
-            {
-                var byName = new Dictionary<string, (IBaseCompositeType FirstOwner, IPocoType PropertyType)>();
-                foreach( var f in _ubiquitousCommandFields )
-                {
-                    if( byName.TryGetValue( f.Field.Name, out var already ) )
-                    {
-                        if( already.PropertyType != f.Field.Type )
-                        {
-                            monitor.Error( $"[UbiquitousValue] property type '{f.Field.Name}' differ: it is '{already.PropertyType.CSharpName}' for '{already.FirstOwner}' " +
-                                           $"and  '{f.Field.Type.CSharpName}' for '{f.Owner.CSharpName}'." );
-                            success = false;
-                        }
-                    }
-                    if( !f.OwnerHasPostHandler )
-                    {
-                        monitor.Warn( $"A [PostHandler] method for '{f.Owner.NonNullable.CSharpName}' has not been found.{Environment.NewLine}" +
-                                        $"The [UbiquitousValue] property '{f.Field.Type.CSharpName} {f.Field.Name}' may not be initialized." );
-                    }
-                    if( f.Field is IAbstractPocoField a )
-                    {
-                        foreach( var impl in a.Implementations )
-                        {
-
-                            _allUbiquitousFields.Add( impl );
-                        }
-                    }
-                    else if( f.Field is IPrimaryPocoField b )
-                    {
-                        _allUbiquitousFields.Add( b );
-                    }
-                }
-            }
-            return success;
-        }
-
-        internal void RegisterUbiquitousValueDefinitionField( IBaseCompositeType owner, IBasePocoField field )
-        {
-            Throw.DebugAssert( !_ubiquitousCommandFields.Any( a => a.Field == field ) );
-            _ubiquitousCommandFields.Add( (owner,field,false) );
-        }
-
         internal bool RegisterHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, bool allowUnclosed, string? fileName, int lineNumber )
         {
             (CrisType? e, ParameterInfo[]? parameters, ParameterInfo? p) = GetSingleCommandEntry( monitor, "Handler", m );
@@ -357,11 +326,6 @@ namespace CK.Setup.Cris
             (CrisType? e, ParameterInfo[]? parameters, ParameterInfo? p) = GetSingleCommandEntry( monitor, "PostHandler", m );
             if( e == null ) return false;
             Throw.DebugAssert( parameters != null && p != null );
-            var idxUbiquitousField = _ubiquitousCommandFields.IndexOf( cf => cf.Owner == e.CrisPocoType );
-            if( idxUbiquitousField >= 0 )
-            {
-                CollectionsMarshal.AsSpan( _ubiquitousCommandFields )[idxUbiquitousField].OwnerHasPostHandler = true;
-            }
             return e.AddPostHandler( monitor, _typeSystem, impl, m, parameters, p, fileName, lineNumber );
         }
 
@@ -378,8 +342,8 @@ namespace CK.Setup.Cris
                 {
                     Throw.DebugAssert( "Since we have a parameter.", candidate != null );
                     Throw.DebugAssert( parameters != null );
-                    Throw.DebugAssert( "Since parameters are filtered by registered Poco.", _indexedEntries.ContainsKey( candidate ) );
-                    return (_indexedEntries[candidate], parameters, p);
+                    Throw.DebugAssert( "Since parameters are filtered by registered Poco.", _indexedTypes.ContainsKey( candidate ) );
+                    return (_indexedTypes[candidate], parameters, p);
                 }
             }
             return (null, null, null);
@@ -413,7 +377,13 @@ namespace CK.Setup.Cris
             }
             else
             {
-                Throw.DebugAssert( "We have candidates => we found a parameter (a IEvent or a ICommand or ICommandPart).", foundParameter != null );
+                Throw.DebugAssert( "We have candidates => we found a parameter (a IEvent, ICommand or a part).", foundParameter != null );
+                //
+                // TODO:
+                //  - Loop once on the parameters.
+                //  - ConfigureAmbientServices extra parameters must be processwide singletons.
+                //
+                ParameterInfo? messageCollectorOrAmbientServiceHub = null;
                 // This check applies to all command based handlers: command handlers and post handlers accept ICrisCommandContext.
                 var execContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisCommandContext ) );
                 if( execContext != null )
@@ -422,10 +392,10 @@ namespace CK.Setup.Cris
                                    $"be used in a command [{target}] since it cannot execute commands or send events." );
                     success = false;
                 }
-                ParameterInfo? messageCollectorOrAmbientServiceHub = null;
                 if( target is not MultiTargetHandlerKind.RoutedEventHandler )
                 {
                     Throw.DebugAssert( target is MultiTargetHandlerKind.CommandIncomingValidator or MultiTargetHandlerKind.CommandHandlingValidator or MultiTargetHandlerKind.ConfigureAmbientServices );
+
                     var callContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisEventContext ) );
                     if( callContext != null )
                     {
@@ -455,16 +425,16 @@ namespace CK.Setup.Cris
                 {
                     foreach( var family in candidates )
                     {
-                        Throw.DebugAssert( _indexedEntries.ContainsKey( family ), "Since parameters are filtered by registered Poco." );
-                        success &= _indexedEntries[family].AddMultiTargetHandler( monitor,
-                                                                                  target,
-                                                                                  impl,
-                                                                                  m,
-                                                                                  parameters,
-                                                                                  foundParameter,
-                                                                                  messageCollectorOrAmbientServiceHub,
-                                                                                  fileName,
-                                                                                  lineNumber );
+                        Throw.DebugAssert( _indexedTypes.ContainsKey( family ), "Since parameters are filtered by registered Poco." );
+                        success &= _indexedTypes[family].AddMultiTargetHandler( monitor,
+                                                                                target,
+                                                                                impl,
+                                                                                m,
+                                                                                parameters,
+                                                                                foundParameter,
+                                                                                messageCollectorOrAmbientServiceHub,
+                                                                                fileName,
+                                                                                lineNumber );
                     }
                 }
             }
@@ -552,7 +522,8 @@ namespace CK.Setup.Cris
             var partBase = expectCommands ? _crisCommandTypePart : _crisEventTypePart;
             if( partBase != null )
             {
-                return FromPart( monitor, _typeSystem, partBase, m, parameters, expectCommands, out foundParameter, out candidates );
+                Throw.DebugAssert( "command or event part => ICrisPoco => ICrisPocoPart", _crisPocoTypePart != null );
+                return FromPart( monitor, _typeSystem, partBase, _crisPocoTypePart, m, parameters, expectCommands, out foundParameter, out candidates );
             }
             // Not found but it is not an error.
             // If foundParameter is null its because the there is no IEventPart or ICommandPart at all.
@@ -562,7 +533,8 @@ namespace CK.Setup.Cris
             static bool FromPart( IActivityMonitor monitor,
                                   IPocoTypeSystem typeSystem,
                                   IAbstractPocoType eventOrCommandPartType,
-                                  MethodInfo m,
+                                  IAbstractPocoType crisPocoTypePart,
+                                  MethodInfo method,
                                   ParameterInfo[] parameters,
                                   bool expectCommands,
                                   [NotNullWhen( true )] out ParameterInfo? foundParameter,
@@ -571,58 +543,100 @@ namespace CK.Setup.Cris
                 foundParameter = null;
                 candidates = null;
                 List<ParameterInfo>? tooMuch = null;
-                foreach( var param in parameters )
+                foreach( var parameter in parameters )
                 {
-                    var a = typeSystem.FindByType<IAbstractPocoType>( param.ParameterType );
-                    bool isTheOne = a != null && a.NonNullable.Generalizations.Contains( eventOrCommandPartType );
-                    bool isTheOneEvenDisabled = isTheOne || eventOrCommandPartType.Type.IsAssignableFrom( param.ParameterType );
-                    if( isTheOneEvenDisabled )
+                    var pocoType = typeSystem.FindByType<IAbstractPocoType>( parameter.ParameterType );
+                    if( pocoType != null )
+                    {
+                        AnalyzePocoTypeParameter( monitor,
+                                                  eventOrCommandPartType,
+                                                  crisPocoTypePart,
+                                                  method,
+                                                  parameters,
+                                                  expectCommands,
+                                                  ref foundParameter,
+                                                  ref candidates,
+                                                  ref tooMuch,
+                                                  parameter,
+                                                  pocoType );
+                    }
+                }
+                // If we found a parameter, candidates may be empty but it is not an error.
+                if( foundParameter != null && tooMuch == null )
+                {
+                    Throw.DebugAssert( candidates != null );
+                    return true;
+                }
+                var expected = expectCommands ? "ICommand, ICommand<TResult>, ICommandPart" : "IEvent, IEventPart";
+                if( tooMuch != null )
+                {
+                    Throw.DebugAssert( foundParameter != null );
+                    var t = tooMuch.Select( p => $"{p.ParameterType.ToCSharpName()} {p.Name}" ).Concatenate( "', '" );
+                    monitor.Error( $"Method {CrisType.MethodName( method, parameters )} cannot have more than one {expected} or ICrisPocoPart parameter. " +
+                                    $"Found '{foundParameter.ParameterType.ToCSharpName()} {foundParameter.Name}', cannot allow '{t}'." );
+                    return false;
+                }
+                if( candidates == null ) 
+                {
+                    monitor.Error( $"Method {CrisType.MethodName( method, parameters )}: missing a {expected} or ICrisPocoPart parameter." );
+                    return false;
+                }
+                Throw.DebugAssert( foundParameter != null );
+                return true;
+
+                static void AnalyzePocoTypeParameter( IActivityMonitor monitor,
+                                                      IAbstractPocoType eventOrCommandPartType,
+                                                      IAbstractPocoType crisPocoTypePart,
+                                                      MethodInfo m,
+                                                      ParameterInfo[] parameters,
+                                                      bool expectCommands,
+                                                      ref ParameterInfo? foundParameter,
+                                                      ref IReadOnlyList<IPrimaryPocoType>? candidates,
+                                                      ref List<ParameterInfo>? tooMuch,
+                                                      ParameterInfo parameter,
+                                                      IAbstractPocoType pocoType )
+                {
+                    bool isTheOne = pocoType != null && (pocoType.NonNullable.Generalizations.Contains( eventOrCommandPartType )
+                                                  || pocoType.NonNullable.Generalizations.Contains( crisPocoTypePart ));
+                    bool isTheOneImplLess = isTheOne
+                                                || eventOrCommandPartType.Type.IsAssignableFrom( parameter.ParameterType );
+                    bool isTheOneImplLess2 = isTheOneImplLess
+                                                || crisPocoTypePart.Type.IsAssignableFrom( parameter.ParameterType );
+                    if( isTheOneImplLess2 )
                     {
                         if( foundParameter == null )
                         {
-                            foundParameter = param;
+                            foundParameter = parameter;
                             if( isTheOne )
                             {
-                                Throw.DebugAssert( a != null );
-                                candidates = a.NonNullable.PrimaryPocoTypes;
+                                Throw.DebugAssert( pocoType != null );
+                                candidates = pocoType.NonNullable.PrimaryPocoTypes;
                             }
                             else
                             {
-                                monitor.Info( $"Method {CrisType.MethodName( m, parameters )}: parameter '{param.Name}' is " +
-                                                $"a 'I{(expectCommands ? "Command" : "Event")}Part' but no command of type '{param.ParameterType:C}' exist. " +
+                                if( isTheOneImplLess )
+                                {
+                                    var typ = expectCommands ? "Command" : "Event";
+                                    monitor.Info( $"Method {CrisType.MethodName( m, parameters )}: parameter '{parameter.Name}' is " +
+                                                $"a 'I{typ}Part' but no {typ} of type '{parameter.ParameterType:C}' exist. " +
                                                 $"It is ignored." );
+                                }
+                                else
+                                {
+                                    monitor.Info( $"Method {CrisType.MethodName( m, parameters )}: parameter '{parameter.Name}' is " +
+                                                $"a 'ICrisPocoPart' but no ICrisPocoPart of type '{parameter.ParameterType:C}' exist. " +
+                                                $"It is ignored." );
+                                }
                                 candidates = Array.Empty<IPrimaryPocoType>();
                             }
                         }
                         else
                         {
                             tooMuch ??= new List<ParameterInfo>();
-                            tooMuch.Add( param );
+                            tooMuch.Add( parameter );
                         }
                     }
                 }
-                // If we found a parameter, candidate may be empty but it is not an error.
-                if( foundParameter != null && tooMuch == null )
-                {
-                    Throw.DebugAssert( candidates != null );
-                    return true;
-                }
-                var expected = expectCommands ? "ICommand, ICommand<TResult> or ICommandPart" : "IEvent or IEventPart";
-                if( tooMuch != null )
-                {
-                    Throw.DebugAssert( foundParameter != null );
-                    var t = tooMuch.Select( p => $"{p.ParameterType.ToCSharpName()} {p.Name}" ).Concatenate( "', '" );
-                    monitor.Error( $"Method {CrisType.MethodName( m, parameters )} cannot have more than one {expected} parameter. " +
-                                    $"Found '{foundParameter.ParameterType.ToCSharpName()} {foundParameter.Name}', cannot allow '{t}'." );
-                    return false;
-                }
-                if( candidates == null ) 
-                {
-                    monitor.Error( $"Method {CrisType.MethodName( m, parameters )}: missing a {expected} parameter." );
-                    return false;
-                }
-                Throw.DebugAssert( foundParameter != null );
-                return true;
             }
 
 

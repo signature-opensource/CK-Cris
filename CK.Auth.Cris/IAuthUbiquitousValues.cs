@@ -1,7 +1,4 @@
-using CK.Cris;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using CK.Cris.AmbientValues;
 
 namespace CK.Auth
 {
@@ -10,7 +7,7 @@ namespace CK.Auth
     /// from <see cref="IAuthenticationInfo"/> ambient service): command properties
     /// with these names are automatically configured.
     /// </summary>
-    public interface IAuthUbiquitousValues : CK.Cris.UbiquitousValues.IUbiquitousValues
+    public interface IAuthAmbientValues : IAmbientValues
     {
         /// <summary>
         /// Gets or sets the <see cref="IAuthenticationInfo.User"/> identifier.

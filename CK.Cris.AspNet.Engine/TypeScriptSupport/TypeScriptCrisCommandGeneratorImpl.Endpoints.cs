@@ -1,5 +1,5 @@
 using CK.Core;
-using CK.Cris.UbiquitousValues;
+using CK.Cris.AmbientValues;
 using CK.Cris.AspNet;
 using CK.TypeScript.CodeGen;
 using System;
@@ -29,17 +29,17 @@ namespace CK.Setup
         {
             TypeScriptFile fEndpoint = modelFile.Folder.FindOrCreateFile( "CrisEndpoint.ts" );
 
-            // UbiquitousValuesOverride is in the same folder as AmbienValues.ts.
-            var ubiquitousValuesOverride = context.Root.TSTypes.FindByTypeName( "UbiquitousValuesOverride" );
-            Throw.CheckState( "UbiquitousValuesOverride is automatically created in the same folder as UbiquitousValues.ts and IUbiquitousValues is a registered type.",
+            // AmbientValuesOverride is in the same folder as AmbienValues.ts.
+            var ubiquitousValuesOverride = context.Root.TSTypes.FindByTypeName( "AmbientValuesOverride" );
+            Throw.CheckState( "AmbientValuesOverride is automatically created in the same folder as AmbientValues.ts and IAmbientValues is a registered type.",
                               ubiquitousValuesOverride != null );
             // Importing:
             // - the Model objects ICommand, ExecutedCommand and CrisError.
-            // - The IUbiquitousValues and IUbiquitousValuesCollectCommand.
-            // - The UbiquitousValuesOverride.
+            // - The IAmbientValues and IAmbientValuesCollectCommand.
+            // - The AmbientValuesOverride.
             fEndpoint.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" )
-                             .EnsureImport( monitor, typeof( IUbiquitousValues ),
-                                                     typeof( IUbiquitousValuesCollectCommand ) )
+                             .EnsureImport( monitor, typeof( IAmbientValues ),
+                                                     typeof( IAmbientValuesCollectCommand ) )
                              .EnsureImport( ubiquitousValuesOverride );
 
             fEndpoint.Body.Append( """
@@ -49,14 +49,14 @@ namespace CK.Setup
                             */
                             export abstract class CrisEndpoint
                             {
-                                private _ubiquitousValuesRequest: Promise<UbiquitousValues>|undefined;
-                                private _ubiquitousValues: UbiquitousValues|undefined;
+                                private _ubiquitousValuesRequest: Promise<AmbientValues>|undefined;
+                                private _ubiquitousValues: AmbientValues|undefined;
                                 private _subscribers: Set<( eventSource: CrisEndpoint ) => void>;
                                 private _isConnected: boolean;
 
                                 constructor()
                                 {
-                                    this.ubiquitousValuesOverride = new UbiquitousValuesOverride();
+                                    this.ubiquitousValuesOverride = new AmbientValuesOverride();
                                     this._isConnected = false;
                                     this._subscribers = new Set<() => void>();
                                 }
@@ -66,7 +66,7 @@ namespace CK.Setup
                                 * Sensible ubiquitous values (like the actorId when CK.Cris.Auth is used) are checked against
                                 * secured contextual values: overriding them will trigger a ValidationError. 
                                 **/    
-                                public readonly ubiquitousValuesOverride: UbiquitousValuesOverride;
+                                public readonly ubiquitousValuesOverride: AmbientValuesOverride;
 
 
                                 //#region isConnected
@@ -106,7 +106,7 @@ namespace CK.Setup
                                         this._isConnected = value;
                                         if( !value ) 
                                         {
-                                            this.updateUbiquitousValuesAsync();
+                                            this.updateAmbientValuesAsync();
                                         }
                                         this._subscribers.forEach( func => func( this ) );
                                     }
@@ -115,14 +115,14 @@ namespace CK.Setup
                                 //#endregion
 
                                 /**
-                                * Sends a UbiquitousValuesCollectCommand and waits for its return.
+                                * Sends a AmbientValuesCollectCommand and waits for its return.
                                 * Next commands will wait for the ubiquitous values to be received before being sent.
                                 **/    
-                                public updateUbiquitousValuesAsync() : Promise<UbiquitousValues>
+                                public updateAmbientValuesAsync() : Promise<AmbientValues>
                                 {
                                     if( this._ubiquitousValuesRequest ) return this._ubiquitousValuesRequest;
                                     this._ubiquitousValues = undefined;
-                                    return this._ubiquitousValuesRequest = this.waitForUbiquitousValuesAsync();
+                                    return this._ubiquitousValuesRequest = this.waitForAmbientValuesAsync();
                                 }
 
                                 /**
@@ -132,8 +132,8 @@ namespace CK.Setup
                                 {
                                     let a = this._ubiquitousValues;
                                     // Don't use coalesce here since there may be no ubiquitous values (an empty object is truthy).
-                                    if( a === undefined ) a = await this.updateUbiquitousValuesAsync();
-                                    command.commandModel.applyUbiquitousValues( command, a, this.ubiquitousValuesOverride );
+                                    if( a === undefined ) a = await this.updateAmbientValuesAsync();
+                                    command.commandModel.applyAmbientValues( command, a, this.ubiquitousValuesOverride );
                                     return await this.doSendAsync( command ); 
                                 }
 
@@ -155,20 +155,20 @@ namespace CK.Setup
                                 */
                                 protected abstract doSendAsync<T>(command: ICommand<T>): Promise<ExecutedCommand<T>>;
 
-                                private async waitForUbiquitousValuesAsync() : Promise<UbiquitousValues>
+                                private async waitForAmbientValuesAsync() : Promise<AmbientValues>
                                 {
                                     while(true)
                                     {
-                                        var e = await this.doSendAsync( new UbiquitousValuesCollectCommand() );
+                                        var e = await this.doSendAsync( new AmbientValuesCollectCommand() );
                                         if( e.result instanceof CrisError )
                                         {
-                                            console.error( "Error while getting UbiquitousValues. Retrying.", e.result );
+                                            console.error( "Error while getting AmbientValues. Retrying.", e.result );
                                             this.setIsConnected( false );
                                         }
                                         else
                                         {
                                             this._ubiquitousValuesRequest = undefined;
-                                            this._ubiquitousValues = <UbiquitousValues>e.result;
+                                            this._ubiquitousValues = <AmbientValues>e.result;
                                             this.setIsConnected( true );
                                             return this._ubiquitousValues;
                                         }

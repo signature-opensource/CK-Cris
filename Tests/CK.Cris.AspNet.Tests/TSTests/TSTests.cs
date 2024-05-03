@@ -16,7 +16,7 @@ namespace CK.Cris.AspNet.E2ETests
         /// <summary>
         /// Secondary Poco that defines the "Color" as a Endpoint value.
         /// </summary>
-        public interface IColoredEndpointValues : UbiquitousValues.IUbiquitousValues
+        public interface IColoredEndpointValues : AmbientValues.IAmbientValues
         {
             /// <summary>
             /// The color of <see cref="ICommandColored"/> commands.
@@ -39,7 +39,7 @@ namespace CK.Cris.AspNet.E2ETests
             /// <param name="cmd">The collec command is here only to trigger the collect.</param>
             /// <param name="values">The command result to update.</param>
             [CommandPostHandler]
-            public void GetColoredAmbientValues( UbiquitousValues.IUbiquitousValuesCollectCommand cmd, IColoredEndpointValues values )
+            public void GetColoredAmbientValues( AmbientValues.IAmbientValuesCollectCommand cmd, IColoredEndpointValues values )
             {
                 values.Color = "Red";
             }
@@ -91,7 +91,7 @@ namespace CK.Cris.AspNet.E2ETests
             /// CrisEndPoint transparently sets it.
             /// </para>
             /// </summary>
-            [UbiquitousValue]
+            [AmbientServiceValue]
             string? Color { get; set; }
         }
 
@@ -139,7 +139,7 @@ namespace CK.Cris.AspNet.E2ETests
                                                             // the first command...
                                                             typeof( IBeautifulCommand ),
                                                             typeof( ICommandColored ),
-                                                            typeof( UbiquitousValues.UbiquitousValuesService ),
+                                                            typeof( AmbientValues.AmbientValuesService ),
                                                             typeof( IColoredEndpointValues ),
                                                             typeof( ColorAndBuggyService ),
                                                             typeof( IBuggyCommand ),

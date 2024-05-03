@@ -1,4 +1,5 @@
 using CK.Core;
+using CK.Cris.AmbientValues;
 
 namespace CK.Cris
 {
@@ -10,7 +11,7 @@ namespace CK.Cris
             var n = cmd.CurrentCultureName;
             if( string.IsNullOrEmpty( n ) || ExtendedCultureInfo.FindExtendedCultureInfo( n ) == null )
             {
-                validator.Warn( $"Culture name '{n}' is unkown. It will be ignored." );
+                validator.Warn( $"Culture name '{n}' is unknown. It will be ignored." );
             }
         }
 
@@ -27,5 +28,12 @@ namespace CK.Cris
                 }
             }
         }
+
+        [CommandPostHandler]
+        public virtual void GetCultureAmbientValue( IAmbientValuesCollectCommand cmd, ExtendedCultureInfo c, ICultureAmbientValues values )
+        {
+            values.CurrentCultureName = c.Name;
+        }
+
     }
 }
