@@ -71,7 +71,31 @@ namespace CK.Cris
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="e">The event to dispatch to its routed event handlers.</param>
         /// <returns>True on success, false if an exception has been caught and logged.</returns>
-        public abstract Task<bool> SafeDispatchEventAsync( IServiceProvider services, IEvent e );
+        public async Task<bool> SafeDispatchEventAsync( IServiceProvider services, IEvent e )
+        {
+            try
+            {
+                await DispatchEventAsync( services, e ).ConfigureAwait( false );
+                return true;
+            }
+            catch( Exception ex )
+            {
+                var monitor = (IActivityMonitor?)services.GetService( typeof( IActivityMonitor ) );
+                var msg = $"Event '{e.CrisPocoModel.PocoName}' dispatch failed.";
+                if( monitor != null )
+                {
+                    using( monitor.OpenError( msg, ex ) )
+                    {
+                        monitor.Trace( e.ToString() ?? string.Empty );
+                    }
+                }
+                else
+                {
+                    ActivityMonitor.StaticLogger.Error( msg + " (No IActivityMonitor available.)", ex );
+                }
+                return false;
+            }
+        }
 
         /// <summary>
         /// Infrastructure code not intended to be used directly.

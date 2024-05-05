@@ -311,42 +311,5 @@ namespace CK.Cris.Executor.Tests
         }
 
         #endregion
-
-        #region [CommandHandler] on a regular base class of an IAutoService.
-
-        public interface IIntResultCommand : ICommand<int>
-        {
-        }
-
-        public class BaseClassWithHandler
-        {
-            [CommandHandler]
-            public int Run( IIntResultCommand cmd ) => cmd.GetHashCode();
-        }
-
-        public class SpecializedBaseClassService : BaseClassWithHandler, IAutoService
-        {
-        }
-
-        [Test]
-        public async Task calling_a_base_class_implementation_Async()
-        {
-            var c = TestHelper.CreateStObjCollector( typeof( RawCrisExecutor ),
-                                                     typeof( IIntResultCommand ),
-                                                     typeof( SpecializedBaseClassService ) );
-            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
-            using( var scope = appServices.CreateScope() )
-            {
-                var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<RawCrisExecutor>();
-                var cmd = services.GetRequiredService<IPocoFactory<IIntResultCommand>>().Create();
-
-                var raw = await executor.RawExecuteAsync( services, cmd );
-                raw.Result.Should().Be( cmd.GetHashCode() );
-            }
-        }
-
-        #endregion
-
     }
 }

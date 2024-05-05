@@ -18,14 +18,64 @@ namespace CK.Setup.Cris
             var crisEngineService = c.CurrentRun.ServiceContainer.GetService<ICrisDirectoryServiceEngine>();
             if( crisEngineService == null ) return CSCodeGenerationResult.Retry;
 
+            // sealed RawCrisExecutor_CK.
             scope.Definition.Modifiers |= Modifiers.Sealed;
 
-            using var scopeRegion = scope.Region();
+            Throw.DebugAssert( scope.Namespace.FullName == "CK.Cris" );
+            scope.Namespace.Append( """
+                    [StObjGen]
+                    interface ICrisExecutorImpl : ICrisPoco
+                    {
+                        // Use Default Implementation Method when no command handler has been found.
+                        // We need the CrisPocoModel.PocoName: this is why this specializes ICrisPoco.
+                        Task<RawCrisExecutor.RawResult> ExecCommandAsync( IServiceProvider s )
+                        {
+                            var e = new CK.Cris.ICrisResultError_CK();
+                            var c = (CurrentCultureInfo?)s.GetService( typeof( CurrentCultureInfo ) );
+                            UserMessage msg = c != null
+                                                ? UserMessage.Error( c, $"Command '{CrisPocoModel.PocoName}' has no command handler.", "Cris.MissingCommandHandler" )
+                                                : UserMessage.Error( NormalizedCultureInfo.CodeDefault, $"Command '{CrisPocoModel.PocoName}' has no command handler.", "Cris.MissingCommandHandler" );
+                            e.Errors.Add( msg );
+                            ((IActivityLineEmitter?)s.GetService( typeof( IActivityMonitor ) ) ?? ActivityMonitor.StaticLogger)?.Error( msg.Message.CodeString.Text );
+                            return Task.FromResult( new RawCrisExecutor.RawResult( e, null ) );
+                        }
 
-            CreateExecutorMethods( classType, scope );
+                        // No event handlers => nothing to do.
+                        Task DispatchEventAsync( IServiceProvider s ) => Task.CompletedTask;
+                    }
+                    
+                    """ );
+            var rawExecuteMethod = classType.GetMethod( nameof( RawCrisExecutor.RawExecuteAsync ), new[] { typeof( IServiceProvider ), typeof( IAbstractCommand ) } );
+            Throw.DebugAssert( rawExecuteMethod != null );
+            var mExecute = scope.CreateSealedOverride( rawExecuteMethod );
+            mExecute.Append( "return ((ICrisExecutorImpl)command).ExecCommandAsync( services );" );
 
-            scope.Append( """
-                static CK.Cris.ICrisResultError HandleCommandError( IServiceProvider services, CK.Cris.ICrisPoco c, Exception ex, UserMessageCollector? v )
+            var dispatchEventMethod = classType.GetMethod( nameof( RawCrisExecutor.DispatchEventAsync ), new[] { typeof( IServiceProvider ), typeof( IEvent ) } );
+            Throw.DebugAssert( dispatchEventMethod != null );
+            var mDispatch = scope.CreateSealedOverride( dispatchEventMethod );
+            mDispatch.Append( "return ((ICrisExecutorImpl)e).DispatchEventAsync( services );" );
+
+            bool hasOneCommandHandler = false;
+            foreach( var e in crisEngineService.CrisTypes )
+            {
+                var pocoType = c.GeneratedCode.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoType.FamilyInfo.PocoClass );
+                pocoType.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICrisExecutorImpl" ) );
+                if( e.CommandHandler != null )
+                {
+                    hasOneCommandHandler = true;
+                    var f = pocoType.CreateFunction( "Task<CK.Cris.RawCrisExecutor.RawResult> CK.Cris.ICrisExecutorImpl.ExecCommandAsync( IServiceProvider s )" );
+                    CreateCommandHandler( c.CurrentRun.EngineMap, f, e );
+                }
+                else if( e.EventHandlers.Count > 0 )
+                {
+                    var f = pocoType.CreateFunction( "Task CK.Cris.ICrisExecutorImpl.DispatchEventAsync( IServiceProvider s )" );
+                    CreateEventHandler( c.CurrentRun.EngineMap, f, e );
+                }
+            }
+            if( hasOneCommandHandler )
+            {
+                scope.Append( """
+                internal static CK.Cris.ICrisResultError HandleCommandError( IServiceProvider services, CK.Cris.ICrisPoco c, Exception ex, UserMessageCollector? v )
                 {
                     var error = new CK.Cris.ICrisResultError_CK();
                     var monitor = (IActivityMonitor?)services.GetService( typeof( IActivityMonitor ) );
@@ -52,7 +102,7 @@ namespace CK.Setup.Cris
                 }
 
 
-                static CK.Cris.ICrisResultError HandleHandlingValidationError( IServiceProvider s, CK.Cris.ICrisPoco c, UserMessageCollector v )
+                internal static CK.Cris.ICrisResultError HandleHandlingValidationError( IServiceProvider s, CK.Cris.ICrisPoco c, UserMessageCollector v )
                 {
                     var e = new CK.Cris.ICrisResultError_CK();
                     e.Errors.AddRange( v.UserMessages.Where( m => m.Level == UserMessageLevel.Error ) );
@@ -62,57 +112,21 @@ namespace CK.Setup.Cris
                 }
 
                 """ );
-
-            // Creates the static handlers functions.
-            foreach( var e in crisEngineService.CrisTypes )
-            {
-                var h = e.CommandHandler;
-                if( h != null )
-                {
-                    CreateCommandHandler( c.CurrentRun.EngineMap, scope, e, h );
-                }
-                else if( e.EventHandlers.Count > 0 )
-                {
-                    CreateEventHandler( c.CurrentRun.EngineMap, scope, e );
-                }
             }
-
-            // To accommodate RoutedEventHandler void/Task returns, the array of handlers returns a Task instead of
-            // Task<object>. The RawExecuteAsync method downcasts the command entries to Task<RawResult>.
-            // The DispatchEventAsync uses mere tasks. This enables an optimization for events with a single
-            // asynchronous handler.
-            const string funcSignature = "Func<IServiceProvider, CK.Cris.ICrisPoco, Task>";
-            scope.Append( "readonly " ).Append( funcSignature ).Append( "[] _handlers = new " ).Append( funcSignature ).Append( "[]{" );
-            foreach( var e in crisEngineService.CrisTypes )
-            {
-                if( e.CrisPocoIndex != 0 ) scope.Append( ", " );
-                if( e.IsHandled )
-                {
-                    scope.Append( "H" ).Append( e.CrisPocoIndex );
-                }
-                else
-                {
-                    scope.Append( "null" );
-                }
-            }
-            scope.Append( "};" ).NewLine();
 
             return CSCodeGenerationResult.Success;
         }
 
-        static void CreateEventHandler( IStObjMap engineMap, ITypeScope scope, CrisType e )
+        static void CreateEventHandler( IStObjMap engineMap, IFunctionScope f, CrisType e )
         {
-            var func = scope.CreateFunction( $"static Task H{e.CrisPocoIndex}(IServiceProvider s, CK.Cris.ICrisPoco c)" );
-
-            var cachedServices = new VariableCachedServices( engineMap, func.CreatePart() );
-
-            func.GeneratedByComment();
+            var cachedServices = new VariableCachedServices( engineMap, f.CreatePart() );
+            f.GeneratedByComment();
             int syncHandlerCount = 0;
             foreach( var calls in e.EventHandlers.Where( h => !h.IsRefAsync && !h.IsValAsync ).GroupBy( h => h.Owner ) )
             {
                 foreach( var h in calls )
                 {
-                    InlineCallOwnerMethod( func, h, cachedServices, h.EventOrPartParameter ).Append( ";" ).NewLine();
+                    InlineCallOwnerMethod( f, h, cachedServices, h.EventOrPartParameter ).Append( ";" ).NewLine();
                     ++syncHandlerCount;
                 }
             }
@@ -124,37 +138,37 @@ namespace CK.Setup.Cris
                 if( asyncHandlerCount == 1 )
                 {
                     var h = e.EventHandlers.Single( h => h.IsRefAsync || h.IsValAsync );
-                    func.Append( "// No async state machine required." ).NewLine()
+                    f.Append( "// No async state machine required." ).NewLine()
                          .Append( "return " );
-                    InlineCallOwnerMethod( func, h, cachedServices, h.EventOrPartParameter )
+                    InlineCallOwnerMethod( f, h, cachedServices, h.EventOrPartParameter )
                         .Append( h.IsValAsync ? ".AsTask();" : ";" );
                     return;
                 }
-                func.Definition.Modifiers |= Modifiers.Async;
+                f.Definition.Modifiers |= Modifiers.Async;
                 foreach( var calls in e.EventHandlers.Where( h => h.IsRefAsync || h.IsValAsync ).GroupBy( h => h.Owner ) )
                 {
                     foreach( var h in calls )
                     {
-                        func.Append( "await " );
-                        InlineCallOwnerMethod( func, h, cachedServices, h.EventOrPartParameter ).Append( ";" ).NewLine();
+                        f.Append( "await " );
+                        InlineCallOwnerMethod( f, h, cachedServices, h.EventOrPartParameter ).Append( ";" ).NewLine();
                     }
                 }
             }
             else
             {
-                func.Append( "return Task.CompletedTask;" );
+                f.Append( "return Task.CompletedTask;" );
             }
         }
 
-        static void CreateCommandHandler( IStObjEngineMap engineMap, ITypeScope scope, CrisType e, HandlerMethod h )
+        static void CreateCommandHandler( IStObjEngineMap engineMap, IFunctionScope f, CrisType e )
         {
+            HandlerMethod? h = e.CommandHandler;
+            Throw.DebugAssert( h != null );
             bool isVoidReturn = h.UnwrappedReturnType == typeof( void );
             bool isHandlerAsync = h.IsRefAsync || h.IsValAsync;
             bool isPostHandlerAsync = e.HasPostHandlerAsyncCall;
 
-            var f = scope.CreateFunction( $"static Task<RawResult> H{e.CrisPocoIndex}( IServiceProvider s, CK.Cris.ICrisPoco c )" );
-
-            var cachedServices = new VariableCachedServices( engineMap, f );
+            var cachedServices = new VariableCachedServices( engineMap, f.CreatePart() );
 
             f.Append( "UserMessageCollector? v = null;" ).NewLine();
 
@@ -170,13 +184,13 @@ namespace CK.Setup.Cris
                 f.Append( "v = new UserMessageCollector( " ).Append( cachedServices.GetServiceVariableName( typeof( CurrentCultureInfo ) ) ).Append( " );" ).NewLine()
                  .Append( "try" )
                  .OpenBlock();
-                RawCrisReceiverImpl.GenerateValidationCode( f, e.HandlingValidators, cachedServices, out var validatorsRequireAsync );
+                RawCrisReceiverImpl.GenerateValidationCode( f, e.HandlingValidators, cachedServices, hasMonitorParam: false, out var validatorsRequireAsync );
                 isOverallAsync |= validatorsRequireAsync;
 
                 f.CloseBlock()
                  .Append( "catch( Exception ex )" )
                  .OpenBlock()
-                 .Append( "var e = HandleCommandError( s, c, ex, v );" ).NewLine();
+                 .Append( "var e = CK.Cris.RawCrisExecutor_CK.HandleCommandError( s, this, ex, v );" ).NewLine();
                 WriteReturn( f, isOverallAsync, "e" );
                 f.CloseBlock();
 
@@ -185,7 +199,7 @@ namespace CK.Setup.Cris
                     {
                         if( v.ErrorCount > 0 )
                         {
-                            var e = HandleHandlingValidationError( s, c, v );
+                            var e = CK.Cris.RawCrisExecutor_CK.HandleHandlingValidationError( s, this, v );
                     """ );
                 WriteReturn( f, isOverallAsync, "e" );
                 f.Append( """
@@ -206,21 +220,22 @@ namespace CK.Setup.Cris
             if( isHandlerAsync ) f.Append( "await " );
             InlineCallOwnerMethod( f, h, cachedServices, h.CommandParameter ).Append( ";" ).NewLine();
 
-            cachedServices.StartNewCachedVariablesPart();
-            e.GeneratePostHandlerCallCode( f, cachedServices );
-
+            if( e.PostHandlers.Count > 0 )
+            {
+                GeneratePostHandlerCallCode( f, e, cachedServices );
+            }
             WriteReturn( f, isOverallAsync, isVoidReturn ? "null" : "r" );
 
             f.CloseBlock()
              .Append( "catch( Exception ex )" )
              .OpenBlock();
-            f.Append( "var e = HandleCommandError( s, c, ex, null );" ).NewLine();
+            f.Append( "var e = CK.Cris.RawCrisExecutor_CK.HandleCommandError( s, this, ex, null );" ).NewLine();
             WriteReturn( f, isOverallAsync, "e" );
             f.CloseBlock();
 
             static void WriteReturn( IFunctionScope f, bool isOverallAsync, string result )
             {
-                var raw = $"new RawResult( {result}, v )";
+                var raw = $"new CK.Cris.RawCrisExecutor.RawResult( {result}, v )";
                 if( isOverallAsync )
                 {
                     f.Append( "return " ).Append( raw );
@@ -230,6 +245,58 @@ namespace CK.Setup.Cris
                     f.Append( "return Task.FromResult( " ).Append( raw ).Append( " )" );
                 }
                 f.Append( ";" );
+            }
+
+        }
+
+        static void GeneratePostHandlerCallCode( IFunctionScope w, CrisType e, VariableCachedServices cachedServices )
+        {
+            if( e.PostHandlers.Count == 0 ) return;
+
+            using var region = w.Region();
+            cachedServices.StartNewCachedVariablesPart();
+            foreach( var h in e.PostHandlers.Where( h => !h.IsRefAsync && !h.IsValAsync ).GroupBy( h => h.Owner ) )
+            {
+                CreateOwnerCalls( w, h, false, cachedServices );
+            }
+            cachedServices.StartNewCachedVariablesPart();
+            foreach( var h in e.PostHandlers.Where( h => h.IsRefAsync || h.IsValAsync ).GroupBy( h => h.Owner ) )
+            {
+                CreateOwnerCalls( w, h, true, cachedServices );
+            }
+
+            static void CreateOwnerCalls( ICodeWriter w,
+                                          IGrouping<IStObjFinalClass, HandlerPostMethod> oH,
+                                          bool async,
+                                          VariableCachedServices cachedServices )
+            {
+                foreach( HandlerPostMethod m in oH )
+                {
+                    if( async ) w.Append( "await " );
+
+                    cachedServices.WriteExactType( w, m.Method.DeclaringType, oH.Key.ClassType ).Append( "." ).Append( m.Method.Name ).Append( "( " );
+                    foreach( ParameterInfo p in m.Parameters )
+                    {
+                        if( p.Position > 0 ) w.Append( ", " );
+                        if( p == m.ResultParameter )
+                        {
+                            if( m.MustCastResultParameter )
+                            {
+                                w.Append( "(" ).AppendGlobalTypeName( p.ParameterType ).Append( ")" );
+                            }
+                            w.Append( "r" );
+                        }
+                        else if( p == m.CmdOrPartParameter )
+                        {
+                            w.Append( "(" ).AppendGlobalTypeName( m.CmdOrPartParameter.ParameterType ).Append( ")this" );
+                        }
+                        else
+                        {
+                            w.Append( cachedServices.GetServiceVariableName( p.ParameterType ) );
+                        }
+                    }
+                    w.Append( " );" ).NewLine();
+                }
             }
         }
 
@@ -241,7 +308,7 @@ namespace CK.Setup.Cris
                 if( p.Position > 0 ) w.Append( ", " );
                 if( p == crisPocoParameter )
                 {
-                    w.Append( "(" ).Append( crisPocoParameter.ParameterType.ToGlobalTypeName() ).Append( ")c" );
+                    w.Append( "(" ).Append( crisPocoParameter.ParameterType.ToGlobalTypeName() ).Append( ")this" );
                 }
                 else
                 {
@@ -250,71 +317,6 @@ namespace CK.Setup.Cris
             }
             w.Append( " )" );
             return w;
-        }
-
-        static void CreateExecutorMethods( Type classType, ITypeScope scope )
-        {
-            using var _ = scope.Region();
-            var rawExecuteMethod = classType.GetMethod( nameof( RawCrisExecutor.RawExecuteAsync ), new[] { typeof( IServiceProvider ), typeof( IAbstractCommand ) } );
-            Throw.DebugAssert( rawExecuteMethod != null );
-
-            // RawExecuteAsync is a direct relay by index in the _handlers array.
-            var mExecute = scope.CreateSealedOverride( rawExecuteMethod );
-            mExecute.Append( """
-                        var h = _handlers[command.CrisPocoModel.CrisPocoIndex];
-                        if( h == null )
-                        {
-                            var e = new CK.Cris.ICrisResultError_CK();
-                            var c = (CurrentCultureInfo?)services.GetService( typeof( CurrentCultureInfo ) );
-                            UserMessage msg = c != null
-                                                ? UserMessage.Error( c, $"Command '{command.CrisPocoModel.PocoName}' has no command handler.", "Cris.MissingCommandHandler" )
-                                                : UserMessage.Error( NormalizedCultureInfo.CodeDefault, $"Command '{command.CrisPocoModel.PocoName}' has no command handler.", "Cris.MissingCommandHandler" );
-                            e.Errors.Add( msg );
-                            ((IActivityLineEmitter?)services.GetService( typeof( IActivityMonitor ) ) ?? ActivityMonitor.StaticLogger)?.Error( msg.Message.CodeString.Text );
-                            return Task.FromResult( new RawResult( e, null ) );
-                        }
-                        return global::System.Runtime.CompilerServices.Unsafe.As<Task<RawResult>>( h( services, command ) );
-
-                        """ );
-
-            // DispatchEventAsync is a direct relay by index in the _handlers array.
-            // When handler is null, nothing is done.
-            Throw.DebugAssert( nameof( RawCrisExecutor.DispatchEventAsync ) == "DispatchEventAsync" );
-            Throw.DebugAssert( classType.GetMethod( nameof( RawCrisExecutor.DispatchEventAsync ), new[] { typeof( IServiceProvider ), typeof( IEvent ) } ) != null );
-            var mDispatchEvent = scope.CreateFunction( "public override Task DispatchEventAsync( IServiceProvider s, CK.Cris.IEvent e )" );
-            mDispatchEvent.Append( "return _handlers[e.CrisPocoModel.CrisPocoIndex]?.Invoke( s, e );" );
-
-            // SafeDispatchEventAsync protects the direct relay by index in the _handlers array.
-            // When handler is null, nothing is done and its okay.
-            Throw.DebugAssert( nameof( RawCrisExecutor.SafeDispatchEventAsync ) == "SafeDispatchEventAsync" );
-            Throw.DebugAssert( classType.GetMethod( nameof( RawCrisExecutor.SafeDispatchEventAsync ), new[] { typeof( IServiceProvider ), typeof( IEvent ) } ) != null );
-            var mSafeDispatchEvent = scope.CreateFunction( "public override async Task<bool> SafeDispatchEventAsync( IServiceProvider s, CK.Cris.IEvent e )" );
-            mSafeDispatchEvent.Append( """
-                             var h = _handlers[e.CrisPocoModel.CrisPocoIndex];
-                             if( h == null ) return true;
-                             try
-                             {
-                                await h( s, e ).ConfigureAwait( false );
-                                return true;
-                             }
-                             catch( Exception ex )
-                             {
-                                var monitor = (IActivityMonitor?)s.GetService( typeof(IActivityMonitor) );
-                                var msg = $"Event '{e.CrisPocoModel.PocoName}' dispatch failed.";
-                                if( monitor != null )
-                                {
-                                    using( monitor.OpenError( msg, ex ) )
-                                    {
-                                        monitor.Trace( e.ToString() );
-                                    }
-                                }
-                                else
-                                {
-                                    ActivityMonitor.StaticLogger.Error( msg + " (No IActivityMonitor available.)", ex );
-                                }
-                                return false;
-                             }
-                             """ );
         }
     }
 

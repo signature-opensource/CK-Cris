@@ -182,7 +182,7 @@ namespace CK
                                                                             Action<IApplicationBuilder>? configureApplication = null )
         {
             StObjCollector collector = helper.CreateStObjCollector( registeredTypes.ToArray() );
-            // These 2 services are required by the WebFrontAthService.
+            // These 2 services are required by the WebFrontAuthService.
             collector.RegisterType( helper.Monitor, typeof( AuthenticationInfoTokenService ) );
             collector.RegisterType( helper.Monitor, typeof( StdAuthenticationTypeSystem ) );
 

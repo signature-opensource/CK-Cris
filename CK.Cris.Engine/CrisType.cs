@@ -119,74 +119,6 @@ namespace CK.Setup.Cris
         public IStObjFinalClass? ExpectedHandlerService => _commandHandlerService;
 
         /// <summary>
-        /// Generates all the synchronous and asynchronous (if any) calls required based on these variable
-        /// names: <code>IServiceProvider s, ICrisPoco c, object r</code> and the variables
-        /// in <paramref name="cachedServices"/>.
-        /// <para>
-        /// Async calls use await keyword.
-        /// </para>
-        /// </summary>
-        /// <param name="w">The code writer to use.</param>
-        /// <param name="cachedServices">GetService cache.</param>
-        public void GeneratePostHandlerCallCode( ICodeWriter w, VariableCachedServices cachedServices )
-        {
-            if( _postHandlers == null || _postHandlers.Count == 0 ) return;
-
-            using var region = w.Region();
-            foreach( var h in _postHandlers.Where( h => !h.IsRefAsync && !h.IsValAsync ).GroupBy( h => h.Owner ) )
-            {
-                CreateOwnerCalls( w, h, false, cachedServices );
-            }
-            foreach( var h in _postHandlers.Where( h => h.IsRefAsync || h.IsValAsync ).GroupBy( h => h.Owner ) )
-            {
-                CreateOwnerCalls( w, h, true, cachedServices );
-            }
-
-            static void CreateOwnerCalls( ICodeWriter w,
-                                          IGrouping<IStObjFinalClass, HandlerPostMethod> oH,
-                                          bool async,
-                                          VariableCachedServices cachedServices )
-            {
-                w.OpenBlock()
-                 .Append( "var h = (" ).Append( oH.Key.ClassType.ToGlobalTypeName() ).Append( ")s.GetService(" ).AppendTypeOf( oH.Key.ClassType ).Append( ");" ).NewLine();
-                foreach( HandlerPostMethod m in oH )
-                {
-                    if( async ) w.Append( "await " );
-
-                    if( m.Method.DeclaringType != oH.Key.ClassType )
-                    {
-                        w.Append( "((" ).Append( m.Method.DeclaringType!.ToGlobalTypeName() ).Append( ")h)." );
-                    }
-                    else w.Append( "h." );
-
-                    w.Append( m.Method.Name ).Append( "( " );
-                    foreach( ParameterInfo p in m.Parameters )
-                    {
-                        if( p.Position > 0 ) w.Append( ", " );
-                        if( p == m.ResultParameter )
-                        {
-                            if( m.MustCastResultParameter )
-                            {
-                                w.Append( "(" ).AppendGlobalTypeName( p.ParameterType ).Append( ")" );
-                            }
-                            w.Append( "r" );
-                        }
-                        else if( p == m.CmdOrPartParameter )
-                        {
-                            w.Append( "(" ).AppendGlobalTypeName( m.CmdOrPartParameter.ParameterType ).Append( ")c" );
-                        }
-                        else
-                        {
-                            w.Append( cachedServices.GetServiceVariableName( p.ParameterType ) );
-                        }
-                    }
-                    w.Append( " );" ).NewLine();
-                }
-                w.CloseBlock();
-            }
-        }
-
-        /// <summary>
         /// Overridden to return the <see cref="PocoName"/>.
         /// </summary>
         /// <returns>The name of this command.</returns>
@@ -213,16 +145,22 @@ namespace CK.Setup.Cris
             {
                 Throw.DebugAssert( _eventHandlers == null );
                 _eventHandlers = Array.Empty<HandlerRoutedEventMethod>();
+                //
                 // Whether the command is handled or not is not the problem of the
                 // incoming validators: this enables RawCrisReceiver to be used in
                 // a "relay" gateway (that doesn't currently exist but tests exist
                 // that are happy to not register a fake handler to test validators!).
+                //
                 _incomingValidators ??= Array.Empty<HandlerValidatorMethod>();
                 if( _commandHandler == null )
                 {
-                    monitor.Warn( $"Command '{_crisPocoType.ExternalOrCSharpName}' is not handled." );
-                    _ambientServicesConfigurators = Array.Empty<HandlerConfigureServiceMethod>();
+                    monitor.Warn( $"Command '{
+                                    _crisPocoType.ExternalOrCSharpName}' is not handled. Forgetting {
+                                    _handlingValidators?.Count ?? 0} validator, {
+                                    _handlingValidators?.Count ?? 0} ambient service configurators and {
+                                    _postHandlers?.Count ?? 0} post handlers." );
                     _handlingValidators = Array.Empty<HandlerValidatorMethod>();
+                    _ambientServicesConfigurators = Array.Empty<HandlerConfigureServiceMethod>();
                     _postHandlers = Array.Empty<HandlerPostMethod>();
                 }
                 else
@@ -236,16 +174,20 @@ namespace CK.Setup.Cris
             {
                 Throw.DebugAssert( _incomingValidators == null );
                 _incomingValidators = Array.Empty<HandlerValidatorMethod>();
-                Throw.DebugAssert( _ambientServicesConfigurators == null );
-                _ambientServicesConfigurators = Array.Empty<HandlerConfigureServiceMethod>();
                 Throw.DebugAssert( _handlingValidators == null );
                 _handlingValidators = Array.Empty<HandlerValidatorMethod>();
                 Throw.DebugAssert( _postHandlers == null );
                 _postHandlers = Array.Empty<HandlerPostMethod>();
                 if( _eventHandlers == null )
                 {
-                    monitor.Warn( $"Routed event '{_crisPocoType.ExternalOrCSharpName}' is not handled." );
+                    monitor.Warn( $"Routed event '{_crisPocoType.ExternalOrCSharpName}' is not handled. Forgetting {
+                                   _ambientServicesConfigurators?.Count?? 0} ambient service configurators." );
+                    _ambientServicesConfigurators = Array.Empty<HandlerConfigureServiceMethod>();
                     _eventHandlers = Array.Empty<HandlerRoutedEventMethod>();
+                }
+                else
+                {
+                    _ambientServicesConfigurators ??= Array.Empty<HandlerConfigureServiceMethod>();
                 }
             }
             else
@@ -281,13 +223,6 @@ namespace CK.Setup.Cris
                                   string? fileName,
                                   int lineNumber )
         {
-            // If the Command is closed, we silently skip handlers of unclosed commands: we expect the final handler of the closure interface.
-            if( !isClosedHandler && _crisPocoType.FamilyInfo.ClosureInterface != null )
-            {
-                monitor.Info( $"Method {MethodName( method, parameters )} cannot handle '{PocoName}' command because type {parameter.ParameterType.Name} doesn't represent the whole command." );
-                return true;
-            }
-
             var (unwrappedReturnType, isRefAsync, isValAsync) = GetReturnParameterInfo( method );
 
             var expected = _commandResultType?.Type ?? typeof( void );
@@ -438,7 +373,7 @@ namespace CK.Setup.Cris
             if( _commandResultType != null )
             {
                 // Elects the first parameter that is compatible with the result type.
-                resultParameter = parameters.FirstOrDefault( p => typeSystem.FindByType( p.ParameterType )?.CanReadFrom( _commandResultType ) ?? false );
+                resultParameter = parameters.FirstOrDefault( p => typeSystem.FindByType( p.ParameterType )?.IsSubTypeOf( _commandResultType ) ?? false );
                 if( resultParameter != null ) mustCastResultParameter = resultParameter.ParameterType != _commandResultType.Type;
             }
             if( resultParameter != null )

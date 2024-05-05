@@ -27,6 +27,7 @@ namespace CK.Cris.AspNet
     [AlsoRegisterType( typeof( IAspNetCrisResultError ) )]
     [AlsoRegisterType( typeof( CrisBackgroundExecutorService ) )]
     [AlsoRegisterType( typeof( IAmbientValuesCollectCommand ) )]
+    [AlsoRegisterType( typeof( CrisCultureService ) )]
     public partial class CrisAspNetService : ISingletonAutoService
     {
         readonly RawCrisReceiver _validator;

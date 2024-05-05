@@ -118,6 +118,10 @@ namespace CK.Cris
 
                 if( job._incomingValidationCheck )
                 {
+                    var aaa = scoped.ServiceProvider.GetService<AmbientServiceHub>();
+
+
+
                     var validation = await _commandValidator.IncomingValidateAsync( monitor, scoped.ServiceProvider, job.Command, gLog );
                     if( !validation.Success )
                     {

@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 
 namespace CK.Setup.Cris
 {
@@ -86,20 +85,30 @@ namespace CK.Setup.Cris
                 success = false;
             }
 
-            IPocoGenericTypeDefinition? commandWithResultType = typeSystem.FindGenericTypeDefinition( typeof( ICommand<> ) );
+            success &= GetBaseTypesAndCheckNames( monitor,
+                                                  typeSystem,
+                                                  out IAbstractPocoType? crisCommandTypePart,
+                                                  out IAbstractPocoType? crisCommandType,
+                                                  out IAbstractPocoType? crisEventTypePart,
+                                                  out IAbstractPocoType? crisEventType,
+                                                  out IAbstractPocoType? crisPocoTypePart );
 
-            IAbstractPocoType? crisCommandTypePart = GetAbstractPocoType( monitor, typeSystem, typeof( ICommandPart ) );
-            IAbstractPocoType? crisCommandType = crisCommandTypePart?.MinimalGeneralizations.Single()
-                                                    ?? GetAbstractPocoType( monitor, typeSystem, typeof( IAbstractCommand ) );
-
-            IAbstractPocoType? crisEventTypePart = GetAbstractPocoType( monitor, typeSystem, typeof( IEventPart ) );
-            IAbstractPocoType? crisEventType = crisEventTypePart?.MinimalGeneralizations.Single()
-                                                    ?? GetAbstractPocoType( monitor, typeSystem, typeof( IEvent ) );
+            // We need the type definition only if at least a command is found.
+            IPocoGenericTypeDefinition? commandWithResultType = null;
+            // We'll have a non null crisPocoType only if at least one command or event has been found.
             IAbstractPocoType? crisPocoType = null;
 
             if( crisCommandType != null && !crisCommandType.ImplementationLess )
             {
+                var badNames = crisCommandType.PrimaryPocoTypes.Where( c => !c.CSharpName.EndsWith( "Command", StringComparison.Ordinal ) );
+                if( badNames.Any() )
+                {
+                    monitor.Error( $"Invalid type name for Cris '{badNames.Select( c => c.ToString() ).Concatenate( "', '" )}': IAbstractCommand type name must end with \"Command\"." );
+                    success = false;
+                }
+
                 crisPocoType = crisCommandType.Generalizations.Single();
+                commandWithResultType = typeSystem.FindGenericTypeDefinition( typeof( ICommand<> ) );
                 foreach( var command in crisCommandType.PrimaryPocoTypes )
                 {
                     CrisType? entry = CreateCommandEntry( monitor, commandWithResultType, crisEventType, crisCommandTypePart, services, entries.Count, command );
@@ -119,6 +128,13 @@ namespace CK.Setup.Cris
 
             if( crisEventType != null && !crisEventType.ImplementationLess )
             {
+                var badNames = crisEventType.PrimaryPocoTypes.Where( c => !c.CSharpName.EndsWith( "Event", StringComparison.Ordinal ) );
+                if( badNames.Any() )
+                {
+                    monitor.Error( $"Invalid type name for Cris '{badNames.Select( c => c.ToString() ).Concatenate( "', '" )}': IEvent type name must end with \"Event\"." );
+                    success = false;
+                }
+
                 crisPocoType ??= crisEventType.Generalizations.Single();
                 if( crisEventTypePart != null )
                 {
@@ -139,20 +155,15 @@ namespace CK.Setup.Cris
                 }
                 monitor.Trace( $"Found {entries.Count - commandCount} Cris commands." );
             }
-            IAbstractPocoType? crisPocoTypePart;
             if( crisPocoType == null )
             {
                 monitor.Warn( $"No Cris commands nor events found." );
                 crisPocoTypePart = null;
             }
-            else
+            else if( crisPocoTypePart == null )
             {
-                crisPocoTypePart = typeSystem.FindByType<IAbstractPocoType>( typeof( ICrisPocoPart ) );
-                if( crisPocoTypePart == null )
-                {
-                    monitor.Error( "At least one Cris command or event found, ICrisPocoPart cannot be excluded." );
-                    success = false;
-                }
+                monitor.Error( "At least one Cris command or event found, ICrisPocoPart cannot be excluded." );
+                success = false;
             }
             return success
                     ? new CrisTypeRegistry( indexedEntries,
@@ -167,22 +178,6 @@ namespace CK.Setup.Cris
                                             ambientValuesType )
                     : null;
 
-            static IAbstractPocoType? GetAbstractPocoType( IActivityMonitor monitor, IPocoTypeSystem typeSystem, Type type )
-            {
-                var p = typeSystem.FindByType<IAbstractPocoType>( type );
-                if( p == null || p.ImplementationLess )
-                {
-                    monitor.Info( $"No Cris {type.Name} discovered." );
-                    p = null;
-                }
-                else
-                {
-                    Throw.DebugAssert( p.IsNullable );
-                    p = p.NonNullable;
-                }
-                return p;
-            }
-
             static CrisType? CreateCommandEntry( IActivityMonitor monitor,
                                                  IPocoGenericTypeDefinition? commandWithResultType,
                                                  IAbstractPocoType? crisEventType,
@@ -196,7 +191,7 @@ namespace CK.Setup.Cris
                     monitor.Error( $"Cris '{command}' cannot be both a IEvent and a IAbstractCommand." );
                     return null;
                 }
-                bool success = CheckCommandTypeNames( monitor, crisCommandTypePart, command );
+                bool success = true;
                 CrisPocoKind kind = CrisPocoKind.Command;
                 IPocoType? resultType = null;
                 if( commandWithResultType != null )
@@ -227,27 +222,6 @@ namespace CK.Setup.Cris
                     success = false;
                 }
                 return success ? new CrisType( command, crisPocoIndex, resultType, commandHandlerService, kind ) : null;
-
-                static bool CheckCommandTypeNames( IActivityMonitor monitor, IAbstractPocoType? crisCommandTypePart, IPrimaryPocoType command )
-                {
-                    bool success = true;
-                    var badCommands = command.SecondaryTypes.OfType<IPocoType>().Prepend( command ).Where( c => !c.CSharpName.EndsWith( "Command", StringComparison.Ordinal ) );
-                    if( badCommands.Any() )
-                    {
-                        monitor.Error( $"Invalid type name for Cris '{badCommands.Select( c => c.ToString()).Concatenate("', '")}': IAbstractCommand type name must end with \"Command\"." );
-                        success = false;
-                    }
-                    if( crisCommandTypePart != null )
-                    {
-                        var badParts = command.AbstractTypes.Where( p => !p.Type.Name.StartsWith( "ICommand", StringComparison.Ordinal ) && p.Generalizations.Contains( crisCommandTypePart ) );
-                        if( badParts.Any() )
-                        {
-                            monitor.Error( $"Invalid type name for Cris '{badParts.Select( c => c.ToString() ).Concatenate( "', '" )}': ICommandPart type name must start with \"ICommand\"." );
-                            success = false;
-                        }
-                    }
-                    return success;
-                }
             }
 
             static CrisType? CreateEventEntry( IActivityMonitor monitor,
@@ -301,19 +275,96 @@ namespace CK.Setup.Cris
                 return success;
             }
 
+            static bool GetBaseTypesAndCheckNames( IActivityMonitor monitor,
+                                                   IPocoTypeSystem typeSystem,
+                                                   out IAbstractPocoType? crisCommandTypePart,
+                                                   out IAbstractPocoType? crisCommandType,
+                                                   out IAbstractPocoType? crisEventTypePart,
+                                                   out IAbstractPocoType? crisEventType,
+                                                   out IAbstractPocoType? crisPocoTypePart )
+            {
+                bool success = true;
+                crisCommandTypePart = GetAbstractPocoType( monitor, typeSystem, typeof( ICommandPart ) );
+                if( crisCommandTypePart != null )
+                {
+                    var badNames = crisCommandTypePart.AllSpecializations.Where( c => !c.Type.Name.StartsWith( "ICommand", StringComparison.Ordinal ) );
+                    if( badNames.Any() )
+                    {
+                        monitor.Error( $"Invalid type name for Cris '{badNames.Select( c => c.ToString() ).Concatenate( "', '" )}': ICommandPart type name must start with \"ICommand\"." );
+                        success = false;
+                    }
+                    crisCommandType = crisCommandTypePart.MinimalGeneralizations.Single();
+                }
+                else
+                {
+                    crisCommandType = GetAbstractPocoType( monitor, typeSystem, typeof( IAbstractCommand ) );
+                }
+
+                crisEventTypePart = GetAbstractPocoType( monitor, typeSystem, typeof( IEventPart ) );
+                if( crisEventTypePart != null )
+                {
+                    var badNames = crisEventTypePart.AllSpecializations.Where( c => !c.Type.Name.StartsWith( "IEvent", StringComparison.Ordinal ) );
+                    if( badNames.Any() )
+                    {
+                        monitor.Error( $"Invalid type name for Cris '{badNames.Select( c => c.ToString() ).Concatenate( "', '" )}': IEventPart type name must start with \"IEvent\"." );
+                        success = false;
+                    }
+                    crisEventType = crisEventTypePart?.MinimalGeneralizations.Single();
+                }
+                else
+                {
+                    crisEventType = GetAbstractPocoType( monitor, typeSystem, typeof( IEvent ) );
+                };
+
+                crisPocoTypePart = typeSystem.FindByType<IAbstractPocoType>( typeof( ICrisPocoPart ) );
+                if( crisPocoTypePart != null )
+                {
+                    crisPocoTypePart = crisPocoTypePart.NonNullable;
+                    var cmdPart = crisCommandType;
+                    var eventPart = crisEventType;
+                    var badNames = crisPocoTypePart.AllSpecializations.Where( c => !c.Type.Name.EndsWith( "Part", StringComparison.Ordinal )
+                                                                                      && !c.Generalizations.Any( g => g == cmdPart || g == eventPart ) );
+                    if( badNames.Any() )
+                    {
+                        monitor.Error( $"Invalid type name for Cris '{badNames.Select( c => c.ToString() ).Concatenate( "', '" )}': ICrisPocoPart type name must end with \"Part\"." );
+                        success = false;
+                    }
+                }
+
+                return success;
+
+                static IAbstractPocoType? GetAbstractPocoType( IActivityMonitor monitor, IPocoTypeSystem typeSystem, Type type )
+                {
+                    var p = typeSystem.FindByType<IAbstractPocoType>( type );
+                    if( p == null || p.ImplementationLess )
+                    {
+                        monitor.Info( $"No Cris {type.Name} discovered." );
+                        p = null;
+                    }
+                    else
+                    {
+                        Throw.DebugAssert( p.IsNullable );
+                        p = p.NonNullable;
+                    }
+                    return p;
+                }
+
+            }
         }
 
         internal bool RegisterHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, bool allowUnclosed, string? fileName, int lineNumber )
         {
             (CrisType? e, ParameterInfo[]? parameters, ParameterInfo? p) = GetSingleCommandEntry( monitor, "Handler", m );
-            if( e == null ) return false;
+            if( e == null ) return parameters != null;
             Throw.DebugAssert( parameters != null && p != null );
             bool isClosedHandler = p.ParameterType == e.CrisPocoType.FamilyInfo.ClosureInterface;
             if( !isClosedHandler && !allowUnclosed )
             {
+
                 allowUnclosed = p.GetCustomAttributes().Any( a => a.GetType().FindInterfaces( ( i, n ) => i.Name == (string?)n, nameof( IAllowUnclosedCommandAttribute ) ).Length > 0 );
                 if( !allowUnclosed )
                 {
+                    // If the Command is not the closure, we skip handlers of unclosed commands: we expect the final handler of the closure interface.
                     monitor.Info( $"Method {CrisType.MethodName( m, parameters )} cannot handle '{e.PocoName}' command because type '{p.ParameterType.Name}' doesn't represent the whole command." );
                     return true;
                 }
@@ -324,29 +375,28 @@ namespace CK.Setup.Cris
         internal bool RegisterPostHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber )
         {
             (CrisType? e, ParameterInfo[]? parameters, ParameterInfo? p) = GetSingleCommandEntry( monitor, "PostHandler", m );
-            if( e == null ) return false;
+            if( e == null ) return parameters != null;
             Throw.DebugAssert( parameters != null && p != null );
             return e.AddPostHandler( monitor, _typeSystem, impl, m, parameters, p, fileName, lineNumber );
         }
 
+        // e == null && parameters == null => error
+        // e == null && parameters != null => warning (Method skipped: No IAbstractCommand parameter detected.)
         (CrisType? e, ParameterInfo[]? parameters, ParameterInfo? p) GetSingleCommandEntry( IActivityMonitor monitor, string kind, MethodInfo m )
         {
             (ParameterInfo[]? parameters, ParameterInfo? p, IPrimaryPocoType? candidate) = TryGetCrisTypeCandidate( monitor, m, expectCommand: true );
-            if( parameters != null )
+            if( parameters == null )
             {
-                if( p == null )
-                {
-                    monitor.Error( $"Invalid {kind} method {CrisType.MethodName( m, parameters )} skipped. No IAbstractCommand parameter detected." );
-                }
-                else
-                {
-                    Throw.DebugAssert( "Since we have a parameter.", candidate != null );
-                    Throw.DebugAssert( parameters != null );
-                    Throw.DebugAssert( "Since parameters are filtered by registered Poco.", _indexedTypes.ContainsKey( candidate ) );
-                    return (_indexedTypes[candidate], parameters, p);
-                }
+                return (null, null, null);
             }
-            return (null, null, null);
+            if( p == null )
+            {
+                monitor.Warn( $"Skipping {kind} method {CrisType.MethodName( m, parameters )}: no IAbstractCommand parameter detected." );
+                return (null, parameters, null);
+            }
+            Throw.DebugAssert( "Since we have a parameter.", candidate != null );
+            Throw.DebugAssert( "Since parameters are filtered by registered Poco.", _indexedTypes.ContainsKey( candidate ) );
+            return (_indexedTypes[candidate], parameters, p);
         }
 
         internal bool RegisterMultiTargetHandler( IActivityMonitor monitor,
@@ -519,7 +569,7 @@ namespace CK.Setup.Cris
                 return true;
             }
             // Looking for parts.
-            var partBase = expectCommands ? _crisCommandTypePart : _crisEventTypePart;
+            var partBase = (expectCommands ? _crisCommandTypePart : _crisEventTypePart) ?? _crisPocoTypePart;
             if( partBase != null )
             {
                 Throw.DebugAssert( "command or event part => ICrisPoco => ICrisPocoPart", _crisPocoTypePart != null );
@@ -542,49 +592,52 @@ namespace CK.Setup.Cris
             {
                 foundParameter = null;
                 candidates = null;
-                List<ParameterInfo>? tooMuch = null;
+                List<ParameterInfo>? tooMany = null;
                 foreach( var parameter in parameters )
                 {
-                    var pocoType = typeSystem.FindByType<IAbstractPocoType>( parameter.ParameterType );
-                    if( pocoType != null )
-                    {
-                        AnalyzePocoTypeParameter( monitor,
-                                                  eventOrCommandPartType,
-                                                  crisPocoTypePart,
-                                                  method,
-                                                  parameters,
-                                                  expectCommands,
-                                                  ref foundParameter,
-                                                  ref candidates,
-                                                  ref tooMuch,
-                                                  parameter,
-                                                  pocoType );
-                    }
+                    AnalyzePocoTypeParameter( monitor,
+                                              typeSystem,
+                                              eventOrCommandPartType,
+                                              crisPocoTypePart,
+                                              method,
+                                              parameters,
+                                              expectCommands,
+                                              ref foundParameter,
+                                              ref candidates,
+                                              ref tooMany,
+                                              parameter );
                 }
                 // If we found a parameter, candidates may be empty but it is not an error.
-                if( foundParameter != null && tooMuch == null )
+                // But too many parameters is always an error.
+                if( foundParameter != null && tooMany == null )
                 {
                     Throw.DebugAssert( candidates != null );
                     return true;
                 }
                 var expected = expectCommands ? "ICommand, ICommand<TResult>, ICommandPart" : "IEvent, IEventPart";
-                if( tooMuch != null )
+                if( tooMany != null )
                 {
                     Throw.DebugAssert( foundParameter != null );
-                    var t = tooMuch.Select( p => $"{p.ParameterType.ToCSharpName()} {p.Name}" ).Concatenate( "', '" );
+                    var t = tooMany.Select( p => $"{p.ParameterType.ToCSharpName()} {p.Name}" ).Concatenate( "', '" );
                     monitor.Error( $"Method {CrisType.MethodName( method, parameters )} cannot have more than one {expected} or ICrisPocoPart parameter. " +
                                     $"Found '{foundParameter.ParameterType.ToCSharpName()} {foundParameter.Name}', cannot allow '{t}'." );
                     return false;
                 }
-                if( candidates == null ) 
+                if( foundParameter == null )
                 {
-                    monitor.Error( $"Method {CrisType.MethodName( method, parameters )}: missing a {expected} or ICrisPocoPart parameter." );
                     return false;
                 }
-                Throw.DebugAssert( foundParameter != null );
+                if( candidates == null )
+                {
+                    monitor.Warn( $"Method {CrisType.MethodName( method, parameters )} misses an existing {expected} or ICrisPocoPart parameter." );
+                    candidates = Array.Empty<IPrimaryPocoType>(); 
+                    return true;
+                }
+                Throw.DebugAssert( foundParameter != null && candidates.Count > 0 );
                 return true;
 
                 static void AnalyzePocoTypeParameter( IActivityMonitor monitor,
+                                                      IPocoTypeSystem typeSystem,
                                                       IAbstractPocoType eventOrCommandPartType,
                                                       IAbstractPocoType crisPocoTypePart,
                                                       MethodInfo m,
@@ -592,17 +645,18 @@ namespace CK.Setup.Cris
                                                       bool expectCommands,
                                                       ref ParameterInfo? foundParameter,
                                                       ref IReadOnlyList<IPrimaryPocoType>? candidates,
-                                                      ref List<ParameterInfo>? tooMuch,
-                                                      ParameterInfo parameter,
-                                                      IAbstractPocoType pocoType )
+                                                      ref List<ParameterInfo>? tooMany,
+                                                      ParameterInfo parameter )
                 {
+                    var pocoType = typeSystem.FindByType<IAbstractPocoType>( parameter.ParameterType );
                     bool isTheOne = pocoType != null && (pocoType.NonNullable.Generalizations.Contains( eventOrCommandPartType )
-                                                  || pocoType.NonNullable.Generalizations.Contains( crisPocoTypePart ));
-                    bool isTheOneImplLess = isTheOne
-                                                || eventOrCommandPartType.Type.IsAssignableFrom( parameter.ParameterType );
-                    bool isTheOneImplLess2 = isTheOneImplLess
-                                                || crisPocoTypePart.Type.IsAssignableFrom( parameter.ParameterType );
-                    if( isTheOneImplLess2 )
+                                                         || pocoType.NonNullable.Generalizations.Contains( crisPocoTypePart ));
+                    // If we didn't find it, may be a compliant parameter.
+                    // If it is and we already have a foundParameter => tooMany.
+                    // If it is and we have no foundParameter yet we consider it the foundParameter but with an empty candidates list.
+                    bool mayBeTheOne = isTheOne || eventOrCommandPartType.Type.IsAssignableFrom( parameter.ParameterType );
+                    bool mayBeTheOne2 = mayBeTheOne || crisPocoTypePart.Type.IsAssignableFrom( parameter.ParameterType );
+                    if( mayBeTheOne2 )
                     {
                         if( foundParameter == null )
                         {
@@ -614,7 +668,7 @@ namespace CK.Setup.Cris
                             }
                             else
                             {
-                                if( isTheOneImplLess )
+                                if( mayBeTheOne && eventOrCommandPartType != crisPocoTypePart )
                                 {
                                     var typ = expectCommands ? "Command" : "Event";
                                     monitor.Info( $"Method {CrisType.MethodName( m, parameters )}: parameter '{parameter.Name}' is " +
@@ -632,8 +686,8 @@ namespace CK.Setup.Cris
                         }
                         else
                         {
-                            tooMuch ??= new List<ParameterInfo>();
-                            tooMuch.Add( parameter );
+                            tooMany ??= new List<ParameterInfo>();
+                            tooMany.Add( parameter );
                         }
                     }
                 }

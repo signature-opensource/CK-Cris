@@ -35,12 +35,12 @@ namespace CK.Cris.Tests
             TestHelper.GetFailedAutomaticServicesConfiguration( c, $"[AmbientServiceValue] '{badType} CK.Cris.Tests.AmbientValuesTests.{t.Name}.NoWay' must be nullable. Ambient values must always be nullable." );
         }
 
-        public interface IInvalid1Values : AmbientValues.IAmbientValues
+        public interface IInvalid1Values : IAmbientValues
         {
             int? NoWay { get; set; }
         }
 
-        public interface IInvalid2Values : AmbientValues.IAmbientValues
+        public interface IInvalid2Values : IAmbientValues
         {
             string? NoWay { get; set; }
         }
@@ -95,8 +95,6 @@ namespace CK.Cris.Tests
                                                      typeof( ITestAmbientValues ),
                                                      typeof( IAmbientValuesCollectCommand ) );
             using var services = TestHelper.CreateAutomaticServices( c ).Services;
-            using var scoped = services.CreateScope();
-
         }
 
 

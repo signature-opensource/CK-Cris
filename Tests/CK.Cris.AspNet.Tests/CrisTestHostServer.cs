@@ -40,6 +40,7 @@ namespace CK.Cris.AspNet.Tests
                     typeof( StdAuthenticationTypeSystem ),
                     typeof( FakeWebFrontLoginService ),
                     typeof( CrisAuthenticationService ),
+                    typeof( CrisCultureService ),
                     typeof( AuthenticationInfoTokenService ),
                     typeof( IAuthAmbientValues ),
                     typeof( ICommandAuthUnsafe ),

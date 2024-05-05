@@ -42,7 +42,7 @@ namespace CK.Setup.Cris
             ownerType = ownerType.NonNullable;
             if( ownerType is ISecondaryPocoType s ) ownerType = s.PrimaryPocoType;
             if( ownerType.Kind is not PocoTypeKind.PrimaryPoco and not PocoTypeKind.AbstractPoco
-                || !ownerType.CanReadFrom( crisTypeRegistry.CrisPocoType ) )
+                || !ownerType.IsSubTypeOf( crisTypeRegistry.CrisPocoType ) )
             {
                 monitor.Error( $"Invalid [AmbientServiceValue] '{ownerType.CSharpName}.{_prop.Name}' on {ownerType.Kind}. Only ICrisPoco properties can be AmbientService values." );
                 return CSCodeGenerationResult.Failed;

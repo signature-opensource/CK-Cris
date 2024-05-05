@@ -38,20 +38,29 @@ namespace CK.Setup.Cris
             }
             else
             {
-                const string funcSignature = "Func<IActivityMonitor, UserMessageCollector, IServiceProvider, CK.Cris.IAbstractCommand, Task>";
+                mValidate.GeneratedByComment().NewLine()
+                         .Append( "return ((ICrisReceiverImpl)command).IncomingValidateAsync( monitor, validationContext, services );" );
 
-                scope.GeneratedByComment().NewLine()
-                     .Append( "static readonly " ).Append( funcSignature ).Append( " Success = ( m, v, s, c ) => CK.Cris.CrisValidationResult.SuccessResultTask;" )
-                     .NewLine();
+                Throw.DebugAssert( scope.Namespace.FullName == "CK.Cris" );
+                scope.Namespace.Append( """
+                    [StObjGen]
+                    interface ICrisReceiverImpl
+                    {
+                        // Use Default Implementation Method when no incoming validator exists.
+                        Task IncomingValidateAsync( IActivityMonitor monitor, UserMessageCollector v, IServiceProvider s ) => Task.CompletedTask;
+                    }
+
+                    """ );
 
                 foreach( var e in crisEngineService.CrisTypes )
                 {
+                    var pocoType = c.GeneratedCode.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoType.FamilyInfo.PocoClass );
+                    pocoType.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICrisReceiverImpl" ) );
                     if( e.IncomingValidators.Count > 0 )
                     {
-                        var f = scope.CreateFunction( $"static Task V{e.CrisPocoIndex}( IActivityMonitor m, UserMessageCollector v, IServiceProvider s, CK.Cris.IAbstractCommand c )" );
-
+                        var f = pocoType.CreateFunction( "Task CK.Cris.ICrisReceiverImpl.IncomingValidateAsync( IActivityMonitor monitor, UserMessageCollector v, IServiceProvider s )" );
                         var cachedServices = new VariableCachedServices( c.CurrentRun.EngineMap, f );
-                        GenerateValidationCode( f, e.IncomingValidators, cachedServices, out bool requiresAsync );
+                        GenerateValidationCode( f, e.IncomingValidators, cachedServices, hasMonitorParam: true, out bool requiresAsync );
                         if( requiresAsync )
                         {
                             f.Definition.Modifiers |= Modifiers.Async;
@@ -62,25 +71,6 @@ namespace CK.Setup.Cris
                         }
                     }
                 }
-
-                scope.Append( "readonly " ).Append( funcSignature ).Append( "[] _validators = new " ).Append( funcSignature ).Append( "[]{" );
-                foreach( var e in crisEngineService.CrisTypes )
-                {
-                    if( e.CrisPocoIndex != 0 ) scope.Append( ", " );
-                    if( e.IncomingValidators.Count == 0 )
-                    {
-                        scope.Append( "Success" );
-                    }
-                    else
-                    {
-                        scope.Append( "V" ).Append( e.CrisPocoIndex );
-                    }
-                }
-                scope.Append( "};" )
-                     .NewLine();
-
-                mValidate.GeneratedByComment().NewLine()
-                         .Append( "return _validators[command.CrisPocoModel.CrisPocoIndex]( monitor, validationContext, services, command );" );
             }
             return CSCodeGenerationResult.Success;
         }
@@ -88,6 +78,7 @@ namespace CK.Setup.Cris
         internal static void GenerateValidationCode( IFunctionScope f,
                                                      IReadOnlyList<HandlerValidatorMethod> validators,
                                                      VariableCachedServices cachedServices,
+                                                     bool hasMonitorParam,
                                                      out bool requiresAsync )
         {
             requiresAsync = false;
@@ -105,13 +96,13 @@ namespace CK.Setup.Cris
                 foreach( var p in validator.Parameters )
                 {
                     if( p.Position > 0 ) f.Append( ", " );
-                    if( typeof( IActivityMonitor ).IsAssignableFrom( p.ParameterType ) )
+                    if( hasMonitorParam && typeof( IActivityMonitor ).IsAssignableFrom( p.ParameterType ) )
                     {
-                        f.Append( "m" );
+                        f.Append( "monitor" );
                     }
                     else if( p == validator.CmdOrPartParameter )
                     {
-                        f.Append( "(" ).AppendGlobalTypeName( validator.CmdOrPartParameter.ParameterType ).Append( ")c" );
+                        f.Append( "(" ).AppendGlobalTypeName( validator.CmdOrPartParameter.ParameterType ).Append( ")this" );
                     }
                     else if( p == validator.ValidationContextParameter )
                     {

@@ -6,9 +6,9 @@ namespace CK.Cris
     public class CrisCultureService : IAutoService
     {
         [CommandIncomingValidator]
-        public void CheckCultureName( UserMessageCollector validator, ICommandWithCurrentCulture cmd )
+        public void CheckCultureName( UserMessageCollector validator, ICurrentCulturePart part )
         {
-            var n = cmd.CurrentCultureName;
+            var n = part.CurrentCultureName;
             if( string.IsNullOrEmpty( n ) || ExtendedCultureInfo.FindExtendedCultureInfo( n ) == null )
             {
                 validator.Warn( $"Culture name '{n}' is unknown. It will be ignored." );
@@ -30,7 +30,7 @@ namespace CK.Cris
         }
 
         [CommandPostHandler]
-        public virtual void GetCultureAmbientValue( IAmbientValuesCollectCommand cmd, ExtendedCultureInfo c, ICultureAmbientValues values )
+        public void GetCultureAmbientValue( IAmbientValuesCollectCommand cmd, ExtendedCultureInfo c, ICultureAmbientValues values )
         {
             values.CurrentCultureName = c.Name;
         }

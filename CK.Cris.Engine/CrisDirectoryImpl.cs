@@ -18,7 +18,7 @@ namespace CK.Setup.Cris
         // Auto registers IAmbientValues, ICrisResultError so that tests don't have to register them explicitly: registering CrisDirectory is enough.
         void IAttributeContextBoundInitializer.Initialize( IActivityMonitor monitor, ITypeAttributesCache owner, MemberInfo m, Action<Type> alsoRegister )
         {
-            alsoRegister( typeof( CK.Cris.ICrisPocoPart ) );
+            alsoRegister( typeof( ICrisPocoPart ) );
             alsoRegister( typeof( CK.Cris.AmbientValues.IAmbientValues ) );
             alsoRegister( typeof( ICrisResultError ) );
         }
@@ -162,10 +162,10 @@ namespace CK.Setup.Cris
                     classScope.NewLine();
 
                     Throw.DebugAssert( nameof( ICrisPocoModel.ConfigureAmbientServices ) == "ConfigureAmbientServices" );
-                    var fConfigure = classScope.CreateFunction( "public void ConfigureAmbientServices( IAbstractCommand c, AmbientServiceHub hub )" );
+                    var fConfigure = classScope.CreateFunction( "public void ConfigureAmbientServices( CK.Cris.IAbstractCommand c, AmbientServiceHub hub )" );
                     if( hasAmbientServicesConfigurators )
                     {
-                        var cachedServices = new VariableCachedServices( c.CurrentRun.EngineMap, fConfigure );
+                        var cachedServices = new VariableCachedServices( c.CurrentRun.EngineMap, fConfigure, "DIContainerHub_CK.GlobalServices" );
                         foreach( var h in e.AmbientServicesConfigurators )
                         {
                             cachedServices.WriteExactType( fConfigure, h.Method.DeclaringType, h.Owner.ClassType ).Append( "." ).Append( h.Method.Name ).Append( "( " );

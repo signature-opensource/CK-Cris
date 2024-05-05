@@ -43,8 +43,8 @@ namespace CK.Setup.Cris
             IStObjFinalClass? impl = c.CurrentRun.EngineMap.ToLeaf( _type );
             if( impl == null )
             {
-                monitor.Error( $"Unable to find a mapping for '{_type.FullName}': attribute [{AttributeName}] on method {_method.Name} cannot be used." );
-                return CSCodeGenerationResult.Failed;
+                monitor.Warn( $"Ignoring method '[{AttributeName}] {_type.FullName:C}.{_method.Name}'. Type is not a Auto Service or a Real Object." );
+                return CSCodeGenerationResult.Success;
             }
             return DoImplement( monitor, crisTypeRegistry, impl, _method );
         }

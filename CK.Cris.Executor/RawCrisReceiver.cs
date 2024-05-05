@@ -23,17 +23,6 @@ namespace CK.Cris
     [AlsoRegisterType( typeof( CurrentCultureInfo ) )]
     public abstract class RawCrisReceiver : ISingletonAutoService
     {
-        protected CrisDirectory Directory;
-
-        /// <summary>
-        /// Initializes a new <see cref="RawCrisReceiver"/>.
-        /// </summary>
-        /// <param name="directory">The command directory.</param>
-        public RawCrisReceiver( CrisDirectory directory )
-        {
-            Directory = directory;
-        }
-
         /// <summary>
         /// Validates a command by calling all the discovered [CommandIncomingValidator] validators.
         /// <para>
@@ -60,21 +49,7 @@ namespace CK.Cris
             // available in the DI by catching the GetRequiredService exception.
             try
             {
-                if( command is ICommandWithCurrentCulture cC && !String.IsNullOrWhiteSpace( cC.CurrentCultureName ) )
-                {
-                    // Do not use EnsureExtendedCultureInfo here. We don't want to be flood by random strings
-                    // that will damage the cache.
-                    var fromCommand = ExtendedCultureInfo.FindExtendedCultureInfo( cC.CurrentCultureName );
-                    if( fromCommand != null )
-                    {
-                        currentCulture = new CurrentCultureInfo( services.GetRequiredService<TranslationService>(), fromCommand );
-                    }
-                    else
-                    {
-                        monitor.Warn( $"Unexisting CurrentCultureName '{cC.CurrentCultureName}' while validating command '{command.CrisPocoModel.PocoName}'. Ignoring it." );
-                    }
-                }
-                currentCulture ??= services.GetRequiredService<CurrentCultureInfo>();
+                currentCulture = HandleCulture( monitor, services, command, currentCulture );
                 var c = new UserMessageCollector( currentCulture );
                 await DoIncomingValidateAsync( monitor, c, services, command );
                 if( c.ErrorCount > 0 )
@@ -94,6 +69,27 @@ namespace CK.Cris
             }
         }
 
+        static protected CurrentCultureInfo HandleCulture( IActivityMonitor monitor, IServiceProvider services, ICrisPoco crisPoco, CurrentCultureInfo? currentCulture )
+        {
+            if( crisPoco is ICurrentCulturePart cC && !String.IsNullOrWhiteSpace( cC.CurrentCultureName ) )
+            {
+                // Do not use EnsureExtendedCultureInfo here. We don't want to be flood by random strings
+                // that will damage the cache.
+                var fromCommand = ExtendedCultureInfo.FindExtendedCultureInfo( cC.CurrentCultureName );
+                if( fromCommand != null )
+                {
+                    currentCulture = new CurrentCultureInfo( services.GetRequiredService<TranslationService>(), fromCommand );
+                }
+                else
+                {
+                    monitor.Warn( $"Unexisting CurrentCultureName '{cC.CurrentCultureName}' while validating command '{crisPoco.CrisPocoModel.PocoName}'. Ignoring it." );
+                }
+            }
+            currentCulture ??= services.GetRequiredService<CurrentCultureInfo>();
+            return currentCulture;
+        }
+
+        // Also used by Command validators.
         internal static string LogValidationError( IActivityMonitor monitor,
                                                    ICrisPoco command,
                                                    UserMessageCollector c,
@@ -123,8 +119,50 @@ namespace CK.Cris
         /// <param name="command">The command to validate.</param>
         /// <returns>The awaitable.</returns>
         protected abstract Task DoIncomingValidateAsync( IActivityMonitor monitor,
-                                                        UserMessageCollector validationContext,
-                                                        IServiceProvider services,
-                                                        IAbstractCommand command );
+                                                         UserMessageCollector validationContext,
+                                                         IServiceProvider services,
+                                                         IAbstractCommand command );
+
+
+        ///// <summary>
+        ///// Configures the ambient services hub by calling the [ConfigureAmbientService] methods for the command, event or its parts.
+        ///// This must be called before executing the command or handling the event in a background context, <see cref="AmbientServiceHub.IsLocked"/>
+        ///// must be false.
+        ///// This does nothing if <see cref="ICrisPocoModel.HasAmbientServicesConfigurators"/> is false.
+        ///// </summary>
+        ///// <param name="monitor">The monitor.</param>
+        ///// <param name="services">The service context from which any required dependencies must be resolved.</param>
+        ///// <param name="crisPoco">The command that will be executed.</param>
+        ///// <param name="ambientServices">The ambient services hub to configure.</param>
+        ///// <param name="currentCulture">Optional culture to use instead of the one from <paramref name="services"/>.</param>
+        //public ValueTask<ICrisResultError?> ConfigureAmbientServices( IActivityMonitor monitor,
+        //                                                              IServiceProvider services,
+        //                                                              ICrisPoco crisPoco,
+        //                                                              AmbientServiceHub ambientServices,
+        //                                                              CurrentCultureInfo? currentCulture = null )
+        //{
+        //    Throw.CheckNotNullArgument( monitor );
+        //    Throw.CheckNotNullArgument( services );
+        //    Throw.CheckNotNullArgument( crisPoco );
+        //    Throw.CheckNotNullArgument( ambientServices );
+
+        //    // We handle the (unexpected) case where the CurrentCultureInfo or the TranslationService is not
+        //    // available in the DI by catching the GetRequiredService exception.
+        //    try
+        //    {
+        //        currentCulture = HandleCulture( monitor, services, crisPoco, currentCulture );
+        //        await DoConfigureAmbientServicesAsync( monitor, services, crisPoco, ambientServices );
+        //        return null;
+        //    }
+        //    catch( Exception ex )
+        //    {
+        //        var e = 
+        //        var messages = ImmutableArray.CreateBuilder<UserMessage>();
+        //        var k = PocoFactoryExtensions.OnUnhandledError( monitor, ex, crisPoco, true, currentCulture, messages.Add );
+        //        return new CrisValidationResult( messages.ToImmutableArray(), k );
+        //    }
+        //}
+
+
     }
 }

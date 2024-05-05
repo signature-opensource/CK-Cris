@@ -213,7 +213,7 @@ namespace CK.Cris.Tests
         }
 
         [Test]
-        public void Handler_method_on_regular_class_is_NOT_discovered()
+        public void Handler_method_on_regular_class_is_ignored()
         {
             var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
                                                      typeof( ITestCommand ),
@@ -226,12 +226,14 @@ namespace CK.Cris.Tests
 
         public abstract class SpecializedBaseClassService : BaseClassWithHandler, IAutoService
         {
+            [CommandHandler]
+            public new int Run( ITestCommand cmd ) => base.Run( cmd );
         }
 
         [Test]
-        public void Handler_method_of_base_class_is_discovered_by_inheritance()
+        public void Handler_method_can_be_relayed_to_base_class()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( AmbientValues.IAmbientValues ),
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), 
                                                      typeof( ITestCommand ),
                                                      typeof( SpecializedBaseClassService ) );
             using var s = TestHelper.CreateAutomaticServices( c ).Services;
