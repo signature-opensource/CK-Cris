@@ -5,12 +5,11 @@ using CK.Auth;
 using CK.Core;
 using CK.Cris.AmbientValues;
 using CK.Cris.AspNet;
-using CK.Testing.StObjEngine;
 using FluentAssertions;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
@@ -83,7 +82,7 @@ namespace CK.Cris.HttpSender.Tests
 
             // ITotalCommand requires Normal authentication. 
             var totalCommand = callerPoco.Create<ITotalCommand>();
-            // We don't have the UbiquitosValues here to apply them.
+            // We don't have the AmbientValues here to apply them.
             // ActorId is set to its default 0 (this would have been the default value).
             totalCommand.ActorId = 0;
             var totalExecutedCommand = await sender.SendAsync( TestHelper.Monitor, totalCommand );
@@ -256,7 +255,16 @@ namespace CK.Cris.HttpSender.Tests
                     c["FullName"] = "Domain/$Caller";
                     c["Parties:0:FullName"] = "Domain/$Server";
                     c["Parties:0:Address"] = serverAddress;
-                    c["Parties:0:CrisHttpSender"] = "true";
+                    if( Debugger.IsAttached )
+                    {
+                        // One hour timeout when Debugger.IsAttached.
+                        c["Parties:0:CrisHttpSender:Timeout"] = "00:01:00";
+                    }
+                    else
+                    {
+                        // Otherwise use the default 1 minute timeout.
+                        c["Parties:0:CrisHttpSender"] = "true";
+                    }
                     configuration?.Invoke( c );
                 },
                 services =>

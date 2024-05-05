@@ -1,5 +1,6 @@
 using CK.AppIdentity;
 using CK.Core;
+using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -39,12 +40,14 @@ namespace CK.Cris.HttpSender
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="command">The command to send.</param>
+        /// <param name="timeout">Optional timeout that will override the configured "Timeout" (that defaults to 100 seconds).</param>
         /// <param name="cancellationToken">Optional cancellation token.</param>
         /// <param name="lineNumber">Calling line number (set by Roslyn).</param>
         /// <param name="fileName">Calling file path (set by Roslyn).</param>
         /// <returns>The <see cref="IExecutedCommand"/>.</returns>
         Task<IExecutedCommand<T>> SendAsync<T>( IActivityMonitor monitor,
                                                 T command,
+                                                TimeSpan? timeout = null,
                                                 CancellationToken cancellationToken = default,
                                                 [CallerLineNumber] int lineNumber = 0,
                                                 [CallerFilePath] string? fileName = null )
@@ -59,12 +62,14 @@ namespace CK.Cris.HttpSender
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="command">The command to send.</param>
+        /// <param name="timeout">Optional timeout that will override the configured "Timeout" (that defaults to 100 seconds).</param>
         /// <param name="cancellationToken">Optional cancellation token.</param>
         /// <param name="lineNumber">Calling line number (set by Roslyn).</param>
         /// <param name="fileName">Calling file path (set by Roslyn).</param>
         /// <returns>The <see cref="IExecutedCommand"/>.</returns>
         Task<IExecutedCommand<T>> SendOrThrowAsync<T>( IActivityMonitor monitor,
                                                        T command,
+                                                       TimeSpan? timeout = null,
                                                        CancellationToken cancellationToken = default,
                                                        [CallerLineNumber] int lineNumber = 0,
                                                        [CallerFilePath] string? fileName = null )
@@ -75,12 +80,14 @@ namespace CK.Cris.HttpSender
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="command">The command to send.</param>
+        /// <param name="timeout">Optional timeout that will override the configured "Timeout" (that defaults to 100 seconds).</param>
         /// <param name="cancellationToken">Optional cancellation token.</param>
         /// <param name="lineNumber">Calling line number (set by Roslyn).</param>
         /// <param name="fileName">Calling file path (set by Roslyn).</param>
         /// <returns>The <see cref="IExecutedCommand"/>.</returns>
         Task<TResult> SendAndGetResultOrThrowAsync<TResult>( IActivityMonitor monitor,
                                                              ICommand<TResult> command,
+                                                             TimeSpan? timeout = null,
                                                              CancellationToken cancellationToken = default,
                                                              [CallerLineNumber] int lineNumber = 0,
                                                              [CallerFilePath] string? fileName = null );
