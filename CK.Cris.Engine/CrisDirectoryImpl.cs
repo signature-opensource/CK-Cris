@@ -107,7 +107,6 @@ namespace CK.Setup.Cris
                 var classScope = scope.Namespace.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoType.FamilyInfo.PocoFactoryClass );
                 using( classScope.Region() )
                 {
-                    bool hasAmbientServicesConfigurators = e.AmbientServicesConfigurators.Count > 0;
                     classScope.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICrisPocoModel" ) );
                     classScope.Append( "public Type CommandType => PocoClassType;" ).NewLine()
                      .Append( "public int CrisPocoIndex => " ).Append( e.CrisPocoIndex ).Append( ";" ).NewLine()
@@ -116,7 +115,8 @@ namespace CK.Setup.Cris
                      .Append( "public Type ResultType => " ).AppendTypeOf( e.CommandResultType?.Type ?? typeof(void) ).Append( ";" ).NewLine()
                      .Append( "CK.Cris.ICrisPoco CK.Cris.ICrisPocoModel.Create() => (CK.Cris.ICrisPoco)Create();" ).NewLine()
                      .Append( "public bool IsHandled => " ).Append( e.IsHandled ).Append(";").NewLine()
-                     .Append( "public bool HasAmbientServicesConfigurators => " ).Append( hasAmbientServicesConfigurators ).Append( ";" ).NewLine();
+                     .Append( "public bool EndpointMustConfigureServices => " ).Append( e.AmbientServicesConfigurators.Count > 0 ).Append( ";" ).NewLine()
+                     .Append( "public bool BackgroundMustRestoreServices => " ).Append( e.AmbientServicesRestorers.Count > 0 ).Append( ";" ).NewLine();
 
                     // ImmutableArray<string> AmbientValuePropertyNames
                     if( e.AmbientValueFields.Count > 0 )

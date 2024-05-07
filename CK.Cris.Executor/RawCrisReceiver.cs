@@ -24,7 +24,10 @@ namespace CK.Cris
     public abstract class RawCrisReceiver : ISingletonAutoService
     {
         /// <summary>
-        /// Validates a command by calling all the discovered [CommandIncomingValidator] validators.
+        /// Validates a command by calling all the discovered [CommandIncomingValidator] validators and
+        /// on success, if any [ConfigureAmbientService] exist for the command, extecutes them to return
+        /// a non null <see cref="CrisValidationResult.AmbientServiceHub"/> that must be used to execute
+        /// the command.
         /// <para>
         /// This never throws: exceptions are handled (logged and appear in the error messages) by this method.
         /// </para>
@@ -69,7 +72,7 @@ namespace CK.Cris
             }
         }
 
-        static protected CurrentCultureInfo HandleCulture( IActivityMonitor monitor, IServiceProvider services, ICrisPoco crisPoco, CurrentCultureInfo? currentCulture )
+        static CurrentCultureInfo HandleCulture( IActivityMonitor monitor, IServiceProvider services, ICrisPoco crisPoco, CurrentCultureInfo? currentCulture )
         {
             if( crisPoco is ICurrentCulturePart cC && !String.IsNullOrWhiteSpace( cC.CurrentCultureName ) )
             {

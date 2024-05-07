@@ -20,8 +20,8 @@ namespace CK.Cris
     public abstract class RawCrisExecutor : ISingletonAutoService
     {
         /// <summary>
-        /// Configures the ambient services hub by calling the [ConfigureAmbientService] methods for the command, event or its parts.
-        /// This does nothing if <see cref="HasAmbientServicesConfigurators"/> is false.
+        /// Configures the ambient services hub by calling the [RestoreAmbientService] methods for the command, event or its parts.
+        /// This does nothing if <see cref="ICrisPocoModel.EndpointMustConfigureServices"/> is false.
         /// <para>
         /// This must be called before executing the command or handling the event in a background context, <see cref="AmbientServiceHub.IsLocked"/>
         /// must be false. When called with a fresh AmbientServiceHub obtained from the current context, if <see cref="AmbientServiceHub.IsDirty"/> is false,

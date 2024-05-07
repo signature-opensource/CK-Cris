@@ -50,9 +50,21 @@ namespace CK.Cris
 
         /// <summary>
         /// Gets whether this command or event must configure the <see cref="AmbientServiceHub"/> before
-        /// being handled.
+        /// being executed in a endpoint context (at least one [ConfigureAmbientService] method exists for it).
+        /// <para>
+        /// This applies to incoming command: when true it means that the receiving endpoint context services
+        /// are not adapted to the execution of the command and that it must be executed in a correctly configured
+        /// background context.
+        /// </para>
         /// </summary>
-        bool HasAmbientServicesConfigurators { get; }
+        bool EndpointMustConfigureServices { get; }
+
+        /// <summary>
+        /// Gets whether this command or event when executed in the background without a <see cref="AmbientServiceHub"/>
+        /// provided by a receiving endpoint must configure the background services before being executed (at least one
+        /// [RestoreAmbientService] method exists for it).
+        /// </summary>
+        bool BackgroundMustRestoreServices { get; }
 
         /// <summary>
         /// Gets all the [AmbientServiceValue] property names that this command or event exposes.
@@ -61,8 +73,10 @@ namespace CK.Cris
 
         /// <summary>
         /// Gets whether this command or event is handled: <see cref="Handlers"/> is not empty.
-        /// A <see cref="CrisPocoKind.CallerOnlyEvent"/> (a <see cref="IEvent"/> without [RoutedEvent]
+        /// <para>
+        /// A <see cref="CrisPocoKind.CallerOnlyEvent"/> (a <see cref="IEvent"/> without [RoutedEvent])
         /// is never handled.
+        /// </para>
         /// </summary>
         bool IsHandled { get; }
 

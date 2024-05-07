@@ -25,6 +25,7 @@ namespace CK.Setup.Cris
         readonly IPocoType? _commandResultType;
         IList<HandlerMultiTargetMethod>? _incomingValidators;
         IList<HandlerMultiTargetMethod>? _ambientServicesConfigurators;
+        IList<HandlerMultiTargetMethod>? _ambientServicesRestorers;
         IList<HandlerMultiTargetMethod>? _handlingValidators;
         IList<HandlerPostMethod>? _postHandlers;
         readonly IStObjFinalClass? _commandHandlerService;
@@ -61,6 +62,11 @@ namespace CK.Setup.Cris
         /// Only <see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/> can have validators.
         /// </summary>
         public IReadOnlyList<HandlerMultiTargetMethod> AmbientServicesConfigurators => (IReadOnlyList<HandlerMultiTargetMethod>)_ambientServicesConfigurators!;
+
+        /// <summary>
+        /// Gets the ambient services restorer methods.
+        /// </summary>
+        public IReadOnlyList<HandlerMultiTargetMethod> AmbientServicesRestorers => (IReadOnlyList<HandlerMultiTargetMethod>)_ambientServicesRestorers!;
 
         /// <summary>
         /// Gets the handling validator methods.
@@ -157,16 +163,19 @@ namespace CK.Setup.Cris
                     monitor.Warn( $"Command '{
                                     _crisPocoType.ExternalOrCSharpName}' is not handled. Forgetting {
                                     _handlingValidators?.Count ?? 0} validator, {
-                                    _handlingValidators?.Count ?? 0} ambient service configurators and {
+                                    _ambientServicesConfigurators?.Count ?? 0} ambient service configurators, {
+                                    _ambientServicesRestorers?.Count ?? 0} ambient service restorers and {
                                     _postHandlers?.Count ?? 0} post handlers." );
                     _handlingValidators = Array.Empty<HandlerMultiTargetMethod>();
                     _ambientServicesConfigurators = Array.Empty<HandlerMultiTargetMethod>();
+                    _ambientServicesRestorers = Array.Empty<HandlerMultiTargetMethod>();
                     _postHandlers = Array.Empty<HandlerPostMethod>();
                 }
                 else
                 {
-                    _ambientServicesConfigurators ??= Array.Empty<HandlerMultiTargetMethod>();
                     _handlingValidators ??= Array.Empty<HandlerMultiTargetMethod>();
+                    _ambientServicesConfigurators ??= Array.Empty<HandlerMultiTargetMethod>();
+                    _ambientServicesRestorers ??= Array.Empty<HandlerMultiTargetMethod>();
                     _postHandlers ??= Array.Empty<HandlerPostMethod>();
                 }
             }
@@ -181,13 +190,16 @@ namespace CK.Setup.Cris
                 if( _eventHandlers == null )
                 {
                     monitor.Warn( $"Routed event '{_crisPocoType.ExternalOrCSharpName}' is not handled. Forgetting {
-                                   _ambientServicesConfigurators?.Count?? 0} ambient service configurators." );
+                                   _ambientServicesConfigurators?.Count?? 0} ambient service configurators and {
+                                   _ambientServicesRestorers?.Count ??0} ambient service restorers." );
                     _ambientServicesConfigurators = Array.Empty<HandlerMultiTargetMethod>();
+                    _ambientServicesRestorers = Array.Empty<HandlerMultiTargetMethod>();
                     _eventHandlers = Array.Empty<HandlerRoutedEventMethod>();
                 }
                 else
                 {
                     _ambientServicesConfigurators ??= Array.Empty<HandlerMultiTargetMethod>();
+                    _ambientServicesRestorers ??= Array.Empty<HandlerMultiTargetMethod>();
                 }
             }
             else
@@ -197,6 +209,8 @@ namespace CK.Setup.Cris
                 _incomingValidators = Array.Empty<HandlerMultiTargetMethod>();
                 Throw.DebugAssert( _ambientServicesConfigurators == null );
                 _ambientServicesConfigurators = Array.Empty<HandlerMultiTargetMethod>();
+                Throw.DebugAssert( _ambientServicesRestorers == null );
+                _ambientServicesRestorers = Array.Empty<HandlerMultiTargetMethod>();
                 Throw.DebugAssert( _handlingValidators == null );
                 _handlingValidators = Array.Empty<HandlerMultiTargetMethod>();
                 Throw.DebugAssert( _postHandlers == null );
