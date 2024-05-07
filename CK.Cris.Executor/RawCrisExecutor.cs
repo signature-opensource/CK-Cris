@@ -5,20 +5,37 @@ using System.Threading.Tasks;
 namespace CK.Cris
 {
     /// <summary>
-    /// Executes commands on services provided to <see cref="RawExecuteAsync(IServiceProvider, IAbstractCommand)"/> and
-    /// dispatches events thanks to <see cref="DispatchEventAsync(IServiceProvider, IEvent)"/>.
+    /// Configures a <see cref="AmbientServiceHub"/>, executes commands and dispatches events.
     /// <para>
     /// This class is agnostic of the context since the <see cref="IServiceProvider"/> defines the execution context: this is a true
     /// singleton, the same instance can be used to execute any locally handled commands.
     /// </para>
     /// <para>
-    /// The concrete class implements all the generated code that routes the command to its handler.
+    /// This is the low level API, the concrete class implements all the generated code that does the hard work.
+    /// <see cref="ICrisExecution"/>
     /// </para>
     /// </summary>
     [Setup.AlsoRegisterType( typeof( CrisDirectory ) )]
     [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.RawCrisExecutorImpl, CK.Cris.Executor.Engine" )]
     public abstract class RawCrisExecutor : ISingletonAutoService
     {
+        /// <summary>
+        /// Configures the ambient services hub by calling the [ConfigureAmbientService] methods for the command, event or its parts.
+        /// This does nothing if <see cref="HasAmbientServicesConfigurators"/> is false.
+        /// <para>
+        /// This must be called before executing the command or handling the event in a background context, <see cref="AmbientServiceHub.IsLocked"/>
+        /// must be false. When called with a fresh AmbientServiceHub obtained from the current context, if <see cref="AmbientServiceHub.IsDirty"/> is false,
+        /// the action may be executed inline, directly in the current context but if IsDirty is true then a background execution context should be used.
+        /// </para>
+        /// <para>
+        /// This never throws: any exception is caught and non null a <see cref="ICrisResultError"/> is returned on error.
+        /// </para>
+        /// </summary>
+        /// <param name="services">The service context from which any required dependencies must be resolved.</param>
+        /// <param name="crisPoco">The command or event that must be executed or dispatched.</param>
+        /// <param name="ambientServices">The ambient services hub to configure.</param>
+        public abstract ValueTask<ICrisResultError?> ConfigureAmbientServicesAsync( IServiceProvider services, ICrisPoco crisPoco, AmbientServiceHub ambientServices );
+
         /// <summary>
         /// Captures the result of <see cref="RawExecuteAsync(IServiceProvider, IAbstractCommand)"/>.
         /// </summary>

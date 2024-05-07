@@ -54,7 +54,7 @@ namespace CK.Cris
             _executor = executor;
             _command = command;
             _issuerToken = issuerToken;
-            _incomingValidationCheck = incomingValidationCheck ?? (!CoreApplicationIdentity.IsInitialized || CoreApplicationIdentity.Instance.EnvironmentName == CoreApplicationIdentity.DefaultEnvironmentName);
+            _incomingValidationCheck = incomingValidationCheck ?? CoreApplicationIdentity.IsDevelopmentOrUninitialized;
             _executingCommand = executingCommand;
             _scopedData = scopedData;
         }
@@ -73,6 +73,11 @@ namespace CK.Cris
         /// Gets whether an executing command has been provided to this job.
         /// </summary>
         public bool HasExecutingCommand => _executingCommand != null;
+
+        /// <summary>
+        /// Gets whether the command must be validated as if it entered the system.
+        /// </summary>
+        public bool IncomingValidationCheck => _incomingValidationCheck;
 
         /// <summary>
         /// Gets the runner monitor that will be available in the DI execution context.

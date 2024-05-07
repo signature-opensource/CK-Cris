@@ -55,16 +55,6 @@ namespace CK.Cris
         bool HasAmbientServicesConfigurators { get; }
 
         /// <summary>
-        /// Configures the ambient services hub by calling the [ConfigureAmbientService] methods for the command, event or its parts.
-        /// This must be called before executing the command or handling the event in a background context, <see cref="AmbientServiceHub.IsLocked"/>
-        /// must be false.
-        /// This does nothing if <see cref="HasAmbientServicesConfigurators"/> is false.
-        /// </summary>
-        /// <param name="command">The command that will be executed.</param>
-        /// <param name="ambientServices">The ambient services hub.</param>
-        void ConfigureAmbientServices( IAbstractCommand command, AmbientServiceHub ambientServices );
-
-        /// <summary>
         /// Gets all the [AmbientServiceValue] property names that this command or event exposes.
         /// </summary>
         ImmutableArray<string> AmbientValuePropertyNames { get; }

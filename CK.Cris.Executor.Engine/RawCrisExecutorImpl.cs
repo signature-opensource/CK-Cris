@@ -42,27 +42,37 @@ namespace CK.Setup.Cris
 
                         // No event handlers => nothing to do.
                         Task DispatchEventAsync( IServiceProvider s ) => Task.CompletedTask;
+
+                        // No service configators => nothing to do.
+                        ValueTask<ICrisResultError?> ConfigureAsync( IServiceProvider services, AmbientServiceHub ambientServices ) => ValueTask.FromResult<ICrisResultError?>( null );
                     }
                     
                     """ );
-            var rawExecuteMethod = classType.GetMethod( nameof( RawCrisExecutor.RawExecuteAsync ), new[] { typeof( IServiceProvider ), typeof( IAbstractCommand ) } );
-            Throw.DebugAssert( rawExecuteMethod != null );
-            var mExecute = scope.CreateSealedOverride( rawExecuteMethod );
+
+            var configureMethod = classType.GetMethod( nameof( RawCrisExecutor.ConfigureAmbientServicesAsync ), new[] { typeof( IServiceProvider ), typeof( ICrisPoco ), typeof( AmbientServiceHub ) } );
+            Throw.DebugAssert( configureMethod != null );
+            var mConfigure = scope.CreateSealedOverride( configureMethod );
+            mConfigure.Append( "return ((ICrisExecutorImpl)crisPoco).ConfigureAsync( services, ambientServices );" );
+
+
+            var executeMethod = classType.GetMethod( nameof( RawCrisExecutor.RawExecuteAsync ), new[] { typeof( IServiceProvider ), typeof( IAbstractCommand ) } );
+            Throw.DebugAssert( executeMethod != null );
+            var mExecute = scope.CreateSealedOverride( executeMethod );
             mExecute.Append( "return ((ICrisExecutorImpl)command).ExecCommandAsync( services );" );
 
-            var dispatchEventMethod = classType.GetMethod( nameof( RawCrisExecutor.DispatchEventAsync ), new[] { typeof( IServiceProvider ), typeof( IEvent ) } );
-            Throw.DebugAssert( dispatchEventMethod != null );
-            var mDispatch = scope.CreateSealedOverride( dispatchEventMethod );
+            var dispatchMethod = classType.GetMethod( nameof( RawCrisExecutor.DispatchEventAsync ), new[] { typeof( IServiceProvider ), typeof( IEvent ) } );
+            Throw.DebugAssert( dispatchMethod != null );
+            var mDispatch = scope.CreateSealedOverride( dispatchMethod );
             mDispatch.Append( "return ((ICrisExecutorImpl)e).DispatchEventAsync( services );" );
 
-            bool hasOneCommandHandler = false;
+            bool needUnexpectedErrorHelper = false;
             foreach( var e in crisEngineService.CrisTypes )
             {
                 var pocoType = c.GeneratedCode.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoType.FamilyInfo.PocoClass );
                 pocoType.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICrisExecutorImpl" ) );
                 if( e.CommandHandler != null )
                 {
-                    hasOneCommandHandler = true;
+                    needUnexpectedErrorHelper = true;
                     var f = pocoType.CreateFunction( "Task<CK.Cris.RawCrisExecutor.RawResult> CK.Cris.ICrisExecutorImpl.ExecCommandAsync( IServiceProvider s )" );
                     CreateCommandHandler( c.CurrentRun.EngineMap, f, e );
                 }
@@ -71,8 +81,13 @@ namespace CK.Setup.Cris
                     var f = pocoType.CreateFunction( "Task CK.Cris.ICrisExecutorImpl.DispatchEventAsync( IServiceProvider s )" );
                     CreateEventHandler( c.CurrentRun.EngineMap, f, e );
                 }
+                if( e.AmbientServicesConfigurators.Count > 0 )
+                {
+                    var f = pocoType.CreateFunction( "ValueTask<CK.Cris.ICrisResultError?> CK.Cris.ICrisExecutorImpl.ConfigureAsync( IServiceProvider s, AmbientServiceHub hub )" );
+                    CreateConfigure( c.CurrentRun.EngineMap, f, e );
+                }
             }
-            if( hasOneCommandHandler )
+            if( needUnexpectedErrorHelper )
             {
                 scope.Append( """
                 internal static CK.Cris.ICrisResultError HandleCommandError( IServiceProvider services, CK.Cris.ICrisPoco c, Exception ex, UserMessageCollector? v )
@@ -119,7 +134,7 @@ namespace CK.Setup.Cris
 
         static void CreateEventHandler( IStObjMap engineMap, IFunctionScope f, CrisType e )
         {
-            var cachedServices = new VariableCachedServices( engineMap, f.CreatePart() );
+            var cachedServices = new VariableCachedServices( engineMap, f );
             f.GeneratedByComment();
             int syncHandlerCount = 0;
             foreach( var calls in e.EventHandlers.Where( h => !h.IsRefAsync && !h.IsValAsync ).GroupBy( h => h.Owner ) )
@@ -168,7 +183,7 @@ namespace CK.Setup.Cris
             bool isHandlerAsync = h.IsRefAsync || h.IsValAsync;
             bool isPostHandlerAsync = e.HasPostHandlerAsyncCall;
 
-            var cachedServices = new VariableCachedServices( engineMap, f.CreatePart() );
+            var cachedServices = new VariableCachedServices( engineMap, f );
 
             f.Append( "UserMessageCollector? v = null;" ).NewLine();
 
@@ -184,7 +199,7 @@ namespace CK.Setup.Cris
                 f.Append( "v = new UserMessageCollector( " ).Append( cachedServices.GetServiceVariableName( typeof( CurrentCultureInfo ) ) ).Append( " );" ).NewLine()
                  .Append( "try" )
                  .OpenBlock();
-                RawCrisReceiverImpl.GenerateValidationCode( f, e.HandlingValidators, cachedServices, hasMonitorParam: false, out var validatorsRequireAsync );
+                RawCrisReceiverImpl.GenerateMultiTargetCalls( f, e.HandlingValidators, cachedServices, "v", hasMonitorParam: false, out var validatorsRequireAsync );
                 isOverallAsync |= validatorsRequireAsync;
 
                 f.CloseBlock()
@@ -247,57 +262,91 @@ namespace CK.Setup.Cris
                 f.Append( ";" );
             }
 
-        }
 
-        static void GeneratePostHandlerCallCode( IFunctionScope w, CrisType e, VariableCachedServices cachedServices )
-        {
-            if( e.PostHandlers.Count == 0 ) return;
+            static void GeneratePostHandlerCallCode( IFunctionScope w, CrisType e, VariableCachedServices cachedServices )
+            {
+                if( e.PostHandlers.Count == 0 ) return;
 
-            using var region = w.Region();
-            cachedServices.StartNewCachedVariablesPart();
-            foreach( var h in e.PostHandlers.Where( h => !h.IsRefAsync && !h.IsValAsync ).GroupBy( h => h.Owner ) )
-            {
-                CreateOwnerCalls( w, h, false, cachedServices );
-            }
-            cachedServices.StartNewCachedVariablesPart();
-            foreach( var h in e.PostHandlers.Where( h => h.IsRefAsync || h.IsValAsync ).GroupBy( h => h.Owner ) )
-            {
-                CreateOwnerCalls( w, h, true, cachedServices );
-            }
-
-            static void CreateOwnerCalls( ICodeWriter w,
-                                          IGrouping<IStObjFinalClass, HandlerPostMethod> oH,
-                                          bool async,
-                                          VariableCachedServices cachedServices )
-            {
-                foreach( HandlerPostMethod m in oH )
+                using var region = w.Region();
+                cachedServices.StartNewCachedVariablesPart();
+                foreach( var h in e.PostHandlers.Where( h => !h.IsRefAsync && !h.IsValAsync ).GroupBy( h => h.Owner ) )
                 {
-                    if( async ) w.Append( "await " );
+                    CreateOwnerCalls( w, h, false, cachedServices );
+                }
+                cachedServices.StartNewCachedVariablesPart();
+                foreach( var h in e.PostHandlers.Where( h => h.IsRefAsync || h.IsValAsync ).GroupBy( h => h.Owner ) )
+                {
+                    CreateOwnerCalls( w, h, true, cachedServices );
+                }
 
-                    cachedServices.WriteExactType( w, m.Method.DeclaringType, oH.Key.ClassType ).Append( "." ).Append( m.Method.Name ).Append( "( " );
-                    foreach( ParameterInfo p in m.Parameters )
+                static void CreateOwnerCalls( ICodeWriter w,
+                                              IGrouping<IStObjFinalClass, HandlerPostMethod> oH,
+                                              bool async,
+                                              VariableCachedServices cachedServices )
+                {
+                    foreach( HandlerPostMethod m in oH )
                     {
-                        if( p.Position > 0 ) w.Append( ", " );
-                        if( p == m.ResultParameter )
+                        if( async ) w.Append( "await " );
+
+                        cachedServices.WriteExactType( w, m.Method.DeclaringType, oH.Key.ClassType ).Append( "." ).Append( m.Method.Name ).Append( "( " );
+                        foreach( ParameterInfo p in m.Parameters )
                         {
-                            if( m.MustCastResultParameter )
+                            if( p.Position > 0 ) w.Append( ", " );
+                            if( p == m.ResultParameter )
                             {
-                                w.Append( "(" ).AppendGlobalTypeName( p.ParameterType ).Append( ")" );
+                                if( m.MustCastResultParameter )
+                                {
+                                    w.Append( "(" ).AppendGlobalTypeName( p.ParameterType ).Append( ")" );
+                                }
+                                w.Append( "r" );
                             }
-                            w.Append( "r" );
+                            else if( p == m.CmdOrPartParameter )
+                            {
+                                w.Append( "(" ).AppendGlobalTypeName( m.CmdOrPartParameter.ParameterType ).Append( ")this" );
+                            }
+                            else
+                            {
+                                w.Append( cachedServices.GetServiceVariableName( p.ParameterType ) );
+                            }
                         }
-                        else if( p == m.CmdOrPartParameter )
-                        {
-                            w.Append( "(" ).AppendGlobalTypeName( m.CmdOrPartParameter.ParameterType ).Append( ")this" );
-                        }
-                        else
-                        {
-                            w.Append( cachedServices.GetServiceVariableName( p.ParameterType ) );
-                        }
+                        w.Append( " );" ).NewLine();
                     }
-                    w.Append( " );" ).NewLine();
                 }
             }
+
+        }
+
+        static void CreateConfigure( IStObjEngineMap engineMap, IFunctionScope f, CrisType e )
+        {
+            f.Append( "try" )
+             .OpenBlock();
+            var cachedServices = new VariableCachedServices( engineMap, f );
+            RawCrisReceiverImpl.GenerateMultiTargetCalls( f, e.AmbientServicesConfigurators, cachedServices, "hub", hasMonitorParam: false, out bool requiresAsync );
+            if( requiresAsync )
+            {
+                f.Definition.Modifiers |= Modifiers.Async;
+            }
+            WriteReturn( f, requiresAsync, "null" );
+            f.CloseBlock()
+             .Append( "catch( Exception ex )" )
+             .OpenBlock();
+            f.Append( "var e = CK.Cris.RawCrisExecutor_CK.HandleCommandError( s, this, ex, null );" ).NewLine();
+            WriteReturn( f, requiresAsync, "e" );
+            f.CloseBlock();
+
+            static void WriteReturn( IFunctionScope f, bool requiresAsync, string result )
+            {
+                if( requiresAsync )
+                {
+                    f.Append( "return " ).Append( result );
+                }
+                else
+                {
+                    f.Append( "return ValueTask.FromResult<CK.Cris.ICrisResultError?>( " ).Append( result ).Append( " )" );
+                }
+                f.Append( ";" );
+            }
+
         }
 
         static ICodeWriter InlineCallOwnerMethod( ICodeWriter w, HandlerBase h, VariableCachedServices cachedServices, ParameterInfo crisPocoParameter )

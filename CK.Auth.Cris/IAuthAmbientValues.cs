@@ -23,5 +23,6 @@ namespace CK.Auth
         /// Gets or sets the <see cref="IAuthenticationInfo.DeviceId"/> identifier.
         /// </summary>
         string DeviceId { get; set; }
+
     }
 }

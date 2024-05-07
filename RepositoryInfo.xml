@@ -1,12 +1,9 @@
 <RepositoryInfo>
   <SimpleGitVersion StartingVersion="0.8.0-alpha">
+    <Debug IgnoreDirtyWorkingFolder="true" />
     <Branches>
       <Branch Name="develop" CIVersionMode="LastReleaseBased" VersionName="develop" />
-      <Branch
-         Name="explo/ts-update"
-         CIVersionMode="ZeroTimed"
-         VersionName="explo"
-         UseReleaseBuildConfigurationFrom="CI" />
+      <Branch Name="explo/ts-update" CIVersionMode="ZeroTimed" VersionName="explo" UseReleaseBuildConfigurationFrom="CI" />
     </Branches>
   </SimpleGitVersion>
 </RepositoryInfo>

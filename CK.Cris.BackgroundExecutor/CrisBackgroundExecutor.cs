@@ -58,11 +58,6 @@ namespace CK.Cris
                 ubiq = _ambientServiceHub.CleanClone();
                 ambientServicesOverride( ubiq );
             }
-            if( command.CrisPocoModel.HasAmbientServicesConfigurators )
-            {
-                if( ubiq.IsLocked ) ubiq = ubiq.CleanClone();
-                command.CrisPocoModel.ConfigureAmbientServices( command, ubiq );
-            }
             return _service.Submit( monitor, command, ubiq, issuerToken, incomingValidationCheck );
         }
     }

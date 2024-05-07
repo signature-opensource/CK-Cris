@@ -67,17 +67,19 @@ namespace CK.Cris.AspNet.Tests
                     var result = s.PocoDirectory.Find<IAspNetCrisResult>()!.ReadJson( response );
                     Throw.DebugAssert( result != null );
                     result.Result.Should().Be( "en" );
-                    result.ValidationMessages.Should().HaveCount( 1 )
-                            .And.Contain( new SimpleUserMessage( UserMessageLevel.Info, "The collector is 'en' The current is 'en'.", 0 ) );
+                    result.ValidationMessages.Should().HaveCount( 2 )
+                            .And.Contain( new SimpleUserMessage( UserMessageLevel.Info, "The collector is 'en' The current is 'en'.", 0 ) )
+                            .And.Contain( new SimpleUserMessage( UserMessageLevel.Warn, "Culture name is null. It will be ignored.", 0 ) );
                 }
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri + "?UseSimpleError", @"[""TestCommand"",{""CurrentCultureName"":null,""IsIncomingValid"":false}]" );
                     string response = await r.Content.ReadAsStringAsync();
                     var result = s.PocoDirectory.Find<IAspNetCrisResult>()!.ReadJson( response );
                     Throw.DebugAssert( result != null );
-                    result.ValidationMessages.Should().HaveCount( 2 )
+                    result.ValidationMessages.Should().HaveCount( 3 )
                             .And.Contain( new SimpleUserMessage( UserMessageLevel.Info, "The collector is 'en' The current is 'en'.", 0 ) )
-                            .And.Contain( new SimpleUserMessage( UserMessageLevel.Error, "Sorry, this command is INCOMING invalid!", 0 ) );
+                            .And.Contain( new SimpleUserMessage( UserMessageLevel.Error, "Sorry, this command is INCOMING invalid!", 0 ) )
+                            .And.Contain( new SimpleUserMessage( UserMessageLevel.Warn, "Culture name is null. It will be ignored.", 0 ) );
                     result.Result.Should().BeAssignableTo<IAspNetCrisResultError>();
                 }
             }

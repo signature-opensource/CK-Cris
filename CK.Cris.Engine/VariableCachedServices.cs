@@ -59,11 +59,8 @@ namespace CK.Setup.Cris
             {
                 if( _cached.Count == 0 ) _variablesPart.GeneratedByComment( "Cached services variables" );
                 name = $"cs{_cached.Count}";
-                var typeName = serviceType.ToGlobalTypeName();
                 _variablesPart.Append( "var " ).Append( name )
-                              .Append( " = (" )
-                              .Append( typeName )
-                              .Append( ")" ).Append( _serviceProviderName ).Append( ".GetService( typeof(" ).Append( typeName ).Append( ") );" ).NewLine();
+                              .Append( " = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<" ).AppendGlobalTypeName( serviceType ).Append( ">( s );" ).NewLine();
                 _cached[serviceType] = name;
             }
             return name;

@@ -13,9 +13,9 @@ namespace CK.Cris
         CommandIncomingValidator,
 
         /// <summary>
-        /// Configures the <see cref="AmbientServiceHub"/> from a command or a command part.
+        /// Configures the <see cref="AmbientServiceHub"/> from a command, an event or a part.
         /// </summary>
-        CommandConfigureServices,
+        ConfigureServices,
 
         /// <summary>
         /// Validates a command right before it is handled.

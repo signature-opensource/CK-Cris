@@ -133,12 +133,9 @@ namespace CK.Cris.AspNet.E2ETests
             var targetOutputPath = TestHelper.GetTypeScriptWithTestsSupportTargetProjectPath();
             Throw.DebugAssert( targetOutputPath.EndsWith( "/TSTests/E2ETest_Async" ) );
             await TestHelper.RunAspNetE2ETestAsync( targetOutputPath,
-                                                    new[] { // By registering the IBeautifulCommand first,
-                                                            // we use (and test!) the fact that the OnPocoGenerating calls EnsurePoco
-                                                            // on the IAmbientValues so that the ambient values are known when handling
-                                                            // the first command...
-                                                            typeof( IBeautifulCommand ),
+                                                    new[] { typeof( IBeautifulCommand ),
                                                             typeof( ICommandColored ),
+                                                            typeof( ICultureAmbientValues ),
                                                             typeof( AmbientValues.AmbientValuesService ),
                                                             typeof( IColoredEndpointValues ),
                                                             typeof( ColorAndBuggyService ),

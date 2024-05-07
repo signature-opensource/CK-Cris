@@ -71,53 +71,6 @@ namespace CK.Cris.Tests
             }
         }
 
-        public interface ICultureCommand : ICommandWithCurrentCulture
-        {
-        }
-
-        // Required to test ConfigureAmbientService since for a non handled commands
-        // validators, configurators and post handlers are trimmed out.
-        public sealed class FakeCommandHandler : IAutoService
-        {
-            [CommandHandler]
-            public void Handle( ICultureCommand command ) { }
-        }
-
-        [Test]
-        public void configuring_AmbientServiceHub()
-        {
-            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
-
-            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
-                                                     typeof( CrisCultureService ),
-                                                     typeof( NormalizedCultureInfo ),
-                                                     typeof( NormalizedCultureInfoUbiquitousServiceDefault ),
-                                                     typeof( ICultureCommand ),
-                                                     typeof( FakeCommandHandler ) );
-            using var services = TestHelper.CreateAutomaticServices( c ).Services;
-            services.GetRequiredService<IEnumerable<IHostedService>>().Should().HaveCount( 1, "Required to initialize the Global Service Provider." );
-
-            using( var scope = services.CreateScope() )
-            {
-                var s = scope.ServiceProvider;
-
-                var poco = s.GetRequiredService<PocoDirectory>();
-                var cmd = poco.Create<ICultureCommand>( c => c.CurrentCultureName = "fr" );
-
-                var ambient = s.GetRequiredService<AmbientServiceHub>();
-                ambient.GetCurrentValue<ExtendedCultureInfo>().Name.Should().Be( "en" );
-                ambient.IsLocked.Should().BeTrue();
-
-                FluentActions.Invoking( () => cmd.CrisPocoModel.ConfigureAmbientServices( cmd, ambient ) )
-                    .Should().Throw<InvalidOperationException>();
-
-                ambient = ambient.CleanClone();
-                cmd.CrisPocoModel.ConfigureAmbientServices( cmd, ambient );
-
-                ambient.GetCurrentValue<ExtendedCultureInfo>().Name.Should().Be( "fr" );
-            }
-        }
-
     }
 }
 

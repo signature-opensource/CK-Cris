@@ -11,7 +11,9 @@ namespace CK.Cris
             var n = part.CurrentCultureName;
             if( string.IsNullOrEmpty( n ) || ExtendedCultureInfo.FindExtendedCultureInfo( n ) == null )
             {
-                validator.Warn( $"Culture name '{n}' is unknown. It will be ignored." );
+                validator.Warn( n == null
+                                    ? "Culture name is null. It will be ignored."
+                                    : $"Culture name '{n}' is unknown. It will be ignored." );
             }
         }
 

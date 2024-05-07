@@ -60,7 +60,7 @@ namespace CK.Setup.Cris
                     {
                         var f = pocoType.CreateFunction( "Task CK.Cris.ICrisReceiverImpl.IncomingValidateAsync( IActivityMonitor monitor, UserMessageCollector v, IServiceProvider s )" );
                         var cachedServices = new VariableCachedServices( c.CurrentRun.EngineMap, f );
-                        GenerateValidationCode( f, e.IncomingValidators, cachedServices, hasMonitorParam: true, out bool requiresAsync );
+                        GenerateMultiTargetCalls( f, e.IncomingValidators, cachedServices, "v", hasMonitorParam: true, out bool requiresAsync );
                         if( requiresAsync )
                         {
                             f.Definition.Modifiers |= Modifiers.Async;
@@ -75,11 +75,12 @@ namespace CK.Setup.Cris
             return CSCodeGenerationResult.Success;
         }
 
-        internal static void GenerateValidationCode( IFunctionScope f,
-                                                     IReadOnlyList<HandlerValidatorMethod> validators,
-                                                     VariableCachedServices cachedServices,
-                                                     bool hasMonitorParam,
-                                                     out bool requiresAsync )
+        internal static void GenerateMultiTargetCalls( IFunctionScope f,
+                                                      IReadOnlyList<HandlerMultiTargetMethod> validators,
+                                                      VariableCachedServices cachedServices,
+                                                      string argumentParameterName,
+                                                      bool hasMonitorParam,
+                                                      out bool requiresAsync )
         {
             requiresAsync = false;
             if( validators.Count == 0 ) return;
@@ -100,13 +101,13 @@ namespace CK.Setup.Cris
                     {
                         f.Append( "monitor" );
                     }
-                    else if( p == validator.CmdOrPartParameter )
+                    else if( p == validator.ThisPocoParameter )
                     {
-                        f.Append( "(" ).AppendGlobalTypeName( validator.CmdOrPartParameter.ParameterType ).Append( ")this" );
+                        f.Append( "(" ).AppendGlobalTypeName( validator.ThisPocoParameter.ParameterType ).Append( ")this" );
                     }
-                    else if( p == validator.ValidationContextParameter )
+                    else if( p == validator.ArgumentParameter )
                     {
-                        f.Append( "v" );
+                        f.Append( argumentParameterName );
                     }
                     else
                     {

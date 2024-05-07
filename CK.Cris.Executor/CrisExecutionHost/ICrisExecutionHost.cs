@@ -9,6 +9,10 @@ namespace CK.Cris
     /// <para>
     /// The <see cref="ParallelRunnerCount"/> defaults to 1 but this can be changed anytime.
     /// </para>
+    /// <para>
+    /// This is a multiple interface: there may be more than one execution host in a system
+    /// but one is enough.
+    /// </para>
     /// </summary>
     [IsMultiple]
     public interface ICrisExecutionHost

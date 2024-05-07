@@ -3,10 +3,12 @@ using CK.Core;
 using CK.Cris.AmbientValues;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
@@ -137,6 +139,58 @@ namespace CK.Cris.Executor.Tests
                 "Missing IAmbientValues properties for [AmbientServiceValue] properties.",
                 new[] { "'int Something { get; set; }'" } );
         }
+
+        public interface ICultureCommand : ICommandWithCurrentCulture
+        {
+        }
+
+        // Required to test ConfigureAmbientService since for a non handled commands
+        // validators, configurators and post handlers are trimmed out.
+        public sealed class FakeCommandHandler : IAutoService
+        {
+            [CommandHandler]
+            public void Handle( ICultureCommand command ) { }
+        }
+
+        [Test]
+        public async Task configuring_AmbientServiceHub_Async()
+        {
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
+
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
+                                                     typeof( RawCrisExecutor ),
+                                                     typeof( CrisCultureService ),
+                                                     typeof( NormalizedCultureInfo ),
+                                                     typeof( NormalizedCultureInfoUbiquitousServiceDefault ),
+                                                     typeof( ICultureCommand ),
+                                                     typeof( FakeCommandHandler ) );
+            using var services = TestHelper.CreateAutomaticServices( c ).Services;
+            services.GetRequiredService<IEnumerable<IHostedService>>().Should().HaveCount( 1, "Required to initialize the Global Service Provider." );
+
+            using( var scope = services.CreateScope() )
+            {
+                var s = scope.ServiceProvider;
+
+                var poco = s.GetRequiredService<PocoDirectory>();
+                var cmd = poco.Create<ICultureCommand>( c => c.CurrentCultureName = "fr" );
+
+                var ambient = s.GetRequiredService<AmbientServiceHub>();
+                ambient.GetCurrentValue<ExtendedCultureInfo>().Should().BeSameAs( NormalizedCultureInfo.CodeDefault,
+                    "No global ConfigureServices: NormalizedCultureInfoUbiquitousServiceDefault has done its job." );
+
+                var executor = s.GetRequiredService<RawCrisExecutor>();
+                ambient.IsLocked.Should().BeTrue();
+                var error = await executor.ConfigureAmbientServicesAsync( s, cmd, ambient );
+                Throw.DebugAssert( error != null );
+
+                ambient = ambient.CleanClone();
+                error = await executor.ConfigureAmbientServicesAsync( s, cmd, ambient );
+                Throw.DebugAssert( error == null );
+
+                ambient.GetCurrentValue<ExtendedCultureInfo>().Name.Should().Be( "fr" );
+            }
+        }
+
 
     }
 }

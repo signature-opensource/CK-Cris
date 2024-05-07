@@ -1,4 +1,4 @@
-﻿using CK.Core;
+using CK.Core;
 using CK.Cris;
 using System.Reflection;
 
@@ -6,7 +6,7 @@ namespace CK.Setup.Cris
 {
     public sealed class HandlerConfigureServiceMethod : HandlerBase
     {
-        public override CrisHandlerKind Kind => CrisHandlerKind.CommandConfigureServices;
+        public override CrisHandlerKind Kind => CrisHandlerKind.ConfigureServices;
         public readonly ParameterInfo CmdOrPartParameter;
         public readonly ParameterInfo AmbientServiceHubParameter;
         public readonly bool IsRefAsync;

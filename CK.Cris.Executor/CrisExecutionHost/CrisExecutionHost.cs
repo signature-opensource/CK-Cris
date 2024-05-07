@@ -26,7 +26,7 @@ namespace CK.Cris
         readonly IPocoFactory<ICrisResultError> _errorResultFactory;
         readonly DarkSideCrisEventHub _eventHub;
         readonly RawCrisReceiver _commandValidator;
-        private readonly RawCrisExecutor _rawExecutor;
+        readonly RawCrisExecutor _rawExecutor;
 
         readonly PerfectEventSender<ICrisExecutionHost> _parallelRunnerCountChanged;
         // We use null as the close signal for runners and push int values to regulate the count of
@@ -43,6 +43,9 @@ namespace CK.Cris
 
         /// <summary>
         /// Initializes a new <see cref="CrisExecutionHost"/> with a single initial runner.
+        /// <para>
+        /// The <paramref name="validator"/> is used only when <see cref="CrisJob.IncomingValidationCheck"/> is true.
+        /// </para>
         /// </summary>
         /// <param name="eventHub">The cris event hub.</param>
         /// <param name="validator">The command validator.</param>
@@ -88,6 +91,11 @@ namespace CK.Cris
             Push( job );
         }
 
+        /// <summary>
+        /// Gets the Cris executor.
+        /// </summary>
+        public RawCrisExecutor RawCrisExecutor => _rawExecutor;
+
         void Push( object job ) => _channel.Writer.TryWrite( job );
 
         ValueTask ExecuteTypedJobAsync( IActivityMonitor monitor, object o )
@@ -118,10 +126,6 @@ namespace CK.Cris
 
                 if( job._incomingValidationCheck )
                 {
-                    var aaa = scoped.ServiceProvider.GetService<AmbientServiceHub>();
-
-
-
                     var validation = await _commandValidator.IncomingValidateAsync( monitor, scoped.ServiceProvider, job.Command, gLog );
                     if( !validation.Success )
                     {

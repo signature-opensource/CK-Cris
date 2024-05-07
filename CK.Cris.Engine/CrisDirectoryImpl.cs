@@ -160,35 +160,6 @@ namespace CK.Setup.Cris
                         classScope.Append( "public ImmutableArray<CK.Cris.ICrisPocoModel.IHandler> Handlers => ImmutableArray<CK.Cris.ICrisPocoModel.IHandler>.Empty;" );
                     }
                     classScope.NewLine();
-
-                    Throw.DebugAssert( nameof( ICrisPocoModel.ConfigureAmbientServices ) == "ConfigureAmbientServices" );
-                    var fConfigure = classScope.CreateFunction( "public void ConfigureAmbientServices( CK.Cris.IAbstractCommand c, AmbientServiceHub hub )" );
-                    if( hasAmbientServicesConfigurators )
-                    {
-                        var cachedServices = new VariableCachedServices( c.CurrentRun.EngineMap, fConfigure, "DIContainerHub_CK.GlobalServices" );
-                        foreach( var h in e.AmbientServicesConfigurators )
-                        {
-                            cachedServices.WriteExactType( fConfigure, h.Method.DeclaringType, h.Owner.ClassType ).Append( "." ).Append( h.Method.Name ).Append( "( " );
-                            foreach( var param in h.Parameters )
-                            {
-                                if( param.Position > 0 ) fConfigure.Append( ", " );
-                                if( param == h.CmdOrPartParameter )
-                                {
-                                    fConfigure.Append( "(" ).AppendGlobalTypeName( h.CmdOrPartParameter.ParameterType ).Append( ")c" );
-                                }
-                                else if( param == h.AmbientServiceHubParameter )
-                                {
-                                    fConfigure.Append( "hub" );
-                                }
-                                else
-                                {
-                                    fConfigure.Append( cachedServices.GetServiceVariableName( param.ParameterType ) );
-                                }
-                            }
-                            fConfigure.Append( " );" ).NewLine();
-                        }
-                    }
-
                 }
 
                 // The CrisPocoModel is the _factory field.
