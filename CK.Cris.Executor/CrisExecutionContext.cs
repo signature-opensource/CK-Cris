@@ -8,11 +8,9 @@ using System.Threading.Tasks;
 namespace CK.Cris
 {
     /// <summary>
-    /// This is somehow on the dark side: an execution context lives on the command execution side. For
-    /// any background or deferred execution, this belongs to the endpoint container DI.
+    /// Execution context for Cris command end events.
     /// <para>
-    /// This is a scoped service that is handled by the Automatic DI but when used in endpoint (for background
-    /// or deferred executors), a dedicated specialization is used. 
+    /// This is a scoped service. 
     /// </para>
     /// </summary>
     [Setup.AlsoRegisterType( typeof( RawCrisExecutor ) )]

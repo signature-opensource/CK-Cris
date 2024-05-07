@@ -3,6 +3,7 @@ using CK.Cris.AmbientValues;
 using CK.Poco.Exc.Json;
 using CK.Setup;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IO;
 using System;
@@ -94,6 +95,7 @@ namespace CK.Cris.AspNet
                                                          currentCultureInfo,
                                                          readOptions,
                                                          useSimpleError );
+                AmbientServiceHub? ambientServiceHub = null;
                 IEnumerable<UserMessage> allValidationMessages = readResult.ValidationMessages.UserMessages;
                 IAspNetCrisResult? result = readResult.ReadResultError;
                 if( result == null )
@@ -107,46 +109,33 @@ namespace CK.Cris.AspNet
                     {
                         result = CreateValidationErrorResult( allValidationMessages, validation.LogKey, useSimpleError );
                     }
+                    ambientServiceHub = validation.AmbientServiceHub;
                 }
+                // No result so far: incoming validation succeeded.
                 if( result == null )
                 {
                     Throw.DebugAssert( readResult.Command != null && readResult.TypeFilterName != null );
-
-                    // Incoming validation succeeded. Challenge the Ambient service configuration.
-
+                    // If we have a AmbientServiceHub, then we must use the background executor.
+                    IExecutedCommand executedCommand;
+                    if( ambientServiceHub != null )
+                    {
+                        var executing = _backgroundExecutor.Submit( monitor, readResult.Command, ambientServiceHub, issuerToken: depToken, incomingValidationCheck: false );
+                        executedCommand = await executing.ExecutedCommand;
+                    }
+                    else
+                    {
+                        var execContext = requestServices.GetRequiredService<CrisExecutionContext>();
+                        executedCommand = await execContext.ExecuteRootCommandAsync( readResult.Command );
+                    }
                     // Build the IAspNetCrisResult.
                     result = _resultFactory.Create();
-                    IExecutedCommand? executedCommand = null;
-                    // Do we need the background executor?
-                    if( readResult.Command.CrisPocoModel.HasAmbientServicesConfigurators )
+                    result.Result = executedCommand.Result;
+                    if( allValidationMessages.Any() || executedCommand.ValidationMessages.Length > 0 )
                     {
-                        var hub = requestServices.GetRequiredService<AmbientServiceHub>();
-                        Throw.DebugAssert( hub.IsLocked );
-                        hub = hub.CleanClone();
-                        result.Result = await _backgroundExecutor.ExecutionHost.RawCrisExecutor.ConfigureAmbientServicesAsync( requestServices, readResult.Command, hub );
-                        // Do we really need it?
-                        if( result.Result == null && hub.IsDirty )
-                        {
-                            var executing = _backgroundExecutor.Submit( monitor, readResult.Command, hub, issuerToken: depToken, incomingValidationCheck: false );
-                            executedCommand = await executing.ExecutedCommand;
-                        }
-                    }
-                    if( result.Result == null )
-                    {
-                        // Inline execution otherwise.
-                        if( executedCommand == null )
-                        {
-                            var execContext = requestServices.GetRequiredService<CrisExecutionContext>();
-                            executedCommand = await execContext.ExecuteRootCommandAsync( readResult.Command );
-                        }
-                        result.Result = executedCommand.Result;
-                        if( allValidationMessages.Any() || executedCommand.ValidationMessages.Length > 0 )
-                        {
-                            result.ValidationMessages = allValidationMessages
-                                                            .Concat( executedCommand.ValidationMessages )
-                                                            .Select( m => m.AsSimpleUserMessage() )
-                                                            .ToList();
-                        }
+                        result.ValidationMessages = allValidationMessages
+                                                        .Concat( executedCommand.ValidationMessages )
+                                                        .Select( m => m.AsSimpleUserMessage() )
+                                                        .ToList();
                     }
                     // Simplifies the error if asked to to.
                     if( useSimpleError && result.Result is ICrisResultError error )

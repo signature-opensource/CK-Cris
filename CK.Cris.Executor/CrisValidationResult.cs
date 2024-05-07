@@ -24,12 +24,15 @@ namespace CK.Cris
         public static readonly CrisValidationResult SuccessResult = new CrisValidationResult();
 
         /// <summary>
-        /// A successfully completed validation task: no error, no warning, no information.
+        /// A successfully completed validation task: no error, no warning, no information and no
+        /// configured <see cref="AmbientServiceHub"/>.
         /// </summary>
         public static readonly Task<CrisValidationResult> SuccessResultTask = Task.FromResult( SuccessResult );
 
         readonly ImmutableArray<UserMessage> _errorMessages;
         readonly ImmutableArray<UserMessage> _validationMessages;
+        readonly string? _logKey;
+        readonly AmbientServiceHub? _ambientServiceHub;
 
         CrisValidationResult()
         {
@@ -41,8 +44,9 @@ namespace CK.Cris
         /// Initializes a new validation result.
         /// </summary>
         /// <param name="messages">The messages.</param>
+        /// <param name="ambientServiceHub">The configured hub if it is needed.</param>
         /// <param name="logKey">Optional <see cref="ActivityMonitor.LogKey"/> that enables to locate the logs of the validation.</param>
-        public CrisValidationResult( IEnumerable<UserMessage> messages, string? logKey )
+        public CrisValidationResult( IEnumerable<UserMessage> messages, AmbientServiceHub? ambientServiceHub, string? logKey )
         {
             int count = 0;
             var bE = ImmutableArray.CreateBuilder<UserMessage>();
@@ -58,7 +62,21 @@ namespace CK.Cris
             bE = ImmutableArray.CreateBuilder<UserMessage>( count );
             bE.AddRange( messages );
             _validationMessages = bE.MoveToImmutable();
-            LogKey = logKey;
+            _ambientServiceHub = ambientServiceHub;
+            _logKey = logKey;
+        }
+
+        /// <summary>
+        /// Initializes a new successful validation result without any messages.
+        /// </summary>
+        /// <param name="ambientServiceHub">The configured hub if it is needed.</param>
+        /// <param name="logKey">Optional <see cref="ActivityMonitor.LogKey"/> that enables to locate the logs of the validation.</param>
+        public CrisValidationResult( AmbientServiceHub? ambientServiceHub, string? logKey )
+        {
+            _errorMessages = ImmutableArray<UserMessage>.Empty;
+            _validationMessages = ImmutableArray<UserMessage>.Empty;
+            _ambientServiceHub = ambientServiceHub;
+            _logKey = logKey;
         }
 
         /// <summary>
@@ -80,7 +98,14 @@ namespace CK.Cris
         /// <see cref="ActivityMonitor.LogKey"/> that enables to locate the logs of the validation.
         /// It may not always be available.
         /// </summary>
-        public string? LogKey { get; }
+        public string? LogKey => _logKey;
+
+        /// <summary>
+        /// Gets the <see cref="AmbientServiceHub"/> if the command must be handled in a different
+        /// execution context than this one.
+        /// Always null if <see cref="Success"/> is false.
+        /// </summary>
+        public AmbientServiceHub? AmbientServiceHub => _ambientServiceHub;
 
     }
 }

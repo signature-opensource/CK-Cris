@@ -19,6 +19,7 @@ namespace CK.Setup.Cris
         readonly Dictionary<Type, string> _cached;
         readonly IFunctionScope _function;
         ICodeWriter _variablesPart;
+        int _lastPartVarCount;
 
         /// <summary>
         /// Initializes a ne< <see cref="VariableCachedServices"/>.
@@ -44,7 +45,11 @@ namespace CK.Setup.Cris
         /// </summary>
         public void StartNewCachedVariablesPart()
         {
-            _variablesPart = _function.CreatePart();
+            if( _lastPartVarCount > 0 )
+            {
+                _variablesPart = _function.CreatePart();
+                _lastPartVarCount = 0;
+            }
         }
 
         /// <summary>
@@ -62,6 +67,7 @@ namespace CK.Setup.Cris
                 _variablesPart.Append( "var " ).Append( name )
                               .Append( " = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<" ).AppendGlobalTypeName( serviceType ).Append( ">( s );" ).NewLine();
                 _cached[serviceType] = name;
+                _lastPartVarCount++;
             }
             return name;
         }

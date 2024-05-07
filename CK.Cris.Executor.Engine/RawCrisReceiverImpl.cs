@@ -34,7 +34,7 @@ namespace CK.Setup.Cris
             {
                 mValidate.Definition.Modifiers &= ~Modifiers.Async;
                 mValidate.GeneratedByComment().NewLine()
-                         .Append( "return Task.CompletedTask;" );
+                         .Append( "return ValueTask.FromResult<AmbientServiceHub?>( null );" );
             }
             else
             {
@@ -46,8 +46,8 @@ namespace CK.Setup.Cris
                     [StObjGen]
                     interface ICrisReceiverImpl
                     {
-                        // Use Default Implementation Method when no incoming validator exists.
-                        Task IncomingValidateAsync( IActivityMonitor monitor, UserMessageCollector v, IServiceProvider s ) => Task.CompletedTask;
+                        // Use Default Implementation Method when no incoming validator exists and no AmbientServiceHub is nedded.
+                        ValueTask<AmbientServiceHub?> IncomingValidateAsync( IActivityMonitor monitor, UserMessageCollector v, IServiceProvider s ) => ValueTask.FromResult<AmbientServiceHub?>( null );
                     }
 
                     """ );
@@ -56,18 +56,34 @@ namespace CK.Setup.Cris
                 {
                     var pocoType = c.GeneratedCode.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoType.FamilyInfo.PocoClass );
                     pocoType.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICrisReceiverImpl" ) );
-                    if( e.IncomingValidators.Count > 0 )
+                    if( e.IncomingValidators.Count > 0 || e.AmbientServicesConfigurators.Count > 0 )
                     {
-                        var f = pocoType.CreateFunction( "Task CK.Cris.ICrisReceiverImpl.IncomingValidateAsync( IActivityMonitor monitor, UserMessageCollector v, IServiceProvider s )" );
+                        var f = pocoType.CreateFunction( "ValueTask<AmbientServiceHub?> CK.Cris.ICrisReceiverImpl.IncomingValidateAsync( IActivityMonitor monitor, UserMessageCollector v, IServiceProvider s )" );
                         var cachedServices = new VariableCachedServices( c.CurrentRun.EngineMap, f );
-                        GenerateMultiTargetCalls( f, e.IncomingValidators, cachedServices, "v", hasMonitorParam: true, out bool requiresAsync );
+
+                        bool requiresAsync = false;
+                        if( e.IncomingValidators.Count > 0 )
+                        {
+                            GenerateMultiTargetCalls( f, e.IncomingValidators, cachedServices, "v", hasMonitorParam: true, out requiresAsync );
+                        }
+                        string varHub = "null";
+                        if( e.AmbientServicesConfigurators.Count > 0 )
+                        {
+                            varHub = "hub";
+                            cachedServices.StartNewCachedVariablesPart();
+                            f.Append( "var hub = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<AmbientServiceHub>( s ).CleanClone();" ).NewLine();
+                            GenerateMultiTargetCalls( f, e.AmbientServicesConfigurators, cachedServices, "hub", hasMonitorParam: true, out var configureRequiresAsync );
+                            requiresAsync |= configureRequiresAsync;
+                            f.Append( "if( !hub.IsDirty ) hub = null;" ).NewLine();
+                        }
                         if( requiresAsync )
                         {
                             f.Definition.Modifiers |= Modifiers.Async;
+                            f.Append( "return " ).Append( varHub ).Append( ";" ).NewLine();
                         }
                         else
                         {
-                            f.Append( "return Task.CompletedTask;" ).NewLine();
+                            f.Append( "return ValueTask.FromResult<AmbientServiceHub?>(" ).Append( varHub ).Append( ");" ).NewLine();
                         }
                     }
                 }

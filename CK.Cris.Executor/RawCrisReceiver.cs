@@ -51,21 +51,21 @@ namespace CK.Cris
             {
                 currentCulture = HandleCulture( monitor, services, command, currentCulture );
                 var c = new UserMessageCollector( currentCulture );
-                await DoIncomingValidateAsync( monitor, c, services, command );
+                var hub = await DoIncomingValidateAsync( monitor, c, services, command );
                 if( c.ErrorCount > 0 )
                 {
                     string logKey = LogValidationError( monitor, command, c, "incoming", commandLogGroup );
-                    return new CrisValidationResult( c.UserMessages, logKey );
+                    return new CrisValidationResult( c.UserMessages, null, logKey );
                 }
                 return c.UserMessages.Count == 0
-                        ? CrisValidationResult.SuccessResult
-                        : new CrisValidationResult( c.UserMessages, null );
+                        ? (hub == null ? CrisValidationResult.SuccessResult : new CrisValidationResult( hub, null ))
+                        : new CrisValidationResult( c.UserMessages, hub, null );
             }
             catch( Exception ex )
             {
                 var messages = ImmutableArray.CreateBuilder<UserMessage>();
                 var k = PocoFactoryExtensions.OnUnhandledError( monitor, ex, command, false, currentCulture, messages.Add );
-                return new CrisValidationResult( messages.ToImmutableArray(), k );
+                return new CrisValidationResult( messages.ToImmutableArray(), null, k );
             }
         }
 
@@ -117,51 +117,11 @@ namespace CK.Cris
         /// <param name="validationContext">The user message collector.</param>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="command">The command to validate.</param>
-        /// <returns>The awaitable.</returns>
-        protected abstract Task DoIncomingValidateAsync( IActivityMonitor monitor,
-                                                         UserMessageCollector validationContext,
-                                                         IServiceProvider services,
-                                                         IAbstractCommand command );
-
-
-        ///// <summary>
-        ///// Configures the ambient services hub by calling the [ConfigureAmbientService] methods for the command, event or its parts.
-        ///// This must be called before executing the command or handling the event in a background context, <see cref="AmbientServiceHub.IsLocked"/>
-        ///// must be false.
-        ///// This does nothing if <see cref="ICrisPocoModel.HasAmbientServicesConfigurators"/> is false.
-        ///// </summary>
-        ///// <param name="monitor">The monitor.</param>
-        ///// <param name="services">The service context from which any required dependencies must be resolved.</param>
-        ///// <param name="crisPoco">The command that will be executed.</param>
-        ///// <param name="ambientServices">The ambient services hub to configure.</param>
-        ///// <param name="currentCulture">Optional culture to use instead of the one from <paramref name="services"/>.</param>
-        //public ValueTask<ICrisResultError?> ConfigureAmbientServices( IActivityMonitor monitor,
-        //                                                              IServiceProvider services,
-        //                                                              ICrisPoco crisPoco,
-        //                                                              AmbientServiceHub ambientServices,
-        //                                                              CurrentCultureInfo? currentCulture = null )
-        //{
-        //    Throw.CheckNotNullArgument( monitor );
-        //    Throw.CheckNotNullArgument( services );
-        //    Throw.CheckNotNullArgument( crisPoco );
-        //    Throw.CheckNotNullArgument( ambientServices );
-
-        //    // We handle the (unexpected) case where the CurrentCultureInfo or the TranslationService is not
-        //    // available in the DI by catching the GetRequiredService exception.
-        //    try
-        //    {
-        //        currentCulture = HandleCulture( monitor, services, crisPoco, currentCulture );
-        //        await DoConfigureAmbientServicesAsync( monitor, services, crisPoco, ambientServices );
-        //        return null;
-        //    }
-        //    catch( Exception ex )
-        //    {
-        //        var e = 
-        //        var messages = ImmutableArray.CreateBuilder<UserMessage>();
-        //        var k = PocoFactoryExtensions.OnUnhandledError( monitor, ex, crisPoco, true, currentCulture, messages.Add );
-        //        return new CrisValidationResult( messages.ToImmutableArray(), k );
-        //    }
-        //}
+        /// <returns>The ambient service hub if it is needed.</returns>
+        protected abstract ValueTask<AmbientServiceHub?> DoIncomingValidateAsync( IActivityMonitor monitor,
+                                                                                  UserMessageCollector validationContext,
+                                                                                  IServiceProvider services,
+                                                                                  IAbstractCommand command );
 
 
     }
