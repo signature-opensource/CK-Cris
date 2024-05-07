@@ -25,7 +25,7 @@ namespace CK.Cris
     {
         readonly IPocoFactory<ICrisResultError> _errorResultFactory;
         readonly DarkSideCrisEventHub _eventHub;
-        readonly RawCrisReceiver _commandValidator;
+        readonly RawCrisReceiver _crisReceiver;
         readonly RawCrisExecutor _rawExecutor;
 
         readonly PerfectEventSender<ICrisExecutionHost> _parallelRunnerCountChanged;
@@ -57,7 +57,7 @@ namespace CK.Cris
             Throw.CheckNotNullArgument( executor );
             _errorResultFactory = eventHub.PocoDirectory.Find<ICrisResultError>()!;
             _eventHub = eventHub;
-            _commandValidator = validator;
+            _crisReceiver = validator;
             _rawExecutor = executor;
             _channel = Channel.CreateUnbounded<object?>();
             _parallelRunnerCountChanged = new PerfectEventSender<ICrisExecutionHost>();
@@ -123,10 +123,9 @@ namespace CK.Cris
                 var rootContext = new CrisJob.JobExecutionContext( job, monitor, scoped.ServiceProvider, _eventHub, _rawExecutor );
                 // This ExecutionContext is now available in the DI container. Work can start.
                 job._executionContext = rootContext;
-
                 if( job._incomingValidationCheck )
                 {
-                    var validation = await _commandValidator.IncomingValidateAsync( monitor, scoped.ServiceProvider, job.Command, gLog );
+                    var validation = await _crisReceiver.IncomingValidateAsync( monitor, scoped.ServiceProvider, job.Command, gLog );
                     if( !validation.Success )
                     {
                         var error = _errorResultFactory.Create();

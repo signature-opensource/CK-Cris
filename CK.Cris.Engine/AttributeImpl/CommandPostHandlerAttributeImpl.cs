@@ -19,7 +19,11 @@ namespace CK.Setup.Cris
             _a = a;
         }
 
-        private protected override CSCodeGenerationResult DoImplement( IActivityMonitor monitor, CrisTypeRegistry crisTypeRegistry, IStObjFinalClass impl, MethodInfo method )
+        private protected override CSCodeGenerationResult DoImplement( IActivityMonitor monitor,
+                                                                       IStObjMap engineMap,
+                                                                       CrisTypeRegistry crisTypeRegistry,
+                                                                       IStObjFinalClass impl,
+                                                                       MethodInfo method )
         {
             return crisTypeRegistry.RegisterPostHandler( monitor, impl!, method, _a.FileName, _a.LineNumber )
                     ? CSCodeGenerationResult.Success

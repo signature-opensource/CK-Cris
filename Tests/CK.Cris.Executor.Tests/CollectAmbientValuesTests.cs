@@ -158,7 +158,7 @@ namespace CK.Cris.Executor.Tests
             NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
 
             var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
-                                                     typeof( RawCrisExecutor ),
+                                                     typeof( RawCrisReceiver ),
                                                      typeof( CrisCultureService ),
                                                      typeof( NormalizedCultureInfo ),
                                                      typeof( NormalizedCultureInfoUbiquitousServiceDefault ),
@@ -176,18 +176,14 @@ namespace CK.Cris.Executor.Tests
 
                 var ambient = s.GetRequiredService<AmbientServiceHub>();
                 ambient.GetCurrentValue<ExtendedCultureInfo>().Should().BeSameAs( NormalizedCultureInfo.CodeDefault,
-                    "No global ConfigureServices: NormalizedCultureInfoUbiquitousServiceDefault has done its job." );
+                    "No global ConfigureServices, NormalizedCultureInfoUbiquitousServiceDefault has done its job." );
 
-                var executor = s.GetRequiredService<RawCrisExecutor>();
-                ambient.IsLocked.Should().BeTrue();
-                var error = await executor.ConfigureAmbientServicesAsync( s, cmd, ambient );
-                Throw.DebugAssert( error != null );
+                var receiver = s.GetRequiredService<RawCrisReceiver>();
+                var validationResult = await receiver.IncomingValidateAsync( TestHelper.Monitor, s, cmd );
 
-                ambient = ambient.CleanClone();
-                error = await executor.ConfigureAmbientServicesAsync( s, cmd, ambient );
-                Throw.DebugAssert( error == null );
+                Throw.DebugAssert( validationResult.AmbientServiceHub != null );
 
-                ambient.GetCurrentValue<ExtendedCultureInfo>().Name.Should().Be( "fr" );
+                validationResult.AmbientServiceHub.GetCurrentValue<ExtendedCultureInfo>().Name.Should().Be( "fr" );
             }
         }
 

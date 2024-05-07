@@ -401,6 +401,7 @@ namespace CK.Setup.Cris
 
         internal bool RegisterMultiTargetHandler( IActivityMonitor monitor,
                                                    MultiTargetHandlerKind target,
+                                                   IStObjMap engineMap,
                                                    IStObjFinalClass impl,
                                                    MethodInfo m,
                                                    string? fileName,
@@ -428,48 +429,83 @@ namespace CK.Setup.Cris
             else
             {
                 Throw.DebugAssert( "We have candidates => we found a parameter (a IEvent, ICommand or a part).", foundParameter != null );
-                //
-                // TODO:
-                //  - Loop once on the parameters.
-                //  - ConfigureAmbientServices extra parameters must be processwide singletons.
-                //
-                ParameterInfo? messageCollectorOrAmbientServiceHub = null;
-                // This check applies to all command based handlers: command handlers and post handlers accept ICrisCommandContext.
-                var execContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisCommandContext ) );
-                if( execContext != null )
+                if( target is MultiTargetHandlerKind.RestoreAmbientServices
+                    && impl.IsScoped )
                 {
-                    monitor.Error( $"Invalid parameter '{execContext.Name}' in method '{CrisType.MethodName( m, parameters )}': {nameof(ICrisCommandContext)} cannot " +
-                                   $"be used in a command [{target}] since it cannot execute commands or send events." );
+                    monitor.Error( $"Invalid [RestoreAmbientServices] method in '{impl.ClassType:C}': this is a scoped service. Only singletons can be used to restore ambient services." );
                     success = false;
                 }
-                if( target is not MultiTargetHandlerKind.RoutedEventHandler )
+                // Loop once on the parameters for all the kind.
+                ParameterInfo? argumentParameter = null;
+                Type? expectedArgumentType = target switch
                 {
-                    Throw.DebugAssert( target is MultiTargetHandlerKind.CommandIncomingValidator or MultiTargetHandlerKind.CommandHandlingValidator or MultiTargetHandlerKind.ConfigureAmbientServices );
+                    MultiTargetHandlerKind.ConfigureAmbientServices => typeof( AmbientServiceHub ),
+                    MultiTargetHandlerKind.CommandIncomingValidator => typeof( UserMessageCollector ),
+                    MultiTargetHandlerKind.CommandHandlingValidator => typeof( UserMessageCollector ),
+                    _ => null // MultiTargetHandlerKind.RoutedEventHandler or MultiTargetHandlerKind.RestoreAmbientServices.
+                };
 
-                    var callContext = parameters.FirstOrDefault( p => p.ParameterType == typeof( ICrisEventContext ) );
-                    if( callContext != null )
+                foreach( var p in parameters )
+                {
+                    if( p == foundParameter ) continue;
+                    if( p.ParameterType == expectedArgumentType )
                     {
-                        monitor.Error( $"Invalid parameter '{callContext.Name}' in method '{CrisType.MethodName( m, parameters )}': {nameof(ICrisEventContext)} cannot " +
-                                       $"be used in a command [{target}] since it cannot execute commands." );
-                        success = false;
+                        if( argumentParameter != null )
+                        {
+                            monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}' has duplicate parameter '{p.Name}' and '{argumentParameter.Name}'." );
+                            success = false;
+                        }
+                        argumentParameter = p;
+                        continue;
                     }
-                    messageCollectorOrAmbientServiceHub = parameters.FirstOrDefault( p => p.ParameterType == (target == MultiTargetHandlerKind.ConfigureAmbientServices
-                                                                                                                ? typeof( AmbientServiceHub )
-                                                                                                                : typeof( UserMessageCollector )) );
-                    if( messageCollectorOrAmbientServiceHub == null )
+                    // This check applies to all kind here.
+                    // Only command handlers and post handlers (that are not MultiTargetHandlers) accept ICrisCommandContext.
+                    if( p.ParameterType == typeof( ICrisCommandContext ) )
                     {
-                        if( target == MultiTargetHandlerKind.ConfigureAmbientServices )
-                        {
-                            monitor.Error( $"[ConfigureAmbientServices] method '{CrisType.MethodName( m, parameters )}' must take a 'AmbientServiceHub' parameter " +
-                                           $"to configure the ambient services." );
-                        }
-                        else
-                        {
-                            monitor.Error( $"Command validator method '{CrisType.MethodName( m, parameters )}' must take a 'UserMessageCollector' parameter " +
-                                           $"to collect validation errors, warnings and informations." );
-                        }
+                        monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}': invalid parameter '{p.Name}'. {nameof( ICrisCommandContext )
+                                        } cannot be used in a [{target}] since it cannot execute commands or send events." );
                         success = false;
+                        continue;
                     }
+                    if( target is not MultiTargetHandlerKind.RoutedEventHandler )
+                    {
+                        Throw.DebugAssert( target is MultiTargetHandlerKind.CommandIncomingValidator
+                                                    or MultiTargetHandlerKind.CommandHandlingValidator
+                                                    or MultiTargetHandlerKind.ConfigureAmbientServices
+                                                    or MultiTargetHandlerKind.RestoreAmbientServices );
+
+                        if( p.ParameterType == typeof( ICrisEventContext ) )
+                        {
+                            monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}': invalid parameter '{p.Name}'. {nameof( ICrisEventContext )
+                                            } cannot be used in a [{target}] since it cannot execute commands." );
+                            success = false;
+                        }
+                        if( target is MultiTargetHandlerKind.RestoreAmbientServices )
+                        {
+                            // [RestoreAmbientServices] is the more restrictive: no scoped except the IActivityMonitor.
+                            if( p.ParameterType != typeof( IActivityMonitor )
+                                && engineMap.ToLeaf( p.ParameterType )?.IsScoped is not false )
+                            {
+                                monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}': invalid parameter '{p.Name
+                                                }'. Only singleton services can be used to restore ambient services." );
+                                success = false;
+                            }
+
+                        }
+                    }
+                }
+                if( argumentParameter == null && expectedArgumentType != null )
+                {
+                    if( target is MultiTargetHandlerKind.ConfigureAmbientServices )
+                    {
+                        monitor.Error( $"[ConfigureAmbientServices] method '{CrisType.MethodName( m, parameters )}' must take a 'AmbientServiceHub' parameter to configure the ambient services." );
+                    }
+                    else
+                    {
+                        Throw.DebugAssert( target is MultiTargetHandlerKind.CommandIncomingValidator or MultiTargetHandlerKind.CommandHandlingValidator );
+                        monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}' must take a 'UserMessageCollector' parameter to collect validation errors, warnings and informations." );
+                    }
+                    success = false;
                 }
                 if( success )
                 {
@@ -482,7 +518,7 @@ namespace CK.Setup.Cris
                                                                                 m,
                                                                                 parameters,
                                                                                 foundParameter,
-                                                                                messageCollectorOrAmbientServiceHub,
+                                                                                argumentParameter,
                                                                                 fileName,
                                                                                 lineNumber );
                     }
@@ -651,9 +687,9 @@ namespace CK.Setup.Cris
                     var pocoType = typeSystem.FindByType<IAbstractPocoType>( parameter.ParameterType );
                     bool isTheOne = pocoType != null && (pocoType.NonNullable.Generalizations.Contains( eventOrCommandPartType )
                                                          || pocoType.NonNullable.Generalizations.Contains( crisPocoTypePart ));
-                    // If we didn't find it, may be a compliant parameter.
+                    // If we didn't find it, it may be a compliant parameter.
                     // If it is and we already have a foundParameter => tooMany.
-                    // If it is and we have no foundParameter yet we consider it the foundParameter but with an empty candidates list.
+                    // If it is and we have no foundParameter yet, we consider it the foundParameter but with an empty candidates list.
                     bool mayBeTheOne = isTheOne || eventOrCommandPartType.Type.IsAssignableFrom( parameter.ParameterType );
                     bool mayBeTheOne2 = mayBeTheOne || crisPocoTypePart.Type.IsAssignableFrom( parameter.ParameterType );
                     if( mayBeTheOne2 )

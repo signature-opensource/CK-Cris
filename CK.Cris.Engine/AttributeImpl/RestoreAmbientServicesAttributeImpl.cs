@@ -5,12 +5,11 @@ using System.Reflection;
 
 namespace CK.Setup.Cris
 {
-
-    sealed class CommandHandlingValidatorAttributeImpl : BaseHandlerAttributeImpl
+    sealed class RestoreAmbientServicesAttributeImpl : BaseHandlerAttributeImpl
     {
-        readonly CommandHandlingValidatorAttribute _a;
+        readonly RestoreAmbientServicesAttribute _a;
 
-        public CommandHandlingValidatorAttributeImpl( CommandHandlingValidatorAttribute a, Type t, MethodInfo m )
+        public RestoreAmbientServicesAttributeImpl( RestoreAmbientServicesAttribute a, Type t, MethodInfo m )
             : base( t, m )
         {
             _a = a;
@@ -22,7 +21,7 @@ namespace CK.Setup.Cris
                                                                        IStObjFinalClass impl,
                                                                        MethodInfo method )
         {
-            return crisTypeRegistry.RegisterMultiTargetHandler( monitor, MultiTargetHandlerKind.CommandHandlingValidator, engineMap, impl!, method, _a.FileName, _a.LineNumber )
+            return crisTypeRegistry.RegisterMultiTargetHandler( monitor, MultiTargetHandlerKind.RestoreAmbientServices, engineMap, impl!, method, _a.FileName, _a.LineNumber )
                     ? CSCodeGenerationResult.Success
                     : CSCodeGenerationResult.Failed;
         }

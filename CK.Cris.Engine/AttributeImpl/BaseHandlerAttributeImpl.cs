@@ -46,9 +46,13 @@ namespace CK.Setup.Cris
                 monitor.Warn( $"Ignoring method '[{AttributeName}] {_type.FullName:C}.{_method.Name}'. Type is not a Auto Service or a Real Object." );
                 return CSCodeGenerationResult.Success;
             }
-            return DoImplement( monitor, crisTypeRegistry, impl, _method );
+            return DoImplement( monitor, c.CurrentRun.EngineMap, crisTypeRegistry, impl, _method );
         }
 
-        private protected abstract CSCodeGenerationResult DoImplement( IActivityMonitor monitor, CrisTypeRegistry crisTypeRegistry, IStObjFinalClass impl, MethodInfo method );
+        private protected abstract CSCodeGenerationResult DoImplement( IActivityMonitor monitor,
+                                                                       IStObjMap engineMap,
+                                                                       CrisTypeRegistry crisTypeRegistry,
+                                                                       IStObjFinalClass impl,
+                                                                       MethodInfo method );
     }
 }

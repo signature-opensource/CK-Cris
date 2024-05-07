@@ -43,17 +43,16 @@ namespace CK.Setup.Cris
                         // No event handlers => nothing to do.
                         Task DispatchEventAsync( IServiceProvider s ) => Task.CompletedTask;
 
-                        // No service configators => nothing to do.
-                        ValueTask<ICrisResultError?> ConfigureAsync( IServiceProvider services, AmbientServiceHub ambientServices ) => ValueTask.FromResult<ICrisResultError?>( null );
+                        // No service restorers => nothing to do.
+                        ValueTask<(ICrisResultError?,AmbientServiceHub?)> RestoreAsync( IActivityMonitor monitor ) => ValueTask.FromResult<(ICrisResultError?,AmbientServiceHub?)>( (null,null) );
                     }
                     
                     """ );
 
-            var configureMethod = classType.GetMethod( nameof( RawCrisExecutor.ConfigureAmbientServicesAsync ), new[] { typeof( IServiceProvider ), typeof( ICrisPoco ), typeof( AmbientServiceHub ) } );
-            Throw.DebugAssert( configureMethod != null );
-            var mConfigure = scope.CreateSealedOverride( configureMethod );
-            mConfigure.Append( "return ((ICrisExecutorImpl)crisPoco).ConfigureAsync( services, ambientServices );" );
-
+            var restoreMethod = classType.GetMethod( nameof( RawCrisExecutor.RestoreAmbientServicesAsync ), new[] { typeof( IActivityMonitor ), typeof( ICrisPoco ) } );
+            Throw.DebugAssert( restoreMethod != null );
+            var mRestore = scope.CreateSealedOverride( restoreMethod );
+            mRestore.Append( "return ((ICrisExecutorImpl)crisPoco).RestoreAsync( monitor );" );
 
             var executeMethod = classType.GetMethod( nameof( RawCrisExecutor.RawExecuteAsync ), new[] { typeof( IServiceProvider ), typeof( IAbstractCommand ) } );
             Throw.DebugAssert( executeMethod != null );
@@ -81,19 +80,19 @@ namespace CK.Setup.Cris
                     var f = pocoType.CreateFunction( "Task CK.Cris.ICrisExecutorImpl.DispatchEventAsync( IServiceProvider s )" );
                     CreateEventHandler( c.CurrentRun.EngineMap, f, e );
                 }
-                if( e.AmbientServicesConfigurators.Count > 0 )
+                if( e.AmbientServicesRestorers.Count > 0 )
                 {
-                    var f = pocoType.CreateFunction( "ValueTask<CK.Cris.ICrisResultError?> CK.Cris.ICrisExecutorImpl.ConfigureAsync( IServiceProvider s, AmbientServiceHub hub )" );
-                    CreateConfigure( c.CurrentRun.EngineMap, f, e );
+                    var f = pocoType.CreateFunction( "ValueTask<(CK.Cris.ICrisResultError?,AmbientServiceHub?)> CK.Cris.ICrisExecutorImpl.RestoreAsync( IActivityMonitor monitor )" );
+                    CreateRestore( c.CurrentRun.EngineMap, f, e );
                 }
             }
             if( needUnexpectedErrorHelper )
             {
                 scope.Append( """
-                internal static CK.Cris.ICrisResultError HandleCommandError( IServiceProvider services, CK.Cris.ICrisPoco c, Exception ex, UserMessageCollector? v )
+                internal static CK.Cris.ICrisResultError HandleCrisUnexpectedError( IServiceProvider services, CK.Cris.ICrisPoco c, IActivityMonitor? monitor, Exception ex, UserMessageCollector? v )
                 {
                     var error = new CK.Cris.ICrisResultError_CK();
-                    var monitor = (IActivityMonitor?)services.GetService( typeof( IActivityMonitor ) );
+                    monitor ??= (IActivityMonitor?)services.GetService( typeof( IActivityMonitor ) );
                     if( monitor == null )
                     {
                         error.Errors.Add( new UserMessage( UserMessageLevel.Error,
@@ -134,7 +133,7 @@ namespace CK.Setup.Cris
 
         static void CreateEventHandler( IStObjMap engineMap, IFunctionScope f, CrisType e )
         {
-            var cachedServices = new VariableCachedServices( engineMap, f );
+            var cachedServices = new VariableCachedServices( engineMap, f, false );
             f.GeneratedByComment();
             int syncHandlerCount = 0;
             foreach( var calls in e.EventHandlers.Where( h => !h.IsRefAsync && !h.IsValAsync ).GroupBy( h => h.Owner ) )
@@ -183,8 +182,6 @@ namespace CK.Setup.Cris
             bool isHandlerAsync = h.IsRefAsync || h.IsValAsync;
             bool isPostHandlerAsync = e.HasPostHandlerAsyncCall;
 
-            var cachedServices = new VariableCachedServices( engineMap, f );
-
             f.Append( "UserMessageCollector? v = null;" ).NewLine();
 
             // Only if async is required we add the async modifier.
@@ -193,19 +190,20 @@ namespace CK.Setup.Cris
             f.Append( "try" )
              .OpenBlock();
 
+            var cachedServices = new VariableCachedServices( engineMap, f, false );
+
             if( e.HandlingValidators.Count > 0 )
             {
+                isOverallAsync |= e.HandlingValidators.AsyncHandlerCount > 0;
                 f.GeneratedByComment( $"There are {e.HandlingValidators.Count} validators." );
                 f.Append( "v = new UserMessageCollector( " ).Append( cachedServices.GetServiceVariableName( typeof( CurrentCultureInfo ) ) ).Append( " );" ).NewLine()
                  .Append( "try" )
                  .OpenBlock();
-                RawCrisReceiverImpl.GenerateMultiTargetCalls( f, e.HandlingValidators, cachedServices, "v", hasMonitorParam: false, out var validatorsRequireAsync );
-                isOverallAsync |= validatorsRequireAsync;
-
+                RawCrisReceiverImpl.GenerateMultiTargetCalls( f, e.HandlingValidators, cachedServices, "v" );
                 f.CloseBlock()
                  .Append( "catch( Exception ex )" )
                  .OpenBlock()
-                 .Append( "var e = CK.Cris.RawCrisExecutor_CK.HandleCommandError( s, this, ex, v );" ).NewLine();
+                 .Append( "var e = CK.Cris.RawCrisExecutor_CK.HandleCrisUnexpectedError( s, this, null, ex, v );" ).NewLine();
                 WriteReturn( f, isOverallAsync, "e" );
                 f.CloseBlock();
 
@@ -244,7 +242,7 @@ namespace CK.Setup.Cris
             f.CloseBlock()
              .Append( "catch( Exception ex )" )
              .OpenBlock();
-            f.Append( "var e = CK.Cris.RawCrisExecutor_CK.HandleCommandError( s, this, ex, null );" ).NewLine();
+            f.Append( "var e = CK.Cris.RawCrisExecutor_CK.HandleCrisUnexpectedError( s, this, null, ex, null );" ).NewLine();
             WriteReturn( f, isOverallAsync, "e" );
             f.CloseBlock();
 
@@ -316,21 +314,23 @@ namespace CK.Setup.Cris
 
         }
 
-        static void CreateConfigure( IStObjEngineMap engineMap, IFunctionScope f, CrisType e )
+        static void CreateRestore( IStObjEngineMap engineMap, IFunctionScope f, CrisType e )
         {
-            f.Append( "try" )
-             .OpenBlock();
-            var cachedServices = new VariableCachedServices( engineMap, f );
-            RawCrisReceiverImpl.GenerateMultiTargetCalls( f, e.AmbientServicesConfigurators, cachedServices, "hub", hasMonitorParam: false, out bool requiresAsync );
+            bool requiresAsync = e.AmbientServicesConfigurators.AsyncHandlerCount > 0;
             if( requiresAsync )
             {
                 f.Definition.Modifiers |= Modifiers.Async;
             }
+            f.Append( "try" )
+             .OpenBlock();
+            var cachedServices = new VariableCachedServices( engineMap, f, hasMonitor: true );
+            f.Append( "var hub = new AmbientServiceHub_CK();" ).NewLine();
+            RawCrisReceiverImpl.GenerateMultiTargetCalls( f, e.AmbientServicesConfigurators, cachedServices, "hub" );
             WriteReturn( f, requiresAsync, "null" );
             f.CloseBlock()
              .Append( "catch( Exception ex )" )
              .OpenBlock();
-            f.Append( "var e = CK.Cris.RawCrisExecutor_CK.HandleCommandError( s, this, ex, null );" ).NewLine();
+            f.Append( "var e = CK.Cris.RawCrisExecutor_CK.HandleCrisUnexpectedError( s, this, monitor, ex, null );" ).NewLine();
             WriteReturn( f, requiresAsync, "e" );
             f.CloseBlock();
 

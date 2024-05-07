@@ -21,12 +21,12 @@ namespace CK.Setup.Cris
         readonly int _crisPocoIndex;
 
         IList<HandlerRoutedEventMethod>? _eventHandlers;
+        MultiTargetHandlerList? _ambientServicesConfigurators;
+        MultiTargetHandlerList? _ambientServicesRestorers;
 
         readonly IPocoType? _commandResultType;
-        IList<HandlerMultiTargetMethod>? _incomingValidators;
-        IList<HandlerMultiTargetMethod>? _ambientServicesConfigurators;
-        IList<HandlerMultiTargetMethod>? _ambientServicesRestorers;
-        IList<HandlerMultiTargetMethod>? _handlingValidators;
+        MultiTargetHandlerList? _incomingValidators;
+        MultiTargetHandlerList? _handlingValidators;
         IList<HandlerPostMethod>? _postHandlers;
         readonly IStObjFinalClass? _commandHandlerService;
         HandlerMethod? _commandHandler;
@@ -55,24 +55,24 @@ namespace CK.Setup.Cris
         /// Gets the incoming validator methods.
         /// Only <see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/> can have validators.
         /// </summary>
-        public IReadOnlyList<HandlerMultiTargetMethod> IncomingValidators => (IReadOnlyList<HandlerMultiTargetMethod>)_incomingValidators!;
+        public MultiTargetHandlerList IncomingValidators => _incomingValidators!;
 
         /// <summary>
         /// Gets the ambient services configurator methods.
         /// Only <see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/> can have validators.
         /// </summary>
-        public IReadOnlyList<HandlerMultiTargetMethod> AmbientServicesConfigurators => (IReadOnlyList<HandlerMultiTargetMethod>)_ambientServicesConfigurators!;
+        public MultiTargetHandlerList AmbientServicesConfigurators => _ambientServicesConfigurators!;
 
         /// <summary>
         /// Gets the ambient services restorer methods.
         /// </summary>
-        public IReadOnlyList<HandlerMultiTargetMethod> AmbientServicesRestorers => (IReadOnlyList<HandlerMultiTargetMethod>)_ambientServicesRestorers!;
+        public MultiTargetHandlerList AmbientServicesRestorers => _ambientServicesRestorers!;
 
         /// <summary>
         /// Gets the handling validator methods.
         /// Only <see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/> can have validators.
         /// </summary>
-        public IReadOnlyList<HandlerMultiTargetMethod> HandlingValidators => (IReadOnlyList<HandlerMultiTargetMethod>)_handlingValidators!;
+        public MultiTargetHandlerList HandlingValidators => _handlingValidators!;
 
         /// <summary>
         /// Gets the post handler methods.
@@ -157,7 +157,7 @@ namespace CK.Setup.Cris
                 // a "relay" gateway (that doesn't currently exist but tests exist
                 // that are happy to not register a fake handler to test validators!).
                 //
-                _incomingValidators ??= Array.Empty<HandlerMultiTargetMethod>();
+                _incomingValidators ??= MultiTargetHandlerList._empty;
                 if( _commandHandler == null )
                 {
                     monitor.Warn( $"Command '{
@@ -166,53 +166,53 @@ namespace CK.Setup.Cris
                                     _ambientServicesConfigurators?.Count ?? 0} ambient service configurators, {
                                     _ambientServicesRestorers?.Count ?? 0} ambient service restorers and {
                                     _postHandlers?.Count ?? 0} post handlers." );
-                    _handlingValidators = Array.Empty<HandlerMultiTargetMethod>();
-                    _ambientServicesConfigurators = Array.Empty<HandlerMultiTargetMethod>();
-                    _ambientServicesRestorers = Array.Empty<HandlerMultiTargetMethod>();
+                    _handlingValidators = MultiTargetHandlerList._empty;
+                    _ambientServicesConfigurators = MultiTargetHandlerList._empty;
+                    _ambientServicesRestorers = MultiTargetHandlerList._empty;
                     _postHandlers = Array.Empty<HandlerPostMethod>();
                 }
                 else
                 {
-                    _handlingValidators ??= Array.Empty<HandlerMultiTargetMethod>();
-                    _ambientServicesConfigurators ??= Array.Empty<HandlerMultiTargetMethod>();
-                    _ambientServicesRestorers ??= Array.Empty<HandlerMultiTargetMethod>();
+                    _handlingValidators ??= MultiTargetHandlerList._empty;
+                    _ambientServicesConfigurators ??= MultiTargetHandlerList._empty;
+                    _ambientServicesRestorers ??= MultiTargetHandlerList._empty;
                     _postHandlers ??= Array.Empty<HandlerPostMethod>();
                 }
             }
             else if( _kind is CrisPocoKind.RoutedImmediateEvent or CrisPocoKind.RoutedEvent )
             {
                 Throw.DebugAssert( _incomingValidators == null );
-                _incomingValidators = Array.Empty<HandlerMultiTargetMethod>();
+                _incomingValidators = MultiTargetHandlerList._empty;
                 Throw.DebugAssert( _handlingValidators == null );
-                _handlingValidators = Array.Empty<HandlerMultiTargetMethod>();
+                _handlingValidators = MultiTargetHandlerList._empty;
                 Throw.DebugAssert( _postHandlers == null );
                 _postHandlers = Array.Empty<HandlerPostMethod>();
                 if( _eventHandlers == null )
                 {
                     monitor.Warn( $"Routed event '{_crisPocoType.ExternalOrCSharpName}' is not handled. Forgetting {
                                    _ambientServicesConfigurators?.Count?? 0} ambient service configurators and {
-                                   _ambientServicesRestorers?.Count ??0} ambient service restorers." );
-                    _ambientServicesConfigurators = Array.Empty<HandlerMultiTargetMethod>();
-                    _ambientServicesRestorers = Array.Empty<HandlerMultiTargetMethod>();
+                                   _ambientServicesRestorers?.Count ?? 0} ambient service restorers." );
+                    _ambientServicesConfigurators = MultiTargetHandlerList._empty;
+                    _ambientServicesRestorers = MultiTargetHandlerList._empty;
                     _eventHandlers = Array.Empty<HandlerRoutedEventMethod>();
                 }
                 else
                 {
-                    _ambientServicesConfigurators ??= Array.Empty<HandlerMultiTargetMethod>();
-                    _ambientServicesRestorers ??= Array.Empty<HandlerMultiTargetMethod>();
+                    _ambientServicesConfigurators ??= MultiTargetHandlerList._empty;
+                    _ambientServicesRestorers ??= MultiTargetHandlerList._empty;
                 }
             }
             else
             {
                 Throw.DebugAssert( _kind is CrisPocoKind.CallerOnlyImmediateEvent or CrisPocoKind.CallerOnlyEvent );
                 Throw.DebugAssert( _incomingValidators == null );
-                _incomingValidators = Array.Empty<HandlerMultiTargetMethod>();
+                _incomingValidators = MultiTargetHandlerList._empty;
                 Throw.DebugAssert( _ambientServicesConfigurators == null );
-                _ambientServicesConfigurators = Array.Empty<HandlerMultiTargetMethod>();
+                _ambientServicesConfigurators = MultiTargetHandlerList._empty;
                 Throw.DebugAssert( _ambientServicesRestorers == null );
-                _ambientServicesRestorers = Array.Empty<HandlerMultiTargetMethod>();
+                _ambientServicesRestorers = MultiTargetHandlerList._empty;
                 Throw.DebugAssert( _handlingValidators == null );
-                _handlingValidators = Array.Empty<HandlerMultiTargetMethod>();
+                _handlingValidators = MultiTargetHandlerList._empty;
                 Throw.DebugAssert( _postHandlers == null );
                 _postHandlers = Array.Empty<HandlerPostMethod>();
                 Throw.DebugAssert( _eventHandlers == null );
@@ -305,7 +305,7 @@ namespace CK.Setup.Cris
                                              MethodInfo method,
                                              ParameterInfo[] parameters,
                                              ParameterInfo cmdOrPartParameter,
-                                             ParameterInfo? messageCollectorOrAmbientServiceHub,
+                                             ParameterInfo? argumentParameter,
                                              string? fileName,
                                              int lineNumber )
         {
@@ -318,56 +318,43 @@ namespace CK.Setup.Cris
             {
                 return false;
             }
+
+            void Add( CrisHandlerKind kind, ref MultiTargetHandlerList? list )
+            {
+                list ??= new MultiTargetHandlerList();
+                list.Add( new HandlerMultiTargetMethod( this,
+                                                        kind,
+                                                        owner,
+                                                        method,
+                                                        parameters,
+                                                        fileName,
+                                                        lineNumber,
+                                                        cmdOrPartParameter,
+                                                        argumentParameter,
+                                                        isRefAsync,
+                                                        isValAsync ) );
+            }
+
             switch( target )
             {
-                case MultiTargetHandlerKind.CommandIncomingValidator:
-                case MultiTargetHandlerKind.CommandHandlingValidator:
-                case MultiTargetHandlerKind.ConfigureAmbientServices:
-                    Throw.DebugAssert( messageCollectorOrAmbientServiceHub != null );
-                    var h = new HandlerMultiTargetMethod( this,
-                                                          target switch
-                                                          {
-                                                              MultiTargetHandlerKind.CommandIncomingValidator => CrisHandlerKind.CommandIncomingValidator,
-                                                              MultiTargetHandlerKind.CommandHandlingValidator => CrisHandlerKind.CommandHandlingValidator,
-                                                              _ => CrisHandlerKind.ConfigureServices
-                                                          },
-                                                          owner,
-                                                          method,
-                                                          parameters,
-                                                          fileName,
-                                                          lineNumber,
-                                                          cmdOrPartParameter,
-                                                          messageCollectorOrAmbientServiceHub,
-                                                          isRefAsync,
-                                                          isValAsync );
-                    if( target is MultiTargetHandlerKind.CommandIncomingValidator )
-                    {
-                        _incomingValidators ??= new List<HandlerMultiTargetMethod>();
-                        _incomingValidators.Add( h );
-                    }
-                    else if( target is MultiTargetHandlerKind.CommandHandlingValidator )
-                    {
-                        _handlingValidators ??= new List<HandlerMultiTargetMethod>();
-                        _handlingValidators.Add( h );
-                    }
-                    else
-                    {
-                        _ambientServicesConfigurators ??= new List<HandlerMultiTargetMethod>();
-                        _ambientServicesConfigurators.Add( h );
-                    }
-                    break;
-
+                case MultiTargetHandlerKind.CommandIncomingValidator: Add( CrisHandlerKind.CommandIncomingValidator, ref _incomingValidators ); break;
+                case MultiTargetHandlerKind.CommandHandlingValidator: Add( CrisHandlerKind.CommandHandlingValidator, ref _handlingValidators ); break;
+                case MultiTargetHandlerKind.ConfigureAmbientServices: Add( CrisHandlerKind.ConfigureAmbientServices, ref _ambientServicesConfigurators ); break;
+                case MultiTargetHandlerKind.RestoreAmbientServices: Add( CrisHandlerKind.RestoreAmbientServices, ref _ambientServicesRestorers ); break;
                 case MultiTargetHandlerKind.RoutedEventHandler:
-                    if( _kind != CrisPocoKind.RoutedImmediateEvent && _kind != CrisPocoKind.RoutedEvent )
                     {
-                        monitor.Warn( $"Method '{MethodName( method, parameters )}' will never be called: event '{PocoName}' is not decorated with [RoutedEvent] attribute (it can only be observed by the caller)." );
+                        if( _kind != CrisPocoKind.RoutedImmediateEvent && _kind != CrisPocoKind.RoutedEvent )
+                        {
+                            monitor.Warn( $"Method '{MethodName( method, parameters )}' will never be called: event '{PocoName
+                                          }' is not decorated with [RoutedEvent] attribute (it can only be observed by the caller)." );
+                        }
+                        else
+                        {
+                            _eventHandlers ??= new List<HandlerRoutedEventMethod>();
+                            _eventHandlers.Add( new HandlerRoutedEventMethod( this, owner, method, parameters, fileName, lineNumber, cmdOrPartParameter, isRefAsync, isValAsync ) );
+                        }
+                        break;
                     }
-                    else
-                    {
-                        _eventHandlers ??= new List<HandlerRoutedEventMethod>();
-                        _eventHandlers.Add( new HandlerRoutedEventMethod( this, owner, method, parameters, fileName, lineNumber, cmdOrPartParameter, isRefAsync, isValAsync ) );
-                    }
-                    break;
             }
             return true;
         }

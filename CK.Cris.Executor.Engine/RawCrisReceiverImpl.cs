@@ -59,12 +59,17 @@ namespace CK.Setup.Cris
                     if( e.IncomingValidators.Count > 0 || e.AmbientServicesConfigurators.Count > 0 )
                     {
                         var f = pocoType.CreateFunction( "ValueTask<AmbientServiceHub?> CK.Cris.ICrisReceiverImpl.IncomingValidateAsync( IActivityMonitor monitor, UserMessageCollector v, IServiceProvider s )" );
-                        var cachedServices = new VariableCachedServices( c.CurrentRun.EngineMap, f );
+                        var cachedServices = new VariableCachedServices( c.CurrentRun.EngineMap, f, hasMonitor: true );
 
-                        bool requiresAsync = false;
+                        bool needAsyncStateMachine = e.IncomingValidators.AsyncHandlerCount > 0 || e.AmbientServicesConfigurators.AsyncHandlerCount > 0;
+                        if( needAsyncStateMachine )
+                        {
+                            f.Definition.Modifiers |= Modifiers.Async;
+                        }
+
                         if( e.IncomingValidators.Count > 0 )
                         {
-                            GenerateMultiTargetCalls( f, e.IncomingValidators, cachedServices, "v", hasMonitorParam: true, out requiresAsync );
+                            GenerateMultiTargetCalls( f, e.IncomingValidators, cachedServices, "v" );
                         }
                         string varHub = "null";
                         if( e.AmbientServicesConfigurators.Count > 0 )
@@ -72,13 +77,11 @@ namespace CK.Setup.Cris
                             varHub = "hub";
                             cachedServices.StartNewCachedVariablesPart();
                             f.Append( "var hub = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<AmbientServiceHub>( s ).CleanClone();" ).NewLine();
-                            GenerateMultiTargetCalls( f, e.AmbientServicesConfigurators, cachedServices, "hub", hasMonitorParam: true, out var configureRequiresAsync );
-                            requiresAsync |= configureRequiresAsync;
+                            GenerateMultiTargetCalls( f, e.AmbientServicesConfigurators, cachedServices, "hub" );
                             f.Append( "if( !hub.IsDirty ) hub = null;" ).NewLine();
                         }
-                        if( requiresAsync )
+                        if( needAsyncStateMachine )
                         {
-                            f.Definition.Modifiers |= Modifiers.Async;
                             f.Append( "return " ).Append( varHub ).Append( ";" ).NewLine();
                         }
                         else
@@ -92,37 +95,31 @@ namespace CK.Setup.Cris
         }
 
         internal static void GenerateMultiTargetCalls( IFunctionScope f,
-                                                      IReadOnlyList<HandlerMultiTargetMethod> validators,
-                                                      VariableCachedServices cachedServices,
-                                                      string argumentParameterName,
-                                                      bool hasMonitorParam,
-                                                      out bool requiresAsync )
+                                                       MultiTargetHandlerList handlers,
+                                                       VariableCachedServices cachedServices,
+                                                       string? argumentParameterName )
         {
-            requiresAsync = false;
-            if( validators.Count == 0 ) return;
+            if( handlers.Count == 0 ) return;
 
             using var _ = f.Region();
-            foreach( var validator in validators )
+            foreach( var h in handlers )
             {
-                if( validator.IsRefAsync || validator.IsValAsync )
+                if( h.IsRefAsync || h.IsValAsync )
                 {
                     f.Append( "await " );
-                    requiresAsync = true;
                 }
-                cachedServices.WriteExactType( f, validator.Method.DeclaringType, validator.Owner.ClassType ).Append(".").Append( validator.Method.Name ).Append( "( " );
-                foreach( var p in validator.Parameters )
+                cachedServices.StartNewCachedVariablesPart();
+                cachedServices.WriteExactType( f, h.Method.DeclaringType, h.Owner.ClassType ).Append(".").Append( h.Method.Name ).Append( "( " );
+                foreach( var p in h.Parameters )
                 {
                     if( p.Position > 0 ) f.Append( ", " );
-                    if( hasMonitorParam && typeof( IActivityMonitor ).IsAssignableFrom( p.ParameterType ) )
+                    if( p == h.ThisPocoParameter )
                     {
-                        f.Append( "monitor" );
+                        f.Append( "(" ).AppendGlobalTypeName( h.ThisPocoParameter.ParameterType ).Append( ")this" );
                     }
-                    else if( p == validator.ThisPocoParameter )
+                    else if( p == h.ArgumentParameter )
                     {
-                        f.Append( "(" ).AppendGlobalTypeName( validator.ThisPocoParameter.ParameterType ).Append( ")this" );
-                    }
-                    else if( p == validator.ArgumentParameter )
-                    {
+                        Throw.DebugAssert( argumentParameterName != null );
                         f.Append( argumentParameterName );
                     }
                     else

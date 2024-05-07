@@ -15,7 +15,13 @@ namespace CK.Cris
         /// <summary>
         /// Configures the <see cref="AmbientServiceHub"/> from a command, an event or a part.
         /// </summary>
-        ConfigureServices,
+        ConfigureAmbientServices,
+
+        /// <summary>
+        /// Restores a <see cref="AmbientServiceHub"/> from a command, an event or a part with the help
+        /// of singletons services.
+        /// </summary>
+        RestoreAmbientServices,
 
         /// <summary>
         /// Validates a command right before it is handled.

@@ -16,6 +16,7 @@ namespace CK.Setup.Cris
     {
         readonly IStObjMap _engineMap;
         readonly string _serviceProviderName;
+        readonly bool _hasMonitor;
         readonly Dictionary<Type, string> _cached;
         readonly IFunctionScope _function;
         ICodeWriter _variablesPart;
@@ -26,15 +27,22 @@ namespace CK.Setup.Cris
         /// </summary>
         /// <param name="engineMap">The engine map.</param>
         /// <param name="function">The function scope.</param>
+        /// <param name="hasMonitor">True if a "monitor" variable is available.</param>
         /// <param name="serviceProviderName">Default IServiceProvider variable name is "s".</param>
-        public VariableCachedServices( IStObjMap engineMap, IFunctionScope function, string serviceProviderName = "s" )
+        public VariableCachedServices( IStObjMap engineMap, IFunctionScope function, bool hasMonitor, string serviceProviderName = "s" )
         {
             _engineMap = engineMap;
             _function = function;
             _serviceProviderName = serviceProviderName;
+            _hasMonitor = hasMonitor;
             _cached = new Dictionary<Type, string>();
             _variablesPart = function.CreatePart();
         }
+
+        /// <summary>
+        /// Gets whether a a "IActivityMonitor monitor" variable is available.
+        /// </summary>
+        public bool HasMonitor => _hasMonitor;
 
         /// <summary>
         /// Starts a new cached variable section is the function body.
@@ -59,13 +67,18 @@ namespace CK.Setup.Cris
         /// <returns>The local variable name.</returns>
         public string GetServiceVariableName( Type serviceType )
         {
+            if( _hasMonitor && serviceType.IsAssignableFrom( typeof( IActivityMonitor ) ) )
+            {
+                return "monitor";
+            }
             serviceType = _engineMap.ToLeaf( serviceType )?.ClassType ?? serviceType;
             if( !_cached.TryGetValue( serviceType, out var name ) )
             {
                 if( _cached.Count == 0 ) _variablesPart.GeneratedByComment( "Cached services variables" );
                 name = $"cs{_cached.Count}";
                 _variablesPart.Append( "var " ).Append( name )
-                              .Append( " = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<" ).AppendGlobalTypeName( serviceType ).Append( ">( s );" ).NewLine();
+                              .Append( " = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<" )
+                              .AppendGlobalTypeName( serviceType ).Append( ">( " ).Append( _serviceProviderName ).Append( " );" ).NewLine();
                 _cached[serviceType] = name;
                 _lastPartVarCount++;
             }

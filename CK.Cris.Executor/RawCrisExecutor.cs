@@ -20,21 +20,20 @@ namespace CK.Cris
     public abstract class RawCrisExecutor : ISingletonAutoService
     {
         /// <summary>
-        /// Configures the ambient services hub by calling the [RestoreAmbientService] methods for the command, event or its parts.
-        /// This does nothing if <see cref="ICrisPocoModel.EndpointMustConfigureServices"/> is false.
+        /// Restores the ambient services hub by calling the [RestoreAmbientService] methods for the command, event or its parts.
+        /// This does nothing if <see cref="ICrisPocoModel.BackgroundMustRestoreServices"/> is false (null error and hub is returned).
         /// <para>
-        /// This must be called before executing the command or handling the event in a background context, <see cref="AmbientServiceHub.IsLocked"/>
-        /// must be false. When called with a fresh AmbientServiceHub obtained from the current context, if <see cref="AmbientServiceHub.IsDirty"/> is false,
-        /// the action may be executed inline, directly in the current context but if IsDirty is true then a background execution context should be used.
+        /// This must be called before executing the command or handling the event in a background context.
         /// </para>
         /// <para>
-        /// This never throws: any exception is caught and non null a <see cref="ICrisResultError"/> is returned on error.
+        /// This never throws: any exception is caught and a non null <see cref="ICrisResultError"/> is returned on error (with
+        /// a null hub).
         /// </para>
         /// </summary>
-        /// <param name="services">The service context from which any required dependencies must be resolved.</param>
+        /// <param name="monitor">Required monitor.</param>
         /// <param name="crisPoco">The command or event that must be executed or dispatched.</param>
-        /// <param name="ambientServices">The ambient services hub to configure.</param>
-        public abstract ValueTask<ICrisResultError?> ConfigureAmbientServicesAsync( IServiceProvider services, ICrisPoco crisPoco, AmbientServiceHub ambientServices );
+        /// <returns>Either an error or the hub to use to configure the service provider.</returns>
+        public abstract ValueTask<(ICrisResultError? Error, AmbientServiceHub? Hub)> RestoreAmbientServicesAsync( IActivityMonitor monitor, ICrisPoco crisPoco );
 
         /// <summary>
         /// Captures the result of <see cref="RawExecuteAsync(IServiceProvider, IAbstractCommand)"/>.
@@ -63,12 +62,6 @@ namespace CK.Cris
         /// <summary>
         /// Dispatches an event by calling the discovered routed event handlers.
         /// Any exceptions are thrown (or more precisely are set on the returned <see cref="Task"/>).
-        /// <para>
-        /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisCommandContext"/> (that is
-        /// a <see cref="ICrisEventContext"/>) must be resolvable from the <paramref name="services"/>.
-        /// (The execution context cannot be used directly by an event handler, it may be used by commands that
-        /// an event handler can execute).
-        /// </para>
         /// </summary>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="e">The event to dispatch to its routed event handlers.</param>

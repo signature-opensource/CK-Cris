@@ -26,7 +26,10 @@ namespace CK.Cris
         /// <typeparam name="T">Command type.</typeparam>
         /// <param name="monitor">The monitor.</param>
         /// <param name="command">The command to execute.</param>
-        /// <param name="ambientServiceHub">Required ambient services that must be obtained from the calling context.</param>
+        /// <param name="ambientServiceHub">
+        /// Ambient services obtained from the calling context. When null, a default ambient services is automatically configured
+        /// by [RestoreAmbientServices] methods for the command.
+        /// </param>
         /// <param name="issuerToken">The issuer token to use. When null a new token is obtained from the <paramref name="monitor"/>.</param>
         /// <param name="incomingValidationCheck">
         /// Whether incoming command validation should be done again.
@@ -40,7 +43,7 @@ namespace CK.Cris
         /// <returns>The executing command that can be used to track the execution.</returns>
         public IExecutingCommand<T> Submit<T>( IActivityMonitor monitor,
                                                T command,
-                                               AmbientServiceHub ambientServiceHub,
+                                               AmbientServiceHub? ambientServiceHub,
                                                ActivityMonitor.Token? issuerToken = null,
                                                bool? incomingValidationCheck = null )
             where T : class, IAbstractCommand

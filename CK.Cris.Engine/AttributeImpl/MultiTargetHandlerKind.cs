@@ -5,7 +5,8 @@ namespace CK.Setup.Cris
         RoutedEventHandler,
         CommandIncomingValidator,
         ConfigureAmbientServices,
-        CommandHandlingValidator
+        CommandHandlingValidator,
+        RestoreAmbientServices,
     }
 
 }
