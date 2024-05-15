@@ -25,13 +25,20 @@ namespace CK.Cris
     {
         internal ContainerCommandExecutor() { }
 
-        internal abstract AsyncServiceScope CreateAsyncScope( CrisJob job );
-
         internal async Task RaiseImmediateEventAsync( IActivityMonitor monitor, CrisJob job, IEvent e )
         {
             if( job._executingCommand != null ) await job._executingCommand.DarkSide.AddImmediateEventAsync( monitor, e );
             await OnImmediateEventAsync( monitor, job, e );
         }
+
+        /// <summary>
+        /// Called right before the execution. A scope must be obtained from the container that will host
+        /// the execution xor an error must be returned.
+        /// </summary>
+        /// <param name="monitor">The monitor to use.</param>
+        /// <param name="job">The starting job.</param>
+        /// <returns>An error xor the configured DI scope to use.</returns>
+        internal protected abstract ValueTask<(ICrisResultError?, AsyncServiceScope)> PrepareJobAsync( IActivityMonitor monitor, CrisJob job );
 
         /// <summary>
         /// Extension point called when a command has been validated.

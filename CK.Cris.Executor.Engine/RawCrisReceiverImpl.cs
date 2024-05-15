@@ -108,7 +108,6 @@ namespace CK.Setup.Cris
                 {
                     f.Append( "await " );
                 }
-                cachedServices.StartNewCachedVariablesPart();
                 cachedServices.WriteExactType( f, h.Method.DeclaringType, h.Owner.ClassType ).Append(".").Append( h.Method.Name ).Append( "( " );
                 foreach( var p in h.Parameters )
                 {

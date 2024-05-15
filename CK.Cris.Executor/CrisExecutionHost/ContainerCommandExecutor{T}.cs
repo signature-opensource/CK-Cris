@@ -1,6 +1,7 @@
 using CK.Core;
 using Microsoft.Extensions.DependencyInjection;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace CK.Cris
 {
@@ -24,8 +25,10 @@ namespace CK.Cris
         readonly CrisExecutionHost _executionHost;
         readonly IDIContainer<T> _container;
 
-        public ContainerCommandExecutor( CrisExecutionHost executionHost, IDIContainer<T> container )
+        protected ContainerCommandExecutor( CrisExecutionHost executionHost, IDIContainer<T> container )
         {
+            Throw.CheckNotNullArgument( executionHost );
+            Throw.CheckNotNullArgument( container );
             _executionHost = executionHost;
             _container = container;
         }
@@ -42,9 +45,20 @@ namespace CK.Cris
         /// </summary>
         public IDIContainer<T> DIContainer => _container;
 
-        internal override AsyncServiceScope CreateAsyncScope( CrisJob job )
+        /// <summary>
+        /// Default implementation creates a <see cref="AsyncServiceScope"/> from the <see cref="CrisJob.ScopedData"/> for the <see cref="DIContainer"/>.
+        /// <para>
+        /// This is enough for endpoint containers but background containers should override this to check for a null <see cref="DIContainerDefinition.BackendScopedData.AmbientServiceHub"/>
+        /// to restore a new one from the command thanks to <see cref="RawCrisExecutor.RestoreAmbientServicesAsync(IActivityMonitor, ICrisPoco)"/>.
+        /// </para>
+        /// </summary>
+        /// <param name="monitor">The monitor to use.</param>
+        /// <param name="job">The starting job.</param>
+        /// <returns>At this level, no error and the the configured DI scope to use.</returns>
+        internal protected override ValueTask<(ICrisResultError?,AsyncServiceScope)> PrepareJobAsync( IActivityMonitor monitor, CrisJob job )
         {
-            return _container.GetContainer().CreateAsyncScope( Unsafe.As<T>( job._scopedData ) );
+            AsyncServiceScope s = _container.GetContainer().CreateAsyncScope( Unsafe.As<T>( job._scopedData ) );
+            return ValueTask.FromResult<(ICrisResultError?, AsyncServiceScope)>( (null, s) );
         }
     }
 

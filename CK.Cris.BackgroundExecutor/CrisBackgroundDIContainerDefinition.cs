@@ -5,7 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace CK.Cris
 {
-    [DIContainerDefinition( DIContainerKind.Backend )]
+    [DIContainerDefinition( DIContainerKind.Background )]
     public abstract class CrisBackgroundDIContainerDefinition : DIContainerDefinition<CrisBackgroundDIContainerDefinition.Data>
     {
         public sealed class Data : BackendScopedData
@@ -13,16 +13,16 @@ namespace CK.Cris
             [AllowNull]
             internal CrisJob _job;
 
-            internal Data( AmbientServiceHub ambientServiceHub )
+            internal Data( AmbientServiceHub? ambientServiceHub )
                 : base( ambientServiceHub ) 
             {
             }
         }
 
 
-        public override void ConfigureEndpointServices( IServiceCollection services,
-                                                        Func<IServiceProvider, Data> scopeData,
-                                                        IServiceProviderIsService globalServiceExists )
+        public override void ConfigureContainerServices( IServiceCollection services,
+                                                         Func<IServiceProvider, Data> scopeData,
+                                                         IServiceProviderIsService globalServiceExists )
         {
             services.AddScoped( sp => scopeData( sp )._job.RunnerMonitor! );
             services.AddScoped( sp => scopeData( sp )._job.RunnerMonitor!.ParallelLogger );

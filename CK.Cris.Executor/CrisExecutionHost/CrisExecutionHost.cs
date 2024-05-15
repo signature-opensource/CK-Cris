@@ -108,13 +108,21 @@ namespace CK.Cris
         {
             using var gLog = monitor.StartDependentActivityGroup( job.IssuerToken );
 
+            ICrisResultError? error = null;
             AsyncServiceScope scoped = default;
             bool isScopedCreated = false;
 
             ImmutableArray<UserMessage> validationMessages = ImmutableArray<UserMessage>.Empty;
             try
             {
-                scoped = job._executor.CreateAsyncScope( job );
+                (error, scoped) = await job._executor.PrepareJobAsync( monitor, job );
+                if( error != null )
+                {
+                    // Here we should ensure that the AsyncServiceScope has a null ServiceProvider.
+                    // Throw.CheckState( "AsyncServiceScope has not been obtained.", scoped == default );
+                    await job._executor.SetFinalResultAsync( monitor, job, error, ImmutableArray<UserMessage>.Empty, ImmutableArray<IEvent>.Empty );
+                    return;
+                }
                 isScopedCreated = true;
                 // Configure the data for the DI endpoint: the monitor
                 // is the one of the calling runner and the ExecutionContext
@@ -128,7 +136,7 @@ namespace CK.Cris
                     var validation = await _crisReceiver.IncomingValidateAsync( monitor, scoped.ServiceProvider, job.Command, gLog );
                     if( !validation.Success )
                     {
-                        var error = _errorResultFactory.Create();
+                        error = _errorResultFactory.Create();
                         error.Errors.AddRange( validation.ErrorMessages );
                         error.LogKey = validation.LogKey;
                         error.IsValidationError = true;
@@ -151,7 +159,7 @@ namespace CK.Cris
             {
                 // Ensures that the crisResult exists and sets its Result to a ICrisErrorResult.
                 var currentCulture = isScopedCreated ? scoped.ServiceProvider.GetService<CurrentCultureInfo>() : null;
-                ICrisResultError error = _errorResultFactory.Create();
+                error = _errorResultFactory.Create();
                 PocoFactoryExtensions.OnUnhandledError( monitor, ex, job.Command, true, currentCulture, error.Errors.Add );
                 error.LogKey = gLog.GetLogKeyString();
 

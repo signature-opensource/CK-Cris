@@ -1,4 +1,7 @@
 using CK.Core;
+using Microsoft.Extensions.DependencyInjection;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace CK.Cris
 {
@@ -15,9 +18,27 @@ namespace CK.Cris
     public class CrisBackgroundExecutorService : ContainerCommandExecutor<CrisBackgroundDIContainerDefinition.Data>, ISingletonAutoService
     {
         public CrisBackgroundExecutorService( CrisExecutionHost executionHost,
-                                              IDIContainer<CrisBackgroundDIContainerDefinition.Data> endpoint )
-            : base( executionHost, endpoint )
+                                              IDIContainer<CrisBackgroundDIContainerDefinition.Data> container )
+            : base( executionHost, container )
         {
+        }
+
+        protected override ValueTask<(ICrisResultError?,AsyncServiceScope)> PrepareJobAsync( IActivityMonitor monitor, CrisJob job )
+        {
+            var scopedData = Unsafe.As<CrisBackgroundDIContainerDefinition.Data>( job.ScopedData );
+            if( scopedData.AmbientServiceHub != null )
+            {
+                return base.PrepareJobAsync( monitor, job );
+            }
+            return RestoreAsync( monitor, job, scopedData );
+        }
+
+        async ValueTask<(ICrisResultError?,AsyncServiceScope)> RestoreAsync( IActivityMonitor monitor, CrisJob job, CrisBackgroundDIContainerDefinition.Data scopedData )
+        {
+            var errorOrHub = await ExecutionHost.RawCrisExecutor.RestoreAmbientServicesAsync( monitor, job.Command );
+            if( errorOrHub.Error != null ) return (errorOrHub.Error,default);
+            scopedData.AmbientServiceHub = errorOrHub.Hub;
+            return await base.PrepareJobAsync( monitor, job );
         }
 
         /// <summary>

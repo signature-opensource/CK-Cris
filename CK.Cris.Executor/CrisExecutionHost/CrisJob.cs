@@ -60,6 +60,11 @@ namespace CK.Cris
         }
 
         /// <summary>
+        /// Gets the scoped data that will be used by <see cref="ContainerCommandExecutor.PrepareJobAsync(IActivityMonitor, CrisJob)"/>.
+        /// </summary>
+        public DIContainerDefinition.IScopedData ScopedData => _scopedData;
+
+        /// <summary>
         /// Gets the <see cref="ICommand"/> or <see cref="ICommand{TResult}"/>.
         /// </summary>
         public IAbstractCommand Command => _command;
