@@ -132,7 +132,7 @@ namespace CK.Cris.HttpSender
                         }
                         else
                         {
-                            monitor.Warn( $"Unable to parse CrisHttpSender Timout '{s}' for remote '{r}'. Using default value of 60 seconds." );
+                            monitor.Warn( $"Unable to parse CrisHttpSender Timout '{s}' for remote '{r}'. Using default value of 100 seconds." );
                         }
                     }
                 }

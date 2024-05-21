@@ -1,21 +1,17 @@
 using CK.AppIdentity;
+using CK.Auth;
 using CK.Core;
+using CK.Cris.AspNet;
+using CK.Poco.Exc.Json;
 using Microsoft.IO;
+using Polly;
 using System;
 using System.Buffers;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-using Polly;
 using System.Threading;
-using System.Linq;
-using CK.Auth;
-using CK.Poco.Exc.Json;
-using CK.Setup;
-using CK.Cris.AspNet;
-using Newtonsoft.Json.Linq;
+using System.Threading.Tasks;
 
 namespace CK.Cris.HttpSender
 {
@@ -65,7 +61,7 @@ namespace CK.Cris.HttpSender
             }
             handler = _topHandler = new TokenAndTimeoutHandler{ InnerHandler = handler };
             _httpClient = new HttpClient( handler );
-            _configuredTimeout = timeout ?? TimeSpan.FromMinutes( 1 );
+            _configuredTimeout = timeout ?? TimeSpan.FromSeconds( 100 );
             _httpClient.Timeout = Timeout.InfiniteTimeSpan;
             _remote = remote;
             _endpointUrl = endpointUrl;

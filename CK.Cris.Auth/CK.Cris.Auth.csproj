@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CK.Auth</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CK.Auth.Abstractions" Version="6.0.1--0005-develop" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CK.IO.Auth\CK.IO.Auth.csproj" />
+  </ItemGroup>
+</Project>

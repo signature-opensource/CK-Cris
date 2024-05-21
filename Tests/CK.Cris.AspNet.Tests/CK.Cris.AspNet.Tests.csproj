@@ -18,7 +18,7 @@
     <PackageReference Include="CK.AspNet.Auth" Version="22.0.1--0018-develop" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\CK.Auth.Cris\CK.Auth.Cris.csproj" />
+    <ProjectReference Include="..\..\CK.Cris.Auth\CK.Cris.Auth.csproj" />
     <ProjectReference Include="..\..\CK.Cris.AspNet.Engine\CK.Cris.AspNet.Engine.csproj" />
     <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
     <ProjectReference Include="..\..\CK.Testing.CrisAspNetEngine\CK.Testing.CrisAspNetEngine.csproj" />

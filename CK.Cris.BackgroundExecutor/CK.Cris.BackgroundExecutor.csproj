@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CK.Auth.Cris\CK.Auth.Cris.csproj" />
+    <ProjectReference Include="..\CK.Cris.Auth\CK.Cris.Auth.csproj" />
     <ProjectReference Include="..\CK.Cris.Executor\CK.Cris.Executor.csproj" />
   </ItemGroup>
 

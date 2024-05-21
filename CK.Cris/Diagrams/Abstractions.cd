@@ -104,7 +104,7 @@
       </Interface>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AAAAABAAABBAQACAEAAAAAAEAFAAAEAAAAACAAAAAAA=</HashCode>
+      <HashCode>ACAAABAAABBAQACAEAAAAAAAEFAAAEAAAAAAAAAAACA=</HashCode>
       <FileName>ICrisPocoModel.cs</FileName>
     </TypeIdentifier>
   </Interface>
@@ -123,9 +123,9 @@
     </TypeIdentifier>
   </Enum>
   <Enum Name="CK.Cris.CrisHandlerKind">
-    <Position X="2.5" Y="4.5" Width="1.75" />
+    <Position X="2.5" Y="4.5" Width="2" />
     <TypeIdentifier>
-      <HashCode>IAAEAAAAAAAAIAAAAAAAIAAAAAgAAAACAAAAAAAAAAA=</HashCode>
+      <HashCode>IAgEAAAAAAAAIAAAAAAAIAAAAAgAAAAAAAAAgAAAAAA=</HashCode>
       <FileName>CrisHandlerKind.cs</FileName>
     </TypeIdentifier>
   </Enum>

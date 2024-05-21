@@ -1,4 +1,4 @@
-using CK.Core;
+﻿using CK.Core;
 
 namespace CK.Auth
 {
@@ -6,7 +6,7 @@ namespace CK.Auth
     /// Extends <see cref="ICommandAuthNormal"/> to ensure that the authentication level is <see cref="AuthLevel.Critical"/>.
     /// </summary>
     [CKTypeDefiner]
-    public interface ICommandAuthCritical : ICommandAuthNormal
+    public interface IAuthCriticalPart : IAuthNormalPart
     {
     }
 }

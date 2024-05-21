@@ -39,8 +39,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.AspNet.Engine", "CK
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.AspNet.Tests", "Tests\CK.Cris.AspNet.Tests\CK.Cris.AspNet.Tests.csproj", "{9626283D-CAC7-4B78-94AA-86441AA3DBDA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Auth.Cris", "CK.Auth.Cris\CK.Auth.Cris.csproj", "{5599A0BC-46B1-43B4-8B88-D7452B613A7F}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.TypeScript", "CK.Cris.TypeScript\CK.Cris.TypeScript.csproj", "{6B18E6D0-47C3-472D-B0B4-9D49B91368F9}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.BackgroundExecutor", "CK.Cris.BackgroundExecutor\CK.Cris.BackgroundExecutor.csproj", "{1A53444A-2220-4539-858D-2CA88902D32C}"
@@ -59,9 +57,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.HttpSender", "CK.Cr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.HttpSender.Tests", "Tests\CK.Cris.HttpSender.Tests\CK.Cris.HttpSender.Tests.csproj", "{464E027C-C5A1-4061-8472-1F45D99802E3}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.AspNet.Auth.Cris", "CK.AspNet.Auth.Cris\CK.AspNet.Auth.Cris.csproj", "{19E0959F-E8DF-4FA5-9121-F3C7130F2B72}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.IO.AspNet", "CK.IO.AspNet\CK.IO.AspNet.csproj", "{46E79C15-6B18-4D71-9A03-095CAD905198}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.IO.Auth", "CK.IO.Auth\CK.IO.Auth.csproj", "{D3AE5184-8E6F-4288-99AC-0675BE7E9A50}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.IO.Auth.Basic", "CK.IO.Auth.Basic\CK.IO.Auth.Basic.csproj", "{818BDCC9-6384-4A82-9A3B-E31721DEE0DE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.Auth", "CK.Cris.Auth\CK.Cris.Auth.csproj", "{CE4E6742-3AF3-49B5-B040-8B2054CAF662}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.AspNet.Auth.Basic", "CK.Cris.AspNet.Auth.Basic\CK.Cris.AspNet.Auth.Basic.csproj", "{F7243676-9603-4D94-B655-61C084FEABD7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -109,10 +113,6 @@ Global
 		{9626283D-CAC7-4B78-94AA-86441AA3DBDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9626283D-CAC7-4B78-94AA-86441AA3DBDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9626283D-CAC7-4B78-94AA-86441AA3DBDA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5599A0BC-46B1-43B4-8B88-D7452B613A7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5599A0BC-46B1-43B4-8B88-D7452B613A7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5599A0BC-46B1-43B4-8B88-D7452B613A7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5599A0BC-46B1-43B4-8B88-D7452B613A7F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{6B18E6D0-47C3-472D-B0B4-9D49B91368F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6B18E6D0-47C3-472D-B0B4-9D49B91368F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6B18E6D0-47C3-472D-B0B4-9D49B91368F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -137,14 +137,26 @@ Global
 		{464E027C-C5A1-4061-8472-1F45D99802E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{464E027C-C5A1-4061-8472-1F45D99802E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{464E027C-C5A1-4061-8472-1F45D99802E3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{19E0959F-E8DF-4FA5-9121-F3C7130F2B72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{19E0959F-E8DF-4FA5-9121-F3C7130F2B72}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{19E0959F-E8DF-4FA5-9121-F3C7130F2B72}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{19E0959F-E8DF-4FA5-9121-F3C7130F2B72}.Release|Any CPU.Build.0 = Release|Any CPU
 		{46E79C15-6B18-4D71-9A03-095CAD905198}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{46E79C15-6B18-4D71-9A03-095CAD905198}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{46E79C15-6B18-4D71-9A03-095CAD905198}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{46E79C15-6B18-4D71-9A03-095CAD905198}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3AE5184-8E6F-4288-99AC-0675BE7E9A50}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3AE5184-8E6F-4288-99AC-0675BE7E9A50}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3AE5184-8E6F-4288-99AC-0675BE7E9A50}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3AE5184-8E6F-4288-99AC-0675BE7E9A50}.Release|Any CPU.Build.0 = Release|Any CPU
+		{818BDCC9-6384-4A82-9A3B-E31721DEE0DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{818BDCC9-6384-4A82-9A3B-E31721DEE0DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{818BDCC9-6384-4A82-9A3B-E31721DEE0DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{818BDCC9-6384-4A82-9A3B-E31721DEE0DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE4E6742-3AF3-49B5-B040-8B2054CAF662}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE4E6742-3AF3-49B5-B040-8B2054CAF662}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE4E6742-3AF3-49B5-B040-8B2054CAF662}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE4E6742-3AF3-49B5-B040-8B2054CAF662}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7243676-9603-4D94-B655-61C084FEABD7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7243676-9603-4D94-B655-61C084FEABD7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7243676-9603-4D94-B655-61C084FEABD7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7243676-9603-4D94-B655-61C084FEABD7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

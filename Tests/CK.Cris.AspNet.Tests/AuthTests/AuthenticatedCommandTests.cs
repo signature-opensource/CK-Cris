@@ -19,7 +19,7 @@ namespace CK.Cris.AspNet.Tests.AuthTests
         /// An unsafe command: when validated or executed, the <see cref="IAuthenticationInfo.UnsafeUser"/> is known
         /// but <see cref="IAuthenticationInfo.User"/> is the anonymous.
         /// <para>
-        /// The <see cref="CrisAuthenticationService"/> automatically ensures that the <see cref="ICommandAuthUnsafe.ActorId"/>
+        /// The <see cref="CrisAuthenticationService"/> automatically ensures that the <see cref="IAuthUnsafePart.ActorId"/>
         /// is the one on the currently connected user otherwise, the command is not validated.
         /// </para>
         /// </summary>

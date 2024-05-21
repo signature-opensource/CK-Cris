@@ -25,7 +25,7 @@ namespace CK.Cris
     {
         /// <summary>
         /// Validates a command by calling all the discovered [CommandIncomingValidator] validators and
-        /// on success, if any [ConfigureAmbientService] exist for the command, extecutes them to return
+        /// on success, if any [ConfigureAmbientService] exist for the command, executes them to return
         /// a non null <see cref="CrisValidationResult.AmbientServiceHub"/> that must be used to execute
         /// the command.
         /// <para>

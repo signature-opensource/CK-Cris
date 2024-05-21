@@ -12,8 +12,8 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\CK.AspNet.Auth.Cris\CK.AspNet.Auth.Cris.csproj" />
-    <ProjectReference Include="..\..\CK.Auth.Cris\CK.Auth.Cris.csproj" />
+    <ProjectReference Include="..\..\CK.Cris.AspNet.Auth.Basic\CK.Cris.AspNet.Auth.Basic.csproj" />
+    <ProjectReference Include="..\..\CK.Cris.Auth\CK.Cris.Auth.csproj" />
     <ProjectReference Include="..\..\CK.Cris.AspNet.Engine\CK.Cris.AspNet.Engine.csproj" />
     <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
     <ProjectReference Include="..\..\CK.Cris.HttpSender\CK.Cris.HttpSender.csproj" />

@@ -1,8 +1,6 @@
 using CK.Core;
 using CK.Cris;
 using CK.Cris.AmbientValues;
-using System;
-using System.Collections.Generic;
 
 namespace CK.Auth
 {
@@ -31,7 +29,7 @@ namespace CK.Auth
         }
 
         /// <summary>
-        /// Checks whether <see cref="ICommandAuthNormal.ActorId"/> is the same as the current <see cref="IAuthenticationInfo.User"/>
+        /// Checks whether <see cref="IAuthNormalPart.ActorId"/> is the same as the current <see cref="IAuthenticationInfo.User"/>
         /// identifier and if not, emits an error in the message collector.
         /// <para>
         /// If the command is marked with <see cref="ICommandAuthCritical"/>, the <see cref="IAuthenticationInfo.Level"/> must be
@@ -52,7 +50,7 @@ namespace CK.Auth
             // - The [AmbientServiceValue] is a INullInvalidAttribute, null will be rejected.
             if( !cmd.ActorId.HasValue )
             {
-                c.Error( $"Invalid property: {nameof(ICommandAuthUnsafe.ActorId)} cannot be null." );
+                c.Error( $"Invalid property: ActorId cannot be null." );
             }
             else if( cmd.ActorId != info.UnsafeUser.UserId )
             {

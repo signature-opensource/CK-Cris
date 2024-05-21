@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -8,4 +9,5 @@
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
     <PackageReference Include="CK.Auth.Abstractions" Version="6.0.1--0005-develop" />
   </ItemGroup>
+
 </Project>
