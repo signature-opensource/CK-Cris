@@ -39,7 +39,7 @@ namespace CK.Cris.Executor.Tests
 
         public class BuggyValidator : IAutoService
         {
-            [CommandIncomingValidator]
+            [IncomingValidator]
             public void ValidateCommand( UserMessageCollector c, ITestCommand cmd )
             {
                 throw new Exception( "This should not happen!" );
@@ -81,7 +81,7 @@ namespace CK.Cris.Executor.Tests
 
         public class SimplestValidatorEverSingleton : IAutoService
         {
-            [CommandIncomingValidator]
+            [IncomingValidator]
             public void ValidateCommand( UserMessageCollector c, ITestCommand cmd )
             {
                 if( cmd.Value < 0 ) c.Error( "[Singleton]Value should be greater than 0." );
@@ -91,7 +91,7 @@ namespace CK.Cris.Executor.Tests
 
         public class SimplestValidatorEverScoped : IScopedAutoService
         {
-            [CommandIncomingValidator]
+            [IncomingValidator]
             public void ValidateCommand( UserMessageCollector c, ITestCommand cmd )
             {
                 if( cmd.Value < 0 ) c.Error( "[Scoped]Value should be greater than 0." );
@@ -155,7 +155,7 @@ namespace CK.Cris.Executor.Tests
 
         public class AuthenticationValidator : IAutoService
         {
-            [CommandIncomingValidator]
+            [IncomingValidator]
             public void ValidateCommand( UserMessageCollector c, ICommandAuthenticatedPart cmd, IAuthenticationInfo info )
             {
                 if( cmd.ActorId != info.User.UserId ) c.Error( "Security error." );
@@ -170,7 +170,7 @@ namespace CK.Cris.Executor.Tests
 
         public class AsyncValidator : IAutoService
         {
-            [CommandIncomingValidator]
+            [IncomingValidator]
             public async Task ValidateCommandAsync( UserMessageCollector c, ITestSecureCommand cmd )
             {
                 c.Info( "AsyncValidator waiting for result..." );
@@ -244,7 +244,7 @@ namespace CK.Cris.Executor.Tests
 
         public class ValidatorWithLogs : IAutoService
         {
-            [CommandIncomingValidator]
+            [IncomingValidator]
             public void ValidateCommand( IActivityMonitor monitor, UserMessageCollector c, ITestCommand cmd )
             {
                 monitor.Info( "I'm the ValidatorWithLogs." );

@@ -20,7 +20,7 @@ namespace CK.Cris.AspNet.Tests
         {
             /// <summary>
             /// Gets or sets whether this is a valid incoming command.
-            /// When false, the command will not be validated by the [CommandIncomingValidator].
+            /// When false, the command will not be validated by the [IncomingValidator].
             /// </summary>
             public bool IsIncomingValid { get; set; }
 
@@ -39,7 +39,7 @@ namespace CK.Cris.AspNet.Tests
                 return culture.CurrentCulture.Name;
             }
 
-            [CommandIncomingValidator]
+            [IncomingValidator]
             public void IncomingValidate( UserMessageCollector c, ITestCommand cmd, CurrentCultureInfo culture )
             {
                 c.Info( $"The collector is '{c.Culture}' The current is '{culture.CurrentCulture}'.", "Test.Info" );

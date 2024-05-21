@@ -7,7 +7,7 @@ namespace CK.Cris
 {
     /// <summary>
     /// Decorates a method that can configure <see cref="AmbientServiceHub"/> from a command or a command part.
-    /// The method is called in the context of the endpoint that receive the command once the [CommandIncomingValidator]
+    /// The method is called in the context of the endpoint that receive the command once the [IncomingValidator]
     /// have validated the command.
     /// </summary>
     [AttributeUsage( AttributeTargets.Method, AllowMultiple = false, Inherited = false )]

@@ -25,7 +25,7 @@ namespace CK.Setup.Cris
                                                             typeof( IActivityMonitor ),
                                                             typeof( UserMessageCollector ),
                                                             typeof( IServiceProvider ),
-                                                            typeof( IAbstractCommand )
+                                                            typeof( ICrisPoco )
                                                         } );
             Throw.DebugAssert( validateMethod != null );
 
@@ -39,7 +39,7 @@ namespace CK.Setup.Cris
             else
             {
                 mValidate.GeneratedByComment().NewLine()
-                         .Append( "return ((ICrisReceiverImpl)command).IncomingValidateAsync( monitor, validationContext, services );" );
+                         .Append( "return ((ICrisReceiverImpl)crisPoco).IncomingValidateAsync( monitor, validationContext, services );" );
 
                 Throw.DebugAssert( scope.Namespace.FullName == "CK.Cris" );
                 scope.Namespace.Append( """

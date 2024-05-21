@@ -17,13 +17,13 @@ namespace CK.Cris
     ///     A [CommandPostHandler] must update the <see cref="IAmbientValues"/> from the Ambient services.
     ///     </item>
     /// </list>
-    /// There can be [CommandIncomingValidator] methods can exist that validate the value against one or more services.
+    /// There can be [IncomingValidator] methods can exist that validate the value against one or more services.
     /// <para>
     /// When <see cref="IsSafe"/> is false, a [ConfigureAmbientServices] method must exist and there can
-    /// be [CommandIncomingValidator] methods that syntaxically validates the command, event or part that defines the property.
+    /// be [IncomingValidator] methods that syntaxically validates the command, event or part that defines the property.
     /// </para>
     /// <para>
-    /// When <see cref="IsSafe"/> is true, there must be at least one [CommandIncomingValidator] method that validates the command
+    /// When <see cref="IsSafe"/> is true, there must be at least one [IncomingValidator] method that validates the command
     /// against an ambient service and no [ConfigureAmbientServices] method.
     /// </para>
     /// </summary>

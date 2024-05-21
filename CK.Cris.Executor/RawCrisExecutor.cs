@@ -48,7 +48,7 @@ namespace CK.Cris
         public readonly record struct RawResult( object? Result, UserMessageCollector? ValidationMessages );
 
         /// <summary>
-        /// Executes a command by calling the discovered handling validators (not the <see cref="CommandIncomingValidatorAttribute"/>),
+        /// Executes a command by calling the discovered handling validators (not the <see cref="IncomingValidatorAttribute"/>),
         /// the handler and the post handlers.
         /// <para>
         /// This never throws: a <see cref="ICrisResultError"/> is the <see cref="RawResult.Result"/> on error.
@@ -71,12 +71,6 @@ namespace CK.Cris
         /// <summary>
         /// Dispatches an event by calling the discovered routed event handlers.
         /// Exceptions are caught and logged and false is returned.
-        /// <para>
-        /// A <see cref="IActivityMonitor"/> and a <see cref="ICrisCommandContext"/> (that is
-        /// a <see cref="ICrisEventContext"/>) must be resolvable from the <paramref name="services"/>.
-        /// (The execution context cannot be used directly by an event handler, it may be used by commands that
-        /// an event handler can execute).
-        /// </para>
         /// </summary>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
         /// <param name="e">The event to dispatch to its routed event handlers.</param>
@@ -111,17 +105,17 @@ namespace CK.Cris
         /// Infrastructure code not intended to be used directly.
         /// </summary>
         /// <param name="services">The services.</param>
-        /// <param name="command">The command.</param>
+        /// <param name="crisPoco">The command.</param>
         /// <param name="c">The collector with errors.</param>
         /// <returns>The LogKey (may be null).</returns>
-        protected static string? LogValidationError( IServiceProvider services, ICrisPoco command, UserMessageCollector c )
+        protected static string? LogValidationError( IServiceProvider services, ICrisPoco crisPoco, UserMessageCollector c )
         {
             IActivityMonitor? monitor = (IActivityMonitor?)services.GetService( typeof( IActivityMonitor ) );
             if( monitor != null )
             {
-                return RawCrisReceiver.LogValidationError( monitor, command, c, "handling", null );
+                return RawCrisReceiver.LogValidationError( monitor, crisPoco, c, "handling", null );
             }
-            ActivityMonitor.StaticLogger.Error( $"Command '{command.CrisPocoModel.PocoName}' handling validation error. (No IActivityMonitor available.)" );
+            ActivityMonitor.StaticLogger.Error( $"Command '{crisPoco.CrisPocoModel.PocoName}' handling validation error. (No IActivityMonitor available.)" );
             return null;
         }
 

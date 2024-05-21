@@ -42,7 +42,7 @@ namespace CK.Auth
         /// <param name="c">The message collector.</param>
         /// <param name="cmd">The command to validate.</param>
         /// <param name="info">The current authentication information.</param>
-        [CommandIncomingValidator]
+        [IncomingValidator]
         public virtual void ValidateAuthenticatedPart( UserMessageCollector c, ICommandAuthUnsafe cmd, IAuthenticationInfo info )
         {
             // Temporary:
@@ -79,7 +79,7 @@ namespace CK.Auth
         /// <param name="c">The message collector.</param>
         /// <param name="cmd">The command to validate.</param>
         /// <param name="info">The current authentication information.</param>
-        [CommandIncomingValidator]
+        [IncomingValidator]
         public virtual void ValidateDevicePart( UserMessageCollector c, ICommandAuthDeviceId cmd, IAuthenticationInfo info )
         {
             // Temporary:
@@ -102,7 +102,7 @@ namespace CK.Auth
         /// <param name="c">The message collector.</param>
         /// <param name="cmd">The command to validate.</param>
         /// <param name="info">The current authentication information.</param>
-        [CommandIncomingValidator]
+        [IncomingValidator]
         public virtual void ValidateImpersonationPart( UserMessageCollector c, ICommandAuthImpersonation cmd, IAuthenticationInfo info )
         {
             // Temporary:

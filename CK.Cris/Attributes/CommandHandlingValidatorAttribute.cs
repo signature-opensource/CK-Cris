@@ -14,7 +14,7 @@ namespace CK.Cris
     /// and could perfectly been directly called by the handler.
     /// </para>
     /// <para>
-    /// The <see cref="CommandIncomingValidatorAttribute"/> defines validators that check the "surface" of a command.
+    /// The <see cref="IncomingValidatorAttribute"/> defines validators that check the "surface" of a command.
     /// These validators are called in the context of the endpoints that receive the command.
     /// When the validation concerns any aspect independent of the command execution itself, it is recommended to use
     /// the CommandSyntaxValidator.

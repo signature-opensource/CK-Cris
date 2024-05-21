@@ -8,9 +8,9 @@ namespace CK.Cris
     public enum CrisHandlerKind
     {
         /// <summary>
-        /// Validates an incoming command or command part (when the command is received).
+        /// Validates an incoming command, event or part (when the Cris Poco is received).
         /// </summary>
-        CommandIncomingValidator,
+        IncomingValidator,
 
         /// <summary>
         /// Configures the <see cref="AmbientServiceHub"/> from a command, an event or a part.

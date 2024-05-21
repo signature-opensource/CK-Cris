@@ -1,4 +1,4 @@
-﻿using CK.Core;
+using CK.Core;
 
 namespace CK.Cris
 {
@@ -16,7 +16,7 @@ namespace CK.Cris
     /// applied to the specialized part.
     /// </remarks>
     [CKTypeSuperDefiner]
-    public interface IEventPart : IEvent
+    public interface IEventPart : IEvent, ICrisPocoPart
     {
     }
 

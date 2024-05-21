@@ -11,8 +11,8 @@ namespace CK.Cris
     /// <summary>
     /// Command receiver service.
     /// <para>
-    /// This is a processwide singleton that can validate the incoming commands and
-    /// configure ambient services to execute the command in another DI container. 
+    /// This is a processwide singleton that can validate the incoming commands and events and
+    /// configure ambient services to execute the command or dispatch the event in another DI container. 
     /// </para>
     /// </summary>
     [ContextBoundDelegation( "CK.Setup.Cris.RawCrisReceiverImpl, CK.Cris.Executor.Engine" )]
@@ -24,40 +24,40 @@ namespace CK.Cris
     public abstract class RawCrisReceiver : ISingletonAutoService
     {
         /// <summary>
-        /// Validates a command by calling all the discovered [CommandIncomingValidator] validators and
-        /// on success, if any [ConfigureAmbientService] exist for the command, executes them to return
+        /// Validates a command or an event by calling all the discovered [IncomingValidator] validators and
+        /// on success, if any [ConfigureAmbientService] exist for the command or event, executes them to return
         /// a non null <see cref="CrisValidationResult.AmbientServiceHub"/> that must be used to execute
-        /// the command.
+        /// the command or dispatch the event.
         /// <para>
         /// This never throws: exceptions are handled (logged and appear in the error messages) by this method.
         /// </para>
         /// </summary>
         /// <param name="monitor">The monitor.</param>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
-        /// <param name="command">The command to validate.</param>
-        /// <param name="commandLogGroup">Optional opened group for the command handling.</param>
+        /// <param name="crisPoco">The command or event to validate.</param>
+        /// <param name="logGroup">Optional opened group for the command handling.</param>
         /// <param name="currentCulture">Optional culture to use instead of the one from <paramref name="services"/>.</param>
         /// <returns>The validation result.</returns>
         public async Task<CrisValidationResult> IncomingValidateAsync( IActivityMonitor monitor,
                                                                        IServiceProvider services,
-                                                                       IAbstractCommand command,
-                                                                       IDisposableGroup? commandLogGroup = null,
+                                                                       ICrisPoco crisPoco,
+                                                                       IDisposableGroup? logGroup = null,
                                                                        CurrentCultureInfo? currentCulture = null )
         {
             Throw.CheckNotNullArgument( monitor );
             Throw.CheckNotNullArgument( services );
-            Throw.CheckNotNullArgument( command );
+            Throw.CheckNotNullArgument( crisPoco );
 
             // We handle the (unexpected) case where the CurrentCultureInfo or the TranslationService is not
             // available in the DI by catching the GetRequiredService exception.
             try
             {
-                currentCulture = HandleCulture( monitor, services, command, currentCulture );
+                currentCulture = HandleCulture( monitor, services, crisPoco, currentCulture );
                 var c = new UserMessageCollector( currentCulture );
-                var hub = await DoIncomingValidateAsync( monitor, c, services, command );
+                var hub = await DoIncomingValidateAsync( monitor, c, services, crisPoco );
                 if( c.ErrorCount > 0 )
                 {
-                    string logKey = LogValidationError( monitor, command, c, "incoming", commandLogGroup );
+                    string logKey = LogValidationError( monitor, crisPoco, c, "incoming", logGroup );
                     return new CrisValidationResult( c.UserMessages, null, logKey );
                 }
                 return c.UserMessages.Count == 0
@@ -67,7 +67,7 @@ namespace CK.Cris
             catch( Exception ex )
             {
                 var messages = ImmutableArray.CreateBuilder<UserMessage>();
-                var k = PocoFactoryExtensions.OnUnhandledError( monitor, ex, command, false, currentCulture, messages.Add );
+                var k = PocoFactoryExtensions.OnUnhandledError( monitor, ex, crisPoco, false, currentCulture, messages.Add );
                 return new CrisValidationResult( messages.ToImmutableArray(), null, k );
             }
         }
@@ -97,16 +97,16 @@ namespace CK.Cris
                                                    ICrisPoco command,
                                                    UserMessageCollector c,
                                                    string incomingOrHandling,
-                                                   IDisposableGroup? commandLogGroup )
+                                                   IDisposableGroup? logGroup )
         {
             // Don't open a new group if there's one and it is not rejected.
             bool errorOpened = false;
-            if( commandLogGroup == null || commandLogGroup.IsRejectedGroup )
+            if( logGroup == null || logGroup.IsRejectedGroup )
             {
                 errorOpened = true;
-                commandLogGroup = monitor.UnfilteredOpenGroup( LogLevel.Error | LogLevel.IsFiltered, CrisDirectory.CrisTag, $"Command '{command.CrisPocoModel.PocoName}' {incomingOrHandling} validation error.", null );
+                logGroup = monitor.UnfilteredOpenGroup( LogLevel.Error | LogLevel.IsFiltered, CrisDirectory.CrisTag, $"Cris '{command.CrisPocoModel.PocoName}' {incomingOrHandling} validation error.", null );
             }
-            string? logKey = commandLogGroup.GetLogKeyString();
+            string? logKey = logGroup.GetLogKeyString();
             Throw.DebugAssert( "The group is not rejected.", logKey != null );
             c.DumpLogs( monitor );
             if( errorOpened ) monitor.CloseGroup();
@@ -114,17 +114,17 @@ namespace CK.Cris
         }
 
         /// <summary>
-        /// This method is automatically implemented by RawCrisValidatorImpl in CK.Cris.Executor.Engine.
+        /// This method is automatically implemented by RawCrisReceiverImpl in CK.Cris.Executor.Engine.
         /// </summary>
         /// <param name="monitor">The monitor.</param>
         /// <param name="validationContext">The user message collector.</param>
         /// <param name="services">The service context from which any required dependencies must be resolved.</param>
-        /// <param name="command">The command to validate.</param>
+        /// <param name="crisPoco">The command or event to validate.</param>
         /// <returns>The ambient service hub if it is needed.</returns>
         protected abstract ValueTask<AmbientServiceHub?> DoIncomingValidateAsync( IActivityMonitor monitor,
                                                                                   UserMessageCollector validationContext,
                                                                                   IServiceProvider services,
-                                                                                  IAbstractCommand command );
+                                                                                  ICrisPoco crisPoco );
 
 
     }

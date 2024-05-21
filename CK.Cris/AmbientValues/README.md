@@ -63,9 +63,9 @@ builder.Services.AddScoped<IAuthenticationInfo>( services => new SimpleAuthInfo(
 ```
 
 The Endpoint being in charge of providing the trustable Ambient service, validation of the Secured AmbientService value
-is then done by a `[CommandIncomingValidator]`:
+is then done by a `[IncomingValidator]`:
 ```csharp
-[CommandIncomingValidator]
+[IncomingValidator]
 public virtual void ValidateAuthenticatedPart( UserMessageCollector c, ICrisAuthenticated cmd, IAuthenticationInfo info )
 {
     if( cmd.ActorId != info.User.UserId )
@@ -98,7 +98,7 @@ default culture will be used).
 ```csharp
 public class CrisCultureService : IAutoService
 {
-    [CommandIncomingValidator]
+    [IncomingValidator]
     public void CheckCultureName( UserMessageCollector validator, ICommandWithCurrentCulture cmd )
     {
         var n = cmd.CurrentCultureName;

@@ -25,7 +25,7 @@ namespace CK.Setup.Cris
                                                                        IStObjFinalClass impl,
                                                                        MethodInfo method )
         {
-            return crisTypeRegistry.RegisterPostHandler( monitor, impl!, method, _a.FileName, _a.LineNumber )
+            return crisTypeRegistry.RegisterCommandPostHandler( monitor, impl!, method, _a.FileName, _a.LineNumber )
                     ? CSCodeGenerationResult.Success
                     : CSCodeGenerationResult.Failed;
         }

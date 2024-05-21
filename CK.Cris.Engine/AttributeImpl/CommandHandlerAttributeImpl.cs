@@ -21,7 +21,7 @@ namespace CK.Setup.Cris
                                                                        IStObjFinalClass impl,
                                                                        MethodInfo method )
         {
-            return crisTypeRegistry.RegisterHandler( monitor, impl!, method, _a.AllowUnclosedCommand, _a.FileName, _a.LineNumber )
+            return crisTypeRegistry.RegisterCommandHandler( monitor, impl!, method, _a.AllowUnclosedCommand, _a.FileName, _a.LineNumber )
                     ? CSCodeGenerationResult.Success
                     : CSCodeGenerationResult.Failed;
         }

@@ -5,11 +5,11 @@ using System.Reflection;
 
 namespace CK.Setup.Cris
 {
-    sealed class CommandIncomingValidatorAttributeImpl : BaseHandlerAttributeImpl
+    sealed class IncomingValidatorAttributeImpl : BaseHandlerAttributeImpl
     {
-        readonly CommandIncomingValidatorAttribute _a;
+        readonly IncomingValidatorAttribute _a;
 
-        public CommandIncomingValidatorAttributeImpl( CommandIncomingValidatorAttribute a, Type t, MethodInfo m )
+        public IncomingValidatorAttributeImpl( IncomingValidatorAttribute a, Type t, MethodInfo m )
             : base( t, m )
         {
             _a = a;
@@ -21,7 +21,7 @@ namespace CK.Setup.Cris
                                                                        IStObjFinalClass impl,
                                                                        MethodInfo method )
         {
-            return crisTypeRegistry.RegisterMultiTargetHandler( monitor, MultiTargetHandlerKind.CommandIncomingValidator, engineMap, impl!, method, _a.FileName, _a.LineNumber )
+            return crisTypeRegistry.RegisterMultiTargetHandler( monitor, MultiTargetHandlerKind.IncomingValidator, engineMap, impl!, method, _a.FileName, _a.LineNumber )
                     ? CSCodeGenerationResult.Success
                     : CSCodeGenerationResult.Failed;
         }

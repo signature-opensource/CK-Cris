@@ -17,7 +17,7 @@ namespace CK.Cris
     /// applied to the specialized part.
     /// </remarks>
     [CKTypeSuperDefiner]
-    public interface ICommandPart : IAbstractCommand
+    public interface ICommandPart : IAbstractCommand, ICrisPocoPart
     {
     }
 

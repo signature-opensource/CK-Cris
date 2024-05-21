@@ -5,7 +5,7 @@ namespace CK.Cris
 {
     public class CrisCultureService : IAutoService
     {
-        [CommandIncomingValidator]
+        [IncomingValidator]
         public void CheckCultureName( UserMessageCollector validator, ICurrentCulturePart part )
         {
             var n = part.CurrentCultureName;

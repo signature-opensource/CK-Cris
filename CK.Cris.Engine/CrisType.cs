@@ -337,7 +337,7 @@ namespace CK.Setup.Cris
 
             switch( target )
             {
-                case MultiTargetHandlerKind.CommandIncomingValidator: Add( CrisHandlerKind.CommandIncomingValidator, ref _incomingValidators ); break;
+                case MultiTargetHandlerKind.IncomingValidator: Add( CrisHandlerKind.IncomingValidator, ref _incomingValidators ); break;
                 case MultiTargetHandlerKind.CommandHandlingValidator: Add( CrisHandlerKind.CommandHandlingValidator, ref _handlingValidators ); break;
                 case MultiTargetHandlerKind.ConfigureAmbientServices: Add( CrisHandlerKind.ConfigureAmbientServices, ref _ambientServicesConfigurators ); break;
                 case MultiTargetHandlerKind.RestoreAmbientServices: Add( CrisHandlerKind.RestoreAmbientServices, ref _ambientServicesRestorers ); break;

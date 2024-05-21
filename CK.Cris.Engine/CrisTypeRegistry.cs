@@ -23,12 +23,33 @@ namespace CK.Setup.Cris
         readonly HashSet<IPrimaryPocoField> _allAmbientValueFields;
 
         readonly IPocoTypeSystem _typeSystem;
+        /// <summary>
+        /// <see cref="ICrisPoco"/>
+        /// </summary>
         readonly IAbstractPocoType? _crisPocoType;
+        /// <summary>
+        /// <see cref="IAbstractCommand"/>.
+        /// </summary>
         readonly IAbstractPocoType? _crisCommandType;
+        /// <summary>
+        /// <see cref="ICommandPart"/>.
+        /// </summary>
         readonly IAbstractPocoType? _crisCommandTypePart;
+        /// <summary>
+        /// <see cref="IEvent"/>.
+        /// </summary>
         readonly IAbstractPocoType? _crisEventType;
+        /// <summary>
+        /// <see cref="IEventPart"/>.
+        /// </summary>
         readonly IAbstractPocoType? _crisEventTypePart;
+        /// <summary>
+        /// <see cref="ICrisPocoPart"/>.
+        /// </summary>
         readonly IAbstractPocoType? _crisPocoTypePart;
+        /// <summary>
+        /// <see cref="IAmbientValues"/>.
+        /// </summary>
         readonly IPrimaryPocoType? _ambientValuesType;
 
         CrisTypeRegistry( IReadOnlyDictionary<IPrimaryPocoType,CrisType> index,
@@ -293,12 +314,8 @@ namespace CK.Setup.Cris
                         monitor.Error( $"Invalid type name for Cris '{badNames.Select( c => c.ToString() ).Concatenate( "', '" )}': ICommandPart type name must start with \"ICommand\"." );
                         success = false;
                     }
-                    crisCommandType = crisCommandTypePart.MinimalGeneralizations.Single();
                 }
-                else
-                {
-                    crisCommandType = GetAbstractPocoType( monitor, typeSystem, typeof( IAbstractCommand ) );
-                }
+                crisCommandType = GetAbstractPocoType( monitor, typeSystem, typeof( IAbstractCommand ) );
 
                 crisEventTypePart = GetAbstractPocoType( monitor, typeSystem, typeof( IEventPart ) );
                 if( crisEventTypePart != null )
@@ -309,12 +326,8 @@ namespace CK.Setup.Cris
                         monitor.Error( $"Invalid type name for Cris '{badNames.Select( c => c.ToString() ).Concatenate( "', '" )}': IEventPart type name must start with \"IEvent\"." );
                         success = false;
                     }
-                    crisEventType = crisEventTypePart?.MinimalGeneralizations.Single();
                 }
-                else
-                {
-                    crisEventType = GetAbstractPocoType( monitor, typeSystem, typeof( IEvent ) );
-                };
+                crisEventType = GetAbstractPocoType( monitor, typeSystem, typeof( IEvent ) );
 
                 crisPocoTypePart = typeSystem.FindByType<IAbstractPocoType>( typeof( ICrisPocoPart ) );
                 if( crisPocoTypePart != null )
@@ -352,7 +365,7 @@ namespace CK.Setup.Cris
             }
         }
 
-        internal bool RegisterHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, bool allowUnclosed, string? fileName, int lineNumber )
+        internal bool RegisterCommandHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, bool allowUnclosed, string? fileName, int lineNumber )
         {
             (CrisType? e, ParameterInfo[]? parameters, ParameterInfo? p) = GetSingleCommandEntry( monitor, "Handler", m );
             if( e == null ) return parameters != null;
@@ -372,7 +385,7 @@ namespace CK.Setup.Cris
             return e.AddHandler( monitor, impl, m, parameters, p, isClosedHandler, fileName, lineNumber );
         }
 
-        internal bool RegisterPostHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber )
+        internal bool RegisterCommandPostHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber )
         {
             (CrisType? e, ParameterInfo[]? parameters, ParameterInfo? p) = GetSingleCommandEntry( monitor, "PostHandler", m );
             if( e == null ) return parameters != null;
@@ -384,7 +397,7 @@ namespace CK.Setup.Cris
         // e == null && parameters != null => warning (Method skipped: No IAbstractCommand parameter detected.)
         (CrisType? e, ParameterInfo[]? parameters, ParameterInfo? p) GetSingleCommandEntry( IActivityMonitor monitor, string kind, MethodInfo m )
         {
-            (ParameterInfo[]? parameters, ParameterInfo? p, IPrimaryPocoType? candidate) = TryGetCrisTypeCandidate( monitor, m, expectCommand: true );
+            (ParameterInfo[]? parameters, ParameterInfo? p, IPrimaryPocoType? candidate) = TryGetCrisTypeCandidate( monitor, m, ExpectedParamType.IAbstractCommand );
             if( parameters == null )
             {
                 return (null, null, null);
@@ -399,6 +412,20 @@ namespace CK.Setup.Cris
             return (_indexedTypes[candidate], parameters, p);
         }
 
+        enum ExpectedParamType
+        {
+            ICrisPoco,
+            IAbstractCommand,
+            IEvent
+        }
+
+        static string ExpectedParamTypeDetail( ExpectedParamType t ) => t switch
+        {
+            ExpectedParamType.IAbstractCommand => "ICommand, ICommand<TResult>, ICommandPart",
+            ExpectedParamType.IEvent => "IEvent, IEventPart",
+            _ => ""
+        };
+
         internal bool RegisterMultiTargetHandler( IActivityMonitor monitor,
                                                   MultiTargetHandlerKind target,
                                                   IStObjMap engineMap,
@@ -407,10 +434,18 @@ namespace CK.Setup.Cris
                                                   string? fileName,
                                                   int lineNumber )
         {
-            bool expectCommands = target != MultiTargetHandlerKind.RoutedEventHandler;
+            var expectedParamType = target switch
+            {
+                MultiTargetHandlerKind.ConfigureAmbientServices => ExpectedParamType.ICrisPoco,
+                MultiTargetHandlerKind.RestoreAmbientServices => ExpectedParamType.ICrisPoco,
+                MultiTargetHandlerKind.IncomingValidator => ExpectedParamType.ICrisPoco,
+                MultiTargetHandlerKind.CommandHandlingValidator => ExpectedParamType.IAbstractCommand,
+                _ => ExpectedParamType.IEvent // MultiTargetHandlerKind.RoutedEventHandler.
+            };
+
             if( !GetCandidates( monitor,
                                 m,
-                                expectCommands,
+                                expectedParamType,
                                 out ParameterInfo[]? parameters,
                                 out ParameterInfo? foundParameter,
                                 out IReadOnlyList<IPrimaryPocoType>? candidates ) )
@@ -423,7 +458,7 @@ namespace CK.Setup.Cris
                 // If foundParameter is not null, the skipping has already been signaled. 
                 if( foundParameter == null )
                 {
-                    monitor.Info( $"Method {CrisType.MethodName( m, parameters )} is unused since no I{(expectCommands ? "Command" : "Event")}Part exist." );
+                    monitor.Info( $"Method {CrisType.MethodName( m, parameters )} is unused since no {expectedParamType}Part exist." );
                 }
             }
             else
@@ -441,7 +476,7 @@ namespace CK.Setup.Cris
                 {
                     MultiTargetHandlerKind.ConfigureAmbientServices => typeof( AmbientServiceHub ),
                     MultiTargetHandlerKind.RestoreAmbientServices => typeof( AmbientServiceHub ),
-                    MultiTargetHandlerKind.CommandIncomingValidator => typeof( UserMessageCollector ),
+                    MultiTargetHandlerKind.IncomingValidator => typeof( UserMessageCollector ),
                     MultiTargetHandlerKind.CommandHandlingValidator => typeof( UserMessageCollector ),
                     _ => null // MultiTargetHandlerKind.RoutedEventHandler.
                 };
@@ -470,7 +505,7 @@ namespace CK.Setup.Cris
                     }
                     if( target is not MultiTargetHandlerKind.RoutedEventHandler )
                     {
-                        Throw.DebugAssert( target is MultiTargetHandlerKind.CommandIncomingValidator
+                        Throw.DebugAssert( target is MultiTargetHandlerKind.IncomingValidator
                                                     or MultiTargetHandlerKind.CommandHandlingValidator
                                                     or MultiTargetHandlerKind.ConfigureAmbientServices
                                                     or MultiTargetHandlerKind.RestoreAmbientServices );
@@ -503,7 +538,7 @@ namespace CK.Setup.Cris
                     }
                     else
                     {
-                        Throw.DebugAssert( target is MultiTargetHandlerKind.CommandIncomingValidator or MultiTargetHandlerKind.CommandHandlingValidator );
+                        Throw.DebugAssert( target is MultiTargetHandlerKind.IncomingValidator or MultiTargetHandlerKind.CommandHandlingValidator );
                         monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}' must take a 'UserMessageCollector' parameter to collect validation errors, warnings and informations." );
                     }
                     success = false;
@@ -553,7 +588,7 @@ namespace CK.Setup.Cris
         // Parameters == null ==> Error.
         (ParameterInfo[]? Parameters, ParameterInfo? Param, IPrimaryPocoType? Candidate) TryGetCrisTypeCandidate( IActivityMonitor monitor,
                                                                                                                   MethodInfo m,
-                                                                                                                  bool expectCommand )
+                                                                                                                  ExpectedParamType expected )
         {
             var parameters = m.GetParameters();
             var candidates = parameters.Select( p => (p, GetPrimary( p.ParameterType )) )
@@ -562,7 +597,8 @@ namespace CK.Setup.Cris
             if( candidates.Length > 1 )
             {
                 string tooMuch = candidates.Select( c => $"{c.p.ParameterType.ToCSharpName()} {c.p.Name}" ).Concatenate();
-                monitor.Error( $"Method {CrisType.MethodName( m, parameters )} cannot have more than one concrete {(expectCommand ? "command" : "event")} parameter. Found: {tooMuch}" );
+                var type = expected switch { ExpectedParamType.IAbstractCommand => "command", ExpectedParamType.IEvent => "event", _ => "command or event" };
+                monitor.Error( $"Method {CrisType.MethodName( m, parameters )} cannot have more than one concrete {type} parameter. Found: {tooMuch}" );
                 return (null, null, null);
             }
             if( candidates.Length == 0 )
@@ -570,9 +606,9 @@ namespace CK.Setup.Cris
                 return (parameters, null, null);
             }
             var paramInfo = candidates[0].p;
-            if( candidates[0].Item2.IsCommand != expectCommand )
+            if( expected != ExpectedParamType.ICrisPoco && candidates[0].Item2.IsCommand != expected is ExpectedParamType.IAbstractCommand )
             {
-                if( expectCommand )
+                if( expected is ExpectedParamType.IAbstractCommand )
                 {
                     monitor.Error( $"Method {CrisType.MethodName( m, parameters )} must have a ICommand or ICommand<TResult> parameter. Parameter '{paramInfo.Name}' is a IEvent." );
                 }
@@ -588,12 +624,12 @@ namespace CK.Setup.Cris
 
         bool GetCandidates( IActivityMonitor monitor,
                             MethodInfo m,
-                            bool expectCommands,
+                            ExpectedParamType expected,
                             [NotNullWhen( true )] out ParameterInfo[]? parameters,
                             out ParameterInfo? foundParameter,
                             [NotNullWhen( true )] out IReadOnlyList<IPrimaryPocoType>? candidates )
         {
-            (parameters, foundParameter, IPrimaryPocoType? candidate) = TryGetCrisTypeCandidate( monitor, m, expectCommands );
+            (parameters, foundParameter, IPrimaryPocoType? candidate) = TryGetCrisTypeCandidate( monitor, m, expected );
             if( parameters == null )
             {
                 candidates = null;
@@ -606,14 +642,16 @@ namespace CK.Setup.Cris
                 return true;
             }
             // Looking for parts.
-            var partBase = (expectCommands ? _crisCommandTypePart : _crisEventTypePart) ?? _crisPocoTypePart;
+            // If we expect a command or an event but the ICommand/EventPart is null (there is no such part), we lookup
+            // the ICrisPocoPart to handle any definition error.
+            var partBase = expected switch { ExpectedParamType.IAbstractCommand => _crisCommandTypePart, ExpectedParamType.IEvent => _crisEventTypePart, _ => null }
+                           ?? _crisPocoTypePart;
             if( partBase != null )
             {
                 Throw.DebugAssert( "command or event part => ICrisPoco => ICrisPocoPart", _crisPocoTypePart != null );
-                return FromPart( monitor, _typeSystem, partBase, _crisPocoTypePart, m, parameters, expectCommands, out foundParameter, out candidates );
+                return FromPart( monitor, _typeSystem, partBase, _crisPocoTypePart, m, parameters, expected, out foundParameter, out candidates );
             }
-            // Not found but it is not an error.
-            // If foundParameter is null its because the there is no IEventPart or ICommandPart at all.
+            // Not found but it is not an error: there is no adhoc type to handle.
             candidates = Array.Empty<IPrimaryPocoType>();
             return true;
 
@@ -623,7 +661,7 @@ namespace CK.Setup.Cris
                                   IAbstractPocoType crisPocoTypePart,
                                   MethodInfo method,
                                   ParameterInfo[] parameters,
-                                  bool expectCommands,
+                                  ExpectedParamType expected,
                                   [NotNullWhen( true )] out ParameterInfo? foundParameter,
                                   [NotNullWhen( true )] out IReadOnlyList<IPrimaryPocoType>? candidates )
             {
@@ -638,7 +676,7 @@ namespace CK.Setup.Cris
                                               crisPocoTypePart,
                                               method,
                                               parameters,
-                                              expectCommands,
+                                              expected,
                                               ref foundParameter,
                                               ref candidates,
                                               ref tooMany,
@@ -651,12 +689,11 @@ namespace CK.Setup.Cris
                     Throw.DebugAssert( candidates != null );
                     return true;
                 }
-                var expected = expectCommands ? "ICommand, ICommand<TResult>, ICommandPart" : "IEvent, IEventPart";
                 if( tooMany != null )
                 {
                     Throw.DebugAssert( foundParameter != null );
                     var t = tooMany.Select( p => $"{p.ParameterType.ToCSharpName()} {p.Name}" ).Concatenate( "', '" );
-                    monitor.Error( $"Method {CrisType.MethodName( method, parameters )} cannot have more than one {expected} or ICrisPocoPart parameter. " +
+                    monitor.Error( $"Method {CrisType.MethodName( method, parameters )} cannot have more than one {ExpectedParamTypeDetail(expected)} or ICrisPocoPart parameter. " +
                                     $"Found '{foundParameter.ParameterType.ToCSharpName()} {foundParameter.Name}', cannot allow '{t}'." );
                     return false;
                 }
@@ -666,7 +703,7 @@ namespace CK.Setup.Cris
                 }
                 if( candidates == null )
                 {
-                    monitor.Warn( $"Method {CrisType.MethodName( method, parameters )} misses an existing {expected} or ICrisPocoPart parameter." );
+                    monitor.Warn( $"Method {CrisType.MethodName( method, parameters )} misses an existing {ExpectedParamTypeDetail( expected )} or ICrisPocoPart parameter." );
                     candidates = Array.Empty<IPrimaryPocoType>(); 
                     return true;
                 }
@@ -679,7 +716,7 @@ namespace CK.Setup.Cris
                                                       IAbstractPocoType crisPocoTypePart,
                                                       MethodInfo m,
                                                       ParameterInfo[] parameters,
-                                                      bool expectCommands,
+                                                      ExpectedParamType expected,
                                                       ref ParameterInfo? foundParameter,
                                                       ref IReadOnlyList<IPrimaryPocoType>? candidates,
                                                       ref List<ParameterInfo>? tooMany,
@@ -687,12 +724,12 @@ namespace CK.Setup.Cris
                 {
                     var pocoType = typeSystem.FindByType<IAbstractPocoType>( parameter.ParameterType );
                     bool isTheOne = pocoType != null && (pocoType.NonNullable.Generalizations.Contains( eventOrCommandPartType )
-                                                         || pocoType.NonNullable.Generalizations.Contains( crisPocoTypePart ));
+                                                         || (eventOrCommandPartType != crisPocoTypePart && pocoType.NonNullable.Generalizations.Contains( crisPocoTypePart )) );
                     // If we didn't find it, it may be a compliant parameter.
                     // If it is and we already have a foundParameter => tooMany.
                     // If it is and we have no foundParameter yet, we consider it the foundParameter but with an empty candidates list.
                     bool mayBeTheOne = isTheOne || eventOrCommandPartType.Type.IsAssignableFrom( parameter.ParameterType );
-                    bool mayBeTheOne2 = mayBeTheOne || crisPocoTypePart.Type.IsAssignableFrom( parameter.ParameterType );
+                    bool mayBeTheOne2 = mayBeTheOne || (eventOrCommandPartType != crisPocoTypePart && crisPocoTypePart.Type.IsAssignableFrom( parameter.ParameterType ));
                     if( mayBeTheOne2 )
                     {
                         if( foundParameter == null )
@@ -707,7 +744,8 @@ namespace CK.Setup.Cris
                             {
                                 if( mayBeTheOne && eventOrCommandPartType != crisPocoTypePart )
                                 {
-                                    var typ = expectCommands ? "Command" : "Event";
+                                    Throw.DebugAssert( expected is not ExpectedParamType.ICrisPoco );
+                                    var typ = expected is ExpectedParamType.IAbstractCommand ? "Command" : "Event";
                                     monitor.Info( $"Method {CrisType.MethodName( m, parameters )}: parameter '{parameter.Name}' is " +
                                                 $"a 'I{typ}Part' but no {typ} of type '{parameter.ParameterType:C}' exist. " +
                                                 $"It is ignored." );

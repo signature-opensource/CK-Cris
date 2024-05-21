@@ -7,7 +7,7 @@ namespace CK.Setup.Cris
 {
 
     /// <summary>
-    /// Applies to <see cref="CrisHandlerKind.CommandIncomingValidator"/>, <see cref="CrisHandlerKind.CommandHandlingValidator"/>,
+    /// Applies to <see cref="CrisHandlerKind.IncomingValidator"/>, <see cref="CrisHandlerKind.CommandHandlingValidator"/>,
     /// <see cref="CrisHandlerKind.RoutedEventHandler"/>, <see cref="CrisHandlerKind.ConfigureAmbientServices"/> and
     /// <see cref="CrisHandlerKind.RestoreAmbientServices"/>.
     /// <para>
