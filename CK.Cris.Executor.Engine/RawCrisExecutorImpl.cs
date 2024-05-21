@@ -321,17 +321,18 @@ namespace CK.Setup.Cris
             {
                 f.Definition.Modifiers |= Modifiers.Async;
             }
-            f.Append( "try" )
+            f.Append( "var s = DIContainerHub_CK.GlobalServices;" ).NewLine()
+             .Append( "try" )
              .OpenBlock();
             var cachedServices = new VariableCachedServices( engineMap, f, hasMonitor: true );
             f.Append( "var hub = new AmbientServiceHub_CK();" ).NewLine();
             RawCrisReceiverImpl.GenerateMultiTargetCalls( f, e.AmbientServicesConfigurators, cachedServices, "hub" );
-            WriteReturn( f, requiresAsync, "null" );
+            WriteReturn( f, requiresAsync, "(null,hub)" );
             f.CloseBlock()
              .Append( "catch( Exception ex )" )
              .OpenBlock();
             f.Append( "var e = CK.Cris.RawCrisExecutor_CK.HandleCrisUnexpectedError( s, this, monitor, ex, null );" ).NewLine();
-            WriteReturn( f, requiresAsync, "e" );
+            WriteReturn( f, requiresAsync, "(e,null)" );
             f.CloseBlock();
 
             static void WriteReturn( IFunctionScope f, bool requiresAsync, string result )
@@ -342,7 +343,7 @@ namespace CK.Setup.Cris
                 }
                 else
                 {
-                    f.Append( "return ValueTask.FromResult<CK.Cris.ICrisResultError?>( " ).Append( result ).Append( " )" );
+                    f.Append( "return ValueTask.FromResult<(CK.Cris.ICrisResultError?,AmbientServiceHub?)>( " ).Append( result ).Append( " )" );
                 }
                 f.Append( ";" );
             }

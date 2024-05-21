@@ -94,9 +94,29 @@ namespace CK.Cris.Tests
                                                      typeof( IAmEvent ),
                                                      typeof( ITestAmbientValues ),
                                                      typeof( IAmbientValuesCollectCommand ) );
+            // no error: V1 is a string and V2 is an int.
             using var services = TestHelper.CreateAutomaticServices( c ).Services;
         }
 
+
+        public sealed class MissingAmbientServiceHub : ISingletonAutoService
+        {
+            [RestoreAmbientServices]
+            public void ConfigureCurrentCulture( IAmCommand cmd )
+            {
+            }
+        }
+
+        [Test]
+        public void missing_AmbientServiceHub_in_RestoreAmbientServices()
+        {
+            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
+                                                     typeof( IAmCommand ),
+                                                     typeof( MissingAmbientServiceHub ),
+                                                     typeof( ITestAmbientValues ) );
+            TestHelper.GetFailedAutomaticServicesConfiguration( c,
+                "[RestoreAmbientServices] method 'MissingAmbientServiceHub.ConfigureCurrentCulture( IAmCommand cmd )' must take a 'AmbientServiceHub' parameter to configure the ambient services." );
+        }
 
     }
 }

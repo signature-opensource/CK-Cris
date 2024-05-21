@@ -400,12 +400,12 @@ namespace CK.Setup.Cris
         }
 
         internal bool RegisterMultiTargetHandler( IActivityMonitor monitor,
-                                                   MultiTargetHandlerKind target,
-                                                   IStObjMap engineMap,
-                                                   IStObjFinalClass impl,
-                                                   MethodInfo m,
-                                                   string? fileName,
-                                                   int lineNumber )
+                                                  MultiTargetHandlerKind target,
+                                                  IStObjMap engineMap,
+                                                  IStObjFinalClass impl,
+                                                  MethodInfo m,
+                                                  string? fileName,
+                                                  int lineNumber )
         {
             bool expectCommands = target != MultiTargetHandlerKind.RoutedEventHandler;
             if( !GetCandidates( monitor,
@@ -440,9 +440,10 @@ namespace CK.Setup.Cris
                 Type? expectedArgumentType = target switch
                 {
                     MultiTargetHandlerKind.ConfigureAmbientServices => typeof( AmbientServiceHub ),
+                    MultiTargetHandlerKind.RestoreAmbientServices => typeof( AmbientServiceHub ),
                     MultiTargetHandlerKind.CommandIncomingValidator => typeof( UserMessageCollector ),
                     MultiTargetHandlerKind.CommandHandlingValidator => typeof( UserMessageCollector ),
-                    _ => null // MultiTargetHandlerKind.RoutedEventHandler or MultiTargetHandlerKind.RestoreAmbientServices.
+                    _ => null // MultiTargetHandlerKind.RoutedEventHandler.
                 };
 
                 foreach( var p in parameters )
@@ -482,23 +483,23 @@ namespace CK.Setup.Cris
                         }
                         if( target is MultiTargetHandlerKind.RestoreAmbientServices )
                         {
-                            // [RestoreAmbientServices] is the more restrictive: no scoped except the IActivityMonitor.
+                            // [RestoreAmbientServices] is the more restrictive: no scoped except the IActivityMonitor
+                            // and the AmbientServiceHub.
                             if( p.ParameterType != typeof( IActivityMonitor )
+                                && p.ParameterType != typeof( AmbientServiceHub )
                                 && engineMap.ToLeaf( p.ParameterType )?.IsScoped is not false )
                             {
-                                monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}': invalid parameter '{p.Name
-                                                }'. Only singleton services can be used to restore ambient services." );
+                                monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}': invalid parameter '{p.Name}'. Only singleton services can be used to restore ambient services." );
                                 success = false;
                             }
-
                         }
                     }
                 }
                 if( argumentParameter == null && expectedArgumentType != null )
                 {
-                    if( target is MultiTargetHandlerKind.ConfigureAmbientServices )
+                    if( target is MultiTargetHandlerKind.ConfigureAmbientServices or MultiTargetHandlerKind.RestoreAmbientServices )
                     {
-                        monitor.Error( $"[ConfigureAmbientServices] method '{CrisType.MethodName( m, parameters )}' must take a 'AmbientServiceHub' parameter to configure the ambient services." );
+                        monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}' must take a 'AmbientServiceHub' parameter to configure the ambient services." );
                     }
                     else
                     {

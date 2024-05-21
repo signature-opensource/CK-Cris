@@ -39,7 +39,7 @@ namespace CK.Setup.Cris
                                            bool isValAsync )
             : base( crisType, owner, method, parameters, fileName, lineNumber )
         {
-            Throw.DebugAssert( (argumentParameter == null) == (kind is CrisHandlerKind.RestoreAmbientServices or CrisHandlerKind.RoutedEventHandler) );
+            Throw.DebugAssert( argumentParameter != null );
             _kind = kind;
             ThisPocoParameter = thisPocoParameter;
             ArgumentParameter = argumentParameter;

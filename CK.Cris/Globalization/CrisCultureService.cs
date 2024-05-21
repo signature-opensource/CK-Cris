@@ -18,6 +18,7 @@ namespace CK.Cris
         }
 
         [ConfigureAmbientServices]
+        [RestoreAmbientServices]
         public void ConfigureCurrentCulture( ICommandWithCurrentCulture cmd, AmbientServiceHub ambientServices )
         {
             var n = cmd.CurrentCultureName;
