@@ -4,7 +4,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Globalization" Version="0.6.1--0015-develop" />
-    <PackageReference Include="CK.StObj.Model" Version="25.0.1--0155-develop" />
+    <PackageReference Include="CK.Globalization" Version="0.6.1--0016-develop" />
+    <PackageReference Include="CK.StObj.Model" Version="25.0.1--0157-develop" />
   </ItemGroup>
 </Project>
