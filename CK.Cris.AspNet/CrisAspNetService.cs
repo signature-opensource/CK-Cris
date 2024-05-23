@@ -3,7 +3,6 @@ using CK.Cris.AmbientValues;
 using CK.Poco.Exc.Json;
 using CK.Setup;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IO;
 using System;
@@ -11,15 +10,13 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using static CK.Core.CheckedWriteStream;
 
 namespace CK.Cris.AspNet
 {
-    [EndpointSingletonService]
+    [ContainerConfiguredSingletonService]
     [AlsoRegisterType( typeof( CrisDirectory ) )]
     [AlsoRegisterType( typeof( TypeScriptCrisCommandGenerator ) )]
     [AlsoRegisterType( typeof( CommonPocoJsonSupport ) )]

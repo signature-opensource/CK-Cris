@@ -38,6 +38,7 @@ namespace CK.Cris.AspNet.Tests
             {
                 collector.RegisterTypes( TestHelper.Monitor, new[] {
                     typeof( StdAuthenticationTypeSystem ),
+                    typeof( FakeUserDatabase ),
                     typeof( FakeWebFrontLoginService ),
                     typeof( CrisAuthenticationService ),
                     typeof( CrisCultureService ),

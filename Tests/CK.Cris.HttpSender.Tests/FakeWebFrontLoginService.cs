@@ -1,4 +1,4 @@
-﻿using CK.AspNet.Auth;
+using CK.AspNet.Auth;
 using CK.Auth;
 using CK.Core;
 using Microsoft.AspNetCore.Http;
@@ -16,22 +16,17 @@ namespace CK.Cris.HttpSender.Tests
     class FakeWebFrontLoginService : IWebFrontAuthLoginService
     {
         readonly IAuthenticationTypeSystem _typeSystem;
-        readonly List<IUserInfo> _users;
+        readonly FakeUserDatabase _userDB;
 
-        public FakeWebFrontLoginService( IAuthenticationTypeSystem typeSystem )
+        public FakeWebFrontLoginService( IAuthenticationTypeSystem typeSystem, FakeUserDatabase userDB )
         {
             _typeSystem = typeSystem;
-            _users = new List<IUserInfo>
-            {
-                // Albert and Alice are registered in Basic.
-                typeSystem.UserInfo.Create( 1, "System" ),
-                typeSystem.UserInfo.Create( 2, "Albert", new[] { new StdUserSchemeInfo( "Basic", DateTime.MinValue ) } ),
-                typeSystem.UserInfo.Create( 3, "Robert" ),
-                typeSystem.UserInfo.Create( 4, "Alice", new[] { new StdUserSchemeInfo( "Basic", DateTime.MinValue ) } )
-            };
+            _userDB = userDB;
         }
 
-        public IReadOnlyList<IUserInfo> AllUsers => _users;
+        // Waiting for .Net...10? (https://github.com/dotnet/runtime/issues/31001):
+        // IList<T> should be IReadOnlyList<T>. 
+        public IReadOnlyList<IUserInfo> AllUsers => _userDB.AllUsers.ToArray();
 
         public bool HasBasicLogin => true;
 
@@ -47,12 +42,12 @@ namespace CK.Cris.HttpSender.Tests
             IUserInfo? u = null;
             if( password == "success" )
             {
-                u = _users.FirstOrDefault( i => i.UserName == userName );
+                u = _userDB.AllUsers.FirstOrDefault( i => i.UserName == userName );
                 if( u != null && u.Schemes.Any( p => p.Name == "Basic" ) )
                 {
-                    _users.Remove( u );
+                    _userDB.AllUsers.Remove( u );
                     u = _typeSystem.UserInfo.Create( u.UserId, u.UserName, new[] { new StdUserSchemeInfo( "Basic", DateTime.UtcNow ) } );
-                    _users.Add( u );
+                    _userDB.AllUsers.Add( u );
                     return Task.FromResult( new UserLoginResult( u, 0, null, false ) );
                 }
             }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CK.AspNet.Auth.Cris
 {
-    [EndpointSingletonService]
+    [ContainerConfiguredSingletonService]
     public class CrisWebFrontAuthCommandHandler : ISingletonAutoService
     {
         readonly WebFrontAuthService _authService;

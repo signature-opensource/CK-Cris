@@ -12,7 +12,7 @@ namespace CK.Cris
     /// warnings.
     /// </para>
     /// </summary>
-    [EndpointScopedService]
+    [ContainerConfiguredScopedService]
     public interface ICrisEventContext : IScopedAutoService
     {
         /// <summary>

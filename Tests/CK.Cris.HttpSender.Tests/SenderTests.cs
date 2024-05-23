@@ -7,6 +7,7 @@ using CK.Cris.AmbientValues;
 using CK.Cris.AspNet;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.VisualStudio.TestPlatform.Common.Utilities;
 using NUnit.Framework;
 using System;
 using System.Diagnostics;
@@ -52,6 +53,8 @@ namespace CK.Cris.HttpSender.Tests
                                                 {
                                                     // We could have used the type registration above and
                                                     // benefit of the Automatic DI.
+                                                    services.AddSingleton<FakeUserDatabase>();
+                                                    services.AddSingleton<IUserInfoProvider>( sp => sp.GetRequiredService<FakeUserDatabase>() );
                                                     services.AddSingleton<FakeWebFrontLoginService>();
                                                     services.AddSingleton<IWebFrontAuthLoginService>( sp => sp.GetRequiredService<FakeWebFrontLoginService>() );
                                                 } );

@@ -1,19 +1,38 @@
 using CK.Core;
 using CK.Cris;
 using CK.Cris.AmbientValues;
+using System;
+using System.Threading.Tasks;
 
 namespace CK.Auth
 {
     /// <summary>
-    /// Authentication service registers <see cref="IAuthAmbientValues"/> (<c>ActorId</c>, <c>ActualActorId</c> and <c>DeviceId</c>)
-    /// and validates the <see cref="ICommandAuthUnsafe"/>, <see cref="ICommandAuthNormal"/>, <see cref="ICommandAuthCritical"/>, <see cref="ICommandAuthDeviceId"/>
-    /// and <see cref="ICommandAuthImpersonation"/>.
+    /// Authentication service handles the <see cref="IAuthUnsafePart"/>, <see cref="IAuthNormalPart"/>, <see cref="IAuthCriticalPart"/>, <see cref="IAuthDeviceIdPart"/>
+    /// and <see cref="IAuthImpersonationPart"/>.
+    /// <para>
+    /// These parts have [IncomingValidator] and [RestoreAmbientServices] handlers.
+    /// </para>
     /// </summary>
     /// <remarks>
     /// This default implementation may be specialized if needed.
+    /// <para>
+    /// This currently registers <see cref="IAuthAmbientValues"/> (<c>ActorId</c>, <c>ActualActorId</c> and <c>DeviceId</c>) but this is temporary:
+    /// IAmbientValues initialization will soon be handled by Default Implementation Methods.
+    /// </para>
     /// </remarks>
-    public class CrisAuthenticationService : IAutoService
+    public class CrisAuthenticationService : ISingletonAutoService
     {
+        readonly IAuthenticationTypeSystem _authenticationTypeSystem;
+        readonly IUserInfoProvider _userInfoProvider;
+
+        public CrisAuthenticationService( IAuthenticationTypeSystem authenticationTypeSystem, IUserInfoProvider userInfoProvider )
+        {
+            Throw.CheckNotNullArgument( authenticationTypeSystem );
+            Throw.CheckNotNullArgument( userInfoProvider );
+            _authenticationTypeSystem = authenticationTypeSystem;
+            _userInfoProvider = userInfoProvider;
+        }
+
         /// <summary>
         /// Fills the <see cref="IAuthAmbientValues"/> from the current <paramref name="authInfo"/>.
         /// </summary>
@@ -32,90 +51,136 @@ namespace CK.Auth
         /// Checks whether <see cref="IAuthNormalPart.ActorId"/> is the same as the current <see cref="IAuthenticationInfo.User"/>
         /// identifier and if not, emits an error in the message collector.
         /// <para>
-        /// If the command is marked with <see cref="ICommandAuthCritical"/>, the <see cref="IAuthenticationInfo.Level"/> must be
-        /// critical otherwise an error is emitted.
+        /// If the Poco is marked with <see cref="IAuthCriticalPart"/> (or <see cref="IAuthNormalPart"/>), the <see cref="IAuthenticationInfo.Level"/> must be
+        /// <see cref="AuthLevel.Critical"/> (resp. <see cref="AuthLevel.Normal"/>) otherwise an error is emitted.
         /// </para>
         /// </summary>
         /// <remarks>
-        /// Note that the command's ActorId must exactly match the current <see cref="IAuthenticationInfo.User"/>. 
+        /// Note that the Poco's ActorId must exactly match the current <see cref="IAuthenticationInfo.UnsafeUser"/>. 
         /// </remarks>
         /// <param name="c">The message collector.</param>
-        /// <param name="cmd">The command to validate.</param>
+        /// <param name="crisPoco">The command or event to validate.</param>
         /// <param name="info">The current authentication information.</param>
         [IncomingValidator]
-        public virtual void ValidateAuthenticatedPart( UserMessageCollector c, ICommandAuthUnsafe cmd, IAuthenticationInfo info )
+        public virtual void ValidateAuthenticatedPart( UserMessageCollector c, IAuthUnsafePart crisPoco, IAuthenticationInfo info )
         {
             // Temporary:
             // - This will be handled by Poco validation.
             // - The [AmbientServiceValue] is a INullInvalidAttribute, null will be rejected.
-            if( !cmd.ActorId.HasValue )
+            if( !crisPoco.ActorId.HasValue )
             {
                 c.Error( $"Invalid property: ActorId cannot be null." );
             }
-            else if( cmd.ActorId != info.UnsafeUser.UserId )
+            else if( crisPoco.ActorId != info.UnsafeUser.UserId )
             {
-                c.Error( "Invalid actor identifier: the command provided identifier doesn't match the current authentication." );
+                c.Error( "Invalid actor identifier: the provided identifier doesn't match the current authentication." );
             }
-            else if( cmd is ICommandAuthCritical )
+            else if( crisPoco is IAuthCriticalPart )
             {
                 if( info.Level != AuthLevel.Critical )
                 {
-                    c.Error( "Invalid authentication level: the command requires a Critical level." );
+                    c.Error( "Invalid authentication level: Critical authentication level required." );
                 }
             }
-            else if( cmd is ICommandAuthNormal )
+            else if( crisPoco is IAuthNormalPart )
             {
                 if( info.Level < AuthLevel.Normal )
                 {
-                    c.Error( "Invalid authentication level: the command requires a Normal level." );
+                    c.Error( "Invalid authentication level: Normal authentication level required." );
                 }
             }
         }
 
         /// <summary>
-        /// Checks whether <see cref="ICommandAuthDeviceId.DeviceId"/> is the same as the current <see cref="IAuthenticationInfo.DeviceId"/>
+        /// Checks whether <see cref="IAuthDeviceIdPart.DeviceId"/> is the same as the current <see cref="IAuthenticationInfo.DeviceId"/>
         /// and if not, emits an error in the message collector.
         /// </summary>
         /// <param name="c">The message collector.</param>
-        /// <param name="cmd">The command to validate.</param>
+        /// <param name="crisPoco">The command or event to validate.</param>
         /// <param name="info">The current authentication information.</param>
         [IncomingValidator]
-        public virtual void ValidateDevicePart( UserMessageCollector c, ICommandAuthDeviceId cmd, IAuthenticationInfo info )
+        public virtual void ValidateDevicePart( UserMessageCollector c, IAuthDeviceIdPart crisPoco, IAuthenticationInfo info )
         {
             // Temporary:
             // - This will be handled by Poco validation.
             // - The [AmbientServiceValue] is a INullInvalidAttribute, null will be rejected.
-            if( cmd.DeviceId == null )
+            if( crisPoco.DeviceId == null )
             {
-                c.Error( $"Invalid property: {nameof( ICommandAuthDeviceId.DeviceId )} cannot be null." );
+                c.Error( $"Invalid property: DeviceId cannot be null." );
             }
-            else if( cmd.DeviceId != info.DeviceId )
+            else if( crisPoco.DeviceId != info.DeviceId )
             {
                 c.Error( "Invalid device identifier: the command provided identifier doesn't match the current authentication." );
             }
         }
 
         /// <summary>
-        /// Checks whether <see cref="ICommandAuthImpersonation.ActualActorId"/> is the same as the current <see cref="IAuthenticationInfo.ActualUser"/>
+        /// Checks whether <see cref="IAuthImpersonationPart.ActualActorId"/> is the same as the current <see cref="IAuthenticationInfo.ActualUser"/>
         /// identifier and if not, emits an error in the message collector.
         /// </summary>
         /// <param name="c">The message collector.</param>
-        /// <param name="cmd">The command to validate.</param>
+        /// <param name="cmd">The command or event to validate.</param>
         /// <param name="info">The current authentication information.</param>
         [IncomingValidator]
-        public virtual void ValidateImpersonationPart( UserMessageCollector c, ICommandAuthImpersonation cmd, IAuthenticationInfo info )
+        public virtual void ValidateImpersonationPart( UserMessageCollector c, IAuthImpersonationPart cmd, IAuthenticationInfo info )
         {
             // Temporary:
             // - This will be handled by Poco validation.
             // - The [AmbientServiceValue] is a INullInvalidAttribute, null will be rejected.
-            if( !cmd.ActorId.HasValue )
+            if( !cmd.ActualActorId.HasValue )
             {
-                c.Error( $"Invalid property: {nameof( ICommandAuthImpersonation.ActualActorId )} cannot be null." );
+                c.Error( $"Invalid property: ActualActorId cannot be null." );
             }
             else if( cmd.ActualActorId != info.ActualUser.UserId )
             {
-                c.Error( "Invalid actual actor identifier: the command provided identifier doesn't match the current authentication." );
+                c.Error( "Invalid actual actor identifier: the provided identifier doesn't match the current authentication." );
             }
+        }
+
+        /// <summary>
+        /// Creates a <see cref="IAuthenticationInfo"/> from the different authentication parts that reflects them.
+        /// </summary>
+        /// <param name="monitor">The monitor to use.</param>
+        /// <param name="crisPoco">The command or event.</param>
+        /// <param name="hub">The ambient services hub.</param>
+        /// <returns>The awaitable.</returns>
+        [RestoreAmbientServices]
+        public virtual async ValueTask RestoreAsync( IActivityMonitor monitor, IAuthUnsafePart crisPoco, AmbientServiceHub hub )
+        {
+            Throw.CheckState( crisPoco.ActorId is not null );
+            IUserInfo user = await _userInfoProvider.GetUserInfoAsync( monitor, crisPoco.ActorId.Value ).ConfigureAwait( false );
+            IUserInfo? actualUser = user;
+            if( crisPoco is IAuthImpersonationPart imp )
+            {
+                Throw.CheckState( imp.ActualActorId is not null );
+                if( imp.ActualActorId.Value != user.UserId )
+                {
+                    actualUser = await _userInfoProvider.GetUserInfoAsync( monitor, crisPoco.ActorId.Value ).ConfigureAwait( false );
+                }
+            }
+            DateTime? expires = null;
+            DateTime? criticalExpires = null;
+            if( crisPoco is IAuthNormalPart )
+            {
+                expires = DateTime.UtcNow.AddDays( 30 );
+                if( crisPoco is IAuthCriticalPart )
+                {
+                    criticalExpires = expires;
+                }
+            }
+            var deviceId = crisPoco is IAuthDeviceIdPart d ? d.DeviceId : null;
+
+            var authInfo = _authenticationTypeSystem.AuthenticationInfo.Create( actualUser, expires, criticalExpires, deviceId );
+            if( user != actualUser )
+            {
+                authInfo =  authInfo.Impersonate( user );
+            }
+            Throw.DebugAssert( authInfo.Level == (crisPoco is IAuthCriticalPart
+                                                    ? AuthLevel.Critical
+                                                    : crisPoco is IAuthNormalPart
+                                                        ? AuthLevel.Normal
+                                                        : AuthLevel.None) );
+            hub.Override( authInfo );
         }
     }
 }
