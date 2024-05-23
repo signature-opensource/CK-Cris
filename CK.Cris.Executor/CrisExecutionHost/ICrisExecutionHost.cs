@@ -18,7 +18,7 @@ namespace CK.Cris
     public interface ICrisExecutionHost
     {
         /// <summary>
-        /// Gets or sets the number of parallel runners that handle the sumbitted commands.
+        /// Gets or sets the number of parallel runners that handle the submitted commands.
         /// It must be between 1 and 1000.
         /// </summary>
         int ParallelRunnerCount { get; set; }

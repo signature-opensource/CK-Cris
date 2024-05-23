@@ -119,12 +119,12 @@ namespace CK.Cris
                 if( error != null )
                 {
                     // Here we should ensure that the AsyncServiceScope has a null ServiceProvider.
-                    // Throw.CheckState( "AsyncServiceScope has not been obtained.", scoped == default );
+                    //  Throw.CheckState( "AsyncServiceScope has not been obtained.", scoped is default );
                     await job._executor.SetFinalResultAsync( monitor, job, error, ImmutableArray<UserMessage>.Empty, ImmutableArray<IEvent>.Empty );
                     return;
                 }
                 isScopedCreated = true;
-                // Configure the data for the DI endpoint: the monitor
+                // Configure the data for the DI container: the monitor
                 // is the one of the calling runner and the ExecutionContext
                 // is bound to the new scoped service.
                 job._runnerMonitor = monitor;

@@ -12,11 +12,13 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\CK.Cris.AspNet.Auth.Basic\CK.Cris.AspNet.Auth.Basic.csproj" />
-    <ProjectReference Include="..\..\CK.Cris.Auth\CK.Cris.Auth.csproj" />
     <ProjectReference Include="..\..\CK.Cris.AspNet.Engine\CK.Cris.AspNet.Engine.csproj" />
     <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
     <ProjectReference Include="..\..\CK.Cris.HttpSender\CK.Cris.HttpSender.csproj" />
     <ProjectReference Include="..\..\CK.Testing.CrisAspNetEngine\CK.Testing.CrisAspNetEngine.csproj" />
+    <!-- This project tests Basic login and DelayedCommand. -->
+    <ProjectReference Include="..\..\CK.Cris.AspNet.Auth.Basic\CK.Cris.AspNet.Auth.Basic.csproj" />
+    <ProjectReference Include="..\..\CK.Cris.Auth\CK.Cris.Auth.csproj" />
+    <ProjectReference Include="..\..\CK.Cris.DelayedCommand\CK.Cris.DelayedCommand.csproj" />
   </ItemGroup>
 </Project>

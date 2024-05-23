@@ -1,20 +1,8 @@
 using CK.Auth;
 using CK.Core;
-using System;
 
 namespace CK.Cris.HttpSender.Tests
 {
-    public interface ITotalResult : ICommandStandardResult
-    {
-        int ActorId { get; set; }
-        string CultureName { get; set; }
-    }
-
-    public interface ITotalCommand : ICommand<ITotalResult>, ICommandWithCurrentCulture, CK.Auth.ICommandAuthNormal
-    {
-        string? Action { get; set; }
-    }
-
     public sealed class TotalCommandService : ISingletonAutoService
     {
         [CommandHandlingValidator]
@@ -46,5 +34,4 @@ namespace CK.Cris.HttpSender.Tests
             }
         }
     }
-
 }
