@@ -126,7 +126,7 @@ namespace CK.Cris.HttpSender.Tests
             await sender.SendOrThrowAsync( TestHelper.Monitor, fullCommand );
             FullCommandService.Messages.Single().Should().Match( "n°1-Albert-Albert-22-en-*" );
 
-             Delayed command now.
+            // Delayed command now.
             var delayed = callerPoco.Create<IDelayedCommand>();
             delayed.Command = fullCommand;
             delayed.ExecutionDate = DateTime.UtcNow.AddMilliseconds( 150 );
