@@ -45,6 +45,11 @@ namespace CK.Auth
         DateTime? CriticalExpires { get; set; }
 
         /// <summary>
+        /// See <see cref="IAuthenticationInfo.DeviceId"/>.
+        /// </summary>
+        string DeviceId { get; set; }
+
+        /// <summary>
         /// Initializes this Poco from an actual <see cref="IAuthenticationInfo"/>.
         /// </summary>
         /// <param name="info">The actual information.</param>
@@ -58,6 +63,7 @@ namespace CK.Auth
             Level = info.Level;
             Expires = info.Expires;
             CriticalExpires = info.CriticalExpires;
+            DeviceId = info.DeviceId;
         }
     }
 }
