@@ -3,7 +3,7 @@
 namespace CK.Cris
 {
     /// <summary>
-    /// Retrieves <see cref="ICommandWithCurrentCulture.CurrentCultureName"/> value.
+    /// Retrieves <see cref="ICommandCurrentCulture.CurrentCultureName"/> value.
     /// </summary>
     public interface ICultureAmbientValues : IAmbientValues
     {

@@ -6,7 +6,7 @@ namespace CK.Cris
     /// Command part that specifies the <see cref="CurrentCultureInfo"/> that must be available
     /// when validating and handling the command.
     /// </summary>
-    public interface ICommandWithCurrentCulture : ICommandPart, ICurrentCulturePart
+    public interface ICommandCurrentCulture : ICommandPart, ICurrentCulturePart
     {
     }
 

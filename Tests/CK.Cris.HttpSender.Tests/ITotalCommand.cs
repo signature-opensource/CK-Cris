@@ -1,6 +1,6 @@
-﻿namespace CK.Cris.HttpSender.Tests
+namespace CK.Cris.HttpSender.Tests
 {
-    public interface ITotalCommand : ICommand<ITotalResult>, ICommandWithCurrentCulture, CK.Auth.ICommandAuthNormal
+    public interface ITotalCommand : ICommand<ITotalResult>, ICommandCurrentCulture, CK.Auth.ICommandAuthNormal
     {
         string? Action { get; set; }
     }

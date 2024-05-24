@@ -140,7 +140,7 @@ namespace CK.Cris.Executor.Tests
                 new[] { "'int Something { get; set; }'" } );
         }
 
-        public interface ICultureCommand : ICommandWithCurrentCulture
+        public interface ICultureCommand : ICommandCurrentCulture
         {
         }
 

@@ -13,10 +13,10 @@ namespace CK.Cris.AspNet.Tests
     public class CommandWithCurrentCultureTests
     {
         /// <summary>
-        /// Secondary <see cref="ICommandWithCurrentCulture"/> that adds a IsValid property.
+        /// Secondary <see cref="ICommandCurrentCulture"/> that adds a IsValid property.
         /// </summary>
         [ExternalName( "TestCommand" )]
-        public interface ITestCommand : ICommand<string>, ICommandWithCurrentCulture
+        public interface ITestCommand : ICommand<string>, ICommandCurrentCulture
         {
             /// <summary>
             /// Gets or sets whether this is a valid incoming command.
