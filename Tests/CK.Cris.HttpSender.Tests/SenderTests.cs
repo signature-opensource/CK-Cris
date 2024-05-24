@@ -7,7 +7,6 @@ using CK.Cris.AmbientValues;
 using CK.Cris.AspNet;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.VisualStudio.TestPlatform.Common.Utilities;
 using NUnit.Framework;
 using System;
 using System.Diagnostics;
@@ -17,6 +16,8 @@ using static CK.Testing.StObjEngineTestHelper;
 
 namespace CK.Cris.HttpSender.Tests
 {
+
+
 
     [TestFixture]
     public class SenderTests
@@ -76,7 +77,7 @@ namespace CK.Cris.HttpSender.Tests
                                          typeof( ApplicationIdentityService ),
                                          typeof( CrisHttpSenderFeatureDriver )};
 
-            await using var runningCaller = await CreateRunningCallerAsync( serverAddress, callerServices, generateSourceCode: false );
+            await using var runningCaller = await TestHelper.CreateRunningCallerAsync( serverAddress, callerServices, generateSourceCode: false );
 
             var callerPoco = runningCaller.Services.GetRequiredService<PocoDirectory>();
             var sender = runningCaller.ApplicationIdentityService.Remotes
@@ -216,7 +217,7 @@ namespace CK.Cris.HttpSender.Tests
                                          typeof( ApplicationIdentityService ),
                                          typeof( ApplicationIdentityServiceConfiguration ),
                                          typeof( CrisHttpSenderFeatureDriver )};
-            await using var runningCaller = await CreateRunningCallerAsync( "http://[::1]:65036/", callerServices );
+            await using var runningCaller = await TestHelper.CreateRunningCallerAsync( "http://[::1]:65036/", callerServices );
             var callerPoco = runningCaller.Services.GetRequiredService<PocoDirectory>();
             var sender = runningCaller.ApplicationIdentityService.Remotes
                                                     .Single( r => r.PartyName == "$Server" )
@@ -237,43 +238,6 @@ namespace CK.Cris.HttpSender.Tests
                     .And.Contain( """Request failed on 'Domain/$Server/#Dev' (attempt n°2).""" )
                     .And.Contain( """While sending: ["CK.Cris.HttpSender.Tests.IBeautifulCommand",{"beauty":"Marvellous","waitTime":0,"color":"Black"}]""" );
             }
-        }
-
-
-        static Task<ApplicationIdentityTestHelperExtension.RunningAppIdentity> CreateRunningCallerAsync( string serverAddress,
-                                                                                                         Type[] registerTypes,
-                                                                                                         Action<MutableConfigurationSection>? configuration = null,
-                                                                                                         bool generateSourceCode = true )
-        {
-            var callerCollector = TestHelper.CreateStObjCollector( registerTypes );
-            var callerMap = TestHelper.CompileAndLoadStObjMap( callerCollector, engineConfigurator: c =>
-            {
-                c.BinPaths[0].GenerateSourceFiles = generateSourceCode;
-                return c;
-            } ).Map;
-
-            return TestHelper.CreateRunningAppIdentityServiceAsync(
-                c =>
-                {
-                    c["FullName"] = "Domain/$Caller";
-                    c["Parties:0:FullName"] = "Domain/$Server";
-                    c["Parties:0:Address"] = serverAddress;
-                    if( Debugger.IsAttached )
-                    {
-                        // One hour timeout when Debugger.IsAttached.
-                        c["Parties:0:CrisHttpSender:Timeout"] = "00:01:00";
-                    }
-                    else
-                    {
-                        // Otherwise use the default 1 minute timeout.
-                        c["Parties:0:CrisHttpSender"] = "true";
-                    }
-                    configuration?.Invoke( c );
-                },
-                services =>
-                {
-                    services.AddStObjMap( TestHelper.Monitor, callerMap );
-                } );
         }
 
     }

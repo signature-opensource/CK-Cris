@@ -39,10 +39,10 @@ namespace CK.Cris
                 bool hasMore = false;
                 while( _memoryStore.TryPeek( out var ready, out var date ) )
                 {
-                    var delta = (long)(GetUtcNow() - date).TotalMilliseconds;
+                    var delta = (long)(date - GetUtcNow()).TotalMilliseconds;
                     if( delta <= 0 )
                     {
-                        var executing = _backgroundExecutorService.Submit( ready.C, ambientServiceHub: null, ready.T );
+                        var executing = _backgroundExecutorService.Submit( ready.C, ambientServiceHub: null, ready.T, incomingValidationCheck: false );
                         _memoryStore.Dequeue();
                         OnCommandSubmitted( ready.S, executing );
                     }
@@ -95,7 +95,7 @@ namespace CK.Cris
                 if( command.ExecutionDate < _nextDate )
                 {
                     _nextDate = command.ExecutionDate;
-                    var delta = (long)(GetUtcNow() - _nextDate).TotalMilliseconds;
+                    var delta = (long)(_nextDate - GetUtcNow()).TotalMilliseconds;
                     if( delta <= 0 ) delta = 0;
                     else if( delta > _maxTimer ) delta = _maxTimer;
                     _timer.Change( (uint)delta, 0 );
