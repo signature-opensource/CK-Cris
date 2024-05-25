@@ -16,6 +16,7 @@ using static CK.Testing.StObjEngineTestHelper;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Threading;
 
 namespace CK.Cris.HttpSender.Tests
 {
@@ -47,7 +48,8 @@ namespace CK.Cris.HttpSender.Tests
     public class DelayedCommandTests
     {
         [Test]
-        public async Task simple_delayed_command_Async()
+        [CancelAfter(4000)]
+        public async Task simple_delayed_command_Async( CancellationToken cancellation )
         {
             // We need the fr culture for this test.
             NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
@@ -111,7 +113,7 @@ namespace CK.Cris.HttpSender.Tests
                 c.UserName = "Albert";
                 c.Password = "success";
             } );
-            var loginAlbert = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, loginCommand );
+            var loginAlbert = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, loginCommand, cancellationToken: cancellation );
             loginAlbert.Info.User.UserName.Should().Be( "Albert" );
 
             // IFullCommand requires Normal authentication. 
@@ -123,7 +125,7 @@ namespace CK.Cris.HttpSender.Tests
             fullCommand.DeviceId = loginAlbert.Info.DeviceId;
 
             // Baseline: Albert (null current culture name): this is executed in the Global DI context.
-            await sender.SendOrThrowAsync( TestHelper.Monitor, fullCommand );
+            await sender.SendOrThrowAsync( TestHelper.Monitor, fullCommand, cancellationToken: cancellation );
             FullCommandService.Messages.Single().Should().Match( "n°1-Albert-Albert-22-en-*" );
 
             // Delayed command now.
@@ -132,12 +134,15 @@ namespace CK.Cris.HttpSender.Tests
             delayed.ExecutionDate = DateTime.UtcNow.AddMilliseconds( 150 );
 
             FullCommandService.Messages.Clear();
-            await sender.SendOrThrowAsync( TestHelper.Monitor, delayed );
-            await Task.Delay( 25000000 );
+            await sender.SendOrThrowAsync( TestHelper.Monitor, delayed, cancellationToken: cancellation );
+            while( FullCommandService.Messages.IsEmpty )
+            {
+                await Task.Delay( 50, cancellation );
+            }
             FullCommandService.Messages.Single().Should().Match( "n°1-Albert-Albert-22-en-*" );
 
             fullCommand.DeviceId = "not-the-device-id";
-            var executedCommand = await sender.SendAsync( TestHelper.Monitor, delayed );
+            var executedCommand = await sender.SendAsync( TestHelper.Monitor, delayed, cancellationToken: cancellation );
             var error = executedCommand.Result as ICrisResultError;
             Throw.DebugAssert( error != null );
             error = (ICrisResultError)executedCommand.Result!;
@@ -145,10 +150,10 @@ namespace CK.Cris.HttpSender.Tests
             error.Errors[0].Text.Should().StartWith( "Invalid device identifier: " );
 
             // Logout.
-            await sender.SendOrThrowAsync( TestHelper.Monitor, callerPoco.Create<ILogoutCommand>() );
+            await sender.SendOrThrowAsync( TestHelper.Monitor, callerPoco.Create<ILogoutCommand>(), cancellationToken: cancellation );
 
             // No more allowed.
-            executedCommand = await sender.SendAsync( TestHelper.Monitor, delayed );
+            executedCommand = await sender.SendAsync( TestHelper.Monitor, delayed, cancellationToken: cancellation );
             error = executedCommand.Result as ICrisResultError;
             Throw.DebugAssert( error != null );
             error = (ICrisResultError)executedCommand.Result!;
