@@ -21,7 +21,7 @@ namespace CK.Cris
     {
         /// <summary>
         /// Restores the ambient services hub by calling the [RestoreAmbientService] methods for the command, event or its parts.
-        /// This does nothing if <see cref="ICrisPocoModel.BackgroundMustRestoreServices"/> is false (null error and hub is returned).
+        /// This does nothing if <see cref="ICrisPocoModel.BackgroundMustRestoreServices"/> is false (null error and null hub are returned).
         /// <para>
         /// This must be called before executing the command or handling the event in a background context.
         /// </para>

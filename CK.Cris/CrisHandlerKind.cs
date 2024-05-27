@@ -39,7 +39,7 @@ namespace CK.Cris
         CommandPostHandler,
 
         /// <summary>
-        /// Handles a <see cref="IEvent"/> decorated with a <see cref="RouredEventAttribute"/>.
+        /// Handles a <see cref="IEvent"/> decorated with a <see cref="RoutedEventAttribute"/>.
         /// </summary>
         RoutedEventHandler
     }

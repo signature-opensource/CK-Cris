@@ -5,7 +5,7 @@ namespace CK.Cris
 {
     /// <summary>
     /// An executed command carries the <see cref="Command"/> (a <see cref="ICommand"/> or <see cref="ICommand{TResult}"/>),
-    /// its <see cref="Result"/> and can have non empty <see cref="Events"/> on success.
+    /// its <see cref="Result"/>, the <see cref="ValidationMessages"/> and can have non empty <see cref="Events"/> on success.
     /// </summary>
     public interface IExecutedCommand
     {

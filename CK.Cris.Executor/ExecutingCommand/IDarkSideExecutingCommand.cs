@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace CK.Cris
 {
     /// <summary>
-    /// Is the name clear enough? This is the internal side of a <see cref="IExecutedCommand"/> that
+    /// Is the name clear enough? This is the internal side of a <see cref="IExecutingCommand"/> that
     /// must be used by command executor to applies the execution steps on the command.
     /// </summary>
     public interface IDarkSideExecutingCommand
@@ -27,8 +27,9 @@ namespace CK.Cris
         /// </summary>
         /// <param name="result">The command result.</param>
         /// <param name="validationMessages">The optional validation messages.</param>
-        /// <param name="events">Rooted events raised by the command.</param>
-        void SetResult( object? result, ImmutableArray<UserMessage> validationMessages, ImmutableArray<IEvent> events );
+        /// <param name="events">Routed events raised by the command.</param>
+        /// <returns>The executed command.</returns>
+        IExecutedCommand SetResult( object? result, ImmutableArray<UserMessage> validationMessages, ImmutableArray<IEvent> events );
 
     }
 

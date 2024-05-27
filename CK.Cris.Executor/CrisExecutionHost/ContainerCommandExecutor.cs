@@ -79,11 +79,18 @@ namespace CK.Cris
         /// </summary>
         /// <param name="monitor">The monitor.</param>
         /// <param name="job">The executed job.</param>
+        /// <param name="result">The final command result.</param>
+        /// <param name="validationMessages">Validation messages if any.</param>
         /// <param name="events">Non empty events raised by the command execution.</param>
-        /// <param name="r">The final command result.</param>
         /// <returns>The awaitable.</returns>
-        internal protected virtual Task SetFinalResultAsync( IActivityMonitor monitor, CrisJob job, object? result, ImmutableArray<UserMessage> validationMessages, ImmutableArray<IEvent> events ) => Task.CompletedTask;
-
+        internal protected virtual Task SetFinalResultAsync( IActivityMonitor monitor,
+                                                             CrisJob job,
+                                                             object? result,
+                                                             ImmutableArray<UserMessage> validationMessages,
+                                                             ImmutableArray<IEvent> events )
+        {
+            return Task.CompletedTask;
+        }
     }
 
 }

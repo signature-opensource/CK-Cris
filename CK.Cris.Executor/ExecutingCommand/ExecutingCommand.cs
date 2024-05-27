@@ -67,9 +67,11 @@ namespace CK.Cris
             return _immediate.AddAndRaiseAsync( monitor, e );
         }
 
-        void IDarkSideExecutingCommand.SetResult(object? result, ImmutableArray<UserMessage> validationMessages, ImmutableArray<IEvent> events)
+        IExecutedCommand IDarkSideExecutingCommand.SetResult(object? result, ImmutableArray<UserMessage> validationMessages, ImmutableArray<IEvent> events)
         {
-            _completion.SetResult( Create( result, validationMessages, events ) );
+            IExecutedCommand cmd = Create( result, validationMessages, events );
+            _completion.SetResult( cmd );
+            return cmd;
         }
 
         private protected virtual IExecutedCommand Create( object? result, ImmutableArray<UserMessage> validationMessages, ImmutableArray<IEvent> events )

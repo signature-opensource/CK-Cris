@@ -1,5 +1,7 @@
 using CK.Core;
 using CK.PerfectEvent;
+using System.Collections.Immutable;
+using System.Threading.Tasks;
 
 namespace CK.Cris
 {
@@ -95,5 +97,13 @@ namespace CK.Cris
         /// This is null until a runner starts the execution of the command.
         /// </summary>
         public ICrisCommandContext? ExecutionContext => _executionContext;
+
+
+        internal Task SetFinalResultAsync( IActivityMonitor monitor, object? result, ImmutableArray<UserMessage> validationMessages, ImmutableArray<IEvent> events )
+        {
+            _executingCommand?.DarkSide.SetResult( result, validationMessages, events );
+            return _executor.SetFinalResultAsync( monitor, this, result, validationMessages, events );
+        }
+
     }
 }

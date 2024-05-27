@@ -6,21 +6,20 @@ using System.Reflection;
 
 namespace CK.Cris
 {
-
     /// <summary>
     /// Describes command properties and its unique and zero-based index in a context.
     /// </summary>
     public interface ICrisPocoModel
     {
         /// <summary>
-        /// Gets the command type: this is the final type that implements the <see cref="ICrisPoco"/> object.
-        /// </summary>
-        Type CommandType { get; }
-
-        /// <summary>
         /// Gets the kind of Cris Poco object.
         /// </summary>
         CrisPocoKind Kind { get; }
+
+        /// <summary>
+        /// Gets the command type: this is the final type that implements the <see cref="ICrisPoco"/> object.
+        /// </summary>
+        Type CommandType { get; }
 
         /// <summary>
         /// Creates a new <see cref="ICommand"/>, <see cref="ICommand{TResult}"/> or <see cref="IEvent"/> instance.
@@ -53,7 +52,7 @@ namespace CK.Cris
         /// being executed in a endpoint context (at least one [ConfigureAmbientService] method exists for it).
         /// <para>
         /// This applies to incoming command: when true it means that the receiving endpoint context services
-        /// are not adapted to the execution of the command and that it must be executed in a correctly configured
+        /// may not be adapted to the execution of the command and that it may be executed in a correctly configured
         /// background context.
         /// </para>
         /// </summary>
@@ -125,7 +124,7 @@ namespace CK.Cris
 
         /// <summary>
         /// Gets all the <see cref="IHandler"/> for this command or event.
-        /// When empty, no handler has been found and the command or events cannot
+        /// When empty, no handler has been found and the command or event cannot
         /// be executed in this process.
         /// </summary>
         ImmutableArray<IHandler> Handlers { get; }
