@@ -228,14 +228,14 @@ namespace CK.Setup.Cris
 
         internal static string MethodName( MethodInfo m, ParameterInfo[]? parameters = null ) => $"{m.DeclaringType!.Name}.{m.Name}( {(parameters ?? m.GetParameters()).Select( p => p.ParameterType.Name + " " + p.Name ).Concatenate()} )";
 
-        internal bool AddHandler( IActivityMonitor monitor,
-                                  IStObjFinalClass owner,
-                                  MethodInfo method,
-                                  ParameterInfo[] parameters,
-                                  ParameterInfo parameter,
-                                  bool isClosedHandler,
-                                  string? fileName,
-                                  int lineNumber )
+        internal bool AddCommandHandler( IActivityMonitor monitor,
+                                         IStObjFinalClass owner,
+                                         MethodInfo method,
+                                         ParameterInfo[] parameters,
+                                         ParameterInfo parameter,
+                                         bool isClosedHandler,
+                                         string? fileName,
+                                         int lineNumber )
         {
             var (unwrappedReturnType, isRefAsync, isValAsync) = GetReturnParameterInfo( method );
 
@@ -306,6 +306,7 @@ namespace CK.Setup.Cris
                                              ParameterInfo[] parameters,
                                              ParameterInfo cmdOrPartParameter,
                                              ParameterInfo? argumentParameter,
+                                             ParameterInfo? argumentParameter2,
                                              string? fileName,
                                              int lineNumber )
         {
@@ -331,6 +332,7 @@ namespace CK.Setup.Cris
                                                         lineNumber,
                                                         cmdOrPartParameter,
                                                         argumentParameter,
+                                                        argumentParameter2,
                                                         isRefAsync,
                                                         isValAsync ) );
             }

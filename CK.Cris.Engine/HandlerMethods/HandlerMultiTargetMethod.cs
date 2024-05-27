@@ -8,12 +8,17 @@ namespace CK.Setup.Cris
 
     /// <summary>
     /// Applies to <see cref="CrisHandlerKind.IncomingValidator"/>, <see cref="CrisHandlerKind.CommandHandlingValidator"/>,
-    /// <see cref="CrisHandlerKind.RoutedEventHandler"/>, <see cref="CrisHandlerKind.ConfigureAmbientServices"/> and
-    /// <see cref="CrisHandlerKind.RestoreAmbientServices"/>.
+    /// <see cref="CrisHandlerKind.ConfigureAmbientServices"/> and <see cref="CrisHandlerKind.RestoreAmbientServices"/>
+    /// (<see cref="CrisHandlerKind.RoutedEventHandler"/> use the <see cref="HandlerRoutedEventMethod"/>).
     /// <para>
-    /// This is a void async or not method with a parameter that is the command, event or part
-    /// and an expected argument (<see cref="UserMessageCollector"/> for validators, <see cref="AmbientServiceHub"/> for configure)
-    /// or no argument for RestoreAmbientServices and RoutedEventHandler.
+    /// This is a void (async or not) method with a parameter that is the command, event or part and 1 or 2 specific arguments:
+    /// <list type="bullet">
+    ///     <item>Command validators have a <see cref="UserMessageCollector"/>.</item>
+    ///     <item>Ambient services configurators and restores have a <see cref="AmbientServiceHub"/>.</item>
+    ///     <item>
+    ///     Incoming validators have <see cref="UserMessageCollector"/> and/or a <see cref="ICrisIncomingValidationContext"/>.
+    ///     </item>
+    /// </list>
     /// </para>
     /// Other parameters are resolved from a IServiceProvider.
     /// </summary>
@@ -22,6 +27,7 @@ namespace CK.Setup.Cris
         public override CrisHandlerKind Kind => _kind;
         public readonly ParameterInfo ThisPocoParameter;
         public readonly ParameterInfo? ArgumentParameter;
+        public readonly ParameterInfo? ArgumentParameter2;
         public readonly bool IsRefAsync;
         public readonly bool IsValAsync;
         readonly CrisHandlerKind _kind;
@@ -35,14 +41,16 @@ namespace CK.Setup.Cris
                                            int lineNumber,
                                            ParameterInfo thisPocoParameter,
                                            ParameterInfo? argumentParameter,
+                                           ParameterInfo? argumentParameter2,
                                            bool isRefAsync,
                                            bool isValAsync )
             : base( crisType, owner, method, parameters, fileName, lineNumber )
         {
-            Throw.DebugAssert( argumentParameter != null );
+            Throw.DebugAssert( argumentParameter != null || argumentParameter2 != null );
             _kind = kind;
             ThisPocoParameter = thisPocoParameter;
             ArgumentParameter = argumentParameter;
+            ArgumentParameter2 = argumentParameter2;
             IsRefAsync = isRefAsync;
             IsValAsync = isValAsync;
         }

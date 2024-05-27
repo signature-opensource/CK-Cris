@@ -2,7 +2,6 @@ using CK.Core;
 using CK.Setup;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 
@@ -23,6 +22,65 @@ namespace CK.Cris
     [AlsoRegisterType( typeof( CurrentCultureInfo ) )]
     public abstract class RawCrisReceiver : ISingletonAutoService
     {
+        /// <summary>
+        /// Generated code infrastructure.
+        /// </summary>
+        public interface ICrisReceiverImpl
+        {
+            /// <summary>
+            /// Use Default Implementation Method when no incoming validator exists and no AmbientServiceHub is nedded. 
+            /// </summary>
+            /// <param name="c">The context.</param>
+            /// <returns>The awaitable.</returns>
+            ValueTask IncomingValidateAsync( ValidationContext c ) => ValueTask.CompletedTask;
+        }
+
+        /// <summary>
+        /// Generated code infrastructure.
+        /// </summary>
+        public sealed class ValidationContext : ICrisIncomingValidationContext
+        {
+            readonly UserMessageCollector _messages;
+            readonly IActivityMonitor _monitor;
+            readonly IServiceProvider _services;
+            AmbientServiceHub? _hub;
+
+            internal ValidationContext( IActivityMonitor monitor, IServiceProvider services, UserMessageCollector messages )
+            {
+                _messages = messages;
+                _monitor = monitor;
+                _services = services;
+            }
+
+            /// <inheritdoc />
+            public UserMessageCollector Messages => _messages;
+
+            /// <inheritdoc />
+            public ValueTask ValidateAsync( ICrisPoco crisPoco )
+            {
+                Throw.CheckNotNullArgument( crisPoco );
+                return ((ICrisReceiverImpl)crisPoco).IncomingValidateAsync( this );
+            }
+
+            /// <summary>
+            /// Gets the monitor.
+            /// </summary>
+            public IActivityMonitor Monitor => _monitor;
+
+            /// <summary>
+            /// Gets the service provider.
+            /// </summary>
+            public IServiceProvider Services => _services;
+
+            /// <summary>
+            /// Ensured that a hub exists.
+            /// </summary>
+            /// <returns>The hub.</returns>
+            public AmbientServiceHub EnsureHub() => _hub ??= _services.GetRequiredService<AmbientServiceHub>().CleanClone();
+
+            internal AmbientServiceHub? GetFinalHub() => _hub == null || !_hub.IsDirty ? null : _hub;
+        }
+
         /// <summary>
         /// Validates a command or an event by calling all the discovered [IncomingValidator] validators and
         /// on success, if any [ConfigureAmbientService] exist for the command or event, executes them to return
@@ -53,16 +111,18 @@ namespace CK.Cris
             try
             {
                 currentCulture = HandleCulture( monitor, services, crisPoco, currentCulture );
-                var c = new UserMessageCollector( currentCulture );
-                var hub = await DoIncomingValidateAsync( monitor, c, services, crisPoco );
-                if( c.ErrorCount > 0 )
+                var messages = new UserMessageCollector( currentCulture );
+                var context = new ValidationContext( monitor, services, messages );
+                await context.ValidateAsync( crisPoco );
+                if( messages.ErrorCount > 0 )
                 {
-                    string logKey = LogValidationError( monitor, crisPoco, c, "incoming", logGroup );
-                    return new CrisValidationResult( c.UserMessages, null, logKey );
+                    string logKey = LogValidationError( monitor, crisPoco, messages, "incoming", logGroup );
+                    return new CrisValidationResult( messages.UserMessages, null, logKey );
                 }
-                return c.UserMessages.Count == 0
+                var hub = context.GetFinalHub();
+                return messages.UserMessages.Count == 0
                         ? (hub == null ? CrisValidationResult.SuccessResult : new CrisValidationResult( hub, null ))
-                        : new CrisValidationResult( c.UserMessages, hub, null );
+                        : new CrisValidationResult( messages.UserMessages, hub, null );
             }
             catch( Exception ex )
             {
@@ -74,7 +134,7 @@ namespace CK.Cris
 
         static CurrentCultureInfo HandleCulture( IActivityMonitor monitor, IServiceProvider services, ICrisPoco crisPoco, CurrentCultureInfo? currentCulture )
         {
-            if( crisPoco is ICurrentCulturePart cC && !String.IsNullOrWhiteSpace( cC.CurrentCultureName ) )
+            if( crisPoco is ICurrentCulturePart cC && !string.IsNullOrWhiteSpace( cC.CurrentCultureName ) )
             {
                 // Do not use EnsureExtendedCultureInfo here. We don't want to be flood by random strings
                 // that will damage the cache.
@@ -88,8 +148,7 @@ namespace CK.Cris
                     monitor.Warn( $"Unexisting CurrentCultureName '{cC.CurrentCultureName}' while validating command '{crisPoco.CrisPocoModel.PocoName}'. Ignoring it." );
                 }
             }
-            currentCulture ??= services.GetRequiredService<CurrentCultureInfo>();
-            return currentCulture;
+            return currentCulture ?? services.GetRequiredService<CurrentCultureInfo>();
         }
 
         // Also used by Command validators.
@@ -112,20 +171,6 @@ namespace CK.Cris
             if( errorOpened ) monitor.CloseGroup();
             return logKey;
         }
-
-        /// <summary>
-        /// This method is automatically implemented by RawCrisReceiverImpl in CK.Cris.Executor.Engine.
-        /// </summary>
-        /// <param name="monitor">The monitor.</param>
-        /// <param name="validationContext">The user message collector.</param>
-        /// <param name="services">The service context from which any required dependencies must be resolved.</param>
-        /// <param name="crisPoco">The command or event to validate.</param>
-        /// <returns>The ambient service hub if it is needed.</returns>
-        protected abstract ValueTask<AmbientServiceHub?> DoIncomingValidateAsync( IActivityMonitor monitor,
-                                                                                  UserMessageCollector validationContext,
-                                                                                  IServiceProvider services,
-                                                                                  ICrisPoco crisPoco );
-
 
     }
 }

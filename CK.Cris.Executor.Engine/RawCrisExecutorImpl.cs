@@ -316,7 +316,7 @@ namespace CK.Setup.Cris
 
         static void CreateRestore( IStObjEngineMap engineMap, IFunctionScope f, CrisType e )
         {
-            bool requiresAsync = e.AmbientServicesConfigurators.AsyncHandlerCount > 0;
+            bool requiresAsync = e.AmbientServicesRestorers.AsyncHandlerCount > 0;
             if( requiresAsync )
             {
                 f.Definition.Modifiers |= Modifiers.Async;
@@ -326,7 +326,7 @@ namespace CK.Setup.Cris
              .OpenBlock();
             var cachedServices = new VariableCachedServices( engineMap, f, hasMonitor: true );
             f.Append( "var hub = new AmbientServiceHub_CK();" ).NewLine();
-            RawCrisReceiverImpl.GenerateMultiTargetCalls( f, e.AmbientServicesConfigurators, cachedServices, "hub" );
+            RawCrisReceiverImpl.GenerateMultiTargetCalls( f, e.AmbientServicesRestorers, cachedServices, "hub" );
             WriteReturn( f, requiresAsync, "(null,hub)" );
             f.CloseBlock()
              .Append( "catch( Exception ex )" )

@@ -42,7 +42,7 @@ namespace CK.Cris
                     var delta = (long)(date - GetUtcNow()).TotalMilliseconds;
                     if( delta <= 0 )
                     {
-                        var executing = _backgroundExecutorService.Submit( ready.C, ambientServiceHub: null, ready.T, incomingValidationCheck: false );
+                        var executing = _backgroundExecutorService.Submit( ready.C, ambientServiceHub: null, ready.T, incomingValidationCheck: true );
                         _memoryStore.Dequeue();
                         OnCommandSubmitted( ready.S, executing );
                     }
@@ -124,29 +124,29 @@ namespace CK.Cris
         }
 
         /// <summary>
-        /// Checks that if <see cref="IDelayedCommand.AllowPastExecutionDate"/> is false, the <see cref="IDelayedCommand.ExecutionDate"/> is in the future.
+        /// Checks <see cref="IDelayedCommand.Command"/> is valid and that if <see cref="IDelayedCommand.AllowPastExecutionDate"/> is false,
+        /// the <see cref="IDelayedCommand.ExecutionDate"/> is in the future.
         /// </summary>
-        /// <param name="c">The message collector.</param>
+        /// <param name="c">The validation context.</param>
         /// <param name="command">The delayed command</param>
         [IncomingValidator]
-        public void ValidateCommand( UserMessageCollector c, IDelayedCommand command )
+        public ValueTask ValidateCommandAsync( ICrisIncomingValidationContext c, IDelayedCommand command )
         {
             // Temporary: [NullInvalid] will do the job.
             if( command.Command == null )
             {
-                c.Error( "Invalid null Command property." );
+                c.Messages.Error( "Invalid null Command property." );
+                return ValueTask.CompletedTask;
             }
-            else
+            if( !command.AllowPastExecutionDate )
             {
-                if( !command.AllowPastExecutionDate )
+                var now = GetUtcNow();
+                if( command.ExecutionDate < now )
                 {
-                    var now = GetUtcNow();
-                    if( command.ExecutionDate < now )
-                    {
-                        c.Error( $"Delayed command for '{command.Command.CrisPocoModel.PocoName}' is in past: ExecutionDate is '{command.ExecutionDate}', UtcNow is '{now}'." );
-                    }
+                    c.Messages.Error( $"Delayed command for '{command.Command.CrisPocoModel.PocoName}' is in past: ExecutionDate is '{command.ExecutionDate}', UtcNow is '{now}'." );
                 }
             }
+            return c.ValidateAsync( command.Command );
         }
 
         /// <summary>

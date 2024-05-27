@@ -31,10 +31,10 @@ namespace CK.Setup.Cris
         CrisType? Find( IPrimaryPocoType poco );
 
         /// <summary>
-        /// Gets whether a field (of a command) is an [AmbientServiceValue].
+        /// Gets whether a field (of a command or event) is an [AmbientServiceValue].
         /// </summary>
         /// <param name="field">The field to test.</param>
-        /// <returns>True if the field is an ubiquitous value.</returns>
+        /// <returns>True if the field is an ambient service value.</returns>
         bool IsAmbientServiceValueField( IPrimaryPocoField field );
     }
 

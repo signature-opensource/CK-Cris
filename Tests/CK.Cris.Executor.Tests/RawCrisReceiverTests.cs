@@ -2,11 +2,13 @@ using CK.Auth;
 using CK.Core;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using NUnit.Framework;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace CK.Cris.Executor.Tests
 {
@@ -245,9 +247,22 @@ namespace CK.Cris.Executor.Tests
         public class ValidatorWithLogs : IAutoService
         {
             [IncomingValidator]
+            public void IncomingValidateCommand( IActivityMonitor monitor, UserMessageCollector c, ITestCommand cmd )
+            {
+                monitor.Info( "I'm the (Incoming) ValidatorWithLogs." );
+            }
+
+            [CommandHandlingValidator]
             public void ValidateCommand( IActivityMonitor monitor, UserMessageCollector c, ITestCommand cmd )
             {
-                monitor.Info( "I'm the ValidatorWithLogs." );
+                monitor.Info( "I'm the (CommandHandling) ValidatorWithLogs." );
+            }
+
+            // Required handler to test the CommandHandlingValidator because when a command has no handler:
+            // ==> Command 'Test' is not handled. Forgetting 1 validator, 0 ambient service configurators, 0 ambient service restorers and 0 post handlers.
+            [CommandHandler]
+            public void HandleCommand( ITestCommand cmd )
+            {
             }
         }
 
@@ -255,12 +270,62 @@ namespace CK.Cris.Executor.Tests
         public async Task Validators_can_log_if_they_want_Async()
         {
             var c = TestHelper.CreateStObjCollector(
-                typeof( RawCrisReceiver ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
+                typeof( RawCrisReceiver ), typeof( RawCrisExecutor ), typeof( CrisDirectory ),
                 typeof( ITestCommand ),
                 typeof( ValidatorWithLogs ) );
 
+            using var appServices = TestHelper.CreateAutomaticServices( c, configureServices: services =>
+            {
+                services.Services.AddScoped<IActivityMonitor, ActivityMonitor>();
+                services.Services.AddScoped( sp => sp.GetRequiredService<IActivityMonitor>().ParallelLogger );
+            } ).Services;
+            // Triggers a resolution of IEnumerable<IHostedService>: this is enough to setup the DI containers.
+            appServices.GetServices<IHostedService>();
+
+            using( var scope = appServices.CreateScope() )
+            {
+                var monitor = scope.ServiceProvider.GetRequiredService<IActivityMonitor>();
+                var directory = scope.ServiceProvider.GetRequiredService<PocoDirectory>();
+                var validator = scope.ServiceProvider.GetRequiredService<RawCrisReceiver>();
+                var executor = scope.ServiceProvider.GetRequiredService<RawCrisExecutor>();
+
+                var cmd = directory.Create<ITestCommand>();
+
+                using( monitor.CollectTexts( out var logs ) )
+                {
+                    CrisValidationResult result = await validator.IncomingValidateAsync( monitor, scope.ServiceProvider, cmd );
+                    result.Success.Should().BeTrue();
+                    result.ValidationMessages.Should().BeEmpty();
+                    logs.Should().HaveCount( 1 )
+                                 .And.Contain( "I'm the (Incoming) ValidatorWithLogs." );
+
+                    await executor.RawExecuteAsync( scope.ServiceProvider, cmd );
+                    logs.Should().HaveCount( 2 )
+                                 .And.Contain( "I'm the (Incoming) ValidatorWithLogs." )
+                                 .And.Contain( "I'm the (CommandHandling) ValidatorWithLogs." );
+                }
+
+            }
+        }
+
+        public class ValidatorWithBoth : IAutoService
+        {
+            [IncomingValidator]
+            public void IncomingValidateCommand( UserMessageCollector messages, ICrisIncomingValidationContext context, ITestCommand cmd )
+            {
+                context.Messages.Should().BeSameAs( messages );
+                messages.Info( "Validated!" );
+            }
+        }
+
+
+        [Test]
+        public async Task IncomingValidators_can_have_both_UserMessageCollector_and_ICrisIncomingValidationContext_Async()
+        {
+            var c = TestHelper.CreateStObjCollector( typeof( RawCrisReceiver ), typeof( CrisDirectory ), typeof( ITestCommand ), typeof( ValidatorWithBoth ) );
             using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
-            await TestHelper.StopHostedServicesAsync( appServices );
+            // Triggers a resolution of IEnumerable<IHostedService>: this is enough to setup the DI containers.
+            appServices.GetServices<IHostedService>();
 
             using( var scope = appServices.CreateScope() )
             {
@@ -269,16 +334,28 @@ namespace CK.Cris.Executor.Tests
 
                 var cmd = directory.Create<ITestCommand>();
 
-                using( TestHelper.Monitor.CollectTexts( out var logs ) )
-                {
-                    var result = await validator.IncomingValidateAsync( TestHelper.Monitor, scope.ServiceProvider, cmd );
-                    result.Success.Should().BeTrue();
-                    result.ValidationMessages.Should().BeEmpty();
-                    logs.Should().HaveCount( 1 )
-                                 .And.Contain( "I'm the ValidatorWithLogs." );
-                }
+                CrisValidationResult result = await validator.IncomingValidateAsync( TestHelper.Monitor, scope.ServiceProvider, cmd );
+                result.Success.Should().BeTrue();
+                result.ValidationMessages.Select( m => m.Text ).Should().HaveCount( 1 )
+                                    .And.Contain( "Validated!" );
 
             }
+        }
+
+        public class InvalidValidator : IAutoService
+        {
+            [IncomingValidator]
+            public void IncomingValidateCommand( IActivityMonitor monitor, ITestCommand cmd )
+            {
+                monitor.Info( "I'm the (Incoming) ValidatorWithLogs." );
+            }
+        }
+
+        [Test]
+        public void IncomingValidators_requires_UserMessageCollector_or_ICrisIncomingValidationContext()
+        {
+            var c = TestHelper.CreateStObjCollector( typeof( RawCrisReceiver ), typeof( CrisDirectory ), typeof( ITestCommand ), typeof( InvalidValidator ) );
+            TestHelper.GetFailedAutomaticServicesConfiguration( c, "[IncomingValidator] method 'InvalidValidator.IncomingValidateCommand( IActivityMonitor monitor, ITestCommand cmd )' must take a 'UserMessageCollector' and/or a 'ICrisIncomingValidationContext' parameter to collect validation errors, warnings and informations." );
         }
     }
 }

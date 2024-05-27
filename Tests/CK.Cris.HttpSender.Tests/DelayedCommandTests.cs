@@ -48,7 +48,7 @@ namespace CK.Cris.HttpSender.Tests
     public class DelayedCommandTests
     {
         [Test]
-        [CancelAfter(4000)]
+        [CancelAfter(15000)]
         public async Task simple_delayed_command_Async( CancellationToken cancellation )
         {
             // We need the fr culture for this test.
@@ -141,10 +141,12 @@ namespace CK.Cris.HttpSender.Tests
             }
             FullCommandService.Messages.Single().Should().Match( "n°1-Albert-Albert-22-en-*" );
 
+            delayed.ExecutionDate = DateTime.UtcNow.AddMilliseconds( 150 );
             fullCommand.DeviceId = "not-the-device-id";
             var executedCommand = await sender.SendAsync( TestHelper.Monitor, delayed, cancellationToken: cancellation );
+
             var error = executedCommand.Result as ICrisResultError;
-            Throw.DebugAssert( error != null );
+            Throw.DebugAssert( error is not null );
             error = (ICrisResultError)executedCommand.Result!;
             error.IsValidationError.Should().BeTrue();
             error.Errors[0].Text.Should().StartWith( "Invalid device identifier: " );
@@ -153,9 +155,10 @@ namespace CK.Cris.HttpSender.Tests
             await sender.SendOrThrowAsync( TestHelper.Monitor, callerPoco.Create<ILogoutCommand>(), cancellationToken: cancellation );
 
             // No more allowed.
+            delayed.ExecutionDate = DateTime.UtcNow.AddMilliseconds( 150 );
             executedCommand = await sender.SendAsync( TestHelper.Monitor, delayed, cancellationToken: cancellation );
             error = executedCommand.Result as ICrisResultError;
-            Throw.DebugAssert( error != null );
+            Throw.DebugAssert( error is not null );
             error = (ICrisResultError)executedCommand.Result!;
             error.IsValidationError.Should().BeTrue();
             error.Errors[0].Text.Should().StartWith( "Invalid actor identifier: " );

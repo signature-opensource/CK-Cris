@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace CK.Setup.Cris
 {
@@ -17,77 +18,36 @@ namespace CK.Setup.Cris
             var crisEngineService = c.CurrentRun.ServiceContainer.GetService<ICrisDirectoryServiceEngine>();
             if( crisEngineService == null ) return CSCodeGenerationResult.Retry;
 
-            // DoIncomingValidateAsync is protected, we cannot use nameof() here.
-            var validateMethod = classType.GetMethod( "DoIncomingValidateAsync",
-                                                       System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance,
-                                                       new[]
-                                                        {
-                                                            typeof( IActivityMonitor ),
-                                                            typeof( UserMessageCollector ),
-                                                            typeof( IServiceProvider ),
-                                                            typeof( ICrisPoco )
-                                                        } );
-            Throw.DebugAssert( validateMethod != null );
-
-            var mValidate = scope.CreateSealedOverride( validateMethod );
-            if( !crisEngineService.CrisTypes.Any( e => e.IncomingValidators.Count > 0 ) )
+            foreach( var e in crisEngineService.CrisTypes )
             {
-                mValidate.Definition.Modifiers &= ~Modifiers.Async;
-                mValidate.GeneratedByComment().NewLine()
-                         .Append( "return ValueTask.FromResult<AmbientServiceHub?>( null );" );
-            }
-            else
-            {
-                mValidate.GeneratedByComment().NewLine()
-                         .Append( "return ((ICrisReceiverImpl)crisPoco).IncomingValidateAsync( monitor, validationContext, services );" );
+                var pocoType = c.GeneratedCode.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoType.FamilyInfo.PocoClass );
+                pocoType.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.RawCrisReceiver.ICrisReceiverImpl" ) );
+                if( e.IncomingValidators.Count > 0 || e.AmbientServicesConfigurators.Count > 0 )
+                {
+                    var f = pocoType.CreateFunction( "ValueTask CK.Cris.RawCrisReceiver.ICrisReceiverImpl.IncomingValidateAsync( CK.Cris.RawCrisReceiver.ValidationContext c )" );
+                    f.Append( "var monitor = c.Monitor;" ).NewLine()
+                     .Append( "var s = c.Services;" ).NewLine();
+                    var cachedServices = new VariableCachedServices( c.CurrentRun.EngineMap, f, hasMonitor: true );
 
-                Throw.DebugAssert( scope.Namespace.FullName == "CK.Cris" );
-                scope.Namespace.Append( """
-                    [StObjGen]
-                    interface ICrisReceiverImpl
+                    bool needAsyncStateMachine = e.IncomingValidators.AsyncHandlerCount > 0 || e.AmbientServicesConfigurators.AsyncHandlerCount > 0;
+                    if( needAsyncStateMachine )
                     {
-                        // Use Default Implementation Method when no incoming validator exists and no AmbientServiceHub is nedded.
-                        ValueTask<AmbientServiceHub?> IncomingValidateAsync( IActivityMonitor monitor, UserMessageCollector v, IServiceProvider s ) => ValueTask.FromResult<AmbientServiceHub?>( null );
+                        f.Definition.Modifiers |= Modifiers.Async;
                     }
 
-                    """ );
-
-                foreach( var e in crisEngineService.CrisTypes )
-                {
-                    var pocoType = c.GeneratedCode.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoType.FamilyInfo.PocoClass );
-                    pocoType.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICrisReceiverImpl" ) );
-                    if( e.IncomingValidators.Count > 0 || e.AmbientServicesConfigurators.Count > 0 )
+                    if( e.IncomingValidators.Count > 0 )
                     {
-                        var f = pocoType.CreateFunction( "ValueTask<AmbientServiceHub?> CK.Cris.ICrisReceiverImpl.IncomingValidateAsync( IActivityMonitor monitor, UserMessageCollector v, IServiceProvider s )" );
-                        var cachedServices = new VariableCachedServices( c.CurrentRun.EngineMap, f, hasMonitor: true );
-
-                        bool needAsyncStateMachine = e.IncomingValidators.AsyncHandlerCount > 0 || e.AmbientServicesConfigurators.AsyncHandlerCount > 0;
-                        if( needAsyncStateMachine )
-                        {
-                            f.Definition.Modifiers |= Modifiers.Async;
-                        }
-
-                        if( e.IncomingValidators.Count > 0 )
-                        {
-                            GenerateMultiTargetCalls( f, e.IncomingValidators, cachedServices, "v" );
-                        }
-                        string varHub = "null";
-                        if( e.AmbientServicesConfigurators.Count > 0 )
-                        {
-                            varHub = "hub";
-                            cachedServices.StartNewCachedVariablesPart();
-                            f.Append( "var hub = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<AmbientServiceHub>( s ).CleanClone();" ).NewLine();
-                            GenerateMultiTargetCalls( f, e.AmbientServicesConfigurators, cachedServices, "hub" );
-                            f.Append( "if( !hub.IsDirty ) hub = null;" ).NewLine();
-                        }
-                        if( needAsyncStateMachine )
-                        {
-                            f.Append( "return " ).Append( varHub ).Append( ";" ).NewLine();
-                        }
-                        else
-                        {
-                            f.Append( "return ValueTask.FromResult<AmbientServiceHub?>(" ).Append( varHub ).Append( ");" ).NewLine();
-                        }
+                        GenerateMultiTargetCalls( f, e.IncomingValidators, cachedServices, "c.Messages", "c" );
+                    }
+                    if( e.AmbientServicesConfigurators.Count > 0 )
+                    {
+                        cachedServices.StartNewCachedVariablesPart();
+                        f.Append( "var hub = c.EnsureHub();" ).NewLine();
+                        GenerateMultiTargetCalls( f, e.AmbientServicesConfigurators, cachedServices, "hub" );
+                    }
+                    if( !needAsyncStateMachine )
+                    {
+                        f.Append( "return ValueTask.CompletedTask;" );
                     }
                 }
             }
@@ -97,7 +57,8 @@ namespace CK.Setup.Cris
         internal static void GenerateMultiTargetCalls( IFunctionScope f,
                                                        MultiTargetHandlerList handlers,
                                                        VariableCachedServices cachedServices,
-                                                       string? argumentParameterName )
+                                                       string argumentParameterName,
+                                                       string? argumentParameterName2 = null )
         {
             if( handlers.Count == 0 ) return;
 
@@ -118,8 +79,11 @@ namespace CK.Setup.Cris
                     }
                     else if( p == h.ArgumentParameter )
                     {
-                        Throw.DebugAssert( argumentParameterName != null );
                         f.Append( argumentParameterName );
+                    }
+                    else if( p == h.ArgumentParameter2 )
+                    {
+                        f.Append( argumentParameterName2 );
                     }
                     else
                     {

@@ -382,7 +382,7 @@ namespace CK.Setup.Cris
                     return true;
                 }
             }
-            return e.AddHandler( monitor, impl, m, parameters, p, isClosedHandler, fileName, lineNumber );
+            return e.AddCommandHandler( monitor, impl, m, parameters, p, isClosedHandler, fileName, lineNumber );
         }
 
         internal bool RegisterCommandPostHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber )
@@ -472,6 +472,7 @@ namespace CK.Setup.Cris
                 }
                 // Loop once on the parameters for all the kind.
                 ParameterInfo? argumentParameter = null;
+                ParameterInfo? argumentParameter2 = null;
                 Type? expectedArgumentType = target switch
                 {
                     MultiTargetHandlerKind.ConfigureAmbientServices => typeof( AmbientServiceHub ),
@@ -480,26 +481,18 @@ namespace CK.Setup.Cris
                     MultiTargetHandlerKind.CommandHandlingValidator => typeof( UserMessageCollector ),
                     _ => null // MultiTargetHandlerKind.RoutedEventHandler.
                 };
+                Type? expectedArgumentType2 = target is MultiTargetHandlerKind.IncomingValidator ? typeof( ICrisIncomingValidationContext ) : null;
 
                 foreach( var p in parameters )
                 {
                     if( p == foundParameter ) continue;
-                    if( p.ParameterType == expectedArgumentType )
-                    {
-                        if( argumentParameter != null )
-                        {
-                            monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}' has duplicate parameter '{p.Name}' and '{argumentParameter.Name}'." );
-                            success = false;
-                        }
-                        argumentParameter = p;
-                        continue;
-                    }
+                    success &= CheckExpectedSpecificArgument( monitor, target, expectedArgumentType, m, p, parameters, ref argumentParameter );
+                    success &= CheckExpectedSpecificArgument( monitor, target, expectedArgumentType2, m, p, parameters, ref argumentParameter2 );
                     // This check applies to all kind here.
                     // Only command handlers and post handlers (that are not MultiTargetHandlers) accept ICrisCommandContext.
                     if( p.ParameterType == typeof( ICrisCommandContext ) )
                     {
-                        monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}': invalid parameter '{p.Name}'. {nameof( ICrisCommandContext )
-                                        } cannot be used in a [{target}] since it cannot execute commands or send events." );
+                        monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}': invalid parameter '{p.Name}'. {nameof( ICrisCommandContext )} cannot be used in a [{target}] since it cannot execute commands or send events." );
                         success = false;
                         continue;
                     }
@@ -512,8 +505,7 @@ namespace CK.Setup.Cris
 
                         if( p.ParameterType == typeof( ICrisEventContext ) )
                         {
-                            monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}': invalid parameter '{p.Name}'. {nameof( ICrisEventContext )
-                                            } cannot be used in a [{target}] since it cannot execute commands." );
+                            monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}': invalid parameter '{p.Name}'. {nameof( ICrisEventContext )} cannot be used in a [{target}] since it cannot execute commands." );
                             success = false;
                         }
                         if( target is MultiTargetHandlerKind.RestoreAmbientServices )
@@ -530,18 +522,25 @@ namespace CK.Setup.Cris
                         }
                     }
                 }
-                if( argumentParameter == null && expectedArgumentType != null )
+                if( expectedArgumentType != null )
                 {
-                    if( target is MultiTargetHandlerKind.ConfigureAmbientServices or MultiTargetHandlerKind.RestoreAmbientServices )
+                    if( argumentParameter == null && (expectedArgumentType2 == null || argumentParameter2 == null) )
                     {
-                        monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}' must take a 'AmbientServiceHub' parameter to configure the ambient services." );
+                        if( target is MultiTargetHandlerKind.ConfigureAmbientServices or MultiTargetHandlerKind.RestoreAmbientServices )
+                        {
+                            monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}' must take a 'AmbientServiceHub' parameter to configure the ambient services." );
+                        }
+                        else if( target is MultiTargetHandlerKind.CommandHandlingValidator )
+                        {
+                            monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}' must take a 'UserMessageCollector' parameter to collect validation errors, warnings and informations." );
+                        }
+                        else
+                        {
+                            Throw.DebugAssert( target is MultiTargetHandlerKind.IncomingValidator );
+                            monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}' must take a 'UserMessageCollector' and/or a 'ICrisIncomingValidationContext' parameter to collect validation errors, warnings and informations." );
+                        }
+                        success = false;
                     }
-                    else
-                    {
-                        Throw.DebugAssert( target is MultiTargetHandlerKind.IncomingValidator or MultiTargetHandlerKind.CommandHandlingValidator );
-                        monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}' must take a 'UserMessageCollector' parameter to collect validation errors, warnings and informations." );
-                    }
-                    success = false;
                 }
                 if( success )
                 {
@@ -555,12 +554,33 @@ namespace CK.Setup.Cris
                                                                                 parameters,
                                                                                 foundParameter,
                                                                                 argumentParameter,
+                                                                                argumentParameter2,
                                                                                 fileName,
                                                                                 lineNumber );
                     }
                 }
             }
             return success;
+
+            static bool CheckExpectedSpecificArgument( IActivityMonitor monitor,
+                                                       MultiTargetHandlerKind target,
+                                                       Type? expectedArgumentType,
+                                                       MethodInfo m,
+                                                       ParameterInfo p,
+                                                       ParameterInfo[] parameters,
+                                                       ref ParameterInfo? argumentParameter )
+            {
+                if( p.ParameterType == expectedArgumentType )
+                {
+                    if( argumentParameter != null )
+                    {
+                        monitor.Error( $"[{target}] method '{CrisType.MethodName( m, parameters )}' has duplicate parameter '{p.Name}' and '{argumentParameter.Name}'." );
+                        return false;
+                    }
+                    argumentParameter = p;
+                }
+                return true;
+            }
         }
 
         (IPrimaryPocoType? P, bool IsCommand) GetPrimary( Type t ) => GetPrimary( _typeSystem.FindByType( t ) );
