@@ -113,6 +113,7 @@ namespace CK.Cris
             bool isScopedCreated = false;
 
             ImmutableArray<UserMessage> validationMessages = ImmutableArray<UserMessage>.Empty;
+            ExecutedCommand executed;
             try
             {
                 (error, scoped) = await job._executor.PrepareJobAsync( monitor, job );
@@ -120,7 +121,8 @@ namespace CK.Cris
                 {
                     // Here we should ensure that the AsyncServiceScope has a null ServiceProvider.
                     //  Throw.CheckState( "AsyncServiceScope has not been obtained.", scoped is default );
-                    await job.SetFinalResultAsync( monitor, error, validationMessages, ImmutableArray<IEvent>.Empty );
+                    executed = job.CreateExecutedCommand( error, validationMessages, ImmutableArray<IEvent>.Empty );
+                    await job.SetFinalResultAsync( monitor, executed, null );
                     return;
                 }
                 isScopedCreated = true;
@@ -140,18 +142,15 @@ namespace CK.Cris
                         error.Errors.AddRange( validation.ErrorMessages );
                         error.LogKey = validation.LogKey;
                         error.IsValidationError = true;
-                        await job.SetFinalResultAsync( monitor, error, validation.ValidationMessages, ImmutableArray<IEvent>.Empty );
+                        executed = job.CreateExecutedCommand( error, validation.ValidationMessages, ImmutableArray<IEvent>.Empty );
+                        await job.SetFinalResultAsync( monitor, executed, scoped.ServiceProvider );
                         return;
                     }
                     validationMessages = validation.ValidationMessages;
                 }
                 // Executing the command (handling validators, handler and post handlers).
-                var executed = await rootContext.ExecuteRootCommandAsync( job.Command );
-                // Combines any incoming and command handling validation messages.
-                validationMessages = validationMessages.IsEmpty
-                                        ? executed.ValidationMessages
-                                        : validationMessages.AddRange( executed.ValidationMessages );
-                await job.SetFinalResultAsync( monitor, executed.Result, validationMessages, executed.Events );
+                executed = await rootContext.ExecuteRootCommandAsync( job.Command, job.DeferredExecutionContext, validationMessages );
+                await job.SetFinalResultAsync( monitor, executed, scoped.ServiceProvider );
             }
             catch( Exception ex )
             {
@@ -161,7 +160,8 @@ namespace CK.Cris
                 PocoFactoryExtensions.OnUnhandledError( monitor, ex, job.Command, true, currentCulture, error.Errors.Add );
                 error.LogKey = gLog.GetLogKeyString();
 
-                await job.SetFinalResultAsync( monitor, error, validationMessages, ImmutableArray<IEvent>.Empty );
+                executed = job.CreateExecutedCommand( error, validationMessages, ImmutableArray<IEvent>.Empty );
+                await job.SetFinalResultAsync( monitor, executed, scoped.ServiceProvider );
             }
             finally
             {

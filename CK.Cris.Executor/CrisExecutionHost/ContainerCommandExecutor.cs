@@ -51,7 +51,7 @@ namespace CK.Cris
         /// <param name="job">The executing job.</param>
         /// <param name="validation">
         /// The validation result. When <see cref="CrisValidationResult.Success"/> is false, this ends the command handling
-        /// (<see cref="OnFinalResultAsync(IActivityMonitor, CrisJob, IReadOnlyList{IEvent}, CrisExecutionHost.ICrisJobResult)"/>) is not called).
+        /// (<see cref="SetFinalResultAsync(IActivityMonitor, CrisJob, object?, ImmutableArray{UserMessage}, ImmutableArray{IEvent})"/>) is not called).
         /// </param>
         /// <returns>The awaitable.</returns>
         internal protected virtual Task OnCrisValidationResultAsync( IActivityMonitor monitor, CrisJob job, CrisValidationResult validation ) => Task.CompletedTask;
@@ -59,7 +59,7 @@ namespace CK.Cris
         /// <summary>
         /// Extension point called when a command emits an immediate event (routed or caller only events).
         /// Note that all local impacts have been already handled: the <see cref="CrisEventHub"/> has already raised the event
-        /// and if <see cref="CrisJob.HasExecutingCommand"/> is true, the <see cref="IExecutingCommand.Events"/> have been updated.
+        /// and if <see cref="CrisJob.ExecutingCommand"/> is not null, the <see cref="IExecutingCommand.Events"/> have been updated.
         /// <para>
         /// Does nothing by default.
         /// </para>
@@ -79,15 +79,9 @@ namespace CK.Cris
         /// </summary>
         /// <param name="monitor">The monitor.</param>
         /// <param name="job">The executed job.</param>
-        /// <param name="result">The final command result.</param>
-        /// <param name="validationMessages">Validation messages if any.</param>
-        /// <param name="events">Non empty events raised by the command execution.</param>
+        /// <param name="result">The executed command.</param>
         /// <returns>The awaitable.</returns>
-        internal protected virtual Task SetFinalResultAsync( IActivityMonitor monitor,
-                                                             CrisJob job,
-                                                             object? result,
-                                                             ImmutableArray<UserMessage> validationMessages,
-                                                             ImmutableArray<IEvent> events )
+        internal protected virtual Task SetFinalResultAsync( IActivityMonitor monitor, CrisJob job, IExecutedCommand result )
         {
             return Task.CompletedTask;
         }

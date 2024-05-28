@@ -15,75 +15,36 @@ namespace CK.Cris
     /// </summary>
     public class CrisDelayedCommandService : ISingletonAutoService
     {
-        readonly PriorityQueue<(ICommand C, int S, ActivityMonitor.Token T), DateTime> _memoryStore;
+        readonly PriorityQueue<DelayedCommandEntry, DateTime> _memoryStore;
         readonly Timer _timer;
         readonly CrisBackgroundExecutorService _backgroundExecutorService;
+        readonly PocoDirectory _pocoDirectory;
+        readonly RawCrisExecutor _rawCrisExecutor;
         int _seqNum;
         DateTime _nextDate;
         const uint _maxTimer = uint.MaxValue - 1;
 
-        public CrisDelayedCommandService( CrisBackgroundExecutorService backgroundExecutorService )
+        public CrisDelayedCommandService( CrisBackgroundExecutorService backgroundExecutorService, PocoDirectory pocoDirectory, RawCrisExecutor rawCrisExecutor )
         {
-            _memoryStore = new PriorityQueue<(ICommand, int, ActivityMonitor.Token), DateTime>();
+            _memoryStore = new PriorityQueue<DelayedCommandEntry, DateTime>();
             _timer = new Timer( OnTimer );
             _nextDate = Util.UtcMaxValue;
             _backgroundExecutorService = backgroundExecutorService;
+            _pocoDirectory = pocoDirectory;
+            _rawCrisExecutor = rawCrisExecutor;
         }
 
-        DateTime GetUtcNow() => DateTime.UtcNow; 
-
-        void OnTimer( object? _ )
-        {
-            lock( _memoryStore )
-            {
-                bool hasMore = false;
-                while( _memoryStore.TryPeek( out var ready, out var date ) )
-                {
-                    var delta = (long)(date - GetUtcNow()).TotalMilliseconds;
-                    if( delta <= 0 )
-                    {
-                        var executing = _backgroundExecutorService.Submit( ready.C, ambientServiceHub: null, ready.T, incomingValidationCheck: true );
-                        _memoryStore.Dequeue();
-                        OnCommandSubmitted( ready.S, executing );
-                    }
-                    else
-                    {
-                        _nextDate = date;
-                        if( delta >= _maxTimer ) delta = _maxTimer;
-                        _timer.Change( (uint)delta, 0 );
-                        hasMore = true;
-                        break;
-                    }
-                }
-                if( !hasMore ) _nextDate = Util.UtcMaxValue;
-            }
-        }
-
-        /// <summary>
-        /// Extension point called for each submitted command.
-        /// <para>
-        /// Caution: This is called from the timer thread while an internal lock is held on the memory store.
-        /// Whatver is implemented here must be fast.
-        /// </para>
-        /// <para>
-        /// Does nothing by default.
-        /// </para>
-        /// </summary>
-        /// <param name="commandId">The 1-based ever increasing sequence number returned by <see cref="MemoryStore(IActivityMonitor, IDelayedCommand, ActivityMonitor.Token?)"/>.</param>
-        /// <param name="executing">The executing command.</param>
-        protected virtual void OnCommandSubmitted( int commandId, IExecutingCommand<ICommand> executing )
-        {
-        }
+        DateTime GetUtcNow() => DateTime.UtcNow;
 
         /// <summary>
         /// Core method that stores the command in the in-memory priority queue and manages the timer: the stored
-        /// command will eventually be submotted to the <see cref="CrisBackgroundExecutorService"/> and <see cref="OnCommandSubmitted(int, IExecutingCommand{ICommand})"/>
+        /// command will eventually be submitted to the <see cref="CrisBackgroundExecutorService"/> and <see cref="OnCommandSubmitted(int, IExecutingCommand{ICommand})"/>
         /// will be called.
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="command">The delayed command.</param>
         /// <param name="issuerToken">Optional already obtained correlation token.</param>
-        /// <returns>An ever 1-based incremented sequence number that identifies the added command.</returns>
+        /// <returns>A 1-based ever incremented sequence number that identifies the added command.</returns>
         protected int MemoryStore( IActivityMonitor monitor, IDelayedCommand command, ActivityMonitor.Token? issuerToken = null )
         {
             Throw.CheckArgument( command.Command is not null );
@@ -91,7 +52,8 @@ namespace CK.Cris
             issuerToken ??= monitor.CreateToken( $"Delayed execution command: '{innerCommand.CrisPocoModel.PocoName}' at '{command.ExecutionDate}'." );
             lock( _memoryStore )
             {
-                _memoryStore.Enqueue( (innerCommand, ++_seqNum, issuerToken), command.ExecutionDate );
+                var entry = new DelayedCommandEntry( ++_seqNum, issuerToken, command );
+                _memoryStore.Enqueue( entry, command.ExecutionDate );
                 if( command.ExecutionDate < _nextDate )
                 {
                     _nextDate = command.ExecutionDate;
@@ -121,6 +83,71 @@ namespace CK.Cris
                 monitor.Warn( $"Unable to persist command '{command.CrisPocoModel.PocoName}' since this is an in-memory only store." );
             }
             return ValueTask.CompletedTask;
+        }
+
+        void OnTimer( object? _ )
+        {
+            lock( _memoryStore )
+            {
+                bool hasMore = false;
+                while( _memoryStore.TryPeek( out var entry, out var date ) )
+                {
+                    var delta = (long)(date - GetUtcNow()).TotalMilliseconds;
+                    if( delta <= 0 )
+                    {
+                        entry.SetExecuting( _backgroundExecutorService.Submit( entry.DelayedCommand.Command!, ambientServiceHub: null, entry.IssuerToken, entry, OnExecutedCommandAsync ) );
+                        _memoryStore.Dequeue();
+                        OnCommandExecuting( entry );
+                    }
+                    else
+                    {
+                        _nextDate = date;
+                        if( delta >= _maxTimer ) delta = _maxTimer;
+                        _timer.Change( (uint)delta, 0 );
+                        hasMore = true;
+                        break;
+                    }
+                }
+                if( !hasMore ) _nextDate = Util.UtcMaxValue;
+            }
+        }
+
+        /// <summary>
+        /// Extension point called when command is submitted to the executor.
+        /// <para>
+        /// Caution: This is called from the timer thread while an internal lock is held on the memory store.
+        /// Whatever is implemented here must be fast.
+        /// </para>
+        /// <para>
+        /// Does nothing by default.
+        /// </para>
+        /// </summary>
+        /// <param name="entry">The starting command.</param>
+        protected virtual void OnCommandExecuting( DelayedCommandEntry entry )
+        {
+        }
+
+        /// <summary>
+        /// Dispatches a <see cref="IDelayedCommandExecutedEvent"/> for the event.
+        /// </summary>
+        /// <param name="monitor">The monitor (from the <see cref="CrisExecutionHost"/>'s runner.</param>
+        /// <param name="command">The executed command (can be on error).</param>
+        /// <param name="services">
+        /// The configured services used by the command execution.
+        /// This is null if and only if the scoped services could not be created because ambient services
+        /// failed to be restored (a [RestoreAmblientService] methods threw an exception).
+        /// </param>
+        /// <returns>The awaitable.</returns>
+        protected Task OnExecutedCommandAsync( IActivityMonitor monitor, IExecutedCommand command, IServiceProvider? services )
+        {
+            if( services == null )
+            {
+                monitor.Warn( ActivityMonitor.Tags.ToBeInvestigated, $"Restore ambient service failed. No IDelayedCommandExecutedEvent is raised." );
+                return Task.CompletedTask;
+            }
+            // The entry can be retrived directly if needed:
+            // var entry = (DelayedCommandEntry)command.DeferredExecutionContext!;
+            return _rawCrisExecutor.SafeDispatchEventAsync( services, _pocoDirectory.Create<IDelayedCommandExecutedEvent>( d => d.Initialize( command ) ) );
         }
 
         /// <summary>
@@ -163,4 +190,6 @@ namespace CK.Cris
         }
 
     }
+
+
 }

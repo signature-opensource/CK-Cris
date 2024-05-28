@@ -1,5 +1,6 @@
 using CK.Core;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
@@ -51,6 +52,8 @@ namespace CK.Cris
         /// by [RestoreAmbientServices] methods for the command.
         /// </param>
         /// <param name="issuerToken">The issuer token to use.</param>
+        /// <param name="deferredExecutionInfo">Optional explicit deferred execution info. See <see cref="CrisJob.DeferredExecutionContext"/>.</param>
+        /// <param name="onExecutedCommand">Optional callback eventually called with the executed command. See <see cref="CrisJob.OnExecutedCommand"/>.</param>
         /// <param name="incomingValidationCheck">
         /// Whether incoming command validation should be done again.
         /// This should not be necessary because a command that reaches an execution context should already
@@ -64,13 +67,15 @@ namespace CK.Cris
         public IExecutingCommand<T> Submit<T>( T command,
                                                AmbientServiceHub? ambientServiceHub,
                                                ActivityMonitor.Token issuerToken,
+                                               IDeferredCommandExecutionContext? deferredExecutionInfo,
+                                               Func<IActivityMonitor, IExecutedCommand, IServiceProvider?, Task>? onExecutedCommand = null,
                                                bool? incomingValidationCheck = null )
             where T : class, IAbstractCommand
         {
             Throw.CheckNotNullArgument( issuerToken );
             var cmd = new ExecutingCommand<T>( command, issuerToken );
             var scopedData = new CrisBackgroundDIContainerDefinition.Data( ambientServiceHub );
-            var job = new CrisJob( this, scopedData, command, issuerToken, cmd, incomingValidationCheck );
+            var job = new CrisJob( this, scopedData, command, issuerToken, cmd, deferredExecutionInfo, onExecutedCommand, incomingValidationCheck );
             scopedData._job = job;
             ExecutionHost.StartJob( job );
             return cmd;
@@ -86,7 +91,9 @@ namespace CK.Cris
         /// Ambient services obtained from the calling context. When null, a default ambient services is automatically configured
         /// by [RestoreAmbientServices] methods for the command.
         /// </param>
-        /// <param name="issuerToken">The issuer token to use. When null a new token is obtained from the <paramref name="monitor"/>.</param>
+        /// <param name="issuerToken">The issuer token to use. When null a new token is obtained from the <paramref name="monitor"/>. See <see cref="CrisJob.OnExecutedCommand"/>.</param>
+        /// <param name="deferredExecutionInfo">Optional explicit deferred execution info. See <see cref="CrisJob.DeferredExecutionContext"/>.</param>
+        /// <param name="onExecutedCommand">Optional callback eventually called with the executed command. See <see cref="CrisJob.OnExecutedCommand"/>.</param>
         /// <param name="incomingValidationCheck">
         /// Whether incoming command validation should be done again.
         /// This should not be necessary because a command that reaches an execution context should already
@@ -101,11 +108,13 @@ namespace CK.Cris
                                                T command,
                                                AmbientServiceHub? ambientServiceHub,
                                                ActivityMonitor.Token? issuerToken = null,
+                                               IDeferredCommandExecutionContext? deferredExecutionInfo = null,
+                                               Func<IActivityMonitor, IExecutedCommand, IServiceProvider?, Task>? onExecutedCommand = null,
                                                bool? incomingValidationCheck = null )
             where T : class, IAbstractCommand
         {
             issuerToken ??= monitor.CreateToken( $"CrisBackgroundExecutor handling '{command.CrisPocoModel.PocoName}' command." );
-            return Submit( command, ambientServiceHub, issuerToken, incomingValidationCheck );
+            return Submit( command, ambientServiceHub, issuerToken, deferredExecutionInfo, onExecutedCommand, incomingValidationCheck );
         }
 
     }

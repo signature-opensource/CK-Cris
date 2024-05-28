@@ -19,8 +19,16 @@ namespace CK.Cris
         /// <param name="result">The command result.</param>
         /// <param name="validationMessages">The validation messages.</param>
         /// <param name="events">The emitted events.</param>
-        public ExecutedCommand( T command, object? result, ImmutableArray<UserMessage> validationMessages, ImmutableArray<IEvent> events )
-            : base( command, result, validationMessages, events )
+        /// <param name="deferredExecutionInfo">
+        /// Optional <see cref="IDeferredCommandExecutionContext"/> that must be set when the command execution
+        /// has been deferred to another context.
+        /// </param>
+        public ExecutedCommand( T command,
+                                object? result,
+                                ImmutableArray<UserMessage> validationMessages,
+                                ImmutableArray<IEvent> events,
+                                IDeferredCommandExecutionContext? deferredExecutionInfo )
+            : base( command, result, validationMessages, events, deferredExecutionInfo )
         {
         }
 
@@ -29,10 +37,22 @@ namespace CK.Cris
         /// </summary>
         /// <param name="command">The executed command.</param>
         /// <param name="result">The command result.</param>
+        /// <param name="deferredExecutionInfo">
+        /// Optional <see cref="IDeferredCommandExecutionContext"/> that must be set when the command execution
+        /// has been deferred to another context.
+        /// </param>
         /// <param name="validationMessages">The validation messages.</param>
         /// <param name="events">The emitted events.</param>
-        public ExecutedCommand( T command, object? result, IEnumerable<UserMessage>? validationMessages = null, IEnumerable<IEvent>? events = null )
-            : base( command, result, validationMessages, events )
+        public ExecutedCommand( T command,
+                                object? result,
+                                IDeferredCommandExecutionContext? deferredExecutionInfo,
+                                IEnumerable<UserMessage>? validationMessages = null,
+                                IEnumerable<IEvent>? events = null )
+            : base( command,
+                    result,
+                    validationMessages != null ? validationMessages.ToImmutableArray() : ImmutableArray<UserMessage>.Empty,
+                    events != null ? events.ToImmutableArray() : ImmutableArray<IEvent>.Empty,
+                    deferredExecutionInfo )
         {
         }
 
@@ -55,6 +75,8 @@ namespace CK.Cris
             public ImmutableArray<UserMessage> ValidationMessages => _command.ValidationMessages;
 
             public ImmutableArray<IEvent> Events => _command.Events;
+
+            public IDeferredCommandExecutionContext? DeferredExecutionContext => _command.DeferredExecutionContext;
 
             IAbstractCommand IExecutedCommand.Command => _command.Command;
 

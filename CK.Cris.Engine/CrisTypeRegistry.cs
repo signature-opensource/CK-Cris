@@ -682,7 +682,7 @@ namespace CK.Setup.Cris
                                   MethodInfo method,
                                   ParameterInfo[] parameters,
                                   ExpectedParamType expected,
-                                  [NotNullWhen( true )] out ParameterInfo? foundParameter,
+                                  out ParameterInfo? foundParameter,
                                   [NotNullWhen( true )] out IReadOnlyList<IPrimaryPocoType>? candidates )
             {
                 foundParameter = null;
@@ -717,11 +717,7 @@ namespace CK.Setup.Cris
                                     $"Found '{foundParameter.ParameterType.ToCSharpName()} {foundParameter.Name}', cannot allow '{t}'." );
                     return false;
                 }
-                if( foundParameter == null )
-                {
-                    return false;
-                }
-                if( candidates == null )
+                if( foundParameter == null || candidates == null )
                 {
                     monitor.Warn( $"Method {CrisType.MethodName( method, parameters )} misses an existing {ExpectedParamTypeDetail( expected )} or ICrisPocoPart parameter." );
                     candidates = Array.Empty<IPrimaryPocoType>(); 

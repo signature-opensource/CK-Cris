@@ -42,9 +42,6 @@ namespace CK.Cris
         public ActivityMonitor.Token IssuerToken => _issuerToken;
 
         /// <inheritdoc />
-        public DateTime CreationDate => _issuerToken.CreationDate.TimeUtc;
-
-        /// <inheritdoc />
         public Task<IExecutedCommand> ExecutedCommand => _completion.Task;
 
         /// <summary>
@@ -67,16 +64,9 @@ namespace CK.Cris
             return _immediate.AddAndRaiseAsync( monitor, e );
         }
 
-        IExecutedCommand IDarkSideExecutingCommand.SetResult(object? result, ImmutableArray<UserMessage> validationMessages, ImmutableArray<IEvent> events)
+        void IDarkSideExecutingCommand.SetResult( IExecutedCommand result )
         {
-            IExecutedCommand cmd = Create( result, validationMessages, events );
-            _completion.SetResult( cmd );
-            return cmd;
-        }
-
-        private protected virtual IExecutedCommand Create( object? result, ImmutableArray<UserMessage> validationMessages, ImmutableArray<IEvent> events )
-        {
-            return new ExecutedCommand( Command, result, validationMessages, events );
+            _completion.SetResult( result );
         }
     }
 

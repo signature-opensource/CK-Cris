@@ -25,11 +25,8 @@ namespace CK.Cris
         /// Sets the final result.
         /// There is no "TrySetResult": the result must be set once and only once.
         /// </summary>
-        /// <param name="result">The command result.</param>
-        /// <param name="validationMessages">The optional validation messages.</param>
-        /// <param name="events">Routed events raised by the command.</param>
-        /// <returns>The executed command.</returns>
-        IExecutedCommand SetResult( object? result, ImmutableArray<UserMessage> validationMessages, ImmutableArray<IEvent> events );
+        /// <param name="result">The executed command.</param>
+        void SetResult( IExecutedCommand result );
 
     }
 

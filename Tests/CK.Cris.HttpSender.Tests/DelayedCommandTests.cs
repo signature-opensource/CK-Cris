@@ -30,17 +30,46 @@ namespace CK.Cris.HttpSender.Tests
     {
         static DateTime _start;
         static long GetDeltaMS() => (DateTime.UtcNow - _start).Ticks / TimeSpan.TicksPerMillisecond;
+        static readonly List<string> _messages = new List<string>();
         public static void Start()
         {
             _start = DateTime.UtcNow;
-            Messages.Clear();
+            _messages.Clear();
         }
-        public static readonly ConcurrentBag<string> Messages = new ConcurrentBag<string>();
+        public static void ClearMessage()
+        {
+            lock(_messages ) _messages.Clear(); 
+        }
+        public static void AddMessage( string message )
+        {
+            lock( _messages ) _messages.Add( message );
+        }
+        public static int MessageCount
+        {
+            get
+            {
+                lock( _messages ) return _messages.Count;
+            }
+        }
+
+        public static string MessageAt( int i )
+        {
+            lock( _messages ) return _messages[i];
+        }
 
         [CommandHandler]
         public void Handle( IFullCommand c, IAuthenticationInfo auth, CurrentCultureInfo culture )
         {
-            Messages.Add( $"{c.Prefix}-{auth.User.UserName}-{auth.ActualUser.UserName}-{auth.DeviceId.Length}-{culture.CurrentCulture.Name}-{GetDeltaMS()}" );
+            AddMessage( $"{c.Prefix}-{auth.User.UserName}-{auth.ActualUser.UserName}-{auth.DeviceId.Length}-{culture.CurrentCulture.Name}-{GetDeltaMS()}" );
+        }
+
+        [RoutedEventHandler]
+        public void OnDelayedCommandExecuted( IDelayedCommandExecutedEvent e )
+        {
+            if( e.Command is IFullCommand c )
+            {
+                AddMessage( $"EVENT: {c.Prefix}" );
+            }
         }
     }
 
@@ -62,6 +91,7 @@ namespace CK.Cris.HttpSender.Tests
                                                     typeof( AmbientValuesService ),
                                                     typeof( IDelayedCommand ),
                                                     typeof( CrisDelayedCommandService ),
+                                                    typeof( IDelayedCommandExecutedEvent ),
                                                     typeof( IFullCommand ),
                                                     typeof( FullCommandService ),
                                                     typeof( IBasicLoginCommand ),
@@ -126,20 +156,21 @@ namespace CK.Cris.HttpSender.Tests
 
             // Baseline: Albert (null current culture name): this is executed in the Global DI context.
             await sender.SendOrThrowAsync( TestHelper.Monitor, fullCommand, cancellationToken: cancellation );
-            FullCommandService.Messages.Single().Should().Match( "n°1-Albert-Albert-22-en-*" );
+            FullCommandService.MessageAt( 0 ).Should().Match( "n°1-Albert-Albert-22-en-*" );
 
             // Delayed command now.
             var delayed = callerPoco.Create<IDelayedCommand>();
             delayed.Command = fullCommand;
             delayed.ExecutionDate = DateTime.UtcNow.AddMilliseconds( 150 );
 
-            FullCommandService.Messages.Clear();
+            FullCommandService.ClearMessage();
             await sender.SendOrThrowAsync( TestHelper.Monitor, delayed, cancellationToken: cancellation );
-            while( FullCommandService.Messages.IsEmpty )
+            while( FullCommandService.MessageCount < 2 )
             {
                 await Task.Delay( 50, cancellation );
             }
-            FullCommandService.Messages.Single().Should().Match( "n°1-Albert-Albert-22-en-*" );
+            FullCommandService.MessageAt( 0 ).Should().Match( "n°1-Albert-Albert-22-en-*" );
+            FullCommandService.MessageAt( 1 ).Should().Be( "EVENT: n°1" );
 
             delayed.ExecutionDate = DateTime.UtcNow.AddMilliseconds( 150 );
             fullCommand.DeviceId = "not-the-device-id";

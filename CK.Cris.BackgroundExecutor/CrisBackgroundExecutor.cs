@@ -1,5 +1,6 @@
 using CK.Core;
 using System;
+using System.Threading.Tasks;
 
 namespace CK.Cris
 {
@@ -35,6 +36,8 @@ namespace CK.Cris
         /// <param name="command">The command to execute.</param>
         /// <param name="ambientServicesOverride">Optional ambient service configurator that can override ambient service intances.</param>
         /// <param name="issuerToken">The issuer token to use. When null a new token is obtained from the <paramref name="monitor"/>.</param>
+        /// <param name="deferredExecutionInfo">Optional explicit deferred execution info. See <see cref="CrisJob.DeferredExecutionContext"/>.</param>
+        /// <param name="onExecutedCommand">Optional callback eventually called with the executed command. See <see cref="CrisJob.OnExecutedCommand"/>.</param>
         /// <param name="incomingValidationCheck">
         /// Whether incoming command validation should be done again.
         /// This should not be necessary because a command that reaches an execution context should already
@@ -49,6 +52,8 @@ namespace CK.Cris
                                                T command,
                                                Action<AmbientServiceHub>? ambientServicesOverride = null,
                                                ActivityMonitor.Token? issuerToken = null,
+                                               IDeferredCommandExecutionContext? deferredExecutionInfo = null,
+                                               Func<IActivityMonitor, IExecutedCommand, IServiceProvider?, Task>? onExecutedCommand = null,
                                                bool? incomingValidationCheck = null )
             where T : class, IAbstractCommand
         {
@@ -58,7 +63,7 @@ namespace CK.Cris
                 ubiq = _ambientServiceHub.CleanClone();
                 ambientServicesOverride( ubiq );
             }
-            return _service.Submit( monitor, command, ubiq, issuerToken, incomingValidationCheck );
+            return _service.Submit( monitor, command, ubiq, issuerToken, deferredExecutionInfo, onExecutedCommand, incomingValidationCheck );
         }
     }
 

@@ -118,11 +118,15 @@ namespace CK.Cris.AspNet
                     {
                         var executing = _backgroundExecutor.Submit( monitor, readResult.Command, ambientServiceHub, issuerToken: depToken, incomingValidationCheck: false );
                         executedCommand = await executing.ExecutedCommand;
+                        Throw.DebugAssert( executedCommand.DeferredExecutionContext == executing );
                     }
                     else
                     {
                         var execContext = requestServices.GetRequiredService<CrisExecutionContext>();
+                        // Don't combine incoming validation message here as we don't expose the executed command: the messages
+                        // are built below for the IAspNetCrisResult.
                         executedCommand = await execContext.ExecuteRootCommandAsync( readResult.Command );
+                        Throw.DebugAssert( executedCommand.DeferredExecutionContext == null );
                     }
                     // Build the IAspNetCrisResult.
                     result = _resultFactory.Create();

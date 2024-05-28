@@ -31,7 +31,7 @@ namespace CK.Setup.Cris
             return new CSCodeGenerationResult( nameof( WaitForPocoTypeSystem ) );
         }
 
-        CSCodeGenerationResult WaitForPocoTypeSystem( IActivityMonitor monitor, ICSCodeGenerationContext c, [WaitFor]IPocoTypeSystem typeSystem )
+        CSCodeGenerationResult WaitForPocoTypeSystem( IActivityMonitor monitor, ICSCodeGenerationContext c, [WaitFor] IPocoTypeSystem typeSystem )
         {
             using( monitor.OpenInfo( $"IPocoTypeSystem is available: discovering Cris Poco types." ) )
             {
@@ -48,7 +48,7 @@ namespace CK.Setup.Cris
 
 
         CSCodeGenerationResult DoImplement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope, CrisTypeRegistry registry )
-        { 
+        {
             Throw.CheckState( "Applies only to the CrisDirectory class.", classType == typeof( CrisDirectory ) );
 
             if( !CheckICommandHandlerMissingImplementations( monitor, registry ) )
@@ -103,18 +103,19 @@ namespace CK.Setup.Cris
             }
             foreach( var e in registry.CrisTypes )
             {
+                bool isCommand = e.Kind is CrisPocoKind.Command or CrisPocoKind.CommandWithResult;
                 e.CloseRegistration( monitor );
                 var classScope = scope.Namespace.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoType.FamilyInfo.PocoFactoryClass );
                 using( classScope.Region() )
                 {
-                    classScope.Definition.BaseTypes.Add( new ExtendedTypeName( "CK.Cris.ICrisPocoModel" ) );
+                    classScope.Definition.BaseTypes.Add( new ExtendedTypeName( isCommand ? "CK.Cris.ICrisCommandModel" : "CK.Cris.ICrisPocoModel" ) );
                     classScope.Append( "public Type CommandType => PocoClassType;" ).NewLine()
                      .Append( "public int CrisPocoIndex => " ).Append( e.CrisPocoIndex ).Append( ";" ).NewLine()
                      .Append( "public string PocoName => Name;" ).NewLine()
                      .Append( "public CK.Cris.CrisPocoKind Kind => " ).Append( e.Kind ).Append( ";" ).NewLine()
-                     .Append( "public Type ResultType => " ).AppendTypeOf( e.CommandResultType?.Type ?? typeof(void) ).Append( ";" ).NewLine()
+                     .Append( "public Type ResultType => " ).AppendTypeOf( e.CommandResultType?.Type ?? typeof( void ) ).Append( ";" ).NewLine()
                      .Append( "CK.Cris.ICrisPoco CK.Cris.ICrisPocoModel.Create() => (CK.Cris.ICrisPoco)Create();" ).NewLine()
-                     .Append( "public bool IsHandled => " ).Append( e.IsHandled ).Append(";").NewLine()
+                     .Append( "public bool IsHandled => " ).Append( e.IsHandled ).Append( ";" ).NewLine()
                      .Append( "public bool EndpointMustConfigureServices => " ).Append( e.AmbientServicesConfigurators.Count > 0 ).Append( ";" ).NewLine()
                      .Append( "public bool BackgroundMustRestoreServices => " ).Append( e.AmbientServicesRestorers.Count > 0 ).Append( ";" ).NewLine();
 
@@ -127,7 +128,7 @@ namespace CK.Setup.Cris
                     }
                     else
                     {
-                         classScope.Append( "public ImmutableArray<string> AmbientValuePropertyNames => ImmutableArray<string>.Empty;" ).NewLine();
+                        classScope.Append( "public ImmutableArray<string> AmbientValuePropertyNames => ImmutableArray<string>.Empty;" ).NewLine();
                     }
 
                     // ImmutableArray<CK.Cris.ICrisPocoModel.IHandler> Handlers
@@ -160,13 +161,29 @@ namespace CK.Setup.Cris
                         classScope.Append( "public ImmutableArray<CK.Cris.ICrisPocoModel.IHandler> Handlers => ImmutableArray<CK.Cris.ICrisPocoModel.IHandler>.Empty;" );
                     }
                     classScope.NewLine();
+
+                    if( isCommand )
+                    {
+                        classScope.Append( "public CK.Cris.ExecutedCommand CreateExecutedCommand( CK.Cris.IAbstractCommand command, object? r, ImmutableArray<UserMessage> v, ImmutableArray<CK.Cris.IEvent> e, CK.Cris.IDeferredCommandExecutionContext d )" )
+                            .OpenBlock()
+                            .Append( "Throw.CheckArgument( command?.CrisPocoModel == this );" ).NewLine()
+                            .Append( "return new CK.Cris.ExecutedCommand<" ).Append( e.CrisPocoType.CSharpName ).Append( ">( (" ).Append( e.CrisPocoType.CSharpName ).Append( ")command, r, v, e, d );" )
+                            .CloseBlock();
+                    }
                 }
 
                 // The CrisPocoModel is the _factory field.
                 var p = scope.Namespace.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoType.FamilyInfo.PocoClass );
-                p.GeneratedByComment().NewLine()
-                 .Append( "public CK.Cris.ICrisPocoModel CrisPocoModel => _factory;" ).NewLine();
-
+                p.GeneratedByComment().NewLine();
+                if( isCommand )
+                {
+                    p.Append( "CK.Cris.ICrisPocoModel CK.Cris.ICrisPoco.CrisPocoModel => _factory;" ).NewLine()
+                     .Append( "public CK.Cris.ICrisCommandModel CrisPocoModel => _factory;" ).NewLine();
+                }
+                else
+                {
+                    p.Append( "public CK.Cris.ICrisPocoModel CrisPocoModel => _factory;" ).NewLine();
+                }
                 scope.Append( p.FullName ).Append( "._factory,").NewLine();
             }
             scope.Append( "};" ).NewLine()

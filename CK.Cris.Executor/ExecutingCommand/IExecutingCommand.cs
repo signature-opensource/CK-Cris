@@ -1,5 +1,3 @@
-using CK.Core;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,22 +12,12 @@ namespace CK.Cris
     /// This is the non generic interface of <see cref="IExecutingCommand{T}"/>.
     /// </para>
     /// </summary>
-    public interface IExecutingCommand
+    public interface IExecutingCommand : IDeferredCommandExecutionContext
     {
         /// <summary>
         /// Gets the <see cref="ICommand"/> or <see cref="ICommand{TResult}"/>.
         /// </summary>
         IAbstractCommand Command { get; }
-
-        /// <summary>
-        /// Gets a token that identifies the initialization of the command execution.
-        /// </summary>
-        ActivityMonitor.Token IssuerToken { get; }
-
-        /// <summary>
-        /// Gets the UTC date and time creation of this executing command.
-        /// </summary>
-        DateTime CreationDate { get; }
 
         /// <summary>
         /// Gets a task that is completed when the execution is terminated with the <see cref="IExecutedCommand"/>
@@ -41,7 +29,8 @@ namespace CK.Cris
         /// This is a thread safe collection that is updated during the execution: the <see cref="ImmediateEvents.Added"/> event
         /// can be used to observe new events.
         /// <para>
-        /// Only <see cref="CrisPocoKind.RoutedImmediateEvent"/> events appear here (see <see cref="ICrisPoco.CrisPocoModel"/>.<see cref="ICrisPocoModel.Kind">Kind</see>).
+        /// Only <see cref="CrisPocoKind.RoutedImmediateEvent"/> or <see cref="CrisPocoKind.CallerOnlyImmediateEvent"/> events appear
+        /// here (see <see cref="ICrisPoco.CrisPocoModel"/>.<see cref="ICrisPocoModel.Kind">Kind</see>).
         /// </para>
         /// </summary>
         ImmediateEvents ImmediateEvents { get; }

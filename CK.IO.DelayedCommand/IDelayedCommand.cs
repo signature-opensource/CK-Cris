@@ -34,6 +34,6 @@ namespace CK.Cris
         /// Gets or sets the command to execute at <see cref="ExecutionDate"/>.
         /// </summary>
         [NullInvalid]
-        ICommand? Command { get; set; }
+        IAbstractCommand? Command { get; set; }
     }
 }

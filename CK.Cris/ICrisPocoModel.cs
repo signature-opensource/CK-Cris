@@ -129,5 +129,4 @@ namespace CK.Cris
         /// </summary>
         ImmutableArray<IHandler> Handlers { get; }
     }
-
 }

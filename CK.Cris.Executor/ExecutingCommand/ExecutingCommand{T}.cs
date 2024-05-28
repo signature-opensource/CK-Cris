@@ -29,12 +29,6 @@ namespace CK.Cris
         /// <inheritdoc />
         public new T Command => Unsafe.As<T>( base.Command );
 
-        private protected override IExecutedCommand Create( object? result, ImmutableArray<UserMessage> validationMessages, ImmutableArray<IEvent> events )
-        {
-            return new ExecutedCommand<T>( Command, result, validationMessages, events );
-        }
-
-
         sealed class ResultAdapter<TResult> : IExecutingCommand<T>.IResultAdapter<TResult>
         {
             readonly ExecutingCommand<T> _command;
@@ -56,7 +50,7 @@ namespace CK.Cris
                 var result = (TaskCompletionSource<TResult>)target;
                 // Don't take any risk: even if there should not be Faulted or Canceled state
                 // on the CommandCompletion, transfers it if it happens.
-                if( c.Exception != null ) result.SetException( c.Exception );
+                if( c.Exception != null ) result.SetException( c.Exception.InnerExceptions );
                 else if( c.IsCanceled ) result.SetCanceled();
                 else
                 {
@@ -89,13 +83,13 @@ namespace CK.Cris
                             }
                             else
                             {
-                                var ex = new CKException( $"Request result is null. This is not compatible with '{typeof( TResult ).ToCSharpName()}'." );
+                                var ex = new CKException( $"Command result is null. This is not compatible with '{typeof( TResult ).ToCSharpName()}'." );
                                 result.SetException( ex );
                             }
                         }
                         else
                         {
-                            var ex = new CKException( $"Request result is a '{r.GetType().ToCSharpName()}'. This is not compatible with '{typeof( TResult ).ToCSharpName()}'." );
+                            var ex = new CKException( $"Command result is a '{r.GetType().ToCSharpName()}'. This is not compatible with '{typeof( TResult ).ToCSharpName()}'." );
                             result.SetException( ex );
                         }
                     }
@@ -120,8 +114,6 @@ namespace CK.Cris
             IAbstractCommand IExecutingCommand.Command => _command.Command;
 
             public ActivityMonitor.Token IssuerToken => _command.IssuerToken;
-
-            public DateTime CreationDate => _command.CreationDate;
 
             public Task<IExecutedCommand<T>> ExecutedCommand => Unsafe.As<Task<IExecutedCommand<T>>>( _command.ExecutedCommand );
 

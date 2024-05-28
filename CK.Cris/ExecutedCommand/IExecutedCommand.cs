@@ -34,6 +34,12 @@ namespace CK.Cris
         /// This is non empty only when the command has been successfully executed.
         /// </summary>
         ImmutableArray<IEvent> Events { get; }
+
+        /// <summary>
+        /// Optional <see cref="IDeferredCommandExecutionContext"/> available when the command execution
+        /// has been deferred to another context.
+        /// </summary>
+        IDeferredCommandExecutionContext? DeferredExecutionContext { get; }
     }
 
 }

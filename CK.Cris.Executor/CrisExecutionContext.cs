@@ -1,7 +1,10 @@
 using CK.Core;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
@@ -66,6 +69,36 @@ namespace CK.Cris
         /// <returns>The <see cref="IExecutedCommand{T}"/>.</returns>
         public async Task<IExecutedCommand<T>> ExecuteRootCommandAsync<T>( T rootCommand ) where T : class, IAbstractCommand
         {
+            return (IExecutedCommand<T>)await ExecuteRootCommandAsync( rootCommand, default ).ConfigureAwait( false );
+        }
+
+        /// <summary>
+        /// Executes a root command: this must not be called when <see cref="IsExecutingCommand"/> is true.
+        /// <para>
+        /// This never throws:
+        /// <list type="bullet">
+        ///     <item>
+        ///     If the command execution fails, a <see cref="ICrisResultError"/> is the <see cref="IExecutedCommand.Result"/>.
+        ///     Note that if immediate events handling fail, the command fails.
+        ///     </item>
+        ///     <item>
+        ///     If the command succeeds and an exception is raised while handling the final routed events, they are logged but don't surface here:
+        ///     the command has been successfully executed, the consequences are not its concern.
+        ///     </item>
+        /// </list>
+        /// </para>
+        /// </summary>
+        /// <param name="rootCommand">The command to execute.</param>
+        /// <param name="deferredExecutionInfo">
+        /// Optional <see cref="IDeferredCommandExecutionContext"/> that must be set when the command execution
+        /// has been deferred to another context.
+        /// </param>
+        /// <param name="validationMessages">Optional pre-existing validation messages (typically incoming validation messages).</param>
+        /// <returns>The executed command that is a <see cref="IExecutedCommand{T}"/> of the command.</returns>
+        public async Task<ExecutedCommand> ExecuteRootCommandAsync( IAbstractCommand rootCommand,
+                                                                    IDeferredCommandExecutionContext? deferredExecutionInfo = null,
+                                                                    ImmutableArray<UserMessage> validationMessages = default )
+        {
             Throw.CheckNotNullArgument( rootCommand );
             Throw.CheckState( !IsExecutingCommand );
             StackPush( rootCommand );
@@ -74,7 +107,11 @@ namespace CK.Cris
                 var raw = await _rawExecutor.RawExecuteAsync( _serviceProvider, rootCommand );
                 if( raw.Result is ICrisResultError )
                 {
-                    return new ExecutedCommand<T>( rootCommand, raw.Result, raw.ValidationMessages?.UserMessages, null );
+                    return rootCommand.CrisPocoModel.CreateExecutedCommand( rootCommand,
+                                                                            raw.Result,
+                                                                            CreateValidationMessages( validationMessages, raw ),
+                                                                            ImmutableArray<IEvent>.Empty,
+                                                                            deferredExecutionInfo );
                 }
                 var finalEvents = StackPeek().Events;
                 if( finalEvents != null )
@@ -96,11 +133,28 @@ namespace CK.Cris
                         }
                     }
                 }
-                return new ExecutedCommand<T>( rootCommand, raw.Result, raw.ValidationMessages?.UserMessages, finalEvents );
+                return rootCommand.CrisPocoModel.CreateExecutedCommand( rootCommand,
+                                                                        raw.Result,
+                                                                        CreateValidationMessages( validationMessages, raw ),
+                                                                        finalEvents != null
+                                                                            ? finalEvents.ToImmutableArray()
+                                                                            : ImmutableArray<IEvent>.Empty,
+                                                                        deferredExecutionInfo );
             }
             finally
             {
                 _stack.Clear();
+            }
+
+            static ImmutableArray<UserMessage> CreateValidationMessages( ImmutableArray<UserMessage> validationMessages, RawCrisExecutor.RawResult raw )
+            {
+                return validationMessages.IsDefaultOrEmpty
+                        ? (raw.ValidationMessages == null
+                            ? ImmutableArray<UserMessage>.Empty
+                            : raw.ValidationMessages.UserMessages.ToImmutableArray())
+                        : raw.ValidationMessages == null
+                            ? validationMessages
+                            : validationMessages.Concat( raw.ValidationMessages.UserMessages ).ToImmutableArray();
             }
         }
 
@@ -170,7 +224,7 @@ namespace CK.Cris
             var raw = await _rawExecutor.RawExecuteAsync( _serviceProvider, command );
             var e = StackPop();
             if( e != null && !stopEventPropagation ) PropagateEvents( e );
-            return new ExecutedCommand<T>( command, raw.Result, raw.ValidationMessages?.UserMessages, e );
+            return new ExecutedCommand<T>( command, raw.Result, deferredExecutionInfo: null, raw.ValidationMessages?.UserMessages, e );
         }
 
         void PropagateEvents( List<IEvent> events )
