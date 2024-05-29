@@ -56,6 +56,7 @@ namespace CK
         /// Wait callback called when <see cref="Debugger.IsAttached"/> is true before running test.
         /// See <see cref="StObjEngineTestHelperTypeScriptExtensions.SuspendAsync(IMonitorTestHelper, Func{bool, bool}, string?, int, string?)"/>.
         /// </param>
+        /// <param name="configureEngine">Optional engine configurator.</param>
         /// <param name="configureServices">Optional services configurator.</param>
         /// <param name="configureApplication">Optional application configurator.</param>
         /// <returns>The awaitable.</returns>
@@ -64,6 +65,7 @@ namespace CK
                                                   IEnumerable<Type> registeredTypes,
                                                   IEnumerable<Type> tsTypes,
                                                   Func<bool, bool> resume,
+                                                  Action<StObjEngineConfiguration>? configureEngine = null,
                                                   Action<IServiceCollection>? configureServices = null,
                                                   Action<IApplicationBuilder>? configureApplication = null,
                                                   [CallerMemberName] string? testName = null,
@@ -76,7 +78,7 @@ namespace CK
                                           registeredTypes,
                                           tsTypes,
                                           runner => helper.SuspendAsync( resume, testName, lineNumber, fileName ),
-                                          configureEngine: null,
+                                          configureEngine,
                                           configureServices,
                                           configureApplication );
         }
@@ -94,7 +96,7 @@ namespace CK
         /// Can be used to provide disposal actions and/or breakpoints or suspension.
         /// </param>
         /// <param name="tsTypes">The types that must be generated in TypeScript.</param>
-        /// <param name="configureServices">Optional engine configurator.</param>
+        /// <param name="configureEngine">Optional engine configurator.</param>
         /// <param name="configureServices">Optional services configurator.</param>
         /// <param name="configureApplication">Optional application configurator.</param>
         /// <returns>The awaitable.</returns>
@@ -107,8 +109,9 @@ namespace CK
                                                         Action<IServiceCollection>? configureServices = null,
                                                         Action<IApplicationBuilder>? configureApplication = null )
         {
-            var config = helper.ConfigureTypeScript( null, targetProjectPath, tsTypes.ToArray(), configureEngine );
+            var config = helper.ConfigureTypeScript( null, targetProjectPath, tsTypes.ToArray() );
             config.BinPaths[0].CompileOption = CompileOption.Compile;
+            configureEngine?.Invoke( config );
 
             StObjEngine stObjEngine = new StObjEngine( helper.Monitor, config );
             MonoCollectorResolver resolver = new MonoCollectorResolver( helper, registeredTypes.ToArray() );
