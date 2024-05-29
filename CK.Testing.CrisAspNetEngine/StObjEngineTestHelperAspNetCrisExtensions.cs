@@ -76,6 +76,7 @@ namespace CK
                                           registeredTypes,
                                           tsTypes,
                                           runner => helper.SuspendAsync( resume, testName, lineNumber, fileName ),
+                                          configureEngine: null,
                                           configureServices,
                                           configureApplication );
         }
@@ -93,6 +94,7 @@ namespace CK
         /// Can be used to provide disposal actions and/or breakpoints or suspension.
         /// </param>
         /// <param name="tsTypes">The types that must be generated in TypeScript.</param>
+        /// <param name="configureServices">Optional engine configurator.</param>
         /// <param name="configureServices">Optional services configurator.</param>
         /// <param name="configureApplication">Optional application configurator.</param>
         /// <returns>The awaitable.</returns>
@@ -101,10 +103,11 @@ namespace CK
                                                         IEnumerable<Type> registeredTypes,
                                                         IEnumerable<Type> tsTypes,
                                                         Func<StObjEngineTestHelperTypeScriptExtensions.TypeScriptRunner, Task>? beforeRun = null,
+                                                        Action<StObjEngineConfiguration>? configureEngine = null,
                                                         Action<IServiceCollection>? configureServices = null,
                                                         Action<IApplicationBuilder>? configureApplication = null )
         {
-            var config = helper.ConfigureTypeScript( null, targetProjectPath, tsTypes.ToArray() );
+            var config = helper.ConfigureTypeScript( null, targetProjectPath, tsTypes.ToArray(), configureEngine );
             config.BinPaths[0].CompileOption = CompileOption.Compile;
 
             StObjEngine stObjEngine = new StObjEngine( helper.Monitor, config );
