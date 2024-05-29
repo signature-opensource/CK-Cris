@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Auth.Abstractions" Version="6.0.1--0008-develop" />
-    <PackageReference Include="CK.Testing.StObjEngine" Version="25.0.1--0163-develop" />
+    <PackageReference Include="CK.Auth.Abstractions" Version="6.0.1--0010-develop" />
+    <PackageReference Include="CK.Testing.StObjEngine" Version="25.0.1--0165-develop" />
     <PackageReference Include="NUnit" Version="4.1.0" />
     <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" Version="4.5.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
