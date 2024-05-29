@@ -30,9 +30,9 @@ namespace CK.Setup
             TypeScriptFile fEndpoint = modelFile.Folder.FindOrCreateFile( "CrisEndpoint.ts" );
 
             // AmbientValuesOverride is in the same folder as AmbienValues.ts.
-            var ubiquitousValuesOverride = context.Root.TSTypes.FindByTypeName( "AmbientValuesOverride" );
+            var ambientValuesOverride = context.Root.TSTypes.FindByTypeName( "AmbientValuesOverride" );
             Throw.CheckState( "AmbientValuesOverride is automatically created in the same folder as AmbientValues.ts and IAmbientValues is a registered type.",
-                              ubiquitousValuesOverride != null );
+                              ambientValuesOverride != null );
             // Importing:
             // - the Model objects ICommand, ExecutedCommand and CrisError.
             // - The IAmbientValues and IAmbientValuesCollectCommand.
@@ -40,7 +40,7 @@ namespace CK.Setup
             fEndpoint.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" )
                              .EnsureImport( monitor, typeof( IAmbientValues ),
                                                      typeof( IAmbientValuesCollectCommand ) )
-                             .EnsureImport( ubiquitousValuesOverride );
+                             .EnsureImport( ambientValuesOverride );
 
             fEndpoint.Body.Append( """
                             /**
@@ -49,29 +49,30 @@ namespace CK.Setup
                             */
                             export abstract class CrisEndpoint
                             {
-                                private _ubiquitousValuesRequest: Promise<AmbientValues>|undefined;
-                                private _ubiquitousValues: AmbientValues|undefined;
+                                private _ambientValuesRequest: Promise<AmbientValues>|undefined;
+                                private _ambientValues: AmbientValues|undefined;
                                 private _subscribers: Set<( eventSource: CrisEndpoint ) => void>;
                                 private _isConnected: boolean;
 
                                 constructor()
                                 {
-                                    this.ubiquitousValuesOverride = new AmbientValuesOverride();
+                                    this.ambientValuesOverride = new AmbientValuesOverride();
                                     this._isConnected = false;
                                     this._subscribers = new Set<() => void>();
                                 }
 
                                 /**
-                                * Enables ubiquitous values to be overridden.
-                                * Sensible ubiquitous values (like the actorId when CK.Cris.Auth is used) are checked against
+                                * Enables ambient values to be overridden.
+                                * Sensible ambient values (like the actorId when CK.IO.Auth is used) are checked against
                                 * secured contextual values: overriding them will trigger a ValidationError. 
                                 **/    
-                                public readonly ubiquitousValuesOverride: AmbientValuesOverride;
+                                public readonly ambientValuesOverride: AmbientValuesOverride;
 
 
                                 //#region isConnected
-                                /** Gets whether this HttpEndpointService is connected: the last command sent  
-                                *  has been handled by the server. 
+                                /** 
+                                * Gets whether this HttpEndpointService is connected: the last command sent
+                                * has been handled by the server. 
                                 **/
                                 public get isConnected(): boolean { return this._isConnected; }
 
@@ -120,9 +121,9 @@ namespace CK.Setup
                                 **/    
                                 public updateAmbientValuesAsync() : Promise<AmbientValues>
                                 {
-                                    if( this._ubiquitousValuesRequest ) return this._ubiquitousValuesRequest;
-                                    this._ubiquitousValues = undefined;
-                                    return this._ubiquitousValuesRequest = this.waitForAmbientValuesAsync();
+                                    if( this._ambientValuesRequest ) return this._ambientValuesRequest;
+                                    this._ambientValues = undefined;
+                                    return this._ambientValuesRequest = this.waitForAmbientValuesAsync();
                                 }
 
                                 /**
@@ -130,10 +131,10 @@ namespace CK.Setup
                                 **/    
                                 public async sendAsync<T>(command: ICommand<T>): Promise<ExecutedCommand<T>>
                                 {
-                                    let a = this._ubiquitousValues;
-                                    // Don't use coalesce here since there may be no ubiquitous values (an empty object is truthy).
+                                    let a = this._ambientValues;
+                                    // Don't use coalesce here since there may be no ambient values (an empty object is truthy).
                                     if( a === undefined ) a = await this.updateAmbientValuesAsync();
-                                    command.commandModel.applyAmbientValues( command, a, this.ubiquitousValuesOverride );
+                                    command.commandModel.applyAmbientValues( command, a, this.ambientValuesOverride );
                                     return await this.doSendAsync( command ); 
                                 }
 
@@ -167,10 +168,10 @@ namespace CK.Setup
                                         }
                                         else
                                         {
-                                            this._ubiquitousValuesRequest = undefined;
-                                            this._ubiquitousValues = <AmbientValues>e.result;
+                                            this._ambientValuesRequest = undefined;
+                                            this._ambientValues = <AmbientValues>e.result;
                                             this.setIsConnected( true );
-                                            return this._ubiquitousValues;
+                                            return this._ambientValues;
                                         }
                                     }
                                 }
@@ -242,7 +243,7 @@ namespace CK.Setup
                                                   let r = netResult.result;
                                                   if( r instanceof AspNetCrisResultError ) 
                                                   {
-                                                      r = new CrisError(command,r.errors[0], r.isValidationError, undefined, r.errors, r.logKey);
+                                                      r = new CrisError(command, r.isValidationError, r.errors, undefined, netResult.validationMessages, r.logKey);
                                                   }
                                                   return {command: command, result: <T|CrisError>r, validationMessages: netResult.validationMessages, correlationId: netResult.correlationId };
                                               }
@@ -260,8 +261,7 @@ namespace CK.Setup
                                                       error = new Error(`Unhandled error ${e}.`);
                                                   }
                                                   this.setIsConnected(false);
-                                                  return {command, result: new CrisError(command, "Communication error", false, error )};
-                                              }
+                                                  return {command, result: new CrisError(command, false, ["Communication error"], error )};                                              }
                                            }
                                        }
                                        """ );

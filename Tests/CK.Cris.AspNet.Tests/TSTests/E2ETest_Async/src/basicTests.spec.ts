@@ -45,7 +45,7 @@ it( 'endpoint values can be overridden.', async () =>
 {
   const ep = new HttpCrisEndpoint( axios, crisEndpoint );
   const cmd = new BeautifulCommand( "Superb" );
-  ep.ubiquitousValuesOverride.color = "Black";
+  ep.ambientValuesOverride.color = "Black";
   // color is and endpoint value: it is automatically set
   // when sending the command if it not set before. 
   expect( cmd.color ).toBeUndefined();
@@ -87,7 +87,7 @@ it('CrisError validation messages are SimpleMessage.', async () => {
     const r = <CrisError>executed.result;
     expect( r.errorType ).toBe( "ValidationError" );
     expect( r.message ).toBe( "The BuggyCommand is not valid (by design)." );
-    expect( r.messages ).toEqual( ["The BuggyCommand is not valid (by design)."] );
+    expect( r.errors ).toEqual( ["The BuggyCommand is not valid (by design)."] );
     // The validation messages if any (it can be undefined) are available on the
     // executed command itself. 
     expect(executed.validationMessages).toBeDefined();
