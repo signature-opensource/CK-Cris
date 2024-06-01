@@ -8,6 +8,7 @@ using static CK.Testing.StObjEngineTestHelper;
 using System;
 using Microsoft.Extensions.Hosting;
 using System.Collections.Generic;
+using CK.Testing;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
@@ -25,11 +26,11 @@ namespace CK.Cris.Tests
         [Test]
         public void simple_command_models()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( ITestCommand ) );
-            using var services = TestHelper.CreateAutomaticServices( c ).Services;
-            var poco = services.GetRequiredService<PocoDirectory>();
+            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( ITestCommand ) );
+            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            var poco = auto.Services.GetRequiredService<PocoDirectory>();
 
-            var d = services.GetRequiredService<CrisDirectory>();
+            var d = auto.Services.GetRequiredService<CrisDirectory>();
             d.CrisPocoModels.Should().HaveCount( 1 );
             var m = d.CrisPocoModels[0];
             m.Handlers.Should().BeEmpty();
@@ -50,9 +51,9 @@ namespace CK.Cris.Tests
         {
             using( TestHelper.Monitor.CollectTexts( out var texts ) )
             {
-                var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( ITestSpecCommand ) );
-                TestHelper.GenerateCode( c, null ).Success.Should().BeFalse();
-                texts.Should().Contain( "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ITestCommand' cannot be both a IEvent and a IAbstractCommand." );
+                var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( ITestSpecCommand ) );
+                TestHelper.GetFailedSingleBinPathAutomaticServices( c,
+                    "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ITestCommand' cannot be both a IEvent and a IAbstractCommand." );
             }
         }
 
@@ -65,9 +66,9 @@ namespace CK.Cris.Tests
         {
             using( TestHelper.Monitor.CollectTexts( out var texts ) )
             {
-                var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( ICmdNoWay ) );
-                TestHelper.GenerateCode( c, null ).Success.Should().BeFalse();
-                texts.Should().Contain( "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ICmdNoWay' cannot be both a IEvent and a IAbstractCommand." );
+                var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( ICmdNoWay ) );
+                TestHelper.GetFailedSingleBinPathAutomaticServices( c ,
+                    "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ICmdNoWay' cannot be both a IEvent and a IAbstractCommand." );
             }
         }
 

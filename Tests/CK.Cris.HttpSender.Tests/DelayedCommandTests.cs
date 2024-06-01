@@ -17,6 +17,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Threading;
+using CK.Testing;
 
 namespace CK.Cris.HttpSender.Tests
 {
@@ -83,9 +84,8 @@ namespace CK.Cris.HttpSender.Tests
             // We need the fr culture for this test.
             NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
 
-            await using var runningServer = await TestHelper.RunAspNetServerAsync(
-                                                new[]
-                                                {
+            await using var runningServer = await TestHelper.CreateSingleBinPathAspNetServerAsync(
+                                                TestHelper.CreateTypeCollector(
                                                     typeof( IAuthenticationInfo ),
                                                     typeof( CrisAspNetService ),
                                                     typeof( AmbientValuesService ),
@@ -102,7 +102,7 @@ namespace CK.Cris.HttpSender.Tests
                                                     typeof( IPocoUserInfo ),
                                                     typeof( CrisAuthenticationService ),
                                                     typeof( CrisWebFrontAuthCommandHandler )
-                                                },
+                                                ),
                                                 configureServices: services =>
                                                 {
                                                     // We could have used the type registration above and
@@ -115,18 +115,18 @@ namespace CK.Cris.HttpSender.Tests
 
             var serverAddress = runningServer.ServerAddress;
 
-            var callerServices = new[] { typeof( IDelayedCommand ),
-                                         typeof( IFullCommand ),
-                                         typeof( IBasicLoginCommand ),
-                                         typeof( ILogoutCommand ),
-                                         typeof( IRefreshAuthenticationCommand ),
-                                         typeof( IAuthenticationResult ),
-                                         typeof( IPocoAuthenticationInfo ),
-                                         typeof( IPocoUserInfo ),
-                                         typeof( CrisDirectory ),
-                                         typeof( CommonPocoJsonSupport ),
-                                         typeof( ApplicationIdentityService ),
-                                         typeof( CrisHttpSenderFeatureDriver )};
+            var callerServices = TestHelper.CreateTypeCollector( typeof( IDelayedCommand ),
+                                                                 typeof( IFullCommand ),
+                                                                 typeof( IBasicLoginCommand ),
+                                                                 typeof( ILogoutCommand ),
+                                                                 typeof( IRefreshAuthenticationCommand ),
+                                                                 typeof( IAuthenticationResult ),
+                                                                 typeof( IPocoAuthenticationInfo ),
+                                                                 typeof( IPocoUserInfo ),
+                                                                 typeof( CrisDirectory ),
+                                                                 typeof( CommonPocoJsonSupport ),
+                                                                 typeof( ApplicationIdentityService ),
+                                                                 typeof( CrisHttpSenderFeatureDriver ) );
 
             await using var runningCaller = await TestHelper.CreateRunningCallerAsync( serverAddress, callerServices, generateSourceCode: false );
 

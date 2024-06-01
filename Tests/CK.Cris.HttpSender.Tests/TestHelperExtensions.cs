@@ -1,7 +1,8 @@
-﻿using CK.Core;
+using CK.Core;
 using CK.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
@@ -10,20 +11,16 @@ namespace CK.Cris.HttpSender.Tests
     public static class TestHelperExtensions
     {
 
-        public static Task<ApplicationIdentityTestHelperExtension.RunningAppIdentity> CreateRunningCallerAsync( this IStObjEngineTestHelper @this,
+        public static Task<ApplicationIdentityTestHelperExtension.RunningAppIdentity> CreateRunningCallerAsync( this IMonitorTestHelper helper,
                                                                                                                 string serverAddress,
-                                                                                                                Type[] registerTypes,
+                                                                                                                ISet<Type> registerTypes,
                                                                                                                 Action<MutableConfigurationSection>? configuration = null,
                                                                                                                 bool generateSourceCode = true )
         {
-            var callerCollector = @this.CreateStObjCollector( registerTypes );
-            var callerMap = @this.CompileAndLoadStObjMap( callerCollector, engineConfigurator: c =>
-            {
-                c.BinPaths[0].GenerateSourceFiles = generateSourceCode;
-                return c;
-            } ).Map;
+            var c = helper.CreateDefaultEngineConfiguration( generateSourceCode );
+            var callerMap = helper.RunSingleBinPathAndLoad( c, registerTypes ).Map;
 
-            return @this.CreateRunningAppIdentityServiceAsync(
+            return helper.CreateRunningAppIdentityServiceAsync(
                 c =>
                 {
                     c["FullName"] = "Domain/$Caller";
@@ -43,7 +40,7 @@ namespace CK.Cris.HttpSender.Tests
                 },
                 services =>
                 {
-                    services.AddStObjMap( @this.Monitor, callerMap );
+                    services.AddStObjMap( helper.Monitor, callerMap );
                 } );
         }
     }

@@ -1,4 +1,5 @@
 using CK.Core;
+using CK.Testing;
 using FluentAssertions;
 using NUnit.Framework;
 using System;
@@ -132,19 +133,19 @@ namespace CK.Cris.AspNet.E2ETests
             //
             var targetOutputPath = TestHelper.GetTypeScriptWithTestsSupportTargetProjectPath();
             Throw.DebugAssert( targetOutputPath.EndsWith( "/TSTests/E2ETest_Async" ) );
-            await TestHelper.RunAspNetE2ETestAsync( targetOutputPath,
-                                                    new[] { typeof( IBeautifulCommand ),
-                                                            typeof( ICommandColored ),
-                                                            typeof( ICultureAmbientValues ),
-                                                            typeof( AmbientValues.AmbientValuesService ),
-                                                            typeof( IColoredEndpointValues ),
-                                                            typeof( ColorAndBuggyService ),
-                                                            typeof( IBuggyCommand ),
-                                                            typeof( IWithMessageCommand ),
-                                                            typeof( CrisAspNetService ) },
-                                                    new[] { typeof( IBeautifulCommand ), typeof( IBuggyCommand ), typeof( IWithMessageCommand ) },
-                                                    resume =>
-                                                    resume );
+            await TestHelper.RunSingleBinPathAspNetE2ETestAsync( targetOutputPath,
+                                                                 TestHelper.CreateTypeCollector( typeof( IBeautifulCommand ),
+                                                                                                 typeof( ICommandColored ),
+                                                                                                 typeof( ICultureAmbientValues ),
+                                                                                                 typeof( AmbientValues.AmbientValuesService ),
+                                                                                                 typeof( IColoredEndpointValues ),
+                                                                                                 typeof( ColorAndBuggyService ),
+                                                                                                 typeof( IBuggyCommand ),
+                                                                                                 typeof( IWithMessageCommand ),
+                                                                                                 typeof( CrisAspNetService ) ),
+                                                                 new[] { typeof( IBeautifulCommand ), typeof( IBuggyCommand ), typeof( IWithMessageCommand ) },
+                                                                 resume =>
+                                                                 resume );
         }
 
     }

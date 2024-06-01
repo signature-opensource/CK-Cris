@@ -1,5 +1,6 @@
 using CK.Auth;
 using CK.Core;
+using CK.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -24,18 +25,17 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task when_there_is_no_validation_methods_the_validation_succeeds_Async()
         {
-            var c = TestHelper.CreateStObjCollector(
+            var c = TestHelper.CreateTypeCollector(
                 typeof( RawCrisReceiver ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
                 typeof( ITestCommand ) );
 
-            using var services = TestHelper.CreateAutomaticServices( c ).Services;
-            await TestHelper.StartHostedServicesAsync( services );
+            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
 
-            var directory = services.GetRequiredService<PocoDirectory>();
+            var directory = auto.Services.GetRequiredService<PocoDirectory>();
             var cmd = directory.Create<ITestCommand>();
 
-            var validator = services.GetRequiredService<RawCrisReceiver>();
-            var result = await validator.IncomingValidateAsync( TestHelper.Monitor, services, cmd );
+            var validator = auto.Services.GetRequiredService<RawCrisReceiver>();
+            var result = await validator.IncomingValidateAsync( TestHelper.Monitor, auto.Services, cmd );
             result.Success.Should().BeTrue();
         }
 
@@ -54,17 +54,16 @@ namespace CK.Cris.Executor.Tests
             // To leak all exceptions in messages, CoreApplicationIdentity must be initialized and be in "#Dev" environment name.  
             CoreApplicationIdentity.Initialize();
 
-            var c = TestHelper.CreateStObjCollector( typeof( RawCrisReceiver ), typeof( CrisDirectory ),
+            var c = TestHelper.CreateTypeCollector( typeof( RawCrisReceiver ), typeof( CrisDirectory ),
                                                      typeof( ITestCommand ),
                                                      typeof( BuggyValidator ) );
-            using var services = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
-            await TestHelper.StartHostedServicesAsync( services );
+            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
 
-            var directory = services.GetRequiredService<PocoDirectory>();
+            var directory = auto.Services.GetRequiredService<PocoDirectory>();
             var cmd = directory.Create<ITestCommand>();
 
-            var validator = services.GetRequiredService<RawCrisReceiver>();
-            var result = await validator.IncomingValidateAsync( TestHelper.Monitor, services, cmd );
+            var validator = auto.Services.GetRequiredService<RawCrisReceiver>();
+            var result = await validator.IncomingValidateAsync( TestHelper.Monitor, auto.Services, cmd );
             result.Success.Should().BeFalse();
             result.ErrorMessages.Should().HaveCount( 2 )
                        .And.Contain( m => m.Level == UserMessageLevel.Error
@@ -106,16 +105,15 @@ namespace CK.Cris.Executor.Tests
         [TestCase( true, true )]
         public async Task the_simplest_validation_is_held_by_a_dependency_free_service_and_is_synchronous_Async( bool scopedService, bool singletonService )
         {
-            var c = TestHelper.CreateStObjCollector( typeof( RawCrisReceiver ), typeof( CrisDirectory ),
+            var c = TestHelper.CreateTypeCollector( typeof( RawCrisReceiver ), typeof( CrisDirectory ),
                                                      typeof( ITestCommand ),
                                                      typeof( IWithoutValidatorsCommand ) );
-            if( singletonService ) c.RegisterType( TestHelper.Monitor, typeof( SimplestValidatorEverSingleton ) );
-            if( scopedService ) c.RegisterType( TestHelper.Monitor, typeof( SimplestValidatorEverScoped ) );
+            if( singletonService ) c.Add( typeof( SimplestValidatorEverSingleton ) );
+            if( scopedService ) c.Add( typeof( SimplestValidatorEverScoped ) );
 
-            using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
-            await TestHelper.StopHostedServicesAsync( appServices );
+            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
 
-            using( var scope = appServices.CreateScope() )
+            using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
 
@@ -185,7 +183,7 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task part_with_parameter_injection_Async()
         {
-            var c = TestHelper.CreateStObjCollector(
+            var c = TestHelper.CreateTypeCollector(
                 typeof( RawCrisReceiver ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
                 typeof( ITestSecureCommand ),
                 typeof( AuthenticationValidator ),
@@ -195,13 +193,12 @@ namespace CK.Cris.Executor.Tests
             var authTypeSystem = new StdAuthenticationTypeSystem();
             var authInfo = authTypeSystem.AuthenticationInfo.Create( authTypeSystem.UserInfo.Create( 3712, "John" ), DateTime.UtcNow.AddDays( 1 ) );
 
-            using var appServices = TestHelper.CreateAutomaticServices( c, configureServices: services =>
+            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c, configureServices: services =>
             {
                 services.Services.AddScoped( s => authInfo );
-            } ).Services;
-            await TestHelper.StopHostedServicesAsync( appServices );
+            } );
 
-            using( var scope = appServices.CreateScope() )
+            using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
 
@@ -269,20 +266,20 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task Validators_can_log_if_they_want_Async()
         {
-            var c = TestHelper.CreateStObjCollector(
+            var c = TestHelper.CreateTypeCollector(
                 typeof( RawCrisReceiver ), typeof( RawCrisExecutor ), typeof( CrisDirectory ),
                 typeof( ITestCommand ),
                 typeof( ValidatorWithLogs ) );
 
-            using var appServices = TestHelper.CreateAutomaticServices( c, configureServices: services =>
+            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c, configureServices: services =>
             {
                 services.Services.AddScoped<IActivityMonitor, ActivityMonitor>();
                 services.Services.AddScoped( sp => sp.GetRequiredService<IActivityMonitor>().ParallelLogger );
-            } ).Services;
+            } );
             // Triggers a resolution of IEnumerable<IHostedService>: this is enough to setup the DI containers.
-            appServices.GetServices<IHostedService>();
+            auto.Services.GetServices<IHostedService>();
 
-            using( var scope = appServices.CreateScope() )
+            using( var scope = auto.Services.CreateScope() )
             {
                 var monitor = scope.ServiceProvider.GetRequiredService<IActivityMonitor>();
                 var directory = scope.ServiceProvider.GetRequiredService<PocoDirectory>();
@@ -322,12 +319,12 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task IncomingValidators_can_have_both_UserMessageCollector_and_ICrisIncomingValidationContext_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( RawCrisReceiver ), typeof( CrisDirectory ), typeof( ITestCommand ), typeof( ValidatorWithBoth ) );
-            using var appServices = TestHelper.CreateAutomaticServices( c ).Services;
+            var c = TestHelper.CreateTypeCollector( typeof( RawCrisReceiver ), typeof( CrisDirectory ), typeof( ITestCommand ), typeof( ValidatorWithBoth ) );
+            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
             // Triggers a resolution of IEnumerable<IHostedService>: this is enough to setup the DI containers.
-            appServices.GetServices<IHostedService>();
+            auto.Services.GetServices<IHostedService>();
 
-            using( var scope = appServices.CreateScope() )
+            using( var scope = auto.Services.CreateScope() )
             {
                 var directory = scope.ServiceProvider.GetRequiredService<PocoDirectory>();
                 var validator = scope.ServiceProvider.GetRequiredService<RawCrisReceiver>();
@@ -354,8 +351,8 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public void IncomingValidators_requires_UserMessageCollector_or_ICrisIncomingValidationContext()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( RawCrisReceiver ), typeof( CrisDirectory ), typeof( ITestCommand ), typeof( InvalidValidator ) );
-            TestHelper.GetFailedAutomaticServicesConfiguration( c, "[IncomingValidator] method 'InvalidValidator.IncomingValidateCommand( IActivityMonitor monitor, ITestCommand cmd )' must take a 'UserMessageCollector' and/or a 'ICrisIncomingValidationContext' parameter to collect validation errors, warnings and informations." );
+            var c = TestHelper.CreateTypeCollector( typeof( RawCrisReceiver ), typeof( CrisDirectory ), typeof( ITestCommand ), typeof( InvalidValidator ) );
+            TestHelper.GetFailedSingleBinPathAutomaticServices( c, "[IncomingValidator] method 'InvalidValidator.IncomingValidateCommand( IActivityMonitor monitor, ITestCommand cmd )' must take a 'UserMessageCollector' and/or a 'ICrisIncomingValidationContext' parameter to collect validation errors, warnings and informations." );
         }
     }
 }

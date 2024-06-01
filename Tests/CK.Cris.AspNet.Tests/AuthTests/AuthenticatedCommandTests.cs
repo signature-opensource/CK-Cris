@@ -1,5 +1,6 @@
 using CK.Auth;
 using CK.Core;
+using CK.Testing;
 using FluentAssertions;
 using NUnit.Framework;
 using System.Collections.Generic;
@@ -69,7 +70,7 @@ namespace CK.Cris.AspNet.Tests.AuthTests
         [Test]
         public async Task ICommandAuthUnsafe_cannot_be_fooled_on_its_ActorId_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( IUnsafeCommand ),
+            var c = TestHelper.CreateTypeCollector( typeof( IUnsafeCommand ),
                                                      typeof( IUnsafeWithResultCommand ),
                                                      typeof( UnsafeHandler ),
                                                      typeof( CrisExecutionContext ) );

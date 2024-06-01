@@ -1,4 +1,5 @@
 using CK.Core;
+using CK.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -51,7 +52,7 @@ namespace CK.Cris.Executor.Tests
         [TestCase( "ValAsync" )]
         public async Task dispatching_an_event_Async( string kind )
         {
-            var c = TestHelper.CreateStObjCollector( typeof( RawCrisExecutor ),
+            var c = TestHelper.CreateTypeCollector( typeof( RawCrisExecutor ),
                                                      typeof( CrisDirectory ),
                                                      typeof( ITestEvent ),
                                                      kind switch
@@ -61,8 +62,8 @@ namespace CK.Cris.Executor.Tests
                                                          "Sync" => typeof( EventSyncHandler ),
                                                          _ => throw new NotImplementedException()
                                                      } );
-            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
-            using( var scope = appServices.CreateScope() )
+            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
                 var executor = services.GetRequiredService<RawCrisExecutor>();
@@ -78,14 +79,14 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task dispatching_an_event_to_3_handlers_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( RawCrisExecutor ),
+            var c = TestHelper.CreateTypeCollector( typeof( RawCrisExecutor ),
                                                      typeof( CrisDirectory ),
                                                      typeof( ITestEvent ),
                                                      typeof( EventAsyncHandler ),
                                                      typeof( EventValueTaskAsyncHandler ),
                                                      typeof( EventSyncHandler ) );
-            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
-            using( var scope = appServices.CreateScope() )
+            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
                 var executor = services.GetRequiredService<RawCrisExecutor>();

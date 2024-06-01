@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
-using CK.AspNet.Auth;
 
-namespace CK
+namespace CK.Testing
 {
     /// <summary>
     /// Running AspNet server with its <see cref="CrisEndpointUrl"/>, <see cref="Services"/>

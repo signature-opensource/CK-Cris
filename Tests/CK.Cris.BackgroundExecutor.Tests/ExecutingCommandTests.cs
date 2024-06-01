@@ -1,5 +1,6 @@
 using CK.Auth;
 using CK.Core;
+using CK.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -37,14 +38,15 @@ namespace CK.Cris.BackgroundExecutor.Tests
         [Test]
         public async Task using_scoped_CrisBackgroundExecutor_is_simple_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisBackgroundExecutorService ),
+            var c = TestHelper.CreateTypeCollector( typeof( CrisBackgroundExecutorService ),
                                                      typeof( IMyCommand ),
                                                      typeof( IMyCommandResult ),
                                                      typeof( MyHandler ),
                                                      typeof( CrisBackgroundExecutorService ),
                                                      typeof( CrisBackgroundExecutor ) );
-            using var services = await TestHelper.StartHostedServicesAsync( TestHelper.CreateAutomaticServices( c ).Services );
-            using var scoped = services.CreateScope();
+            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+
+            using var scoped = auto.Services.CreateScope();
             var poco = scoped.ServiceProvider.GetRequiredService<PocoDirectory>();
             var executor = scoped.ServiceProvider.GetRequiredService<CrisBackgroundExecutor>();
             var cmd = poco.Create<IMyCommand>( c => c.WantedPower = 3712 );
@@ -75,14 +77,15 @@ namespace CK.Cris.BackgroundExecutor.Tests
         [Test]
         public async Task ExecutingCommand_handles_different_Result_type_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisBackgroundExecutorService ),
+            var c = TestHelper.CreateTypeCollector( typeof( CrisBackgroundExecutorService ),
                                                      typeof( IMyExtendedCommand ),
                                                      typeof( IMyExtendedCommandResult ),
                                                      typeof( MyExtendedHandler ),
                                                      typeof( CrisBackgroundExecutorService ),
                                                      typeof( CrisBackgroundExecutor ) );
-            using var services = await TestHelper.StartHostedServicesAsync( TestHelper.CreateAutomaticServices( c ).Services );
-            using var scoped = services.CreateScope();
+            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+
+            using var scoped = auto.Services.CreateScope();
             var poco = scoped.ServiceProvider.GetRequiredService<PocoDirectory>();
             var executor = scoped.ServiceProvider.GetRequiredService<CrisBackgroundExecutor>();
 

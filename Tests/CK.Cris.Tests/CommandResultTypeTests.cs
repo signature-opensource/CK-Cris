@@ -1,4 +1,5 @@
 using CK.Core;
+using CK.Testing;
 using FluentAssertions;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,10 +24,10 @@ namespace CK.Cris.Tests
         [Test]
         public void simple_basic_return()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( IIntCommand ) );
-            using var s = TestHelper.CreateAutomaticServices( c ).Services;
+            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IIntCommand ) );
+            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
 
-            var d = s.GetRequiredService<CrisDirectory>();
+            var d = auto.Services.GetRequiredService<CrisDirectory>();
             d.CrisPocoModels[0].ResultType.Should().Be( typeof( int ) );
         }
 
@@ -37,9 +38,9 @@ namespace CK.Cris.Tests
         [Test]
         public void a_specialized_command_can_generalize_the_initial_result_type()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( IIntButObjectCommand ) );
-            using var s = TestHelper.CreateAutomaticServices( c ).Services;
-            var d = s.GetRequiredService<CrisDirectory>();
+            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IIntButObjectCommand ) );
+            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            var d = auto.Services.GetRequiredService<CrisDirectory>();
             var cmdModel = d.CrisPocoModels[0];
             cmdModel.CommandType.Should().BeAssignableTo( typeof( IIntButObjectCommand ) );
             cmdModel.ResultType.Should().Be( typeof( int ) );
@@ -52,40 +53,39 @@ namespace CK.Cris.Tests
         [Test]
         public void incompatible_result_type()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( IIntButStringCommand ) );
-            TestHelper.GenerateCode( c, engineConfigurator: null ).Success.Should().BeFalse();
-            //=> Invalid command Result type for 'CK.Cris.Tests.CommandResultTypeTests+IIntCommand': result types 'Int32', 'String' must resolve to a common most specific type.
+            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IIntButStringCommand ) );
+            TestHelper.GetFailedSingleBinPathAutomaticServices( c,
+                "Invalid command Result type for 'CK.Cris.Tests.CommandResultTypeTests+IIntCommand': result types 'Int32', 'String' must resolve to a common most specific type." );
         }
 
         [Test]
         public void when_IPoco_result_are_not_closed_this_is_invalid()
         {
             {
-                var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( IWithMorePocoResultCommand ), typeof( IMoreResult ) );
-                using var s = TestHelper.CreateAutomaticServices( c ).Services;
-                var d = s.GetRequiredService<CrisDirectory>();
+                var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IWithMorePocoResultCommand ), typeof( IMoreResult ) );
+                using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+                var d = auto.Services.GetRequiredService<CrisDirectory>();
                 var cmdModel = d.CrisPocoModels[0];
                 cmdModel.CommandType.Should().BeAssignableTo( typeof( IWithMorePocoResultCommand ) );
                 cmdModel.ResultType.Should().BeAssignableTo( typeof( IMoreResult ) );
             }
             {
-                var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( IWithAnotherPocoResultCommand ), typeof( IAnotherResult ) );
-                using var s = TestHelper.CreateAutomaticServices( c ).Services;
-                var d = s.GetRequiredService<CrisDirectory>();
+                var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IWithAnotherPocoResultCommand ), typeof( IAnotherResult ) );
+                using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+                var d = auto.Services.GetRequiredService<CrisDirectory>();
                 var cmdModel = d.CrisPocoModels[0];
                 cmdModel.CommandType.Should().BeAssignableTo( typeof( IWithAnotherPocoResultCommand ) );
                 cmdModel.ResultType.Should().BeAssignableTo( typeof( IAnotherResult ) );
             }
             {
-                var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( IUnifiedButNotTheResultCommand ), typeof( IMoreResult ), typeof( IAnotherResult ) );
-                TestHelper.GenerateCode( c, null ).Success.Should().BeFalse();
-                //=> Invalid command Result type for 'CK.Cris.Tests.CommandResultTypeTests+ICommandWithPocoResult':
-                //   result types 'IMoreResult', 'IAnotherResult' must resolve to a common most specific type.
+                var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IUnifiedButNotTheResultCommand ), typeof( IMoreResult ), typeof( IAnotherResult ) );
+                TestHelper.GetFailedSingleBinPathAutomaticServices( c,
+                    "Invalid command Result type for 'CK.Cris.Tests.CommandResultTypeTests+ICommandWithPocoResult': result types 'IMoreResult', 'IAnotherResult' must resolve to a common most specific type." );
             }
             {
-                var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( IWithTheResultUnifiedCommand ), typeof( IUnifiedResult ) );
-                using var s = TestHelper.CreateAutomaticServices( c ).Services;
-                var d = s.GetRequiredService<CrisDirectory>();
+                var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IWithTheResultUnifiedCommand ), typeof( IUnifiedResult ) );
+                using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+                var d = auto.Services.GetRequiredService<CrisDirectory>();
                 var cmdModel = d.CrisPocoModels[0];
                 cmdModel.CommandType.Should().BeAssignableTo( typeof( IWithTheResultUnifiedCommand ) );
                 cmdModel.ResultType.Should().BeAssignableTo( typeof( IUnifiedResult ) );

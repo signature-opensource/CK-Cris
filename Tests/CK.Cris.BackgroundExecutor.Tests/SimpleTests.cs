@@ -1,5 +1,6 @@
 using CK.Auth;
 using CK.Core;
+using CK.Testing;
 using FluentAssertions;
 using FluentAssertions.Common;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,7 +22,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
     {
         static readonly List<string> Traces = new List<string>();
         [AllowNull]
-        ServiceProvider _services;
+        AutomaticServices _auto;
 
         static public string SafeTrace( string t )
         {
@@ -71,28 +72,28 @@ namespace CK.Cris.BackgroundExecutor.Tests
         }
 
         [OneTimeSetUp]
-        public async Task OneTimeSetUpAsync()
+        public void OneTimeSetUp()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisBackgroundExecutorService ),
+            var c = TestHelper.CreateTypeCollector( typeof( CrisBackgroundExecutorService ),
                                                      typeof( StdAuthenticationTypeSystem ),
                                                      typeof( IDelayCommand ),
                                                      typeof( StupidHandlers ),
                                                      typeof( CrisExecutionContext ),
                                                      typeof( RegularScopedService ) );
-            _services = await TestHelper.StartHostedServicesAsync( TestHelper.CreateAutomaticServices( c ).Services );
-            _services.GetRequiredService<CrisExecutionHost>().ParallelRunnerCount = 1;
+            _auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            _auto.Services.GetRequiredService<CrisExecutionHost>().ParallelRunnerCount = 1;
         }
 
         [OneTimeTearDown]
-        public async Task OneTimeDearDownAsync()
+        public void OneTimeDearDown()
         {
-            await _services.DisposeAsync();
+            _auto.Dispose();
         }
 
         [Test]
         public async Task executing_commands_Async()
         {
-            using( var scope = _services.CreateScope() )
+            using( var scope = _auto.Services.CreateScope() )
             {
                 Traces.Clear();
                 var poco = scope.ServiceProvider.GetRequiredService<PocoDirectory>();
@@ -113,11 +114,11 @@ namespace CK.Cris.BackgroundExecutor.Tests
         [Test]
         public async Task executing_with_2_runners_Async()
         {
-            using( var scope = _services.CreateScope() )
+            using( var scope = _auto.Services.CreateScope() )
             {
                 Traces.Clear();
-                var poco = _services.GetRequiredService<PocoDirectory>();
-                var back = _services.GetRequiredService<CrisBackgroundExecutorService>();
+                var poco = scope.ServiceProvider.GetRequiredService<PocoDirectory>();
+                var back = scope.ServiceProvider.GetRequiredService<CrisBackgroundExecutorService>();
                 var ubiq = scope.ServiceProvider.GetRequiredService<AmbientServiceHub>();
                 back.ExecutionHost.ParallelRunnerCount = 2;
 
@@ -142,11 +143,11 @@ namespace CK.Cris.BackgroundExecutor.Tests
         [Test]
         public async Task executing_with_4_runners_Async()
         {
-            using( var scope = _services.CreateScope() )
+            using( var scope = _auto.Services.CreateScope() )
             {
                 Traces.Clear();
-                var poco = _services.GetRequiredService<PocoDirectory>();
-                var back = _services.GetRequiredService<CrisBackgroundExecutorService>();
+                var poco = _auto.Services.GetRequiredService<PocoDirectory>();
+                var back = _auto.Services.GetRequiredService<CrisBackgroundExecutorService>();
                 var ambientServices = scope.ServiceProvider.GetRequiredService<AmbientServiceHub>();
                 back.ExecutionHost.ParallelRunnerCount = 4;
 
@@ -168,7 +169,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
         [TestCase(150)]
         public async Task stress_test_runner_count_change_Async( int countChange )
         {
-            using( var scope = _services.CreateScope() )
+            using( var scope = _auto.Services.CreateScope() )
             {
                 Traces.Clear();
                 var poco = scope.ServiceProvider.GetRequiredService<PocoDirectory>();

@@ -1,4 +1,5 @@
 using CK.Core;
+using CK.Testing;
 using FluentAssertions;
 using NUnit.Framework;
 using System.Net.Http;
@@ -58,7 +59,7 @@ namespace CK.Cris.AspNet.Tests
         [Test]
         public async Task command_with_no_current_culture_uses_the_english_default_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( ITestCommand ), typeof( OneHandler ) );
+            var c = TestHelper.CreateTypeCollector( typeof( ITestCommand ), typeof( OneHandler ) );
             using( var s = new CrisTestHostServer( c ) )
             {
                 {
@@ -93,7 +94,7 @@ namespace CK.Cris.AspNet.Tests
                 ("Test.InvalidIncomingCommand", "Désolé, INCOMING invalide."),
                 ("Test.InvalidHandlingCommand", "Désolé, HANDLING invalide."),
             } );
-            var c = TestHelper.CreateStObjCollector( typeof( ITestCommand ), typeof( OneHandler ) );
+            var c = TestHelper.CreateTypeCollector( typeof( ITestCommand ), typeof( OneHandler ) );
             using( var s = new CrisTestHostServer( c ) )
             {
                 {

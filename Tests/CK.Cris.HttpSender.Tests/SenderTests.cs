@@ -5,6 +5,7 @@ using CK.Auth;
 using CK.Core;
 using CK.Cris.AmbientValues;
 using CK.Cris.AspNet;
+using CK.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -12,7 +13,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using static CK.Testing.StObjEngineTestHelper;
+using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Cris.HttpSender.Tests
 {
@@ -28,9 +29,8 @@ namespace CK.Cris.HttpSender.Tests
             // We need the fr culture for this test.
             NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
 
-            await using var runningServer = await TestHelper.RunAspNetServerAsync(
-                                                new[]
-                                                {
+            await using var runningServer = await TestHelper.CreateSingleBinPathAspNetServerAsync(
+                                                TestHelper.CreateTypeCollector(
                                                     typeof( IAuthenticationInfo ),
                                                     typeof( CrisAspNetService ),
                                                     typeof( IBeautifulWithOptionsCommand ),
@@ -49,7 +49,7 @@ namespace CK.Cris.HttpSender.Tests
                                                     typeof( IPocoUserInfo ),
                                                     typeof( CrisAuthenticationService ),
                                                     typeof( CrisWebFrontAuthCommandHandler )
-                                                },
+                                                ),
                                                 configureServices: services =>
                                                 {
                                                     // We could have used the type registration above and
@@ -62,20 +62,20 @@ namespace CK.Cris.HttpSender.Tests
 
             var serverAddress = runningServer.ServerAddress;
 
-            var callerServices = new[] { typeof( IBeautifulWithOptionsCommand ),
-                                         typeof( INakedCommand ),
-                                         typeof( ITotalCommand ),
-                                         typeof( ITotalResult ),
-                                         typeof( IBasicLoginCommand ),
-                                         typeof( ILogoutCommand ),
-                                         typeof( IRefreshAuthenticationCommand ),
-                                         typeof( IAuthenticationResult ),
-                                         typeof( IPocoAuthenticationInfo ),
-                                         typeof( IPocoUserInfo ),
-                                         typeof( CrisDirectory ),
-                                         typeof( CommonPocoJsonSupport ),
-                                         typeof( ApplicationIdentityService ),
-                                         typeof( CrisHttpSenderFeatureDriver )};
+            var callerServices = TestHelper.CreateTypeCollector( typeof( IBeautifulWithOptionsCommand ),
+                                                                 typeof( INakedCommand ),
+                                                                 typeof( ITotalCommand ),
+                                                                 typeof( ITotalResult ),
+                                                                 typeof( IBasicLoginCommand ),
+                                                                 typeof( ILogoutCommand ),
+                                                                 typeof( IRefreshAuthenticationCommand ),
+                                                                 typeof( IAuthenticationResult ),
+                                                                 typeof( IPocoAuthenticationInfo ),
+                                                                 typeof( IPocoUserInfo ),
+                                                                 typeof( CrisDirectory ),
+                                                                 typeof( CommonPocoJsonSupport ),
+                                                                 typeof( ApplicationIdentityService ),
+                                                                 typeof( CrisHttpSenderFeatureDriver ) );
 
             await using var runningCaller = await TestHelper.CreateRunningCallerAsync( serverAddress, callerServices, generateSourceCode: false );
 
@@ -211,12 +211,12 @@ namespace CK.Cris.HttpSender.Tests
         [Test]
         public async Task retry_strategy_Async()
         {
-            var callerServices = new[] { typeof( IBeautifulWithOptionsCommand ),
-                                         typeof( CrisDirectory ),
-                                         typeof( CommonPocoJsonSupport ),
-                                         typeof( ApplicationIdentityService ),
-                                         typeof( ApplicationIdentityServiceConfiguration ),
-                                         typeof( CrisHttpSenderFeatureDriver )};
+            var callerServices = TestHelper.CreateTypeCollector( typeof( IBeautifulWithOptionsCommand ),
+                                                                 typeof( CrisDirectory ),
+                                                                 typeof( CommonPocoJsonSupport ),
+                                                                 typeof( ApplicationIdentityService ),
+                                                                 typeof( ApplicationIdentityServiceConfiguration ),
+                                                                 typeof( CrisHttpSenderFeatureDriver ) );
             await using var runningCaller = await TestHelper.CreateRunningCallerAsync( "http://[::1]:65036/", callerServices );
             var callerPoco = runningCaller.Services.GetRequiredService<PocoDirectory>();
             var sender = runningCaller.ApplicationIdentityService.Remotes

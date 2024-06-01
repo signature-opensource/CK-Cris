@@ -1,4 +1,5 @@
 using CK.Core;
+using CK.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -112,16 +113,16 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task command_and_events_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisExecutionContext ),
-                                                     typeof( IStupidCommand ),
-                                                     typeof( IRoutedImmediateEvent ),
-                                                     typeof( IRoutedEvent ),
-                                                     typeof( Handlers ),
-                                                     typeof( IFinalCommand ),
-                                                     typeof( ICallerOnlyFinalEvent ),
-                                                     typeof( FinalHandler ) );
-            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
-            using( var scope = appServices.CreateScope() )
+            var c = TestHelper.CreateTypeCollector( typeof( CrisExecutionContext ),
+                                                    typeof( IStupidCommand ),
+                                                    typeof( IRoutedImmediateEvent ),
+                                                    typeof( IRoutedEvent ),
+                                                    typeof( Handlers ),
+                                                    typeof( IFinalCommand ),
+                                                    typeof( ICallerOnlyFinalEvent ),
+                                                    typeof( FinalHandler ) );
+            using var auto = TestHelper.CreateAutomaticServicesWithMonitor( c );
+            using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
 
@@ -142,7 +143,7 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task CrisEventHub_relays_the_events_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisExecutionContext ),
+            var c = TestHelper.CreateTypeCollector( typeof( CrisExecutionContext ),
                                                      typeof( IStupidCommand ),
                                                      typeof( IRoutedImmediateEvent ),
                                                      typeof( IRoutedEvent ),
@@ -151,8 +152,8 @@ namespace CK.Cris.Executor.Tests
                                                      typeof( ICallerOnlyFinalEvent ),
                                                      typeof( FinalHandler ) );
 
-            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
-            using( var scope = appServices.CreateScope() )
+            using var auto = TestHelper.CreateAutomaticServicesWithMonitor( c );
+            using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
 

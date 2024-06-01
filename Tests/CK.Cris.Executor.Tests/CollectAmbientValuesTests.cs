@@ -1,6 +1,7 @@
 using CK.Auth;
 using CK.Core;
 using CK.Cris.AmbientValues;
+using CK.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -69,22 +70,22 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task CommandPostHandler_fills_the_resulting_ambient_values_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( RawCrisExecutor ),
-                                                     typeof( IAmbientValuesCollectCommand ),
-                                                     typeof( AmbientValuesService ),
-                                                     typeof( AuthService ),
-                                                     typeof( IAuthenticationInfo ),
-                                                     typeof( StdAuthenticationTypeSystem ),
-                                                     typeof( IAuthAmbientValues ),
-                                                     typeof( SecurityService ),
-                                                     typeof( ISecurityAmbientValues ) );
+            var c = TestHelper.CreateTypeCollector( typeof( RawCrisExecutor ),
+                                                    typeof( IAmbientValuesCollectCommand ),
+                                                    typeof( AmbientValuesService ),
+                                                    typeof( AuthService ),
+                                                    typeof( IAuthenticationInfo ),
+                                                    typeof( StdAuthenticationTypeSystem ),
+                                                    typeof( IAuthAmbientValues ),
+                                                    typeof( SecurityService ),
+                                                    typeof( ISecurityAmbientValues ) );
 
             var authTypeSystem = new StdAuthenticationTypeSystem();
             var authInfo = authTypeSystem.AuthenticationInfo.Create( authTypeSystem.UserInfo.Create( 3712, "John" ), DateTime.UtcNow.AddDays( 1 ) );
-            var map = TestHelper.CompileAndLoadStObjMap( c ).Map;
+            var map = TestHelper.RunSingleBinPathAndLoad( c ).Map;
             var reg = new StObjContextRoot.ServiceRegister( TestHelper.Monitor, new ServiceCollection() );
-            reg.Register<IAuthenticationInfo>( s => authInfo, isScoped: true, allowMultipleRegistration: false );
-            reg.Register<IActivityMonitor>( s => TestHelper.Monitor, true, false );
+            reg.Services.AddScoped<IAuthenticationInfo>( s => authInfo );
+            reg.Services.AddScoped<IActivityMonitor>( s => TestHelper.Monitor );
             reg.AddStObjMap( map ).Should().BeTrue( "Service configuration succeed." );
 
             var appServices = reg.Services.BuildServiceProvider();
@@ -129,13 +130,13 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public void IAmbiantValues_must_cover_all_AmbientServiceValue_properties()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( RawCrisExecutor ),
+            var c = TestHelper.CreateTypeCollector( typeof( RawCrisExecutor ),
                                                      typeof( IAmbientValuesCollectCommand ),
                                                      typeof( AmbientValuesService ),
                                                      typeof( ISomePart ),
                                                      typeof( ISomeCommand ),
                                                      typeof( FakeHandlerButRequiredOtherwiseCommandIsSkipped ) );
-            TestHelper.GetFailedAutomaticServicesConfiguration( c, 
+            TestHelper.GetFailedSingleBinPathAutomaticServices( c, 
                 "Missing IAmbientValues properties for [AmbientServiceValue] properties.",
                 new[] { "'int Something { get; set; }'" } );
         }
@@ -157,17 +158,17 @@ namespace CK.Cris.Executor.Tests
         {
             NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
 
-            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ),
+            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ),
                                                      typeof( RawCrisReceiver ),
                                                      typeof( CrisCultureService ),
                                                      typeof( NormalizedCultureInfo ),
                                                      typeof( NormalizedCultureInfoUbiquitousServiceDefault ),
                                                      typeof( ICultureCommand ),
                                                      typeof( FakeCommandHandler ) );
-            using var services = TestHelper.CreateAutomaticServices( c ).Services;
-            services.GetRequiredService<IEnumerable<IHostedService>>().Should().HaveCount( 1, "Required to initialize the Global Service Provider." );
+            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            auto.Services.GetRequiredService<IEnumerable<IHostedService>>().Should().HaveCount( 1, "Required to initialize the Global Service Provider." );
 
-            using( var scope = services.CreateScope() )
+            using( var scope = auto.Services.CreateScope() )
             {
                 var s = scope.ServiceProvider;
 

@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -27,34 +28,32 @@ namespace CK.Cris.AspNet.Tests
         public const string BasicLoginUri = "/.webfront/c/basicLogin";
         public const string LogoutUri = "/.webfront/c/logout";
 
-        public CrisTestHostServer( StObjCollector collector,
+        public CrisTestHostServer( TypeCollector types,
                                    bool withAuthentication = false,
                                    Action<IServiceCollection>? configureServices = null,
                                    Action<IApplicationBuilder>? configureApplication = null )
         {
-            collector.RegisterType( TestHelper.Monitor, typeof( CrisAspNetService ) );
+            types.Add( typeof( CrisAspNetService ) );
 
             if( withAuthentication )
             {
-                collector.RegisterTypes( TestHelper.Monitor, new[] {
-                    typeof( StdAuthenticationTypeSystem ),
-                    typeof( FakeUserDatabase ),
-                    typeof( FakeWebFrontLoginService ),
-                    typeof( CrisAuthenticationService ),
-                    typeof( CrisCultureService ),
-                    typeof( AuthenticationInfoTokenService ),
-                    typeof( IAuthAmbientValues ),
-                    typeof( ICommandAuthUnsafe ),
-                    typeof( ICommandAuthNormal ),
-                    typeof( ICommandAuthCritical ),
-                    typeof( ICommandAuthDeviceId ),
-                    typeof( ICommandAuthImpersonation )
-            } );
+                types.Add( typeof( StdAuthenticationTypeSystem ),
+                           typeof( AuthenticationInfoTokenService ),
+                           typeof( FakeUserDatabase ),
+                           typeof( FakeWebFrontLoginService ),
+                           typeof( CrisAuthenticationService ),
+                           typeof( CrisCultureService ),
+                           typeof( IAuthAmbientValues ),
+                           typeof( ICommandAuthUnsafe ),
+                           typeof( ICommandAuthNormal ),
+                           typeof( ICommandAuthCritical ),
+                           typeof( ICommandAuthDeviceId ),
+                           typeof( ICommandAuthImpersonation ) );
             }
 
-            var (result, stObjMap) = TestHelper.CompileAndLoadStObjMap( collector );
+            var map = TestHelper.RunSingleBinPathAndLoad( types ).Map;
 
-            PocoDirectory = stObjMap.StObjs.Obtain<PocoDirectory>()!;
+            PocoDirectory = map.StObjs.Obtain<PocoDirectory>()!;
 
             var b = CK.AspNet.Tester.WebHostBuilderFactory.Create( null, null,
                 services =>
@@ -71,7 +70,7 @@ namespace CK.Cris.AspNet.Tests
                         // does the job.
                         services.AddAuthentication().AddWebFrontAuth( options => options.CookieMode = AuthenticationCookieMode.RootPath );
                     }
-                    services.AddStObjMap( TestHelper.Monitor, stObjMap );
+                    services.AddStObjMap( TestHelper.Monitor, map );
                     configureServices?.Invoke( services );
                 },
                 app =>

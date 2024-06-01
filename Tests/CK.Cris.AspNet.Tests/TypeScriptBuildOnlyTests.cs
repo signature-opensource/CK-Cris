@@ -1,5 +1,6 @@
 using CK.Core;
 using CK.Cris.AspNet;
+using CK.Testing;
 using FluentAssertions;
 using Microsoft.AspNetCore.Builder;
 using NUnit.Framework;
@@ -18,11 +19,11 @@ namespace CK.Cris.AspNet.E2ETests
         public void DiamondResultAndCommand_works()
         {
             var targetOutputPath = TestHelper.GetTypeScriptGeneratedOnlyTargetProjectPath();
-            TestHelper.GenerateTypeScript( targetOutputPath,
-                                           new[] { typeof( CrisAspNetService ),
-                                                   typeof( Cris.Tests.IWithTheResultUnifiedCommand ),
-                                                   typeof( Cris.Tests.IUnifiedResult ) },
-                                           new[] { typeof( Cris.Tests.IWithTheResultUnifiedCommand ) } );
+            TestHelper.RunSuccessfulEngineWithTypeScript( targetOutputPath,
+                                                          TestHelper.CreateTypeCollector( typeof( CrisAspNetService ),
+                                                                                          typeof( Cris.Tests.IWithTheResultUnifiedCommand ),
+                                                                                          typeof( Cris.Tests.IUnifiedResult ) ),
+                                                          new[] { typeof( Cris.Tests.IWithTheResultUnifiedCommand ) } );
 
             var fCommand = targetOutputPath.Combine( "ck-gen/src/CK/Cris/Tests/WithPocoResultCommand.ts" );
             var fResult = targetOutputPath.Combine( "ck-gen/src/CK/Cris/Tests/Result.ts" );
