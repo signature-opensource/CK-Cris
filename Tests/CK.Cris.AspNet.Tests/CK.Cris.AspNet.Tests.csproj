@@ -15,7 +15,7 @@
     <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" Version="4.5.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
     <!-- We also test CK.Auth.Cris here. -->
-    <PackageReference Include="CK.AspNet.Auth" Version="22.0.1--0041-develop" />
+    <PackageReference Include="CK.AspNet.Auth" Version="22.0.1--0042-develop" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\CK.Cris.Auth\CK.Cris.Auth.csproj" />
