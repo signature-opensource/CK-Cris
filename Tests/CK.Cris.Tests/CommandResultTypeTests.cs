@@ -55,7 +55,7 @@ namespace CK.Cris.Tests
         {
             var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IIntButStringCommand ) );
             TestHelper.GetFailedSingleBinPathAutomaticServices( c,
-                "Invalid command Result type for 'CK.Cris.Tests.CommandResultTypeTests+IIntCommand': result types 'Int32', 'String' must resolve to a common most specific type." );
+                "Command '[PrimaryPoco]CK.Cris.Tests.CommandResultTypeTests.IIntCommand' declares incompatible results '[AbstractPoco]CK.Cris.ICommand<int>' ,'[AbstractPoco]CK.Cris.ICommand<string>': result types are incompatible and cannot be reduced." );
         }
 
         [Test]
@@ -80,7 +80,7 @@ namespace CK.Cris.Tests
             {
                 var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IUnifiedButNotTheResultCommand ), typeof( IMoreResult ), typeof( IAnotherResult ) );
                 TestHelper.GetFailedSingleBinPathAutomaticServices( c,
-                    "Invalid command Result type for 'CK.Cris.Tests.CommandResultTypeTests+ICommandWithPocoResult': result types 'IMoreResult', 'IAnotherResult' must resolve to a common most specific type." );
+                    "Command '[PrimaryPoco]CK.Cris.Tests.IWithPocoResultCommand' declares incompatible results '[AbstractPoco]CK.Cris.ICommand<CK.Cris.Tests.IMoreResult>' ,'[AbstractPoco]CK.Cris.ICommand<CK.Cris.Tests.IAnotherResult>': result types are incompatible and cannot be reduced." );
             }
             {
                 var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IWithTheResultUnifiedCommand ), typeof( IUnifiedResult ) );

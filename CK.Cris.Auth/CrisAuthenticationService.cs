@@ -1,6 +1,7 @@
 using CK.Core;
 using CK.Cris;
 using CK.Cris.AmbientValues;
+using CK.Setup;
 using System;
 using System.Threading.Tasks;
 

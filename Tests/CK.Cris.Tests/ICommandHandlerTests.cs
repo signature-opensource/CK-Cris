@@ -28,7 +28,8 @@ namespace CK.Cris.Tests
                                                     typeof( IWithTheResultUnifiedCommand ),
                                                     typeof( IUnifiedResult),
                                                     typeof( CmdHandlerMissingHandler ) );
-            TestHelper.GetFailedSingleBinPathAutomaticServices( c, "Pouf" );
+            TestHelper.GetFailedSingleBinPathAutomaticServices( c,
+                "Service 'CK.Cris.Tests.ICommandHandlerTests.CmdHandlerMissingHandler' must implement a command handler method for closed command CK.Cris.Tests.IWithPocoResultCommand of the closing type CK.Cris.Tests.IWithTheResultUnifiedCommand." );
         }
 
         public class CmdHandlerOfBase : ICommandHandler<IWithPocoResultCommand>
@@ -121,7 +122,8 @@ namespace CK.Cris.Tests
                 typeof( CmdHandlerWithMore ),
                 typeof( CmdHandlerWithAnother ),
                 typeof( CmdHandlerAlternate ) );
-            TestHelper.GetFailedSingleBinPathAutomaticServices( c, "Pouf" );
+            TestHelper.GetFailedSingleBinPathAutomaticServices( c,
+                "Service 'CK.Cris.Tests.ICommandHandlerTests.CmdHandlerFailingUnified' must implement a command handler method for closed command CK.Cris.Tests.IWithPocoResultCommand of the closing type CK.Cris.Tests.IWithTheResultUnifiedCommand." );
         }
 
         // This one unifies the Services AND offer a final handler.

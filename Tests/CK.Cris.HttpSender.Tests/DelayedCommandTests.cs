@@ -87,7 +87,10 @@ namespace CK.Cris.HttpSender.Tests
             await using var runningServer = await TestHelper.CreateSingleBinPathAspNetServerAsync(
                                                 TestHelper.CreateTypeCollector(
                                                     typeof( IAuthenticationInfo ),
+                                                    typeof( StdAuthenticationTypeSystem ),
+                                                    typeof( AuthenticationInfoTokenService ),
                                                     typeof( CrisAspNetService ),
+                                                    typeof( CrisAuthenticationService ),
                                                     typeof( AmbientValuesService ),
                                                     typeof( IDelayedCommand ),
                                                     typeof( CrisDelayedCommandService ),
@@ -100,7 +103,6 @@ namespace CK.Cris.HttpSender.Tests
                                                     typeof( IAuthenticationResult ),
                                                     typeof( IPocoAuthenticationInfo ),
                                                     typeof( IPocoUserInfo ),
-                                                    typeof( CrisAuthenticationService ),
                                                     typeof( CrisWebFrontAuthCommandHandler )
                                                 ),
                                                 configureServices: services =>
