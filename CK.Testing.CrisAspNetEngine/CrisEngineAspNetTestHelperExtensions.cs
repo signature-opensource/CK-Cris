@@ -88,7 +88,7 @@ namespace CK.Testing
                                                                      NormalizedPath targetProjectPath,
                                                                      ISet<Type> registeredTypes,
                                                                      IEnumerable<Type> tsTypes,
-                                                                     Func<StObjEngineTestHelperTypeScriptExtensions.TypeScriptRunner, Task>? beforeRun = null,
+                                                                     Func<TypeScriptEngineTestHelperExtensions.Runner, Task>? beforeRun = null,
                                                                      Action<IServiceCollection>? configureServices = null,
                                                                      Action<IApplicationBuilder>? configureApplication = null )
         {
