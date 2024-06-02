@@ -58,6 +58,47 @@ namespace CK.Testing
                                                        targetProjectPath,
                                                        registeredTypes,
                                                        tsTypes,
+                                                       resume,
+                                                       configureServices,
+                                                       configureApplication );
+        }
+
+        /// <summary>
+        /// Runs a test in "TSTest" folder thanks to a "yarn test" command with
+        /// a "CRIS_ENDPOINT_URL" environment variable that is the address of a temporary server
+        /// setup with Cris middleware.
+        /// </summary>
+        /// <param name="helper">This helper.</param>
+        /// <param name="engineConfiguration">The engine configuration.</param>
+        /// <param name="targetProjectPath">Must be obtained by <see cref="StObjEngineTestHelperTypeScriptExtensions.GetTypeScriptWithTestsSupportTargetProjectPath(IBasicTestHelper, string?)"/>.</param>
+        /// <param name="registeredTypes">The types to register in the <see cref="StObjCollector"/>.</param>
+        /// <param name="tsTypes">The types that must be generated in TypeScript.</param>
+        /// <param name="resume">
+        /// Wait callback called when <see cref="Debugger.IsAttached"/> is true before running test.
+        /// See <see cref="Monitoring.IMonitorTestHelperCore.SuspendAsync(Func{bool, bool}, string?, int, string?)"/>.
+        /// </param>
+        /// <param name="configureEngine">Optional engine configurator.</param>
+        /// <param name="configureServices">Optional services configurator.</param>
+        /// <param name="configureApplication">Optional application configurator.</param>
+        /// <returns>The awaitable.</returns>
+        public static Task RunSingleBinPathAspNetE2ETestAsync( this IMonitorTestHelper helper,
+                                                               EngineConfiguration engineConfiguration,
+                                                               NormalizedPath targetProjectPath,
+                                                               ISet<Type> registeredTypes,
+                                                               IEnumerable<Type> tsTypes,
+                                                               Func<bool, bool> resume,
+                                                               Action<IServiceCollection>? configureServices = null,
+                                                               Action<IApplicationBuilder>? configureApplication = null,
+                                                               [CallerMemberName] string? testName = null,
+                                                               [CallerLineNumber] int lineNumber = 0,
+                                                               [CallerFilePath] string? fileName = null )
+        {
+            Throw.CheckNotNullArgument( resume );
+            return RunSingleBinPathAspNetE2ETestAsync( helper,
+                                                       engineConfiguration,    
+                                                       targetProjectPath,
+                                                       registeredTypes,
+                                                       tsTypes,
                                                        beforeRun: runner => helper.SuspendAsync( resume, testName, lineNumber, fileName ),
                                                        configureServices,
                                                        configureApplication );
