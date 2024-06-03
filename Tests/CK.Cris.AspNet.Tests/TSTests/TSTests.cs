@@ -134,7 +134,8 @@ namespace CK.Cris.AspNet.E2ETests
             var targetOutputPath = TestHelper.GetTypeScriptWithTestsSupportTargetProjectPath();
             Throw.DebugAssert( targetOutputPath.EndsWith( "/TSTests/E2ETest_Async" ) );
             await TestHelper.RunSingleBinPathAspNetE2ETestAsync( targetOutputPath,
-                                                                 TestHelper.CreateTypeCollector( typeof( IBeautifulCommand ),
+                                                                 TestHelper.CreateTypeCollector( typeof( ICommand<> ),
+                                                                                                 typeof( IBeautifulCommand ),
                                                                                                  typeof( ICommandColored ),
                                                                                                  typeof( ICultureAmbientValues ),
                                                                                                  typeof( AmbientValues.AmbientValuesService ),
@@ -143,7 +144,7 @@ namespace CK.Cris.AspNet.E2ETests
                                                                                                  typeof( IBuggyCommand ),
                                                                                                  typeof( IWithMessageCommand ),
                                                                                                  typeof( CrisAspNetService ) ),
-                                                                 new[] { typeof( IBeautifulCommand ), typeof( IBuggyCommand ), typeof( IWithMessageCommand ) },
+                                                                 new[] { typeof( ICommand<> ), typeof( IBeautifulCommand ), typeof( IBuggyCommand ), typeof( IWithMessageCommand ) },
                                                                  resume =>
                                                                  resume );
         }
