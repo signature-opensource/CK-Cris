@@ -241,7 +241,7 @@ namespace CK.Cris
         Task DoEmitEventAsync( IEvent e )
         {
             ref var frame = ref StackPeek();
-            if( e is IEventWithCommand c ) c.SourceCommand = frame.Command;
+            if( e is IEventSourceCommandPart c ) c.SourceCommand = frame.Command;
             if( e.CrisPocoModel.Kind == CrisPocoKind.RoutedImmediateEvent )
             {
                 if( e.CrisPocoModel.IsHandled )
