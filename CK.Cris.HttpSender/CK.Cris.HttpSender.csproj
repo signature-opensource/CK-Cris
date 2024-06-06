@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.AppIdentity" Version="0.4.1--0017-develop" />
-    <PackageReference Include="CK.Poco.Exc.Json" Version="25.0.1--0183-develop" />
+    <PackageReference Include="CK.AppIdentity" Version="0.4.1--0018-develop" />
+    <PackageReference Include="CK.Poco.Exc.Json" Version="25.0.1--0184-develop" />
     <PackageReference Include="Polly.Core" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>
