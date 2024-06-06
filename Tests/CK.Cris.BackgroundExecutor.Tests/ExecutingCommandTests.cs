@@ -14,7 +14,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
     [TestFixture]
     public class ExecutingCommandTests
     {
-        public interface IMyCommandResult : ICommandStandardResult
+        public interface IMyCommandResult : IStandardResultPart
         {
             int Power { get; set; }
         }

@@ -6,7 +6,7 @@ namespace CK.Auth
     /// Captures the authentication info and the authentication token (that
     /// contains the encrypted information).
     /// </summary>
-    public interface IAuthenticationResult : ICommandStandardResult
+    public interface IAuthenticationResult : IStandardResultPart
     {
         /// <summary>
         /// Gets the authentication info.

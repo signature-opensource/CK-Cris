@@ -1,6 +1,6 @@
 ﻿namespace CK.Cris.HttpSender.Tests
 {
-    public interface ITotalResult : ICommandStandardResult
+    public interface ITotalResult : IStandardResultPart
     {
         int ActorId { get; set; }
         string CultureName { get; set; }
