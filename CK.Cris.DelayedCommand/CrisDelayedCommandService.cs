@@ -9,8 +9,9 @@ namespace CK.Cris
     /// <summary>
     /// Simple basic implementation of an in-memory only service that handles <see cref="IDelayedCommand"/>.
     /// <para>
-    /// This implementation is open to extension: by overriding its single <see cref="StoreAsync(IActivityMonitor, IDelayedCommand, ActivityMonitor.Token?)"/>
-    /// method, a more complex implementation can handle persistence.
+    /// This implementation is open to extension: by overriding <see cref="StoreAsync(IActivityMonitor, IDelayedCommand, ActivityMonitor.Token?)"/>
+    /// <see cref="OnCommandExecuting(DelayedCommandEntry)"/> (and possibly the [CommandHandler] <see cref="HandleCommandAsync(IActivityMonitor, IDelayedCommand)"/>),
+    /// a more complex implementation can handle persistence.
     /// </para>
     /// </summary>
     public class CrisDelayedCommandService : ISingletonAutoService
