@@ -1105,6 +1105,21 @@ __metadata:
   languageName: node
   linkType: hard
 
+"E2ETestWithCommands@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "E2ETestWithCommands@workspace:."
+  dependencies:
+    "@local/ck-gen": "workspace:*"
+    "@types/jest": ^29.5.5
+    "@types/node": ^20.7.2
+    "@yarnpkg/sdks": ^3.0.0-rc.51
+    axios: ^1.2.3
+    jest: ^29.7.0
+    ts-jest: ^29.1.1
+    typescript: ^5.2.2
+  languageName: unknown
+  linkType: soft
+
 "abbrev@npm:^1.0.0":
   version: 1.1.1
   resolution: "abbrev@npm:1.1.1"
@@ -1139,21 +1154,6 @@ __metadata:
   checksum: 1101a33f21baa27a2fa8e04b698271e64616b886795fd43c31068c07533c7b3facfcaf4e9e0cab3624bd88f729a592f1c901a1a229c9e490eafce411a8644b79
   languageName: node
   linkType: hard
-
-"ambientvalues_works_async@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "ambientvalues_works_async@workspace:."
-  dependencies:
-    "@local/ck-gen": "workspace:*"
-    "@types/jest": ^29.5.5
-    "@types/node": ^20.7.2
-    "@yarnpkg/sdks": ^3.0.0-rc.51
-    axios: ^1.2.3
-    jest: ^29.7.0
-    ts-jest: ^29.1.1
-    typescript: ^5.2.2
-  languageName: unknown
-  linkType: soft
 
 "ansi-escapes@npm:^4.2.1":
   version: 4.3.2

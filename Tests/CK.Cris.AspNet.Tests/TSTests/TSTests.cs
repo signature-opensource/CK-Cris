@@ -119,7 +119,7 @@ namespace CK.Cris.AspNet.E2ETests
         }
 
         [Test]
-        public async Task E2ETest_Async()
+        public async Task E2ETestWithCommands_Async()
         {
             //
             // When running in Debug, this will wait until resume is set to true.
@@ -132,7 +132,7 @@ namespace CK.Cris.AspNet.E2ETests
             // In regular run, this will not wait for resume.
             //
             var targetOutputPath = TestHelper.GetTypeScriptWithTestsSupportTargetProjectPath();
-            Throw.DebugAssert( targetOutputPath.EndsWith( "/TSTests/E2ETest_Async" ) );
+            Throw.DebugAssert( targetOutputPath.EndsWith( "/TSTests/E2ETestWithCommands" ) );
             await TestHelper.RunSingleBinPathAspNetE2ETestAsync( targetOutputPath,
                                                                  TestHelper.CreateTypeCollector( typeof( ICommand<> ),
                                                                                                  typeof( IBeautifulCommand ),
