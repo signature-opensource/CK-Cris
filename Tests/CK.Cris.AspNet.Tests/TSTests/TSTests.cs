@@ -131,10 +131,10 @@ namespace CK.Cris.AspNet.E2ETests
             //
             // In regular run, this will not wait for resume.
             //
-            var targetOutputPath = TestHelper.GetTypeScriptWithTestsSupportTargetProjectPath();
-            Throw.DebugAssert( targetOutputPath.EndsWith( "/TSTests/E2ETestWithCommands" ) );
-            await TestHelper.RunSingleBinPathAspNetE2ETestAsync( targetOutputPath,
-                                                                 TestHelper.CreateTypeCollector( typeof( ICommand<> ),
+            var targetProjectPath = TestHelper.GetTypeScriptWithTestsSupportTargetProjectPath();
+            Throw.DebugAssert( targetProjectPath.EndsWith( "/TSTests/E2ETestWithCommands" ) );
+            await TestHelper.RunSingleBinPathAspNetE2ETestAsync( targetProjectPath,
+                                                                 TestHelper.CreateTypeCollector( typeof( ICommand<> ), // Useless but harmless.
                                                                                                  typeof( IBeautifulCommand ),
                                                                                                  typeof( ICommandColored ),
                                                                                                  typeof( ICultureAmbientValues ),
@@ -142,9 +142,11 @@ namespace CK.Cris.AspNet.E2ETests
                                                                                                  typeof( IColoredEndpointValues ),
                                                                                                  typeof( ColorAndBuggyService ),
                                                                                                  typeof( IBuggyCommand ),
-                                                                                                 typeof( IWithMessageCommand ),
-                                                                                                 typeof( CrisAspNetService ) ),
-                                                                 new[] { typeof( ICommand<> ), typeof( IBeautifulCommand ), typeof( IBuggyCommand ), typeof( IWithMessageCommand ) },
+                                                                                                 typeof( IWithMessageCommand ) ),
+                                                                 new[] { typeof( ICommand<> ), // Useless but harmless.
+                                                                         typeof( IBeautifulCommand ),
+                                                                         typeof( IBuggyCommand ),
+                                                                         typeof( IWithMessageCommand ) },
                                                                  resume =>
                                                                  resume );
         }

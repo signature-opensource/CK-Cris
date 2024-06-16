@@ -16,6 +16,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using CK.AspNet.Auth;
 using CK.Auth;
+using CK.Cris.AspNet;
 
 namespace CK.Testing
 {
@@ -138,6 +139,7 @@ namespace CK.Testing
             registeredTypes.Add( typeof( StdAuthenticationTypeSystem ) );
             registeredTypes.Add( typeof( FakeUserDatabase ) );
             registeredTypes.Add( typeof( FakeWebFrontLoginService ) );
+            registeredTypes.Add( typeof( CrisAspNetService ) );
 
             helper.EnsureTypeScriptConfigurationAspect( engineConfiguration, targetProjectPath, tsTypes.ToArray() );
             var map = helper.RunSingleBinPathAndLoad( engineConfiguration, registeredTypes ).Map;
