@@ -9,7 +9,15 @@ using System.Threading.Tasks;
 
 namespace CK.Testing
 {
-    public sealed class FakeUserDatabase : IUserInfoProvider
+    /// <summary>
+    /// Fake user database that contains "System" (1), "Albert" (3172), "Robert" (3713) and "Hubert" (3714).
+    /// Only "Albert" has the "Basic" provider.
+    /// "Hubert" hase the "Google" provider.
+    /// <para>
+    /// <see cref="AllUsers"/> is totally mutable and everything is virtual.
+    /// </para>
+    /// </summary>
+    public class FakeUserDatabase : IUserInfoProvider
     {
         readonly List<IUserInfo> _users;
         readonly IAuthenticationTypeSystem _typeSystem;
@@ -28,9 +36,9 @@ namespace CK.Testing
             _typeSystem = typeSystem;
         }
 
-        public IList<IUserInfo> AllUsers => _users;
+        public virtual IList<IUserInfo> AllUsers => _users;
 
-        public ValueTask<IUserInfo> GetUserInfoAsync( IActivityMonitor monitor, int userId )
+        public virtual ValueTask<IUserInfo> GetUserInfoAsync( IActivityMonitor monitor, int userId )
         {
             var u = _users.FirstOrDefault( u => u.UserId == userId ) ?? _typeSystem.UserInfo.Anonymous;
             return ValueTask.FromResult( u );
