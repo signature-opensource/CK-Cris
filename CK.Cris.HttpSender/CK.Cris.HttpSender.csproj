@@ -6,7 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CK.AppIdentity" Version="0.4.1--0019-develop" />
-    <PackageReference Include="CK.Poco.Exc.Json" Version="25.0.1--0200-develop" />
+    <PackageReference Include="CK.Poco.Exc.Json" Version="25.0.1--0201-develop" />
     <PackageReference Include="Polly.Core" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>
