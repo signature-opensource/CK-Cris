@@ -70,11 +70,12 @@ namespace CK.Cris.AspNet.Tests.AuthTests
         [Test]
         public async Task ICommandAuthUnsafe_cannot_be_fooled_on_its_ActorId_Async()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( IUnsafeCommand ),
-                                                     typeof( IUnsafeWithResultCommand ),
-                                                     typeof( UnsafeHandler ),
-                                                     typeof( CrisExecutionContext ) );
-            using( var s = new CrisTestHostServer( c, withAuthentication: true ) )
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( IUnsafeCommand ),
+                                                  typeof( IUnsafeWithResultCommand ),
+                                                  typeof( UnsafeHandler ),
+                                                  typeof( CrisExecutionContext ) );
+            using( var s = new CrisTestHostServer( configuration.FirstBinPath, withAuthentication: true ) )
             {
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""YES"",""ActorId"":0}]" );

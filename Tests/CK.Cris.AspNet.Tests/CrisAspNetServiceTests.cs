@@ -55,13 +55,12 @@ namespace CK.Cris.AspNet.Tests
     using Other;
     using FluentAssertions;
     using NUnit.Framework;
-    using System.Diagnostics;
     using System.Net.Http;
     using System.Threading.Tasks;
     using CK.Core;
-    using static CK.Testing.StObjEngineTestHelper;
     using System.Linq;
     using CK.Testing;
+    using static CK.Testing.StObjEngineTestHelper;
 
     [TestFixture]
     public class CrisAspNetServiceTests
@@ -69,8 +68,9 @@ namespace CK.Cris.AspNet.Tests
         [Test]
         public async Task basic_call_to_a_command_handler_Async()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( ITestCommand ), typeof( TestHandler ), typeof( CrisExecutionContext ) );
-            using( var s = new CrisTestHostServer( c ) )
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( ITestCommand ), typeof( TestHandler ), typeof( CrisExecutionContext ) );
+            using( var s = new CrisTestHostServer( configuration.FirstBinPath ) )
             {
                 // Value: 3712 is fine (it must be positive).
                 {
@@ -101,8 +101,9 @@ namespace CK.Cris.AspNet.Tests
         [Test]
         public async Task when_there_is_no_CommandHandler_it_is_directly_an_Execution_error_Async()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( ITestCommand ), typeof( BuggyValidator ) );
-            using( var s = new CrisTestHostServer( c ) )
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( ITestCommand ), typeof( BuggyValidator ) );
+            using( var s = new CrisTestHostServer( configuration.FirstBinPath ) )
             {
                 HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri + "?UseSimpleError", @"[""Test"",{""Value"":3712}]" );
                 Throw.DebugAssert( r != null );
@@ -120,8 +121,9 @@ namespace CK.Cris.AspNet.Tests
             // To leak all exceptions in messages, CoreApplicationIdentity must be initialized and be in "#Dev" environment name.  
             CoreApplicationIdentity.Initialize();
 
-            var c = TestHelper.CreateTypeCollector( typeof( ITestCommand ), typeof( BuggyValidator ), typeof( TestHandler ) );
-            using( var s = new CrisTestHostServer( c ) )
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add(  typeof( ITestCommand ), typeof( BuggyValidator ), typeof( TestHandler ) );
+            using( var s = new CrisTestHostServer( configuration.FirstBinPath ) )
             {
                 HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri+ "?UseSimpleError", @"[""Test"",{""Value"":3712}]" );
                 Throw.DebugAssert( r != null );
@@ -141,8 +143,8 @@ namespace CK.Cris.AspNet.Tests
         [Test]
         public async Task bad_request_are_validation_error_Async()
         {
-            var c = TestHelper.CreateTypeCollector();
-            using( var s = new CrisTestHostServer( c ) )
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            using( var s = new CrisTestHostServer( configuration.FirstBinPath ) )
             {
                 // SimpleErrorResult.LogKey is null for really empty input.
                 {

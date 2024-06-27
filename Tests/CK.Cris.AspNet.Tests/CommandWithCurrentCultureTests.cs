@@ -59,8 +59,9 @@ namespace CK.Cris.AspNet.Tests
         [Test]
         public async Task command_with_no_current_culture_uses_the_english_default_Async()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( ITestCommand ), typeof( OneHandler ) );
-            using( var s = new CrisTestHostServer( c ) )
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( ITestCommand ), typeof( OneHandler ) );
+            using( var s = new CrisTestHostServer( configuration.FirstBinPath ) )
             {
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri + "?UseSimpleError", @"[""TestCommand"",{""CurrentCultureName"":null,""IsIncomingValid"":true,""IsHandlingValid"":true}]" );
@@ -94,8 +95,9 @@ namespace CK.Cris.AspNet.Tests
                 ("Test.InvalidIncomingCommand", "Désolé, INCOMING invalide."),
                 ("Test.InvalidHandlingCommand", "Désolé, HANDLING invalide."),
             } );
-            var c = TestHelper.CreateTypeCollector( typeof( ITestCommand ), typeof( OneHandler ) );
-            using( var s = new CrisTestHostServer( c ) )
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( ITestCommand ), typeof( OneHandler ) );
+            using( var s = new CrisTestHostServer( configuration.FirstBinPath ) )
             {
                 {
                     HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri + "?UseSimpleError",

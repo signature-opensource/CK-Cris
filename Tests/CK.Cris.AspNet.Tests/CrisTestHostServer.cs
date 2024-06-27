@@ -28,30 +28,31 @@ namespace CK.Cris.AspNet.Tests
         public const string BasicLoginUri = "/.webfront/c/basicLogin";
         public const string LogoutUri = "/.webfront/c/logout";
 
-        public CrisTestHostServer( TypeCollector types,
+        public CrisTestHostServer( BinPathConfiguration binPath,
                                    bool withAuthentication = false,
                                    Action<IServiceCollection>? configureServices = null,
                                    Action<IApplicationBuilder>? configureApplication = null )
         {
-            types.Add( typeof( CrisAspNetService ) );
+            Throw.DebugAssert( binPath.Owner != null );
+            binPath.Types.Add( typeof( CrisAspNetService ) );
 
             if( withAuthentication )
             {
-                types.Add( typeof( StdAuthenticationTypeSystem ),
-                           typeof( AuthenticationInfoTokenService ),
-                           typeof( FakeUserDatabase ),
-                           typeof( FakeWebFrontLoginService ),
-                           typeof( CrisAuthenticationService ),
-                           typeof( CrisCultureService ),
-                           typeof( IAuthAmbientValues ),
-                           typeof( ICommandAuthUnsafe ),
-                           typeof( ICommandAuthNormal ),
-                           typeof( ICommandAuthCritical ),
-                           typeof( ICommandAuthDeviceId ),
-                           typeof( ICommandAuthImpersonation ) );
+                binPath.Types.Add( typeof( StdAuthenticationTypeSystem ),
+                                   typeof( AuthenticationInfoTokenService ),
+                                   typeof( FakeUserDatabase ),
+                                   typeof( FakeWebFrontLoginService ),
+                                   typeof( CrisAuthenticationService ),
+                                   typeof( CrisCultureService ),
+                                   typeof( IAuthAmbientValues ),
+                                   typeof( ICommandAuthUnsafe ),
+                                   typeof( ICommandAuthNormal ),
+                                   typeof( ICommandAuthCritical ),
+                                   typeof( ICommandAuthDeviceId ),
+                                   typeof( ICommandAuthImpersonation ) );
             }
 
-            var map = TestHelper.RunSingleBinPathAndLoad( types ).Map;
+            var map = binPath.Owner.RunSuccessfully().FirstBinPath.LoadMap();
 
             PocoDirectory = map.StObjs.Obtain<PocoDirectory>()!;
 

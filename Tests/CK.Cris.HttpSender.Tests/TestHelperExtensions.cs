@@ -33,7 +33,7 @@ namespace CK.Cris.HttpSender.Tests
                     }
                     else
                     {
-                        // Otherwise use the default 1 minute timeout.
+                        // Otherwise use the default 100 seconds timeout.
                         c["Parties:0:CrisHttpSender"] = "true";
                     }
                     configuration?.Invoke( c );

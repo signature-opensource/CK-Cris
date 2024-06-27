@@ -84,27 +84,24 @@ namespace CK.Cris.HttpSender.Tests
             // We need the fr culture for this test.
             NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
 
-            await using var runningServer = await TestHelper.CreateSingleBinPathAspNetServerAsync(
-                                                TestHelper.CreateTypeCollector(
-                                                    typeof( IAuthenticationInfo ),
-                                                    typeof( StdAuthenticationTypeSystem ),
-                                                    typeof( AuthenticationInfoTokenService ),
-                                                    typeof( CrisAspNetService ),
-                                                    typeof( CrisAuthenticationService ),
-                                                    typeof( AmbientValuesService ),
-                                                    typeof( IDelayedCommand ),
-                                                    typeof( CrisDelayedCommandService ),
-                                                    typeof( IDelayedCommandExecutedEvent ),
-                                                    typeof( IFullCommand ),
-                                                    typeof( FullCommandService ),
-                                                    typeof( IBasicLoginCommand ),
-                                                    typeof( ILogoutCommand ),
-                                                    typeof( IRefreshAuthenticationCommand ),
-                                                    typeof( IAuthenticationResult ),
-                                                    typeof( IPocoAuthenticationInfo ),
-                                                    typeof( IPocoUserInfo ),
-                                                    typeof( CrisWebFrontAuthCommandHandler )
-                                                ),
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( IAuthenticationInfo ),
+                                                  typeof( CrisAuthenticationService ),
+                                                  typeof( AmbientValuesService ),
+                                                  typeof( IDelayedCommand ),
+                                                  typeof( CrisDelayedCommandService ),
+                                                  typeof( IDelayedCommandExecutedEvent ),
+                                                  typeof( IFullCommand ),
+                                                  typeof( FullCommandService ),
+                                                  typeof( IBasicLoginCommand ),
+                                                  typeof( ILogoutCommand ),
+                                                  typeof( IRefreshAuthenticationCommand ),
+                                                  typeof( IAuthenticationResult ),
+                                                  typeof( IPocoAuthenticationInfo ),
+                                                  typeof( IPocoUserInfo ),
+                                                  typeof( CrisWebFrontAuthCommandHandler )
+                                                );
+            configuration.RunSuccessfully().LoadMap(). 
                                                 configureServices: services =>
                                                 {
                                                     // We could have used the type registration above and

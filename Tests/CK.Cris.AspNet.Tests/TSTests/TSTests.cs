@@ -119,9 +119,25 @@ namespace CK.Cris.AspNet.E2ETests
         }
 
         [Test]
-        public async Task E2ETestWithCommands_Async()
+        public Task E2ETestWithCommands_Async()
         {
-            //
+            var targetProjectPath = TestHelper.GetTypeScriptWithTestsSupportTargetProjectPath();
+
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( ICommand<> ), // Useless but harmless.
+                                                  typeof( IBeautifulCommand ),
+                                                  typeof( ICommandColored ),
+                                                  typeof( ICultureAmbientValues ),
+                                                  typeof( AmbientValues.AmbientValuesService ),
+                                                  typeof( IColoredEndpointValues ),
+                                                  typeof( ColorAndBuggyService ),
+                                                  typeof( IBuggyCommand ),
+                                                  typeof( IWithMessageCommand ) );
+            configuration.FirstBinPath.EnsureTypeScriptConfigurationAspect( targetProjectPath, typeof( ICommand<> ), // Useless but harmless.
+                                                                                               typeof( IBeautifulCommand ),
+                                                                                               typeof( IBuggyCommand ),
+                                                                                               typeof( IWithMessageCommand ) );
+
             // When running in Debug, this will wait until resume is set to true.
             // Until then, the .NET server is running and tests can be manually executed
             // written and fixed.
@@ -131,24 +147,8 @@ namespace CK.Cris.AspNet.E2ETests
             //
             // In regular run, this will not wait for resume.
             //
-            var targetProjectPath = TestHelper.GetTypeScriptWithTestsSupportTargetProjectPath();
-            Throw.DebugAssert( targetProjectPath.EndsWith( "/TSTests/E2ETestWithCommands" ) );
-            await TestHelper.RunSingleBinPathAspNetE2ETestAsync( targetProjectPath,
-                                                                 TestHelper.CreateTypeCollector( typeof( ICommand<> ), // Useless but harmless.
-                                                                                                 typeof( IBeautifulCommand ),
-                                                                                                 typeof( ICommandColored ),
-                                                                                                 typeof( ICultureAmbientValues ),
-                                                                                                 typeof( AmbientValues.AmbientValuesService ),
-                                                                                                 typeof( IColoredEndpointValues ),
-                                                                                                 typeof( ColorAndBuggyService ),
-                                                                                                 typeof( IBuggyCommand ),
-                                                                                                 typeof( IWithMessageCommand ) ),
-                                                                 new[] { typeof( ICommand<> ), // Useless but harmless.
-                                                                         typeof( IBeautifulCommand ),
-                                                                         typeof( IBuggyCommand ),
-                                                                         typeof( IWithMessageCommand ) },
-                                                                 resume =>
-                                                                 resume );
+            return configuration.FirstBinPath.RunCrisTypeScriptTestsAsync( resume: resume =>
+                                                                                   resume );
         }
 
     }
