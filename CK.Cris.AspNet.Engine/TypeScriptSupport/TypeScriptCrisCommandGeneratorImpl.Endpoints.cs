@@ -194,11 +194,15 @@ namespace CK.Setup
             // - Axios to send/receive the POST.
             // - The CTSType to serialize/deserialize.
             // - The IAspNetCrisResultError that must be transformed into a CrisError.
+
+            // The AfterCodeGeneration detect monitor error or fatal.
+            var axios = modelFile.Root.LibraryManager.RegisterLibrary( monitor, "axios", "^1.5.1", DependencyKind.Dependency );
+            if( axios == null ) return;
+
             fHttpEndpoint.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" )
                                  .EnsureImport( fEndpoint, "CrisEndpoint" )
                                  .EnsureImport( monitor, typeof( IAspNetCrisResult ) )
-                                 .EnsureImportFromLibrary( new LibraryImport( "axios", "^1.5.1", DependencyKind.Dependency ),
-                                                                       "AxiosInstance", "AxiosHeaders", "RawAxiosRequestConfig" )
+                                 .EnsureImportFromLibrary( axios, "AxiosInstance", "AxiosHeaders", "RawAxiosRequestConfig" )
                                  .EnsureImport( ctsType )
                                  .EnsureImport( monitor, typeof( IAspNetCrisResultError ) );
 

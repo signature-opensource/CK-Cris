@@ -52,17 +52,18 @@ namespace CK.Cris.Executor.Tests
         [TestCase( "ValAsync" )]
         public async Task dispatching_an_event_Async( string kind )
         {
-            var c = TestHelper.CreateTypeCollector( typeof( RawCrisExecutor ),
-                                                     typeof( CrisDirectory ),
-                                                     typeof( ITestEvent ),
-                                                     kind switch
-                                                     {
-                                                         "RefAsync" => typeof( EventAsyncHandler ),
-                                                         "ValAsync" => typeof( EventValueTaskAsyncHandler ),
-                                                         "Sync" => typeof( EventSyncHandler ),
-                                                         _ => throw new NotImplementedException()
-                                                     } );
-            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                  typeof( CrisDirectory ),
+                                                  typeof( ITestEvent ),
+                                                  kind switch
+                                                  {
+                                                    "RefAsync" => typeof( EventAsyncHandler ),
+                                                    "ValAsync" => typeof( EventValueTaskAsyncHandler ),
+                                                    "Sync" => typeof( EventSyncHandler ),
+                                                    _ => throw new NotImplementedException()
+                                                  } );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
             using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
@@ -79,13 +80,14 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task dispatching_an_event_to_3_handlers_Async()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( RawCrisExecutor ),
-                                                     typeof( CrisDirectory ),
-                                                     typeof( ITestEvent ),
-                                                     typeof( EventAsyncHandler ),
-                                                     typeof( EventValueTaskAsyncHandler ),
-                                                     typeof( EventSyncHandler ) );
-            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                  typeof( CrisDirectory ),
+                                                  typeof( ITestEvent ),
+                                                  typeof( EventAsyncHandler ),
+                                                  typeof( EventValueTaskAsyncHandler ),
+                                                  typeof( EventSyncHandler ) );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
             using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;

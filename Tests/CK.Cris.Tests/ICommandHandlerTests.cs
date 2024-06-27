@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
 using System.Linq;
+using static CK.Cris.Tests.CommandResultTypeTests;
 using static CK.Testing.StObjEngineTestHelper;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
@@ -24,11 +25,12 @@ namespace CK.Cris.Tests
         [Test]
         public void Command_method_handler_must_exist()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ),
-                                                    typeof( IWithTheResultUnifiedCommand ),
-                                                    typeof( IUnifiedResult),
-                                                    typeof( CmdHandlerMissingHandler ) );
-            TestHelper.GetFailedSingleBinPathAutomaticServices( c,
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ),
+                                                  typeof( IWithTheResultUnifiedCommand ),
+                                                  typeof( IUnifiedResult),
+                                                  typeof( CmdHandlerMissingHandler ) );
+            configuration.GetFailedSingleBinPathAutomaticServices(
                 "Service 'CK.Cris.Tests.ICommandHandlerTests.CmdHandlerMissingHandler' must implement a command handler method for closed command CK.Cris.Tests.IWithPocoResultCommand of the closing type CK.Cris.Tests.IWithTheResultUnifiedCommand." );
         }
 
@@ -48,12 +50,13 @@ namespace CK.Cris.Tests
         [Test]
         public void ICommandHandler_has_the_priority()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ),
-                                                     typeof( IWithPocoResultCommand ),
-                                                     typeof( IResult ),
-                                                     typeof( CmdHandlerOfBase ),
-                                                     typeof( CmdHandlerAlternate ) );
-            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ),
+                                                  typeof( IWithPocoResultCommand ),
+                                                  typeof( IResult ),
+                                                  typeof( CmdHandlerOfBase ),
+                                                  typeof( CmdHandlerAlternate ) );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
             var d = auto.Services.GetRequiredService<CrisDirectory>();
 
             var cmd = auto.Services.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
@@ -71,12 +74,13 @@ namespace CK.Cris.Tests
         [Test]
         public void ICommandHandler_implementation_can_be_specialized_without_redefining_command_type()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ),
-                                                     typeof( IWithMorePocoResultCommand ),
-                                                     typeof( IMoreResult ),
-                                                     typeof( CmdHandlerWithMore ),
-                                                     typeof( CmdHandlerAlternate ) );
-            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ),
+                                                  typeof( IWithMorePocoResultCommand ),
+                                                  typeof( IMoreResult ),
+                                                  typeof( CmdHandlerWithMore ),
+                                                  typeof( CmdHandlerAlternate ) );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
             var d = auto.Services.GetRequiredService<CrisDirectory>();
 
             var cmd = auto.Services.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
@@ -116,13 +120,14 @@ namespace CK.Cris.Tests
         [Test]
         public void Command_method_handler_must_also_be_unified()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ),
-                typeof( IWithTheResultUnifiedCommand ),
-                typeof( CmdHandlerFailingUnified ),
-                typeof( CmdHandlerWithMore ),
-                typeof( CmdHandlerWithAnother ),
-                typeof( CmdHandlerAlternate ) );
-            TestHelper.GetFailedSingleBinPathAutomaticServices( c,
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ),
+                                                  typeof( IWithTheResultUnifiedCommand ),
+                                                  typeof( CmdHandlerFailingUnified ),
+                                                  typeof( CmdHandlerWithMore ),
+                                                  typeof( CmdHandlerWithAnother ),
+                                                  typeof( CmdHandlerAlternate ) );
+            configuration.GetFailedSingleBinPathAutomaticServices(
                 "Service 'CK.Cris.Tests.ICommandHandlerTests.CmdHandlerFailingUnified' must implement a command handler method for closed command CK.Cris.Tests.IWithPocoResultCommand of the closing type CK.Cris.Tests.IWithTheResultUnifiedCommand." );
         }
 
@@ -143,14 +148,15 @@ namespace CK.Cris.Tests
         [Test]
         public void ICommandHandler_Service_AND_handler_method_must_be_unified()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ),
-                                                     typeof( IWithTheResultUnifiedCommand ),
-                                                     typeof( IUnifiedResult ),
-                                                     typeof( CmdHandlerUnified ),
-                                                     typeof( CmdHandlerWithMore ),
-                                                     typeof( CmdHandlerWithAnother ),
-                                                     typeof( CmdHandlerAlternate ) );
-            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ),
+                                                  typeof( IWithTheResultUnifiedCommand ),
+                                                  typeof( IUnifiedResult ),
+                                                  typeof( CmdHandlerUnified ),
+                                                  typeof( CmdHandlerWithMore ),
+                                                  typeof( CmdHandlerWithAnother ),
+                                                  typeof( CmdHandlerAlternate ) );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
             var d = auto.Services.GetRequiredService<CrisDirectory>();
 
             var cmd = auto.Services.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
@@ -180,11 +186,12 @@ namespace CK.Cris.Tests
         [Test]
         public void Handler_method_can_be_virtual()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ),
-                                                     typeof( IWithTheResultUnifiedCommand ),
-                                                     typeof( IUnifiedResult ),
-                                                     typeof( CmdHandlerUnifiedSpecialized ), typeof( CmdHandlerWithMore ), typeof( CmdHandlerWithAnother ), typeof( CmdHandlerAlternate ) );
-            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ),
+                                                  typeof( IWithTheResultUnifiedCommand ),
+                                                  typeof( IUnifiedResult ),
+                                                  typeof( CmdHandlerUnifiedSpecialized ), typeof( CmdHandlerWithMore ), typeof( CmdHandlerWithAnother ), typeof( CmdHandlerAlternate ) );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
             var d = auto.Services.GetRequiredService<CrisDirectory>();
 
             var cmd = auto.Services.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
@@ -218,10 +225,11 @@ namespace CK.Cris.Tests
         [Test]
         public void Handler_method_on_regular_class_is_ignored()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ),
-                                                     typeof( ITestCommand ),
-                                                     typeof( BaseClassWithHandler ) );
-            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ),
+                                                  typeof( ITestCommand ),
+                                                  typeof( BaseClassWithHandler ) );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
             var d = auto.Services.GetRequiredService<CrisDirectory>();
             d.CrisPocoModels.Should().HaveCount( 1 );
             d.CrisPocoModels[0].Handlers.Should().BeEmpty();
@@ -236,10 +244,11 @@ namespace CK.Cris.Tests
         [Test]
         public void Handler_method_can_be_relayed_to_base_class()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), 
-                                                     typeof( ITestCommand ),
-                                                     typeof( SpecializedBaseClassService ) );
-            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), 
+                                                  typeof( ITestCommand ),
+                                                  typeof( SpecializedBaseClassService ) );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
             var d = auto.Services.GetRequiredService<CrisDirectory>();
             d.CrisPocoModels.Should().HaveCount( 1 );
             var handler = d.CrisPocoModels[0].Handlers.Single();

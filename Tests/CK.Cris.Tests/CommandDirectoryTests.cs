@@ -9,6 +9,9 @@ using System;
 using Microsoft.Extensions.Hosting;
 using System.Collections.Generic;
 using CK.Testing;
+using CK.Cris.AmbientValues;
+using static CK.Cris.Tests.AmbientValuesTests;
+using static CK.Cris.Tests.CommandResultTypeTests;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
@@ -26,8 +29,10 @@ namespace CK.Cris.Tests
         [Test]
         public void simple_command_models()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( ITestCommand ) );
-            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( ITestCommand ) );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
+
             var poco = auto.Services.GetRequiredService<PocoDirectory>();
 
             var d = auto.Services.GetRequiredService<CrisDirectory>();
@@ -51,8 +56,9 @@ namespace CK.Cris.Tests
         {
             using( TestHelper.Monitor.CollectTexts( out var texts ) )
             {
-                var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( ITestSpecCommand ) );
-                TestHelper.GetFailedSingleBinPathAutomaticServices( c,
+                var configuration = TestHelper.CreateDefaultEngineConfiguration();
+                configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( ITestSpecCommand ) );
+                configuration.GetFailedSingleBinPathAutomaticServices(
                     "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ITestCommand' cannot be both a IEvent and a IAbstractCommand." );
             }
         }
@@ -66,8 +72,9 @@ namespace CK.Cris.Tests
         {
             using( TestHelper.Monitor.CollectTexts( out var texts ) )
             {
-                var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( ICmdNoWay ) );
-                TestHelper.GetFailedSingleBinPathAutomaticServices( c ,
+                var configuration = TestHelper.CreateDefaultEngineConfiguration();
+                configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( ICmdNoWay ) );
+                configuration.GetFailedSingleBinPathAutomaticServices(
                     "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ICmdNoWay' cannot be both a IEvent and a IAbstractCommand." );
             }
         }

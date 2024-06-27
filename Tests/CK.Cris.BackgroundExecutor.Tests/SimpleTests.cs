@@ -74,13 +74,14 @@ namespace CK.Cris.BackgroundExecutor.Tests
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisBackgroundExecutorService ),
-                                                     typeof( StdAuthenticationTypeSystem ),
-                                                     typeof( IDelayCommand ),
-                                                     typeof( StupidHandlers ),
-                                                     typeof( CrisExecutionContext ),
-                                                     typeof( RegularScopedService ) );
-            _auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisBackgroundExecutorService ),
+                                                  typeof( StdAuthenticationTypeSystem ),
+                                                  typeof( IDelayCommand ),
+                                                  typeof( StupidHandlers ),
+                                                  typeof( CrisExecutionContext ),
+                                                  typeof( RegularScopedService ) );
+            _auto = configuration.RunSuccessfully().CreateAutomaticServices();
             _auto.Services.GetRequiredService<CrisExecutionHost>().ParallelRunnerCount = 1;
         }
 

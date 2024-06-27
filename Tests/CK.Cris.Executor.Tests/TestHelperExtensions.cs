@@ -13,12 +13,13 @@ namespace CK.Cris.Executor.Tests
     {
         public static AutomaticServices CreateAutomaticServicesWithMonitor( this IMonitorTestHelper h, ISet<Type> types )
         {
-            return h.CreateSingleBinPathAutomaticServices( types,
-                                                           configureServices: r =>
-                                                           {
-                                                              r.Services.AddScoped( sp => h.Monitor );
-                                                              r.Services.AddScoped( sp => h.Monitor.ParallelLogger );
-                                                           } );
+            var configuration = h.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( types );
+            return configuration.RunSuccessfully().CreateAutomaticServices( configureServices: r =>
+                                                    {
+                                                        r.AddScoped( sp => h.Monitor );
+                                                        r.AddScoped( sp => h.Monitor.ParallelLogger );
+                                                    } );
         }
     }
 }

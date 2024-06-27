@@ -17,6 +17,8 @@ using System.Runtime.CompilerServices;
 using CK.AspNet.Auth;
 using CK.Auth;
 using CK.Cris.AspNet;
+using static CK.Testing.MonitorTestHelper;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace CK.Testing
 {
@@ -25,6 +27,7 @@ namespace CK.Testing
     /// </summary>
     public static class CrisEngineAspNetTestHelperExtensions
     {
+
         /// <summary>
         /// Runs a test in "TSTest" folder thanks to a "yarn test" command with
         /// a "CRIS_ENDPOINT_URL" environment variable that is the address of a temporary server
@@ -71,7 +74,10 @@ namespace CK.Testing
         /// </summary>
         /// <param name="helper">This helper.</param>
         /// <param name="engineConfiguration">The engine configuration.</param>
-        /// <param name="targetProjectPath">Must be obtained by <see cref="StObjEngineTestHelperTypeScriptExtensions.GetTypeScriptWithTestsSupportTargetProjectPath(IBasicTestHelper, string?)"/>.</param>
+        /// <param name="targetProjectPath">
+        /// Must be obtained by <see cref="TSTestHelperExtensions.GetTypeScriptWithTestsSupportTargetProjectPath(IBasicTestHelper, string?)"/>
+        /// or <see cref="TSTestHelperExtensions.GetTypeScriptBuildModeTargetProjectPath(IBasicTestHelper, string?)"/>.
+        /// </param>
         /// <param name="registeredTypes">The types to register in the <see cref="StObjCollector"/>.</param>
         /// <param name="tsTypes">The types that must be generated in TypeScript.</param>
         /// <param name="resume">
@@ -130,7 +136,7 @@ namespace CK.Testing
                                                                      NormalizedPath targetProjectPath,
                                                                      ISet<Type> registeredTypes,
                                                                      IEnumerable<Type> tsTypes,
-                                                                     Func<TypeScriptEngineTestHelperExtensions.Runner, Task>? beforeRun = null,
+                                                                     Func<TSTestHelperExtensions.Runner, Task>? beforeRun = null,
                                                                      Action<IServiceCollection>? configureServices = null,
                                                                      Action<IApplicationBuilder>? configureApplication = null )
         {

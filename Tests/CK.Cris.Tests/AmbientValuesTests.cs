@@ -32,8 +32,10 @@ namespace CK.Cris.Tests
         [TestCase( typeof( IInvalid2Command ), "string" )]
         public void AmbientValues_must_be_nullable( Type t, string badType )
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), t );
-            TestHelper.GetFailedSingleBinPathAutomaticServices( c, $"[AmbientServiceValue] '{badType} CK.Cris.Tests.AmbientValuesTests.{t.Name}.NoWay' must be nullable. Ambient values must always be nullable." );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), t );
+            configuration.GetFailedSingleBinPathAutomaticServices(
+                $"[AmbientServiceValue] '{badType} CK.Cris.Tests.AmbientValuesTests.{t.Name}.NoWay' must be nullable. Ambient values must always be nullable." );
         }
 
         public interface IInvalid1Values : IAmbientValues
@@ -50,8 +52,9 @@ namespace CK.Cris.Tests
         [TestCase( typeof( IInvalid2Values ), "string" )]
         public void IAmbientValues_properties_must_not_be_nullable( Type t, string badType )
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), t );
-            TestHelper.GetFailedSingleBinPathAutomaticServices( c, $"IAmbientValues properties cannot be nullable: {badType}? NoWay." );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), t );
+            configuration.GetFailedSingleBinPathAutomaticServices( $"IAmbientValues properties cannot be nullable: {badType}? NoWay." );
         }
 
         public interface IAmNotCrisPoco : IPoco
@@ -65,8 +68,10 @@ namespace CK.Cris.Tests
         {
             // Add the IAmbientValuesCollectCommand so that there is at least one Poco otherwise
             // Poco handling is skipped.
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IAmNotCrisPoco ), typeof( IAmbientValuesCollectCommand ) );
-            TestHelper.GetFailedSingleBinPathAutomaticServices( c, "Invalid [AmbientServiceValue] 'CK.Cris.Tests.AmbientValuesTests.IAmNotCrisPoco.NoWay' on PrimaryPoco. Only ICrisPoco properties can be AmbientService values." );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IAmNotCrisPoco ), typeof( IAmbientValuesCollectCommand ) );
+            configuration.GetFailedSingleBinPathAutomaticServices(
+                "Invalid [AmbientServiceValue] 'CK.Cris.Tests.AmbientValuesTests.IAmNotCrisPoco.NoWay' on PrimaryPoco. Only ICrisPoco properties can be AmbientService values." );
         }
 
         public interface IAmCommand : ICommand
@@ -90,13 +95,14 @@ namespace CK.Cris.Tests
         [Test]
         public void AmbientValues_properties_must_match_IAmbiantValues_properties_Types()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ),
-                                                     typeof( IAmCommand ),
-                                                     typeof( IAmEvent ),
-                                                     typeof( ITestAmbientValues ),
-                                                     typeof( IAmbientValuesCollectCommand ) );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ),
+                                                  typeof( IAmCommand ),
+                                                  typeof( IAmEvent ),
+                                                  typeof( ITestAmbientValues ),
+                                                  typeof( IAmbientValuesCollectCommand ) );
             // no error: V1 is a string and V2 is an int.
-            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
         }
 
 
@@ -111,11 +117,12 @@ namespace CK.Cris.Tests
         [Test]
         public void missing_AmbientServiceHub_in_RestoreAmbientServices()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ),
-                                                     typeof( IAmCommand ),
-                                                     typeof( MissingAmbientServiceHub ),
-                                                     typeof( ITestAmbientValues ) );
-            TestHelper.GetFailedSingleBinPathAutomaticServices( c,
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ),
+                                                  typeof( IAmCommand ),
+                                                  typeof( MissingAmbientServiceHub ),
+                                                  typeof( ITestAmbientValues ) );
+            configuration.GetFailedSingleBinPathAutomaticServices( 
                 "[RestoreAmbientServices] method 'MissingAmbientServiceHub.ConfigureCurrentCulture( IAmCommand cmd )' must take a 'AmbientServiceHub' parameter to configure the ambient services." );
         }
 

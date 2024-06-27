@@ -55,16 +55,18 @@ namespace CK.Cris.Executor.Tests
         [TestCase( "ValAsync" )]
         public async Task basic_handling_of_void_returns_Async( string kind )
         {
-            var c = TestHelper.CreateTypeCollector( typeof( RawCrisExecutor ), typeof( ITestCommand ) );
-            c.Add( kind switch
-            {
-                "RefAsync" => typeof( CmdRefAsyncHandler ),
-                "ValAsync" => typeof( CmdValAsyncHandler ),
-                "Sync" => typeof( CmdSyncHandler ),
-                _ => throw new NotImplementedException()
-            } );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                  typeof( ITestCommand ),
+                                                  kind switch
+                                                  {
+                                                      "RefAsync" => typeof( CmdRefAsyncHandler ),
+                                                      "ValAsync" => typeof( CmdValAsyncHandler ),
+                                                      "Sync" => typeof( CmdSyncHandler ),
+                                                      _ => throw new NotImplementedException()
+                                                  } );
 
-            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
             using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
@@ -122,16 +124,18 @@ namespace CK.Cris.Executor.Tests
         [TestCase( "ValAsync" )]
         public async Task basic_handling_with_returned_type_Async( string kind )
         {
-            var c = TestHelper.CreateTypeCollector( typeof( RawCrisExecutor ), typeof( IIntTestCommand ) );
-            c.Add( kind switch
-            {
-                "RefAsync" => typeof( CmdIntRefAsyncHandler ),
-                "ValAsync" => typeof( CmdIntValAsyncHandler ),
-                "Sync" => typeof( CmdIntSyncHandler ),
-                _ => throw new NotImplementedException()
-            } );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                  typeof( IIntTestCommand ),
+                                                  kind switch
+                                                  {
+                                                      "RefAsync" => typeof( CmdIntRefAsyncHandler ),
+                                                      "ValAsync" => typeof( CmdIntValAsyncHandler ),
+                                                      "Sync" => typeof( CmdIntSyncHandler ),
+                                                      _ => throw new NotImplementedException()
+                                                  } );
 
-            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
             using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
@@ -149,11 +153,12 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public void ambiguous_handler_detection()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( RawCrisExecutor ),
-                                                     typeof( IIntTestCommand ),
-                                                     typeof( CmdIntRefAsyncHandler ),
-                                                     typeof( CmdIntValAsyncHandler ) );
-            TestHelper.GetFailedSingleBinPathAutomaticServices( c,
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                  typeof( IIntTestCommand ),
+                                                  typeof( CmdIntRefAsyncHandler ),
+                                                  typeof( CmdIntValAsyncHandler ) );
+            configuration.GetFailedSingleBinPathAutomaticServices(
                 "Ambiguity: both 'CmdIntValAsyncHandler.HandleCommandAsync( IIntTestCommand cmd )' and 'CK.Cris.Executor.Tests.RawCrisExecutorCommandTests+CmdIntRefAsyncHandler.HandleCommandAsync' handle 'CK.Cris.Executor.Tests.RawCrisExecutorCommandTests.IIntTestCommand' command." );
         }
 
@@ -166,11 +171,13 @@ namespace CK.Cris.Executor.Tests
         public void ambiguous_handler_resolution_thanks_to_the_ICommanHandlerT_marker()
         {
             CmdIntValAsyncHandler.Called = false;
-            var c = TestHelper.CreateTypeCollector( typeof( RawCrisExecutor ),
-                                                     typeof( IIntTestCommand ),
-                                                     typeof( CmdIntRefAsyncHandler ),
-                                                     typeof( CmdIntValAsyncHandlerService ) );
-            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                  typeof( IIntTestCommand ),
+                                                  typeof( CmdIntRefAsyncHandler ),
+                                                  typeof( CmdIntValAsyncHandlerService ) );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
         }
 
 
@@ -205,27 +212,30 @@ namespace CK.Cris.Executor.Tests
         public void return_type_mismatch_detection()
         {
             {
-                var c = TestHelper.CreateTypeCollector( typeof( RawCrisExecutor ),
-                                                         typeof( IIntTestCommand ),
-                                                         typeof( CmdIntSyncHandlerWithBadReturnType1 ) );
-                CheckUniqueCommandHasNoHandler( c );
+                var configuration = TestHelper.CreateDefaultEngineConfiguration();
+                configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                      typeof( IIntTestCommand ),
+                                                      typeof( CmdIntSyncHandlerWithBadReturnType1 ) );
+                CheckUniqueCommandHasNoHandler( configuration );
             }
             {
-                var c = TestHelper.CreateTypeCollector( typeof( RawCrisExecutor ),
-                                                         typeof( IIntTestCommand ),
-                                                         typeof( CmdIntSyncHandlerWithBadReturnType2 ) );
-                CheckUniqueCommandHasNoHandler( c );
+                var configuration = TestHelper.CreateDefaultEngineConfiguration();
+                configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                      typeof( IIntTestCommand ),
+                                                      typeof( CmdIntSyncHandlerWithBadReturnType2 ) );
+                CheckUniqueCommandHasNoHandler( configuration );
             }
             {
-                var c = TestHelper.CreateTypeCollector( typeof( RawCrisExecutor ),
-                                                         typeof( IIntTestCommand ),
-                                                         typeof( CmdIntSyncHandlerWithBadReturnType3 ) );
-                CheckUniqueCommandHasNoHandler( c );
+                var configuration = TestHelper.CreateDefaultEngineConfiguration();
+                configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                      typeof( IIntTestCommand ),
+                                                      typeof( CmdIntSyncHandlerWithBadReturnType3 ) );
+                CheckUniqueCommandHasNoHandler( configuration );
             }
 
-            static void CheckUniqueCommandHasNoHandler( TypeCollector c )
+            static void CheckUniqueCommandHasNoHandler( EngineConfiguration configuration )
             {
-                using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+                using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
                 using( var scope = auto.Services.CreateScope() )
                 {
                     var directory = scope.ServiceProvider.GetRequiredService<CrisDirectory>();

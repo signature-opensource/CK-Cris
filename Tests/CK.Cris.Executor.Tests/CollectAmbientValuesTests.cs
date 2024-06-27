@@ -70,27 +70,27 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task CommandPostHandler_fills_the_resulting_ambient_values_Async()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( RawCrisExecutor ),
-                                                    typeof( IAmbientValuesCollectCommand ),
-                                                    typeof( AmbientValuesService ),
-                                                    typeof( AuthService ),
-                                                    typeof( IAuthenticationInfo ),
-                                                    typeof( StdAuthenticationTypeSystem ),
-                                                    typeof( IAuthAmbientValues ),
-                                                    typeof( SecurityService ),
-                                                    typeof( ISecurityAmbientValues ) );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                  typeof( IAmbientValuesCollectCommand ),
+                                                  typeof( AmbientValuesService ),
+                                                  typeof( AuthService ),
+                                                  typeof( IAuthenticationInfo ),
+                                                  typeof( StdAuthenticationTypeSystem ),
+                                                  typeof( IAuthAmbientValues ),
+                                                  typeof( SecurityService ),
+                                                  typeof( ISecurityAmbientValues ) );
 
             var authTypeSystem = new StdAuthenticationTypeSystem();
             var authInfo = authTypeSystem.AuthenticationInfo.Create( authTypeSystem.UserInfo.Create( 3712, "John" ), DateTime.UtcNow.AddDays( 1 ) );
-            var map = TestHelper.RunSingleBinPathAndLoad( c ).Map;
-            var reg = new StObjContextRoot.ServiceRegister( TestHelper.Monitor, new ServiceCollection() );
-            reg.Services.AddScoped<IAuthenticationInfo>( s => authInfo );
-            reg.Services.AddScoped<IActivityMonitor>( s => TestHelper.Monitor );
-            reg.AddStObjMap( map ).Should().BeTrue( "Service configuration succeed." );
 
-            var appServices = reg.Services.BuildServiceProvider();
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices( configureServices: services =>
+            {
+                services.AddScoped<IAuthenticationInfo>( s => authInfo );
+                services.AddScoped<IActivityMonitor>( s => TestHelper.Monitor );
+            } );
 
-            using( var scope = appServices.CreateScope() )
+            using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
                 var executor = services.GetRequiredService<RawCrisExecutor>();
@@ -130,13 +130,14 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public void IAmbiantValues_must_cover_all_AmbientServiceValue_properties()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( RawCrisExecutor ),
-                                                     typeof( IAmbientValuesCollectCommand ),
-                                                     typeof( AmbientValuesService ),
-                                                     typeof( ISomePart ),
-                                                     typeof( ISomeCommand ),
-                                                     typeof( FakeHandlerButRequiredOtherwiseCommandIsSkipped ) );
-            TestHelper.GetFailedSingleBinPathAutomaticServices( c, 
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                  typeof( IAmbientValuesCollectCommand ),
+                                                  typeof( AmbientValuesService ),
+                                                  typeof( ISomePart ),
+                                                  typeof( ISomeCommand ),
+                                                  typeof( FakeHandlerButRequiredOtherwiseCommandIsSkipped ) );
+            configuration.GetFailedSingleBinPathAutomaticServices( 
                 "Missing IAmbientValues properties for [AmbientServiceValue] properties.",
                 new[] { "'int Something { get; set; }'" } );
         }
@@ -158,14 +159,15 @@ namespace CK.Cris.Executor.Tests
         {
             NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
 
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ),
-                                                     typeof( RawCrisReceiver ),
-                                                     typeof( CrisCultureService ),
-                                                     typeof( NormalizedCultureInfo ),
-                                                     typeof( NormalizedCultureInfoUbiquitousServiceDefault ),
-                                                     typeof( ICultureCommand ),
-                                                     typeof( FakeCommandHandler ) );
-            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ),
+                                                  typeof( RawCrisReceiver ),
+                                                  typeof( CrisCultureService ),
+                                                  typeof( NormalizedCultureInfo ),
+                                                  typeof( NormalizedCultureInfoUbiquitousServiceDefault ),
+                                                  typeof( ICultureCommand ),
+                                                  typeof( FakeCommandHandler ) );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
             auto.Services.GetRequiredService<IEnumerable<IHostedService>>().Should().HaveCount( 1, "Required to initialize the Global Service Provider." );
 
             using( var scope = auto.Services.CreateScope() )

@@ -24,8 +24,9 @@ namespace CK.Cris.Tests
         [Test]
         public void simple_basic_return()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IIntCommand ) );
-            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IIntCommand ) );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
 
             var d = auto.Services.GetRequiredService<CrisDirectory>();
             d.CrisPocoModels[0].ResultType.Should().Be( typeof( int ) );
@@ -38,8 +39,9 @@ namespace CK.Cris.Tests
         [Test]
         public void a_specialized_command_can_generalize_the_initial_result_type()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IIntButObjectCommand ) );
-            using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IIntButObjectCommand ) );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
             var d = auto.Services.GetRequiredService<CrisDirectory>();
             var cmdModel = d.CrisPocoModels[0];
             cmdModel.CommandType.Should().BeAssignableTo( typeof( IIntButObjectCommand ) );
@@ -53,8 +55,9 @@ namespace CK.Cris.Tests
         [Test]
         public void incompatible_result_type()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IIntButStringCommand ) );
-            TestHelper.GetFailedSingleBinPathAutomaticServices( c,
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IIntButStringCommand ) );
+            configuration.GetFailedSingleBinPathAutomaticServices(
                 "Command '[PrimaryPoco]CK.Cris.Tests.CommandResultTypeTests.IIntCommand' declares incompatible results '[AbstractPoco]CK.Cris.ICommand<int>' ,'[AbstractPoco]CK.Cris.ICommand<string>': result types are incompatible and cannot be reduced." );
         }
 
@@ -62,29 +65,33 @@ namespace CK.Cris.Tests
         public void when_IPoco_result_are_not_closed_this_is_invalid()
         {
             {
-                var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IWithMorePocoResultCommand ), typeof( IMoreResult ) );
-                using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+                var configuration = TestHelper.CreateDefaultEngineConfiguration();
+                configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IWithMorePocoResultCommand ), typeof( IMoreResult ) );
+                using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
                 var d = auto.Services.GetRequiredService<CrisDirectory>();
                 var cmdModel = d.CrisPocoModels[0];
                 cmdModel.CommandType.Should().BeAssignableTo( typeof( IWithMorePocoResultCommand ) );
                 cmdModel.ResultType.Should().BeAssignableTo( typeof( IMoreResult ) );
             }
             {
-                var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IWithAnotherPocoResultCommand ), typeof( IAnotherResult ) );
-                using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+                var configuration = TestHelper.CreateDefaultEngineConfiguration();
+                configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IWithAnotherPocoResultCommand ), typeof( IAnotherResult ) );
+                using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
                 var d = auto.Services.GetRequiredService<CrisDirectory>();
                 var cmdModel = d.CrisPocoModels[0];
                 cmdModel.CommandType.Should().BeAssignableTo( typeof( IWithAnotherPocoResultCommand ) );
                 cmdModel.ResultType.Should().BeAssignableTo( typeof( IAnotherResult ) );
             }
             {
-                var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IUnifiedButNotTheResultCommand ), typeof( IMoreResult ), typeof( IAnotherResult ) );
-                TestHelper.GetFailedSingleBinPathAutomaticServices( c,
+                var configuration = TestHelper.CreateDefaultEngineConfiguration();
+                configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IUnifiedButNotTheResultCommand ), typeof( IMoreResult ), typeof( IAnotherResult ) );
+                configuration.GetFailedSingleBinPathAutomaticServices(
                     "Command '[PrimaryPoco]CK.Cris.Tests.IWithPocoResultCommand' declares incompatible results '[AbstractPoco]CK.Cris.ICommand<CK.Cris.Tests.IMoreResult>' ,'[AbstractPoco]CK.Cris.ICommand<CK.Cris.Tests.IAnotherResult>': result types are incompatible and cannot be reduced." );
             }
             {
-                var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ), typeof( IWithTheResultUnifiedCommand ), typeof( IUnifiedResult ) );
-                using var auto = TestHelper.CreateSingleBinPathAutomaticServices( c );
+                var configuration = TestHelper.CreateDefaultEngineConfiguration();
+                configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IWithTheResultUnifiedCommand ), typeof( IUnifiedResult ) );
+                using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
                 var d = auto.Services.GetRequiredService<CrisDirectory>();
                 var cmdModel = d.CrisPocoModels[0];
                 cmdModel.CommandType.Should().BeAssignableTo( typeof( IWithTheResultUnifiedCommand ) );
