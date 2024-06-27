@@ -4,7 +4,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Testing.StObjTypeScriptEngine" Version="0.18.1--0148-develop" />
+    <PackageReference Include="CK.Testing.StObjTypeScriptEngine" Version="0.18.1--0151-develop" />
     <PackageReference Include="CK.Testing.AspNet.Auth" Version="0.18.1--0148-develop" />
   </ItemGroup>
   <ItemGroup>
