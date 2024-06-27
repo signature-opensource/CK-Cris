@@ -17,8 +17,8 @@ using System.Runtime.CompilerServices;
 using CK.AspNet.Auth;
 using CK.Auth;
 using CK.Cris.AspNet;
-using static CK.Testing.MonitorTestHelper;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Testing
 {

@@ -34,7 +34,7 @@ namespace CK.Cris.Tests
         {
             var configuration = TestHelper.CreateDefaultEngineConfiguration();
             configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), t );
-            configuration.GetFailedSingleBinPathAutomaticServices(
+            configuration.GetFailedAutomaticServices(
                 $"[AmbientServiceValue] '{badType} CK.Cris.Tests.AmbientValuesTests.{t.Name}.NoWay' must be nullable. Ambient values must always be nullable." );
         }
 
@@ -54,7 +54,7 @@ namespace CK.Cris.Tests
         {
             var configuration = TestHelper.CreateDefaultEngineConfiguration();
             configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), t );
-            configuration.GetFailedSingleBinPathAutomaticServices( $"IAmbientValues properties cannot be nullable: {badType}? NoWay." );
+            configuration.GetFailedAutomaticServices( $"IAmbientValues properties cannot be nullable: {badType}? NoWay." );
         }
 
         public interface IAmNotCrisPoco : IPoco
@@ -70,7 +70,7 @@ namespace CK.Cris.Tests
             // Poco handling is skipped.
             var configuration = TestHelper.CreateDefaultEngineConfiguration();
             configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IAmNotCrisPoco ), typeof( IAmbientValuesCollectCommand ) );
-            configuration.GetFailedSingleBinPathAutomaticServices(
+            configuration.GetFailedAutomaticServices(
                 "Invalid [AmbientServiceValue] 'CK.Cris.Tests.AmbientValuesTests.IAmNotCrisPoco.NoWay' on PrimaryPoco. Only ICrisPoco properties can be AmbientService values." );
         }
 
@@ -122,7 +122,7 @@ namespace CK.Cris.Tests
                                                   typeof( IAmCommand ),
                                                   typeof( MissingAmbientServiceHub ),
                                                   typeof( ITestAmbientValues ) );
-            configuration.GetFailedSingleBinPathAutomaticServices( 
+            configuration.GetFailedAutomaticServices( 
                 "[RestoreAmbientServices] method 'MissingAmbientServiceHub.ConfigureCurrentCulture( IAmCommand cmd )' must take a 'AmbientServiceHub' parameter to configure the ambient services." );
         }
 

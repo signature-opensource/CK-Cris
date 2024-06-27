@@ -137,7 +137,7 @@ namespace CK.Cris.Executor.Tests
                                                   typeof( ISomePart ),
                                                   typeof( ISomeCommand ),
                                                   typeof( FakeHandlerButRequiredOtherwiseCommandIsSkipped ) );
-            configuration.GetFailedSingleBinPathAutomaticServices( 
+            configuration.GetFailedAutomaticServices( 
                 "Missing IAmbientValues properties for [AmbientServiceValue] properties.",
                 new[] { "'int Something { get; set; }'" } );
         }

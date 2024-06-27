@@ -57,7 +57,7 @@ namespace CK.Cris.Tests
         {
             var configuration = TestHelper.CreateDefaultEngineConfiguration();
             configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IIntButStringCommand ) );
-            configuration.GetFailedSingleBinPathAutomaticServices(
+            configuration.GetFailedAutomaticServices(
                 "Command '[PrimaryPoco]CK.Cris.Tests.CommandResultTypeTests.IIntCommand' declares incompatible results '[AbstractPoco]CK.Cris.ICommand<int>' ,'[AbstractPoco]CK.Cris.ICommand<string>': result types are incompatible and cannot be reduced." );
         }
 
@@ -85,7 +85,7 @@ namespace CK.Cris.Tests
             {
                 var configuration = TestHelper.CreateDefaultEngineConfiguration();
                 configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IUnifiedButNotTheResultCommand ), typeof( IMoreResult ), typeof( IAnotherResult ) );
-                configuration.GetFailedSingleBinPathAutomaticServices(
+                configuration.GetFailedAutomaticServices(
                     "Command '[PrimaryPoco]CK.Cris.Tests.IWithPocoResultCommand' declares incompatible results '[AbstractPoco]CK.Cris.ICommand<CK.Cris.Tests.IMoreResult>' ,'[AbstractPoco]CK.Cris.ICommand<CK.Cris.Tests.IAnotherResult>': result types are incompatible and cannot be reduced." );
             }
             {

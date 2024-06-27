@@ -359,7 +359,7 @@ namespace CK.Cris.Executor.Tests
         {
             var configuration = TestHelper.CreateDefaultEngineConfiguration();
             configuration.FirstBinPath.Types.Add( typeof( RawCrisReceiver ), typeof( CrisDirectory ), typeof( ITestCommand ), typeof( InvalidValidator ) );
-            configuration.GetFailedSingleBinPathAutomaticServices(
+            configuration.GetFailedAutomaticServices(
                 "[IncomingValidator] method 'InvalidValidator.IncomingValidateCommand( IActivityMonitor monitor, ITestCommand cmd )' must take a 'UserMessageCollector' and/or a 'ICrisIncomingValidationContext' parameter to collect validation errors, warnings and informations." );
         }
     }

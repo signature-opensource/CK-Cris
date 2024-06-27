@@ -58,7 +58,7 @@ namespace CK.Cris.Tests
             {
                 var configuration = TestHelper.CreateDefaultEngineConfiguration();
                 configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( ITestSpecCommand ) );
-                configuration.GetFailedSingleBinPathAutomaticServices(
+                configuration.GetFailedAutomaticServices(
                     "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ITestCommand' cannot be both a IEvent and a IAbstractCommand." );
             }
         }
@@ -74,7 +74,7 @@ namespace CK.Cris.Tests
             {
                 var configuration = TestHelper.CreateDefaultEngineConfiguration();
                 configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( ICmdNoWay ) );
-                configuration.GetFailedSingleBinPathAutomaticServices(
+                configuration.GetFailedAutomaticServices(
                     "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ICmdNoWay' cannot be both a IEvent and a IAbstractCommand." );
             }
         }

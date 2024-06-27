@@ -158,7 +158,7 @@ namespace CK.Cris.Executor.Tests
                                                   typeof( IIntTestCommand ),
                                                   typeof( CmdIntRefAsyncHandler ),
                                                   typeof( CmdIntValAsyncHandler ) );
-            configuration.GetFailedSingleBinPathAutomaticServices(
+            configuration.GetFailedAutomaticServices(
                 "Ambiguity: both 'CmdIntValAsyncHandler.HandleCommandAsync( IIntTestCommand cmd )' and 'CK.Cris.Executor.Tests.RawCrisExecutorCommandTests+CmdIntRefAsyncHandler.HandleCommandAsync' handle 'CK.Cris.Executor.Tests.RawCrisExecutorCommandTests.IIntTestCommand' command." );
         }
 

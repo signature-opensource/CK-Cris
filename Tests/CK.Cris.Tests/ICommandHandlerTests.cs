@@ -30,7 +30,7 @@ namespace CK.Cris.Tests
                                                   typeof( IWithTheResultUnifiedCommand ),
                                                   typeof( IUnifiedResult),
                                                   typeof( CmdHandlerMissingHandler ) );
-            configuration.GetFailedSingleBinPathAutomaticServices(
+            configuration.GetFailedAutomaticServices(
                 "Service 'CK.Cris.Tests.ICommandHandlerTests.CmdHandlerMissingHandler' must implement a command handler method for closed command CK.Cris.Tests.IWithPocoResultCommand of the closing type CK.Cris.Tests.IWithTheResultUnifiedCommand." );
         }
 
@@ -127,7 +127,7 @@ namespace CK.Cris.Tests
                                                   typeof( CmdHandlerWithMore ),
                                                   typeof( CmdHandlerWithAnother ),
                                                   typeof( CmdHandlerAlternate ) );
-            configuration.GetFailedSingleBinPathAutomaticServices(
+            configuration.GetFailedAutomaticServices(
                 "Service 'CK.Cris.Tests.ICommandHandlerTests.CmdHandlerFailingUnified' must implement a command handler method for closed command CK.Cris.Tests.IWithPocoResultCommand of the closing type CK.Cris.Tests.IWithTheResultUnifiedCommand." );
         }
 
