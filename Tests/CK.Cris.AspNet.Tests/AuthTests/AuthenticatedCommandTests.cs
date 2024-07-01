@@ -2,6 +2,7 @@ using CK.Auth;
 using CK.Core;
 using CK.Testing;
 using FluentAssertions;
+using Microsoft.Extensions.Hosting;
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.Diagnostics;

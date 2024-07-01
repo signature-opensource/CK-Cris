@@ -6,16 +6,19 @@
     <LangVersion>11</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Testing.AppIdentity" Version="0.4.1--0019-develop" />
     <PackageReference Include="NUnit" Version="4.1.0" />
     <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" Version="4.5.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="CK.Testing.AppIdentity" Version="0.4.1--0019-develop" />
+    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="0.18.1--0153-develop" />
+    <ProjectReference Include="..\..\CK.Testing.CrisAspNetEngine\CK.Testing.CrisAspNetEngine.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\CK.Cris.AspNet.Engine\CK.Cris.AspNet.Engine.csproj" />
     <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
     <ProjectReference Include="..\..\CK.Cris.HttpSender\CK.Cris.HttpSender.csproj" />
-    <ProjectReference Include="..\..\CK.Testing.CrisAspNetEngine\CK.Testing.CrisAspNetEngine.csproj" />
     <!-- This project tests Basic login and DelayedCommand. -->
     <ProjectReference Include="..\..\CK.Cris.AspNet.Auth.Basic\CK.Cris.AspNet.Auth.Basic.csproj" />
     <ProjectReference Include="..\..\CK.Cris.Auth\CK.Cris.Auth.csproj" />

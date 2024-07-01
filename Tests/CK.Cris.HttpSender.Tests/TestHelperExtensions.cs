@@ -1,26 +1,24 @@
 using CK.Core;
-using CK.Testing;
+using CK;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Cris.HttpSender.Tests
 {
-    public static class TestHelperExtensions
+    // Temporary (not composable enough).
+    public static class StObjMapExtensions
     {
 
-        public static Task<ApplicationIdentityTestHelperExtension.RunningAppIdentity> CreateRunningCallerAsync( this IMonitorTestHelper helper,
+        public static Task<ApplicationIdentityTestHelperExtension.RunningAppIdentity> CreateRunningCallerAsync( this IStObjMap map,
                                                                                                                 string serverAddress,
-                                                                                                                ISet<Type> registerTypes,
                                                                                                                 Action<MutableConfigurationSection>? configuration = null,
                                                                                                                 bool generateSourceCode = true )
         {
-            var c = helper.CreateDefaultEngineConfiguration( generateSourceCode );
-            var callerMap = helper.RunSingleBinPathAndLoad( c, registerTypes ).Map;
-
-            return helper.CreateRunningAppIdentityServiceAsync(
+            return TestHelper.CreateRunningAppIdentityServiceAsync(
                 c =>
                 {
                     c["FullName"] = "Domain/$Caller";
@@ -40,7 +38,7 @@ namespace CK.Cris.HttpSender.Tests
                 },
                 services =>
                 {
-                    services.AddStObjMap( helper.Monitor, callerMap );
+                    services.AddStObjMap( TestHelper.Monitor, map );
                 } );
         }
     }

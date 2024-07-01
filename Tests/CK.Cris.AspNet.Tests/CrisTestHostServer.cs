@@ -19,6 +19,8 @@ using static CK.Testing.StObjEngineTestHelper;
 
 namespace CK.Cris.AspNet.Tests
 {
+    // Temporary: this is not the right pattern as it is NOT modular enough.
+    // Goal is more like the minimal API (linear configuration).
     class CrisTestHostServer : IDisposable
     {
         // Use the HttpCrisSender endpoint that allows "AllExchangeable" Poco. The /.cris is bound to

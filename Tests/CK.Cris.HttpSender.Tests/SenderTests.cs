@@ -7,6 +7,7 @@ using CK.Cris.AmbientValues;
 using CK.Cris.AspNet;
 using CK.Testing;
 using FluentAssertions;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
@@ -28,58 +29,55 @@ namespace CK.Cris.HttpSender.Tests
         {
             // We need the fr culture for this test.
             NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
+            var serverEngineConfiguration = TestHelper.CreateDefaultEngineConfiguration();
+            serverEngineConfiguration.FirstBinPath.Types.Add( typeof( IAuthenticationInfo ),
+                                                              typeof( StdAuthenticationTypeSystem ),
+                                                              typeof( AuthenticationInfoTokenService ),
+                                                              typeof( CrisAuthenticationService ),
+                                                              typeof( IBeautifulWithOptionsCommand ),
+                                                              typeof( INakedCommand ),
+                                                              typeof( AmbientValuesService ),
+                                                              typeof( ColorAndNakedService ),
+                                                              typeof( WithOptionsService ),
+                                                              typeof( ITotalCommand ),
+                                                              typeof( ITotalResult ),
+                                                              typeof( TotalCommandService ),
+                                                              typeof( IBasicLoginCommand ),
+                                                              typeof( ILogoutCommand ),
+                                                              typeof( IRefreshAuthenticationCommand ),
+                                                              typeof( IAuthenticationResult ),
+                                                              typeof( IPocoAuthenticationInfo ),
+                                                              typeof( IPocoUserInfo ),
+                                                              typeof( CrisAspNetService ),
+                                                              typeof( CrisWebFrontAuthCommandHandler ),
+                                                              typeof( FakeUserDatabase ),
+                                                              typeof( FakeWebFrontLoginService ) );
 
-            await using var runningServer = await TestHelper.CreateSingleBinPathAspNetServerAsync(
-                                                TestHelper.CreateTypeCollector(
-                                                    typeof( IAuthenticationInfo ),
-                                                    typeof( StdAuthenticationTypeSystem ),
-                                                    typeof( AuthenticationInfoTokenService ),
-                                                    typeof( CrisAuthenticationService ),
-                                                    typeof( IBeautifulWithOptionsCommand ),
-                                                    typeof( INakedCommand ),
-                                                    typeof( AmbientValuesService ),
-                                                    typeof( ColorAndNakedService ),
-                                                    typeof( WithOptionsService ),
-                                                    typeof( ITotalCommand ),
-                                                    typeof( ITotalResult ),
-                                                    typeof( TotalCommandService ),
-                                                    typeof( IBasicLoginCommand ),
-                                                    typeof( ILogoutCommand ),
-                                                    typeof( IRefreshAuthenticationCommand ),
-                                                    typeof( IAuthenticationResult ),
-                                                    typeof( IPocoAuthenticationInfo ),
-                                                    typeof( IPocoUserInfo ),
-                                                    typeof( CrisAspNetService ),
-                                                    typeof( CrisWebFrontAuthCommandHandler )
-                                                ),
-                                                configureServices: services =>
-                                                {
-                                                    // We could have used the type registration above and
-                                                    // benefit of the Automatic DI.
-                                                    services.AddSingleton<FakeUserDatabase>();
-                                                    services.AddSingleton<IUserInfoProvider>( sp => sp.GetRequiredService<FakeUserDatabase>() );
-                                                    services.AddSingleton<FakeWebFrontLoginService>();
-                                                    services.AddSingleton<IWebFrontAuthLoginService>( sp => sp.GetRequiredService<FakeWebFrontLoginService>() );
-                                                } );
+            var serverMap = serverEngineConfiguration.RunSuccessfully().LoadMap();
+            
+            await using var runningServer = await serverMap.CreateAspNetAuthServerAsync( configureApplication: app => app.UseMiddleware<CrisMiddleware>() );
 
             var serverAddress = runningServer.ServerAddress;
 
-            var callerServices = TestHelper.CreateTypeCollector( typeof( IBeautifulWithOptionsCommand ),
-                                                                 typeof( INakedCommand ),
-                                                                 typeof( ITotalCommand ),
-                                                                 typeof( ITotalResult ),
-                                                                 typeof( IBasicLoginCommand ),
-                                                                 typeof( ILogoutCommand ),
-                                                                 typeof( IRefreshAuthenticationCommand ),
-                                                                 typeof( IAuthenticationResult ),
-                                                                 typeof( IPocoAuthenticationInfo ),
-                                                                 typeof( IPocoUserInfo ),
-                                                                 typeof( CrisDirectory ),
-                                                                 typeof( CommonPocoJsonSupport ),
-                                                                 typeof( ApplicationIdentityService ),
-                                                                 typeof( CrisHttpSenderFeatureDriver ) );
+            var callerEngineConfiguration = TestHelper.CreateDefaultEngineConfiguration();
+            callerEngineConfiguration.FirstBinPath.Types.Add( typeof( IBeautifulWithOptionsCommand ),
+                                                              typeof( INakedCommand ),
+                                                              typeof( ITotalCommand ),
+                                                              typeof( ITotalResult ),
+                                                              typeof( IBasicLoginCommand ),
+                                                              typeof( ILogoutCommand ),
+                                                              typeof( IRefreshAuthenticationCommand ),
+                                                              typeof( IAuthenticationResult ),
+                                                              typeof( IPocoAuthenticationInfo ),
+                                                              typeof( IPocoUserInfo ),
+                                                              typeof( CrisDirectory ),
+                                                              typeof( CommonPocoJsonSupport ),
+                                                              typeof( ApplicationIdentityService ),
+                                                              typeof( CrisHttpSenderFeatureDriver ) );
 
-            await using var runningCaller = await TestHelper.CreateRunningCallerAsync( serverAddress, callerServices, generateSourceCode: false );
+            var callerMap = callerEngineConfiguration.RunSuccessfully().LoadMap();
+
+            await using var runningCaller = await callerMap.CreateRunningCallerAsync( serverAddress, generateSourceCode: false );
 
             var callerPoco = runningCaller.Services.GetRequiredService<PocoDirectory>();
             var sender = runningCaller.ApplicationIdentityService.Remotes
@@ -107,7 +105,7 @@ namespace CK.Cris.HttpSender.Tests
             loginAlbert.Info.User.UserName.Should().Be( "Albert" );
 
             // Unexisting user id.
-            totalCommand.ActorId = 3712;
+            totalCommand.ActorId = 9999999;
             totalExecutedCommand = await sender.SendAsync( TestHelper.Monitor, totalCommand );
             totalExecutedCommand.Result.Should().BeAssignableTo<ICrisResultError>();
             error = (ICrisResultError)totalExecutedCommand.Result!;
@@ -115,17 +113,17 @@ namespace CK.Cris.HttpSender.Tests
             error.Errors[0].Text.Should().StartWith( "Invalid actor identifier: " );
 
             // Albert (null current culture name): this is executed in the Global DI context.
-            totalCommand.ActorId = 2; 
+            totalCommand.ActorId = 3712; 
             var totalResult = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, totalCommand );
             totalResult.Success.Should().BeTrue();
-            totalResult.ActorId.Should().Be( 2 );
+            totalResult.ActorId.Should().Be( 3712 );
             totalResult.CultureName.Should().Be( "en" );
 
             // Albert in French: this is executed in a Background job. 
             totalCommand.CurrentCultureName = "fr";
             totalResult = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, totalCommand );
             totalResult.Success.Should().BeTrue();
-            totalResult.ActorId.Should().Be( 2, "The authentication info has been transferred." );
+            totalResult.ActorId.Should().Be( 3712, "The authentication info has been transferred." );
             totalResult.CultureName.Should().Be( "fr", "The current culture is French." );
 
             // Albert in French sends an invalid action.
@@ -213,13 +211,16 @@ namespace CK.Cris.HttpSender.Tests
         [Test]
         public async Task retry_strategy_Async()
         {
-            var callerServices = TestHelper.CreateTypeCollector( typeof( IBeautifulWithOptionsCommand ),
-                                                                 typeof( CrisDirectory ),
-                                                                 typeof( CommonPocoJsonSupport ),
-                                                                 typeof( ApplicationIdentityService ),
-                                                                 typeof( ApplicationIdentityServiceConfiguration ),
-                                                                 typeof( CrisHttpSenderFeatureDriver ) );
-            await using var runningCaller = await TestHelper.CreateRunningCallerAsync( "http://[::1]:65036/", callerServices );
+            var callerEngineConfiguration = TestHelper.CreateDefaultEngineConfiguration();
+            callerEngineConfiguration.FirstBinPath.Types.Add( typeof( IBeautifulWithOptionsCommand ),
+                                                              typeof( CrisDirectory ),
+                                                              typeof( CommonPocoJsonSupport ),
+                                                              typeof( ApplicationIdentityService ),
+                                                              typeof( ApplicationIdentityServiceConfiguration ),
+                                                              typeof( CrisHttpSenderFeatureDriver ));
+            var map = callerEngineConfiguration.RunSuccessfully().LoadMap();
+
+            await using var runningCaller = await map.CreateRunningCallerAsync( "http://[::1]:65036/" );
             var callerPoco = runningCaller.Services.GetRequiredService<PocoDirectory>();
             var sender = runningCaller.ApplicationIdentityService.Remotes
                                                     .Single( r => r.PartyName == "$Server" )

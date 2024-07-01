@@ -1,23 +1,21 @@
 using CK.AppIdentity;
-using CK.AspNet.Auth.Cris;
 using CK.AspNet.Auth;
+using CK.AspNet.Auth.Cris;
 using CK.Auth;
 using CK.Core;
 using CK.Cris.AmbientValues;
 using CK.Cris.AspNet;
+using CK.Testing;
 using FluentAssertions;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
-using Microsoft.Extensions.DependencyInjection;
-using System.Collections.Concurrent;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Threading;
-using CK.Testing;
 
 namespace CK.Cris.HttpSender.Tests
 {
@@ -84,50 +82,42 @@ namespace CK.Cris.HttpSender.Tests
             // We need the fr culture for this test.
             NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
 
-            var configuration = TestHelper.CreateDefaultEngineConfiguration();
-            configuration.FirstBinPath.Types.Add( typeof( IAuthenticationInfo ),
-                                                  typeof( CrisAuthenticationService ),
-                                                  typeof( AmbientValuesService ),
-                                                  typeof( IDelayedCommand ),
-                                                  typeof( CrisDelayedCommandService ),
-                                                  typeof( IDelayedCommandExecutedEvent ),
-                                                  typeof( IFullCommand ),
-                                                  typeof( FullCommandService ),
-                                                  typeof( IBasicLoginCommand ),
-                                                  typeof( ILogoutCommand ),
-                                                  typeof( IRefreshAuthenticationCommand ),
-                                                  typeof( IAuthenticationResult ),
-                                                  typeof( IPocoAuthenticationInfo ),
-                                                  typeof( IPocoUserInfo ),
-                                                  typeof( CrisWebFrontAuthCommandHandler )
-                                                );
-            configuration.RunSuccessfully().LoadMap(). 
-                                                configureServices: services =>
-                                                {
-                                                    // We could have used the type registration above and
-                                                    // benefit of the Automatic DI.
-                                                    services.AddSingleton<FakeUserDatabase>();
-                                                    services.AddSingleton<IUserInfoProvider>( sp => sp.GetRequiredService<FakeUserDatabase>() );
-                                                    services.AddSingleton<FakeWebFrontLoginService>();
-                                                    services.AddSingleton<IWebFrontAuthLoginService>( sp => sp.GetRequiredService<FakeWebFrontLoginService>() );
-                                                } );
-
+            var serverConf = TestHelper.CreateDefaultEngineConfiguration();
+            serverConf.FirstBinPath.Types.Add( typeof( IAuthenticationInfo ),
+                                               typeof( CrisAuthenticationService ),
+                                               typeof( AmbientValuesService ),
+                                               typeof( IDelayedCommand ),
+                                               typeof( CrisDelayedCommandService ),
+                                               typeof( CrisAspNetService ),
+                                               typeof( IDelayedCommandExecutedEvent ),
+                                               typeof( IFullCommand ),
+                                               typeof( FullCommandService ),
+                                               typeof( IBasicLoginCommand ),
+                                               typeof( ILogoutCommand ),
+                                               typeof( IRefreshAuthenticationCommand ),
+                                               typeof( IAuthenticationResult ),
+                                               typeof( IPocoAuthenticationInfo ),
+                                               typeof( IPocoUserInfo ),
+                                               typeof( CrisWebFrontAuthCommandHandler ) );
+            var runningServer = await serverConf.FirstBinPath.CreateAspNetAuthServerAsync( configureApplication: app => app.UseMiddleware<CrisMiddleware>() );
             var serverAddress = runningServer.ServerAddress;
 
-            var callerServices = TestHelper.CreateTypeCollector( typeof( IDelayedCommand ),
-                                                                 typeof( IFullCommand ),
-                                                                 typeof( IBasicLoginCommand ),
-                                                                 typeof( ILogoutCommand ),
-                                                                 typeof( IRefreshAuthenticationCommand ),
-                                                                 typeof( IAuthenticationResult ),
-                                                                 typeof( IPocoAuthenticationInfo ),
-                                                                 typeof( IPocoUserInfo ),
-                                                                 typeof( CrisDirectory ),
-                                                                 typeof( CommonPocoJsonSupport ),
-                                                                 typeof( ApplicationIdentityService ),
-                                                                 typeof( CrisHttpSenderFeatureDriver ) );
+            var callerConf = TestHelper.CreateDefaultEngineConfiguration();
+            callerConf.FirstBinPath.Types.Add( typeof( IDelayedCommand ),
+                                               typeof( IFullCommand ),
+                                               typeof( IBasicLoginCommand ),
+                                               typeof( ILogoutCommand ),
+                                               typeof( IRefreshAuthenticationCommand ),
+                                               typeof( IAuthenticationResult ),
+                                               typeof( IPocoAuthenticationInfo ),
+                                               typeof( IPocoUserInfo ),
+                                               typeof( CrisDirectory ),
+                                               typeof( CommonPocoJsonSupport ),
+                                               typeof( ApplicationIdentityService ),
+                                               typeof( CrisHttpSenderFeatureDriver ) );
+            var callerMap = callerConf.RunSuccessfully().LoadMap();
 
-            await using var runningCaller = await TestHelper.CreateRunningCallerAsync( serverAddress, callerServices, generateSourceCode: false );
+            await using var runningCaller = await callerMap.CreateRunningCallerAsync( serverAddress, generateSourceCode: false );
 
             var callerPoco = runningCaller.Services.GetRequiredService<PocoDirectory>();
             var sender = runningCaller.ApplicationIdentityService.Remotes
