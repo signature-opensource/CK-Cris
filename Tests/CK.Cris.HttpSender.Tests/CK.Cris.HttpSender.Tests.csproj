@@ -11,8 +11,8 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Testing.AppIdentity" Version="0.4.1--0019-develop" />
-    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="0.18.1--0153-develop" />
+    <PackageReference Include="CK.Testing.AppIdentity" Version="0.4.1--0020-develop" />
+    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="0.18.1--0155-develop" />
     <ProjectReference Include="..\..\CK.Testing.CrisAspNetEngine\CK.Testing.CrisAspNetEngine.csproj" />
   </ItemGroup>
   <ItemGroup>
