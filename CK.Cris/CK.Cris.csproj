@@ -3,7 +3,7 @@
     <TargetFramework>net6.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Globalization" Version="0.6.1--0026-develop" />
-    <PackageReference Include="CK.StObj.Model" Version="25.0.1--0219-develop" />
+    <PackageReference Include="CK.Globalization" Version="0.6.1--0027-develop" />
+    <PackageReference Include="CK.StObj.Model" Version="25.0.1--0220-develop" />
   </ItemGroup>
 </Project>
