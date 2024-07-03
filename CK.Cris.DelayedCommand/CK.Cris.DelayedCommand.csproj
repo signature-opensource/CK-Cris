@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CK.Cris.BackgroundExecutor\CK.Cris.BackgroundExecutor.csproj" />
+    <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
+    <ProjectReference Include="..\CK.IO.DelayedCommand\CK.IO.DelayedCommand.csproj" />
+  </ItemGroup>
+</Project>

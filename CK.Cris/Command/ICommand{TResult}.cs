@@ -1,3 +1,5 @@
+using CK.Core;
+
 namespace CK.Cris
 {
 
@@ -12,7 +14,7 @@ namespace CK.Cris
     /// <typeparam name="TResult">Type of the expected result.</typeparam>
     public interface ICommand<out TResult> : IAbstractCommand
     {
-        internal static TResult R => default!;
+        [AutoImplementationClaim] public static TResult TResultType => default!;
     }
 
 

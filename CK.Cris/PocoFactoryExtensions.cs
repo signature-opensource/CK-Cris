@@ -14,23 +14,6 @@ namespace CK.Cris
     public static class PocoFactoryExtensions
     {
         /// <summary>
-        /// Creates a <see cref="ICrisResultError"/> with at least one message.
-        /// There can be no <see cref="UserMessageLevel.Error"/> messages in the messages: this result is still an error.
-        /// </summary>
-        /// <param name="this">This factory.</param>
-        /// <param name="first">The required first message. Must be <see cref="UserMessage.IsValid"/>.</param>
-        /// <param name="others">Optional other messages.</param>
-        /// <returns>An error result.</returns>
-        public static ICrisResultError Create( this IPocoFactory<ICrisResultError> @this, UserMessage first, params UserMessage[] others )
-        {
-            Throw.CheckArgument( first.IsValid );
-            var r = @this.Create();
-            r.Errors.Add( first );
-            r.Errors.AddRange( others );
-            return r;
-        }
-
-        /// <summary>
         /// Creates an exception from the <see cref="ICrisResultError.Errors"/>.
         /// </summary>
         /// <param name="e">This result error.</param>
@@ -69,7 +52,7 @@ namespace CK.Cris
         /// </summary>
         /// <param name="monitor">The monitor.</param>
         /// <param name="ex">The unhandled exception.</param>
-        /// <param name="cmd">The faulted command.</param>
+        /// <param name="crisPoco">The faulted command or event.</param>
         /// <param name="isExecuting">Whether the command is executing or validating.</param>
         /// <param name="currentCulture">The current culture.</param>
         /// <param name="collector">Error message collector.</param>
@@ -80,13 +63,13 @@ namespace CK.Cris
         /// <returns>The log key.</returns>
         public static string OnUnhandledError( IActivityMonitor monitor,
                                                Exception ex,
-                                               IAbstractCommand cmd,
+                                               ICrisPoco crisPoco,
                                                bool isExecuting,
                                                CurrentCultureInfo? currentCulture,
                                                Action<UserMessage> collector,
                                                bool? leakAll = null )
         {
-            var logText = $"While {(isExecuting ? "execu" : "valida")}ting command '{cmd.CrisPocoModel.PocoName}'.";
+            var logText = $"While {(isExecuting ? "execu" : "valida")}ting '{crisPoco.CrisPocoModel.PocoName}'.";
             using var g = monitor.UnfilteredOpenGroup( LogLevel.Error | LogLevel.IsFiltered, CrisDirectory.CrisTag, logText, null );
             Throw.DebugAssert( !g.IsRejectedGroup );
             if( currentCulture == null )
@@ -98,15 +81,15 @@ namespace CK.Cris
             {
                 collector( isExecuting
                                 ? UserMessage.Error( currentCulture,
-                                                     $"An unhandled error occurred while executing command '{cmd.CrisPocoModel.PocoName}' (LogKey: {g.GetLogKeyString()}).",
+                                                     $"An unhandled error occurred while executing command '{crisPoco.CrisPocoModel.PocoName}' (LogKey: {g.GetLogKeyString()}).",
                                                      "Cris.UnhandledExecutionError" )
                                 : UserMessage.Error( currentCulture,
-                                                     $"An unhandled error occurred while validating command '{cmd.CrisPocoModel.PocoName}' (LogKey: {g.GetLogKeyString()}).",
+                                                     $"An unhandled error occurred while validating command '{crisPoco.CrisPocoModel.PocoName}' (LogKey: {g.GetLogKeyString()}).",
                                                      "Cris.UnhandledValidationError" ) );
             }
             ex.GetUserMessages( collector, currentCulture, 0, null, leakAll );
             // Always logged since we opened an Error group.
-            monitor.Info( cmd.ToString()!, ex );
+            monitor.Info( crisPoco.ToString()!, ex );
             return g.GetLogKeyString()!;
         }
     }

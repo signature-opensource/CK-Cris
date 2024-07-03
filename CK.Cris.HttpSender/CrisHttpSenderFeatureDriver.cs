@@ -1,5 +1,7 @@
 using CK.AppIdentity;
 using CK.Core;
+using CK.Cris.AspNet;
+using CK.Setup;
 using Microsoft.Extensions.Configuration;
 using Polly.Retry;
 using Polly.Timeout;
@@ -15,19 +17,25 @@ namespace CK.Cris.HttpSender
     /// or not. The <see cref="CrisHttpSender"/> feature is added only if a "CrisHttpSender" key appears in the remote's
     /// configuration. This configuration can be a "true" value (that uses a default configuration).
     /// </summary>
+    [AlsoRegisterType( typeof( IAspNetCrisResult ) )]
     public sealed class CrisHttpSenderFeatureDriver : ApplicationIdentityFeatureDriver
     {
         readonly PocoDirectory _pocoDirectory;
+        readonly IPocoFactory<IAspNetCrisResult> _resultReader;
 
         /// <summary>
         /// Initializes a new <see cref="CrisHttpSenderFeatureDriver"/>.
         /// </summary>
         /// <param name="s">The application identity service.</param>
         /// <param name="pocoDirectory">The poco directory.</param>
-        public CrisHttpSenderFeatureDriver( ApplicationIdentityService s, PocoDirectory pocoDirectory )
+        /// 
+        public CrisHttpSenderFeatureDriver( ApplicationIdentityService s,
+                                            PocoDirectory pocoDirectory,
+                                            IPocoFactory<IAspNetCrisResult> resultReader )
             : base( s, isAllowedByDefault: true )
         {
             _pocoDirectory = pocoDirectory;
+            _resultReader = resultReader;
         }
 
         /// <summary>
@@ -124,12 +132,12 @@ namespace CK.Cris.HttpSender
                         }
                         else
                         {
-                            monitor.Warn( $"Unable to parse CrisHttpSender Timout '{s}' for remote '{r}'. Using default value of 60 seconds." );
+                            monitor.Warn( $"Unable to parse CrisHttpSender Timout '{s}' for remote '{r}'. Using default value of 100 seconds." );
                         }
                     }
                 }
                 monitor.Info( $"Enabling 'CrisHttpSender' on '{r}' with address '{uri}'." );
-                r.AddFeature( new CrisHttpSender( r, new( uri, ".cris/net"), _pocoDirectory, timeout, retryStrategy ) );
+                r.AddFeature( new CrisHttpSender( r, new( uri, ".cris/net"), _pocoDirectory, _resultReader, timeout, retryStrategy ) );
             }
             return true;
         }

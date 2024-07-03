@@ -2,22 +2,22 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <IsPackable>false</IsPackable>
-    <Nullable>enable</Nullable>
     <LangVersion>11</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\CK.Cris.Tests\DiamondResultAndCommand.cs" Link="DiamondResultAndCommand.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CK.AspNet.Tester" Version="4.0.3" />
-    <PackageReference Include="NUnit" Version="3.13.3" />
+    <PackageReference Include="CK.AspNet.Tester" Version="4.0.4" />
+    <PackageReference Include="NUnit" Version="4.1.0" />
     <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" Version="4.5.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
     <!-- We also test CK.Auth.Cris here. -->
-    <PackageReference Include="CK.AspNet.Auth" Version="22.0.0" />
+    <PackageReference Include="CK.AspNet.Auth" Version="23.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\CK.Auth.Cris\CK.Auth.Cris.csproj" />
+    <ProjectReference Include="..\..\CK.Cris.Auth\CK.Cris.Auth.csproj" />
     <ProjectReference Include="..\..\CK.Cris.AspNet.Engine\CK.Cris.AspNet.Engine.csproj" />
     <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
     <ProjectReference Include="..\..\CK.Testing.CrisAspNetEngine\CK.Testing.CrisAspNetEngine.csproj" />

@@ -1,10 +1,11 @@
-using System.Collections.Generic;
+using CK.Core;
+using System.Collections.Immutable;
 
 namespace CK.Cris
 {
     /// <summary>
     /// An executed command carries the <see cref="Command"/> (a <see cref="ICommand"/> or <see cref="ICommand{TResult}"/>),
-    /// its <see cref="Result"/> and can have non empty <see cref="Events"/> on success.
+    /// its <see cref="Result"/>, the <see cref="ValidationMessages"/> and can have non empty <see cref="Events"/> on success.
     /// </summary>
     public interface IExecutedCommand
     {
@@ -14,11 +15,16 @@ namespace CK.Cris
         IAbstractCommand Command { get; }
 
         /// <summary>
+        /// Gets the validation messages.
+        /// </summary>
+        ImmutableArray<UserMessage> ValidationMessages { get; }
+
+        /// <summary>
         /// Gets the result of the command. Can be:
         /// <list type="bullet">
         ///  <item>A <see cref="ICrisResultError"/> on validation or execution error.</item>
         ///  <item>A successful null result on success when this command is a <see cref="ICommand"/>.</item>
-        ///  <item>A successful result object if this command is a <see cref="ICommand{TResult}"/>.</item>
+        ///  <item>A successful result object (that can be null) if this command is a <see cref="ICommand{TResult}"/>.</item>
         /// </list>
         /// </summary>
         object? Result { get; }
@@ -27,7 +33,13 @@ namespace CK.Cris
         /// Gets the non immediate events emitted by the command.
         /// This is non empty only when the command has been successfully executed.
         /// </summary>
-        IReadOnlyList<IEvent> Events { get; }
+        ImmutableArray<IEvent> Events { get; }
+
+        /// <summary>
+        /// Optional <see cref="IDeferredCommandExecutionContext"/> available when the command execution
+        /// has been deferred to another context.
+        /// </summary>
+        IDeferredCommandExecutionContext? DeferredExecutionContext { get; }
     }
 
 }

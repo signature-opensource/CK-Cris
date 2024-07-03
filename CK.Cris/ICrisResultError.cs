@@ -22,7 +22,7 @@ namespace CK.Cris
         /// Gets the list of user messages.
         /// At least one of them should be a <see cref="UserMessageLevel.Error"/> but this is not checked.
         /// </summary>
-        List<UserMessage> Errors { get; }
+        IList<UserMessage> Errors { get; }
 
         /// <summary>
         /// Gets or sets a <see cref="ActivityMonitor.LogKey"/> that enables to locate the logs of the command execution.

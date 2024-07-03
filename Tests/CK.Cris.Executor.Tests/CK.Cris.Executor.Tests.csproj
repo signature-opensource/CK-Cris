@@ -2,14 +2,13 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <IsPackable>false</IsPackable>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Auth.Abstractions" Version="6.0.0" />
-    <PackageReference Include="CK.Testing.StObjEngine" Version="25.0.0" />
-    <PackageReference Include="NUnit" Version="3.13.3" />
+    <PackageReference Include="CK.Auth.Abstractions" Version="7.0.0" />
+    <PackageReference Include="CK.Testing.StObjEngine" Version="26.0.0" />
+    <PackageReference Include="NUnit" Version="4.1.0" />
     <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" Version="4.5.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />

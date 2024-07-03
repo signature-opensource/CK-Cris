@@ -1,25 +1,25 @@
 using CK.Core;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Reflection;
 
 namespace CK.Cris
 {
-
     /// <summary>
     /// Describes command properties and its unique and zero-based index in a context.
     /// </summary>
     public interface ICrisPocoModel
     {
         /// <summary>
-        /// Gets the command type: this is the final type that implements the <see cref="ICrisPoco"/> object.
-        /// </summary>
-        Type CommandType { get; }
-
-        /// <summary>
         /// Gets the kind of Cris Poco object.
         /// </summary>
         CrisPocoKind Kind { get; }
+
+        /// <summary>
+        /// Gets the command type: this is the final type that implements the <see cref="ICrisPoco"/> object.
+        /// </summary>
+        Type CommandType { get; }
 
         /// <summary>
         /// Creates a new <see cref="ICommand"/>, <see cref="ICommand{TResult}"/> or <see cref="IEvent"/> instance.
@@ -48,9 +48,34 @@ namespace CK.Cris
         Type ResultType { get; }
 
         /// <summary>
+        /// Gets whether this command or event must configure the <see cref="AmbientServiceHub"/> before
+        /// being executed in a endpoint context (at least one [ConfigureAmbientService] method exists for it).
+        /// <para>
+        /// This applies to incoming command: when true it means that the receiving endpoint context services
+        /// may not be adapted to the execution of the command and that it may be executed in a correctly configured
+        /// background context.
+        /// </para>
+        /// </summary>
+        bool EndpointMustConfigureServices { get; }
+
+        /// <summary>
+        /// Gets whether this command or event when executed in the background without a <see cref="AmbientServiceHub"/>
+        /// provided by a receiving endpoint must configure the background services before being executed (at least one
+        /// [RestoreAmbientService] method exists for it).
+        /// </summary>
+        bool BackgroundMustRestoreServices { get; }
+
+        /// <summary>
+        /// Gets all the [AmbientServiceValue] property names that this command or event exposes.
+        /// </summary>
+        ImmutableArray<string> AmbientValuePropertyNames { get; }
+
+        /// <summary>
         /// Gets whether this command or event is handled: <see cref="Handlers"/> is not empty.
-        /// A <see cref="CrisPocoKind.CallerOnlyEvent"/> (a <see cref="IEvent"/> without [RoutedEventAttribute]
+        /// <para>
+        /// A <see cref="CrisPocoKind.CallerOnlyEvent"/> (a <see cref="IEvent"/> without [RoutedEvent])
         /// is never handled.
+        /// </para>
         /// </summary>
         bool IsHandled { get; }
 
@@ -99,10 +124,9 @@ namespace CK.Cris
 
         /// <summary>
         /// Gets all the <see cref="IHandler"/> for this command or event.
-        /// When empty, no handler has been found and the command or events cannot
+        /// When empty, no handler has been found and the command or event cannot
         /// be executed in this process.
         /// </summary>
-        IReadOnlyList<IHandler> Handlers { get; }
+        ImmutableArray<IHandler> Handlers { get; }
     }
-
 }

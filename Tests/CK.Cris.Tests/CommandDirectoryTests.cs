@@ -1,35 +1,41 @@
 using CK.Core;
 using FluentAssertions;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System;
-using System.Collections.Generic;
+using static CK.Cris.Tests.ICommandHandlerTests;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
+using System;
+using Microsoft.Extensions.Hosting;
+using System.Collections.Generic;
+using CK.Testing;
+using CK.Cris.AmbientValues;
+using static CK.Cris.Tests.AmbientValuesTests;
+using static CK.Cris.Tests.CommandResultTypeTests;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 namespace CK.Cris.Tests
 {
+
     [TestFixture]
     public class CrisDirectoryTests
     {
         [ExternalName( "Test", "PreviousTest1", "PreviousTest2" )]
-        public interface ICmdTest : ICommand
+        public interface ITestCommand : ICommand
         {
         }
 
         [Test]
         public void simple_command_models()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( ICmdTest ) );
-            using var services = TestHelper.CreateAutomaticServices( c ).Services;
-            var poco = services.GetRequiredService<PocoDirectory>();
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( ITestCommand ) );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
 
-            var d = services.GetRequiredService<CrisDirectory>();
+            var poco = auto.Services.GetRequiredService<PocoDirectory>();
+
+            var d = auto.Services.GetRequiredService<CrisDirectory>();
             d.CrisPocoModels.Should().HaveCount( 1 );
             var m = d.CrisPocoModels[0];
             m.Handlers.Should().BeEmpty();
@@ -41,7 +47,7 @@ namespace CK.Cris.Tests
             cmd.CrisPocoModel.Should().BeSameAs( m );
         }
 
-        public interface ICmdTestSpec : ICmdTest, IEvent
+        public interface ITestSpecCommand : ITestCommand, IEvent
         {
         }
 
@@ -50,9 +56,10 @@ namespace CK.Cris.Tests
         {
             using( TestHelper.Monitor.CollectTexts( out var texts ) )
             {
-                var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( ICmdTestSpec ) );
-                TestHelper.GenerateCode( c, null ).Success.Should().BeFalse();
-                texts.Should().Contain( "Command 'Test' cannot be both a IEvent and a ICommand." );
+                var configuration = TestHelper.CreateDefaultEngineConfiguration();
+                configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( ITestSpecCommand ) );
+                configuration.GetFailedAutomaticServices(
+                    "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ITestCommand' cannot be both a IEvent and a IAbstractCommand." );
             }
         }
 
@@ -65,11 +72,13 @@ namespace CK.Cris.Tests
         {
             using( TestHelper.Monitor.CollectTexts( out var texts ) )
             {
-                var c = TestHelper.CreateStObjCollector( typeof( CrisDirectory ), typeof( ICmdNoWay ) );
-                TestHelper.GenerateCode( c, null ).Success.Should().BeFalse();
-                texts.Should().Contain( "Command 'CK.Cris.Tests.CrisDirectoryTests+ICmdNoWay' cannot be both a IEvent and a ICommand<TResult>." );
+                var configuration = TestHelper.CreateDefaultEngineConfiguration();
+                configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( ICmdNoWay ) );
+                configuration.GetFailedAutomaticServices(
+                    "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ICmdNoWay' cannot be both a IEvent and a IAbstractCommand." );
             }
         }
+
     }
 }
 

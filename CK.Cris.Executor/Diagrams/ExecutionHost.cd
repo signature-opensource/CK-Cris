@@ -7,7 +7,6 @@
       <Field Name="_executionContext" Hidden="true" />
       <Field Name="_executor" Hidden="true" />
       <Field Name="_runnerMonitor" Hidden="true" />
-      <Field Name="_skipValidation" Hidden="true" />
       <Method Name="CrisJob" Hidden="true" />
     </Members>
     <Compartments>
@@ -21,7 +20,7 @@
       </Class>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AAgIAAAAGAAAAAAAAAQABAEAAAAAgABAAAAEAJAAAAE=</HashCode>
+      <HashCode>AAgAAAAAMAAAAAAAAAQABAEAAAAAgABAAAAEAJAAAIE=</HashCode>
       <FileName>CrisExecutionHost\CrisJob.cs</FileName>
     </TypeIdentifier>
   </Class>
@@ -36,7 +35,6 @@
       <Field Name="_parallelRunnerCountChanged" Hidden="true" />
       <Field Name="_plannedRunnerCount" Hidden="true" />
       <Field Name="_rawExecutor" Hidden="true" />
-      <Field Name="_resultFactory" Hidden="true" />
       <Field Name="_runnerCount" Hidden="true" />
       <Field Name="_runnerNumber" Hidden="true" />
       <Method Name="ExecuteTypedJobAsync" Hidden="true" />
@@ -49,11 +47,6 @@
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
     <NestedTypes>
-      <Interface Name="CK.Cris.CrisExecutionHost.ICrisJobResult">
-        <TypeIdentifier>
-          <NewMemberFileName>CrisExecutionHost\CrisExecutionHost.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Interface>
       <Class Name="CK.Cris.CrisExecutionHost.Runner" Collapsed="true">
         <TypeIdentifier>
           <NewMemberFileName>CrisExecutionHost\CrisExecutionHost.Runner.cs</NewMemberFileName>
@@ -61,18 +54,17 @@
       </Class>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AEAAAAAAAEAAAAAAIAAYAAACAiAAAAACyAQFAARACAA=</HashCode>
+      <HashCode>AEAAAAAAAEAAAAIAIAAYAAACAiAAAAACSAQFAARACAA=</HashCode>
       <FileName>CrisExecutionHost\CrisExecutionHost.cs</FileName>
     </TypeIdentifier>
     <Lollipop Position="0.2" />
   </Class>
-  <Class Name="CK.Cris.AbstractCommandExecutor">
-    <Position X="0.5" Y="5.25" Width="7.25" />
+  <Class Name="CK.Cris.ContainerCommandExecutor">
+    <Position X="0.5" Y="4.25" Width="7.25" />
     <TypeIdentifier>
       <HashCode>AgAAAAAAAAAAEAAAAAAAAACAAAAAAAAAAAAABAAQAAA=</HashCode>
-      <FileName>CrisExecutionHost\AbstractCommandExecutor.cs</FileName>
+      <FileName>CrisExecutionHost\ContainerCommandExecutor.cs</FileName>
     </TypeIdentifier>
-    <Lollipop Position="0.2" />
   </Class>
   <Font Name="Segoe UI" Size="9" />
 </ClassDiagram>

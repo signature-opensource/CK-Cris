@@ -3,6 +3,11 @@ using CK.PerfectEvent;
 
 namespace CK.Cris
 {
+    /// <summary>
+    /// Source of the <see cref="CrisEventHub"/> events. This service enables events to be raised by exposing the
+    /// <see cref="ImmediateSender"/> and <see cref="AllSender"/>, it also allows events to be dispatched outside
+    /// of a command handler.
+    /// </summary>
     [Setup.AlsoRegisterType( typeof( CrisEventHub ) )]
     public sealed class DarkSideCrisEventHub : ISingletonAutoService
     {
@@ -31,7 +36,6 @@ namespace CK.Cris
         /// Gets the sender of all events.
         /// </summary>
         public PerfectEventSender<IEvent> AllSender => _hub._all;
-
     }
 
 }

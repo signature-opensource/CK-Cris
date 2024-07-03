@@ -1,6 +1,9 @@
 using CK.Core;
+using CK.Testing;
+using FluentAssertions;
 using NUnit.Framework;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
 
@@ -11,7 +14,10 @@ namespace CK.Cris.AspNet.E2ETests
     [TestFixture]
     public class TSTests
     {
-        public interface IColoredAmbientValues : AmbientValues.IAmbientValues
+        /// <summary>
+        /// Secondary Poco that defines the "Color" as a Endpoint value.
+        /// </summary>
+        public interface IColoredEndpointValues : AmbientValues.IAmbientValues
         {
             /// <summary>
             /// The color of <see cref="ICommandColored"/> commands.
@@ -19,14 +25,22 @@ namespace CK.Cris.AspNet.E2ETests
             string Color { get; set; }
         }
 
-        public interface ICommandWithMessage : ICommand<SimpleUserMessage>
+        /// <summary>
+        /// This command is empty but returns a SimpleUserMessage.
+        /// </summary>
+        public interface IWithMessageCommand : ICommand<SimpleUserMessage>
         {
         }
 
         public class ColorAndBuggyService : IAutoService
         {
+            /// <summary>
+            /// Ambient value collector for <see cref="IColoredEndpointValues.Color"/>.
+            /// </summary>
+            /// <param name="cmd">The collec command is here only to trigger the collect.</param>
+            /// <param name="values">The command result to update.</param>
             [CommandPostHandler]
-            public void GetColoredAmbientValues( AmbientValues.IAmbientValuesCollectCommand cmd, IColoredAmbientValues values )
+            public void GetColoredAmbientValues( AmbientValues.IAmbientValuesCollectCommand cmd, IColoredEndpointValues values )
             {
                 values.Color = "Red";
             }
@@ -38,12 +52,12 @@ namespace CK.Cris.AspNet.E2ETests
             }
 
             [CommandHandler]
-            public SimpleUserMessage Handle( CurrentCultureInfo culture, ICommandWithMessage cmd )
+            public SimpleUserMessage Handle( CurrentCultureInfo culture, IWithMessageCommand cmd )
             {
                 return culture.InfoMessage( $"Local servert time is {DateTime.Now}." );
             }
 
-            [CommandValidator]
+            [CommandHandlingValidator]
             public void ValidateBuggyCommand( UserMessageCollector collector, IBuggyCommand cmd )
             {
                 using( collector.OpenInfo( "This is an info from the command validation." ) )
@@ -66,18 +80,26 @@ namespace CK.Cris.AspNet.E2ETests
 
         }
 
+        /// <summary>
+        /// Command part with the color endpoint property.
+        /// </summary>
         public interface ICommandColored : ICommandPart
         {
             /// <summary>
             /// Gets or sets the color.
             /// <para>
-            /// This is an ambient value: the caller can set it but if not, the TypeScript
+            /// This is an ubiquitous value: the caller can set it but if not, the TypeScript
             /// CrisEndPoint transparently sets it.
             /// </para>
             /// </summary>
-            string Color { get; set; }
+            [AmbientServiceValue]
+            string? Color { get; set; }
         }
 
+        /// <summary>
+        /// A beautiful command has a <see cref="Beauty"/> and is a <see cref="ICommandColored"/>:
+        /// the color is managed automatically.
+        /// </summary>
         public interface IBeautifulCommand : ICommandColored, ICommand<string>
         {
             /// <summary>
@@ -97,9 +119,25 @@ namespace CK.Cris.AspNet.E2ETests
         }
 
         [Test]
-        public async Task E2ETest_Async()
+        public Task E2ETestWithCommands_Async()
         {
-            //
+            var targetProjectPath = TestHelper.GetTypeScriptWithTestsSupportTargetProjectPath();
+
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( ICommand<> ), // Useless but harmless.
+                                                  typeof( IBeautifulCommand ),
+                                                  typeof( ICommandColored ),
+                                                  typeof( ICultureAmbientValues ),
+                                                  typeof( AmbientValues.AmbientValuesService ),
+                                                  typeof( IColoredEndpointValues ),
+                                                  typeof( ColorAndBuggyService ),
+                                                  typeof( IBuggyCommand ),
+                                                  typeof( IWithMessageCommand ) );
+            configuration.FirstBinPath.EnsureTypeScriptConfigurationAspect( targetProjectPath, typeof( ICommand<> ), // Useless but harmless.
+                                                                                               typeof( IBeautifulCommand ),
+                                                                                               typeof( IBuggyCommand ),
+                                                                                               typeof( IWithMessageCommand ) );
+
             // When running in Debug, this will wait until resume is set to true.
             // Until then, the .NET server is running and tests can be manually executed
             // written and fixed.
@@ -109,23 +147,8 @@ namespace CK.Cris.AspNet.E2ETests
             //
             // In regular run, this will not wait for resume.
             //
-            var targetOutputPath = TestHelper.GetTypeScriptWithTestsSupportTargetProjectPath();
-            Throw.DebugAssert( targetOutputPath.EndsWith( "/TSTests/E2ETest_Async" ) );
-            await TestHelper.RunAspNetE2ETestAsync( targetOutputPath,
-                                                    new[] { // By registering the IBeautifulCommand first,
-                                                            // we use (and test!) the fact that the OnPocoGenerating calls EnsurePoco
-                                                            // on the IAmbientValues so that the ambient values are known when handling
-                                                            // the first command...
-                                                            typeof( IBeautifulCommand ),
-                                                            typeof( AmbientValues.AmbientValuesService ),
-                                                            typeof( IColoredAmbientValues ),
-                                                            typeof( ColorAndBuggyService ),
-                                                            typeof( IBuggyCommand ),
-                                                            typeof( ICommandWithMessage ),
-                                                            typeof( CrisAspNetService ) },
-                                                    new[] { typeof( IBeautifulCommand ), typeof( IBuggyCommand ), typeof( ICommandWithMessage ) },
-                                                    resume =>
-                                                    resume );
+            return configuration.FirstBinPath.RunCrisTypeScriptTestsAsync( resume: resume =>
+                                                                                   resume );
         }
 
     }

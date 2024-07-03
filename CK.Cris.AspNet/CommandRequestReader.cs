@@ -1,4 +1,5 @@
 using CK.Core;
+using CK.Poco.Exc.Json;
 using Microsoft.AspNetCore.Http;
 using System.Buffers;
 using System.Threading.Tasks;
@@ -21,6 +22,7 @@ namespace CK.Cris.AspNet
                                                                        HttpRequest request,
                                                                        PocoDirectory pocoDirectory,
                                                                        UserMessageCollector messageCollector,
-                                                                       ReadOnlySequence<byte> payload );
+                                                                       ReadOnlySequence<byte> payload,
+                                                                       PocoJsonImportOptions readOptions );
 
 }

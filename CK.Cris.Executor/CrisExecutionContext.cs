@@ -1,18 +1,19 @@
 using CK.Core;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace CK.Cris
 {
     /// <summary>
-    /// This is somehow on the dark side: an execution context lives on the command execution side. For
-    /// any background or deferred execution, this belongs to the endpoint container DI.
+    /// Execution context for Cris command end events.
     /// <para>
-    /// This is a scoped service that is handled by the Automatic DI but when used in endpoint (for background
-    /// or deferred executors), a dedicated specialization is used. 
+    /// This is a scoped service. 
     /// </para>
     /// </summary>
     [Setup.AlsoRegisterType( typeof( RawCrisExecutor ) )]
@@ -43,41 +44,117 @@ namespace CK.Cris
             _stack = new List<StackFrame>();
         }
 
-        bool IsExecutingCommand => _stack.Count > 0;
+        /// <summary>
+        /// Gets whether this context is currently executing a command.
+        /// </summary>
+        public bool IsExecutingCommand => _stack.Count > 0;
 
         /// <summary>
-        /// Executes the command.
+        /// Executes a root command: this must not be called when <see cref="IsExecutingCommand"/> is true.
+        /// <para>
+        /// This never throws:
+        /// <list type="bullet">
+        ///     <item>
+        ///     If the command execution fails, a <see cref="ICrisResultError"/> is the <see cref="IExecutedCommand.Result"/>.
+        ///     Note that if immediate events handling fail, the command fails.
+        ///     </item>
+        ///     <item>
+        ///     If the command succeeds and an exception is raised while handling the final routed events, they are logged but don't surface here:
+        ///     the command has been successfully executed, the consequences are not its concern.
+        ///     </item>
+        /// </list>
+        /// </para>
         /// </summary>
         /// <param name="rootCommand">The command to execute.</param>
-        /// <returns>The command result (if any) and the final non immediate events that have been emitted by the command execution.</returns>
-        public async Task<(object? Result, IReadOnlyList<IEvent> FinalEvents)> ExecuteAsync( IAbstractCommand rootCommand )
+        /// <returns>The <see cref="IExecutedCommand{T}"/>.</returns>
+        public async Task<IExecutedCommand<T>> ExecuteRootCommandAsync<T>( T rootCommand ) where T : class, IAbstractCommand
+        {
+            return (IExecutedCommand<T>)await ExecuteRootCommandAsync( rootCommand, default ).ConfigureAwait( false );
+        }
+
+        /// <summary>
+        /// Executes a root command: this must not be called when <see cref="IsExecutingCommand"/> is true.
+        /// <para>
+        /// This never throws:
+        /// <list type="bullet">
+        ///     <item>
+        ///     If the command execution fails, a <see cref="ICrisResultError"/> is the <see cref="IExecutedCommand.Result"/>.
+        ///     Note that if immediate events handling fail, the command fails.
+        ///     </item>
+        ///     <item>
+        ///     If the command succeeds and an exception is raised while handling the final routed events, they are logged but don't surface here:
+        ///     the command has been successfully executed, the consequences are not its concern.
+        ///     </item>
+        /// </list>
+        /// </para>
+        /// </summary>
+        /// <param name="rootCommand">The command to execute.</param>
+        /// <param name="deferredExecutionInfo">
+        /// Optional <see cref="IDeferredCommandExecutionContext"/> that must be set when the command execution
+        /// has been deferred to another context.
+        /// </param>
+        /// <param name="validationMessages">Optional pre-existing validation messages (typically incoming validation messages).</param>
+        /// <returns>The executed command that is a <see cref="IExecutedCommand{T}"/> of the command.</returns>
+        public async Task<ExecutedCommand> ExecuteRootCommandAsync( IAbstractCommand rootCommand,
+                                                                    IDeferredCommandExecutionContext? deferredExecutionInfo = null,
+                                                                    ImmutableArray<UserMessage> validationMessages = default )
         {
             Throw.CheckNotNullArgument( rootCommand );
             Throw.CheckState( !IsExecutingCommand );
             StackPush( rootCommand );
             try
             {
-                var result = await _rawExecutor.RawExecuteAsync( _serviceProvider, rootCommand );
-                var finalEvents = (IReadOnlyList<IEvent>?)StackPeek().Events ?? Array.Empty<IEvent>();
-                for( int i = 0; i < finalEvents.Count; ++i )
+                var raw = await _rawExecutor.RawExecuteAsync( _serviceProvider, rootCommand );
+                if( raw.Result is ICrisResultError )
                 {
-                    var e = finalEvents[i];
-                    Throw.DebugAssert( e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent || e.CrisPocoModel.Kind == CrisPocoKind.CallerOnlyEvent, "No immediate event here." );
-                    Throw.DebugAssert( !e.CrisPocoModel.IsHandled || e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent, "If it is handled then it is a route event." );
-                    if( e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent )
+                    return rootCommand.CrisPocoModel.CreateExecutedCommand( rootCommand,
+                                                                            raw.Result,
+                                                                            CreateValidationMessages( validationMessages, raw ),
+                                                                            ImmutableArray<IEvent>.Empty,
+                                                                            deferredExecutionInfo );
+                }
+                var finalEvents = StackPeek().Events;
+                if( finalEvents != null )
+                {
+                    // Use index here: new final events can appear because routed event handlers
+                    // may execute commands that raise subsequent events.
+                    for( int i = 0; i < finalEvents.Count; i++ )
                     {
-                        await _eventHub.AllSender.SafeRaiseAsync( _monitor, e );
-                        if( e.CrisPocoModel.IsHandled )
+                        IEvent? e = finalEvents[i];
+                        Throw.DebugAssert( "No immediate event here.", e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent || e.CrisPocoModel.Kind == CrisPocoKind.CallerOnlyEvent );
+                        Throw.DebugAssert( "If it is handled then it is a routed event.", !e.CrisPocoModel.IsHandled || e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent );
+                        if( e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent )
                         {
-                            await _rawExecutor.DispatchEventAsync( _serviceProvider, e );
+                            await _eventHub.AllSender.SafeRaiseAsync( _monitor, e );
+                            if( e.CrisPocoModel.IsHandled )
+                            {
+                                await _rawExecutor.SafeDispatchEventAsync( _serviceProvider, e );
+                            }
                         }
                     }
                 }
-                return (result, finalEvents);
+                return rootCommand.CrisPocoModel.CreateExecutedCommand( rootCommand,
+                                                                        raw.Result,
+                                                                        CreateValidationMessages( validationMessages, raw ),
+                                                                        finalEvents != null
+                                                                            ? finalEvents.ToImmutableArray()
+                                                                            : ImmutableArray<IEvent>.Empty,
+                                                                        deferredExecutionInfo );
             }
             finally
             {
                 _stack.Clear();
+            }
+
+            static ImmutableArray<UserMessage> CreateValidationMessages( ImmutableArray<UserMessage> validationMessages, RawCrisExecutor.RawResult raw )
+            {
+                return validationMessages.IsDefaultOrEmpty
+                        ? (raw.ValidationMessages == null
+                            ? ImmutableArray<UserMessage>.Empty
+                            : raw.ValidationMessages.UserMessages.ToImmutableArray())
+                        : raw.ValidationMessages == null
+                            ? validationMessages
+                            : validationMessages.Concat( raw.ValidationMessages.UserMessages ).ToImmutableArray();
             }
         }
 
@@ -92,7 +169,7 @@ namespace CK.Cris
         protected virtual Task RaiseImmediateEventAsync( IActivityMonitor monitor, IEvent routedImmediateEvent )
         {
             Throw.DebugAssert( routedImmediateEvent.CrisPocoModel.Kind == CrisPocoKind.RoutedImmediateEvent );
-            return _eventHub.ImmediateSender.SafeRaiseAsync( _monitor, routedImmediateEvent );
+            return _eventHub.ImmediateSender.RaiseAsync( _monitor, routedImmediateEvent );
         }
 
         /// <summary>
@@ -122,32 +199,32 @@ namespace CK.Cris
 
         IActivityMonitor ICrisEventContext.Monitor => _monitor;
 
-        Task<object?> ICrisEventContext.ExecuteCommandAsync<T>( Action<T> configure )  => DoExecuteCommandAsync( _eventHub.PocoDirectory.Create<T>( configure ) );
+        Task<object?> ICrisEventContext.ExecuteCommandAsync<T>( Action<T> configure )  => DoExecuteCommandAsync( _eventHub.PocoDirectory.Create( configure ) );
 
         Task<object?> ICrisEventContext.ExecuteCommandAsync( IAbstractCommand command ) => DoExecuteCommandAsync( command );
 
         Task<IExecutedCommand<T>> ICrisEventContext.ExecuteAsync<T>( T command, bool stopEventPropagation ) => DoExecuteAsync( command, stopEventPropagation );
 
-        Task<IExecutedCommand<T>> ICrisEventContext.ExecuteAsync<T>( Action<T> configure, bool stopEventPropagation ) => DoExecuteAsync( _eventHub.PocoDirectory.Create<T>( configure ), stopEventPropagation );
+        Task<IExecutedCommand<T>> ICrisEventContext.ExecuteAsync<T>( Action<T> configure, bool stopEventPropagation ) => DoExecuteAsync( _eventHub.PocoDirectory.Create( configure ), stopEventPropagation );
 
         async Task<object?> DoExecuteCommandAsync( IAbstractCommand command )
         {
             Throw.CheckNotNullArgument( command );
             StackPush( command );
-            var r = await _rawExecutor.RawExecuteAsync( _serviceProvider, command );
+            var raw = await _rawExecutor.RawExecuteAsync( _serviceProvider, command );
             var e = StackPop();
             if( e != null ) PropagateEvents( e );
-            return r;
+            return raw.Result;
         }
 
         async Task<IExecutedCommand<T>> DoExecuteAsync<T>( T command, bool stopEventPropagation ) where T : class, IAbstractCommand
         {
             Throw.CheckNotNullArgument( command );
             StackPush( command );
-            var r = await _rawExecutor.RawExecuteAsync( _serviceProvider, command );
+            var raw = await _rawExecutor.RawExecuteAsync( _serviceProvider, command );
             var e = StackPop();
             if( e != null && !stopEventPropagation ) PropagateEvents( e );
-            return new ExecutedCommand<T>( command, r, e );
+            return new ExecutedCommand<T>( command, raw.Result, deferredExecutionInfo: null, raw.ValidationMessages?.UserMessages, e );
         }
 
         void PropagateEvents( List<IEvent> events )
@@ -164,7 +241,7 @@ namespace CK.Cris
         Task DoEmitEventAsync( IEvent e )
         {
             ref var frame = ref StackPeek();
-            if( e is IEventWithCommand c ) c.SourceCommand = frame.Command;
+            if( e is IEventSourceCommandPart c ) c.SourceCommand = frame.Command;
             if( e.CrisPocoModel.Kind == CrisPocoKind.RoutedImmediateEvent )
             {
                 if( e.CrisPocoModel.IsHandled )

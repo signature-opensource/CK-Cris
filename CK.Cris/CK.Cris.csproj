@@ -1,11 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <RootNamespace>CK.Cris</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Globalization" Version="0.6.0" />
-    <PackageReference Include="CK.StObj.Model" Version="25.0.0" />
+    <PackageReference Include="CK.Globalization" Version="0.7.0" />
+    <PackageReference Include="CK.StObj.Model" Version="26.0.0" />
   </ItemGroup>
 </Project>

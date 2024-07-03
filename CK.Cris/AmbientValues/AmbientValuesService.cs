@@ -6,7 +6,8 @@ using System.Text;
 namespace CK.Cris.AmbientValues
 {
     /// <summary>
-    /// Sealed service that sole purpose is to create an empty <see cref="IAmbientValues"/> result.
+    /// Sealed service that sole purpose is to create a default <see cref="IAmbientValues"/> result:
+    /// it is up to <see cref="CommandPostHandlerAttribute"/> methods to collect the values.
     /// </summary>
     public sealed class AmbientValuesService : IAutoService
     {

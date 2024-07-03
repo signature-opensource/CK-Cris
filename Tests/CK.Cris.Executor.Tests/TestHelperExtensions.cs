@@ -1,22 +1,25 @@
 using CK.Setup;
 using CK.Testing;
+using CK.Testing.Monitoring;
 using CK.Testing.StObjEngine;
 using Microsoft.Extensions.DependencyInjection;
-using static CK.Testing.StObjEngineTestHelper;
+using System;
+using System.Collections.Generic;
 
 
 namespace CK.Cris.Executor.Tests
 {
     static class TestHelperExtensions
     {
-        public static AutomaticServicesResult CreateAutomaticServicesWithMonitor( this IStObjEngineTestHelperCore h, StObjCollector c )
+        public static AutomaticServices CreateAutomaticServicesWithMonitor( this IMonitorTestHelper h, ISet<Type> types )
         {
-            return h.CreateAutomaticServices( c,
-                                              configureServices: r =>
-                                              {
-                                                  r.Services.AddScoped( sp => ((IMonitorTestHelper)h).Monitor );
-                                                  r.Services.AddScoped( sp => ((IMonitorTestHelper)h).Monitor.ParallelLogger );
-                                              } );
+            var configuration = h.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( types );
+            return configuration.RunSuccessfully().CreateAutomaticServices( configureServices: r =>
+                                                    {
+                                                        r.AddScoped( sp => h.Monitor );
+                                                        r.AddScoped( sp => h.Monitor.ParallelLogger );
+                                                    } );
         }
     }
 }

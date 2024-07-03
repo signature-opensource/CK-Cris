@@ -3,13 +3,13 @@ using CK.Core;
 namespace CK.Cris
 {
     /// <summary>
-    /// Extends <see cref="ICommandStandardResult"/>.
+    /// Extends <see cref="IStandardResultPart"/>.
     /// </summary>
     public static class CommandStandardResultExtension
     {
         /// <summary>
-        /// Fills <see cref="ICommandStandardResult.UserMessages"/> from a <see cref="UserMessageCollector"/>.
-        /// By default, <see cref="ICommandStandardResult.Success"/> is set to false if a <see cref="UserMessageLevel.Error"/>
+        /// Fills <see cref="IStandardResultPart.UserMessages"/> from a <see cref="UserMessageCollector"/>.
+        /// By default, <see cref="IStandardResultPart.Success"/> is set to false if a <see cref="UserMessageLevel.Error"/>
         /// exists in the messages.
         /// <para>
         /// This doesn't clear any current UserMessages: messages from the <paramref name="collector"/> are appended.
@@ -19,8 +19,8 @@ namespace CK.Cris
         /// <param name="result">This result part to configure.</param>
         /// <param name="collector">The user message collector.</param>
         /// <param name="updateSuccess">False to not update Success flag.</param>
-        /// <returns>The <see cref="ICommandStandardResult.Success"/> value.</returns>
-        public static bool SetUserMessages( this ICommandStandardResult result, UserMessageCollector collector, bool updateSuccess = true )
+        /// <returns>The <see cref="IStandardResultPart.Success"/> value.</returns>
+        public static bool SetUserMessages( this IStandardResultPart result, UserMessageCollector collector, bool updateSuccess = true )
         {
             Throw.CheckNotNullArgument( result );
             Throw.CheckNotNullArgument( collector );

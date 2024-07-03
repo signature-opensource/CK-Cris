@@ -1,12 +1,15 @@
 using CK.Auth;
 using CK.Core;
 using CK.Cris.AmbientValues;
+using CK.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
@@ -67,40 +70,126 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task CommandPostHandler_fills_the_resulting_ambient_values_Async()
         {
-            var c = RawCrisExecutorCommandTests.CreateRawExecutorCollector( typeof( IAmbientValuesCollectCommand ),
-                                                                           typeof( AmbientValuesService ),
-                                                                           typeof( AuthService ),
-                                                                           typeof( IAuthAmbientValues ),
-                                                                           typeof( SecurityService ),
-                                                                           typeof( ISecurityAmbientValues ) );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                  typeof( IAmbientValuesCollectCommand ),
+                                                  typeof( AmbientValuesService ),
+                                                  typeof( AuthService ),
+                                                  typeof( IAuthenticationInfo ),
+                                                  typeof( StdAuthenticationTypeSystem ),
+                                                  typeof( IAuthAmbientValues ),
+                                                  typeof( SecurityService ),
+                                                  typeof( ISecurityAmbientValues ) );
 
             var authTypeSystem = new StdAuthenticationTypeSystem();
             var authInfo = authTypeSystem.AuthenticationInfo.Create( authTypeSystem.UserInfo.Create( 3712, "John" ), DateTime.UtcNow.AddDays( 1 ) );
-            var map = TestHelper.CompileAndLoadStObjMap( c ).Map;
-            var reg = new StObjContextRoot.ServiceRegister( TestHelper.Monitor, new ServiceCollection() );
-            reg.Register<IAuthenticationInfo>( s => authInfo, isScoped: true, allowMultipleRegistration: false );
-            reg.Register<IActivityMonitor>( s => TestHelper.Monitor, true, false );
-            reg.AddStObjMap( map ).Should().BeTrue( "Service configuration succeed." );
 
-            var appServices = reg.Services.BuildServiceProvider();
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices( configureServices: services =>
+            {
+                services.AddScoped<IAuthenticationInfo>( s => authInfo );
+                services.AddScoped<IActivityMonitor>( s => TestHelper.Monitor );
+            } );
 
-            using( var scope = appServices.CreateScope() )
+            using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
                 var executor = services.GetRequiredService<RawCrisExecutor>();
                 var cmd = services.GetRequiredService<IPocoFactory<IAmbientValuesCollectCommand>>().Create();
 
                 var r = await executor.RawExecuteAsync( services, cmd );
-                Throw.DebugAssert( r != null );
-                var auth = (IAuthAmbientValues)r;
+                Throw.DebugAssert( r.Result != null );
+                var auth = (IAuthAmbientValues)r.Result;
                 auth.ActorId.Should().Be( 3712 );
                 auth.ActualActorId.Should().Be( 3712 );
                 auth.DeviceId.Should().Be( authInfo.DeviceId );
 
-                var sec = (ISecurityAmbientValues)r;
+                var sec = (ISecurityAmbientValues)r.Result;
                 sec.Roles.Should().BeEquivalentTo( "Administrator", "Tester", "Approver" );
             }
         }
+
+
+        public interface ISomePart : ICrisPocoPart
+        {
+            [AmbientServiceValue]
+            int? Something { get; set; }
+        }
+
+        public interface ISomeCommand : ICommand, ISomePart
+        {
+        }
+
+        public class  FakeHandlerButRequiredOtherwiseCommandIsSkipped 
+        {
+            [CommandHandler]
+            public void Handle( ISomeCommand command )
+            {
+            }
+        }
+
+        [Test]
+        public void IAmbiantValues_must_cover_all_AmbientServiceValue_properties()
+        {
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                  typeof( IAmbientValuesCollectCommand ),
+                                                  typeof( AmbientValuesService ),
+                                                  typeof( ISomePart ),
+                                                  typeof( ISomeCommand ),
+                                                  typeof( FakeHandlerButRequiredOtherwiseCommandIsSkipped ) );
+            configuration.GetFailedAutomaticServices( 
+                "Missing IAmbientValues properties for [AmbientServiceValue] properties.",
+                new[] { "'int Something { get; set; }'" } );
+        }
+
+        public interface ICultureCommand : ICommandCurrentCulture
+        {
+        }
+
+        // Required to test ConfigureAmbientService since for a non handled commands
+        // validators, configurators and post handlers are trimmed out.
+        public sealed class FakeCommandHandler : IAutoService
+        {
+            [CommandHandler]
+            public void Handle( ICultureCommand command ) { }
+        }
+
+        [Test]
+        public async Task configuring_AmbientServiceHub_Async()
+        {
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
+
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ),
+                                                  typeof( RawCrisReceiver ),
+                                                  typeof( CrisCultureService ),
+                                                  typeof( NormalizedCultureInfo ),
+                                                  typeof( NormalizedCultureInfoUbiquitousServiceDefault ),
+                                                  typeof( ICultureCommand ),
+                                                  typeof( FakeCommandHandler ) );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
+            auto.Services.GetRequiredService<IEnumerable<IHostedService>>().Should().HaveCount( 1, "Required to initialize the Global Service Provider." );
+
+            using( var scope = auto.Services.CreateScope() )
+            {
+                var s = scope.ServiceProvider;
+
+                var poco = s.GetRequiredService<PocoDirectory>();
+                var cmd = poco.Create<ICultureCommand>( c => c.CurrentCultureName = "fr" );
+
+                var ambient = s.GetRequiredService<AmbientServiceHub>();
+                ambient.GetCurrentValue<ExtendedCultureInfo>().Should().BeSameAs( NormalizedCultureInfo.CodeDefault,
+                    "No global ConfigureServices, NormalizedCultureInfoUbiquitousServiceDefault has done its job." );
+
+                var receiver = s.GetRequiredService<RawCrisReceiver>();
+                var validationResult = await receiver.IncomingValidateAsync( TestHelper.Monitor, s, cmd );
+
+                Throw.DebugAssert( validationResult.AmbientServiceHub != null );
+
+                validationResult.AmbientServiceHub.GetCurrentValue<ExtendedCultureInfo>().Name.Should().Be( "fr" );
+            }
+        }
+
 
     }
 }

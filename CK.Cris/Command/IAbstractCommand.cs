@@ -11,6 +11,11 @@ namespace CK.Cris
     [CKTypeSuperDefiner]
     public interface IAbstractCommand : ICrisPoco
     {
+        /// <summary>
+        /// Redefined to expose a <see cref="ICrisCommandModel"/>.
+        /// </summary>
+        [AutoImplementationClaim]
+        new ICrisCommandModel CrisPocoModel { get; }
     }
 
 }

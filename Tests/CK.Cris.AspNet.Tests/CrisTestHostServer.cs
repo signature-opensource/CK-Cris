@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -18,42 +19,44 @@ using static CK.Testing.StObjEngineTestHelper;
 
 namespace CK.Cris.AspNet.Tests
 {
+    // Temporary: this is not the right pattern as it is NOT modular enough.
+    // Goal is more like the minimal API (linear configuration).
     class CrisTestHostServer : IDisposable
     {
-        public const string CrisUri = "/.cris";
+        // Use the HttpCrisSender endpoint that allows "AllExchangeable" Poco. The /.cris is bound to
+        // a TypeFilterName that is or starts with "TypeScript" and this one is registered by CK.StObj.TypeScript.Engine
+        // that is not used here.
+        public const string CrisUri = "/.cris/net";
         public const string BasicLoginUri = "/.webfront/c/basicLogin";
         public const string LogoutUri = "/.webfront/c/logout";
 
-        public CrisTestHostServer( StObjCollector collector,
+        public CrisTestHostServer( BinPathConfiguration binPath,
                                    bool withAuthentication = false,
                                    Action<IServiceCollection>? configureServices = null,
                                    Action<IApplicationBuilder>? configureApplication = null )
         {
-            collector.RegisterTypes( new[] {
-                typeof( PocoJsonSerializer ),
-                typeof( CrisAspNetService ),
-                typeof( AmbientValues.AmbientValuesService )
-            } );
+            Throw.DebugAssert( binPath.Owner != null );
+            binPath.Types.Add( typeof( CrisAspNetService ) );
 
             if( withAuthentication )
             {
-                collector.RegisterTypes( new[] {
-                    typeof( StdAuthenticationTypeSystem ),
-                    typeof( FakeWebFrontLoginService ),
-                    typeof( CrisAuthenticationService ),
-                    typeof( AuthenticationInfoTokenService ),
-                    typeof( IAuthAmbientValues ),
-                    typeof( ICommandAuthUnsafe ),
-                    typeof( ICommandAuthNormal ),
-                    typeof( ICommandAuthCritical ),
-                    typeof( ICommandAuthDeviceId ),
-                    typeof( ICommandAuthImpersonation )
-            } );
+                binPath.Types.Add( typeof( StdAuthenticationTypeSystem ),
+                                   typeof( AuthenticationInfoTokenService ),
+                                   typeof( FakeUserDatabase ),
+                                   typeof( FakeWebFrontLoginService ),
+                                   typeof( CrisAuthenticationService ),
+                                   typeof( CrisCultureService ),
+                                   typeof( IAuthAmbientValues ),
+                                   typeof( ICommandAuthUnsafe ),
+                                   typeof( ICommandAuthNormal ),
+                                   typeof( ICommandAuthCritical ),
+                                   typeof( ICommandAuthDeviceId ),
+                                   typeof( ICommandAuthImpersonation ) );
             }
 
-            var (result, stObjMap) = TestHelper.CompileAndLoadStObjMap( collector );
+            var map = binPath.Owner.RunSuccessfully().FirstBinPath.LoadMap();
 
-            PocoDirectory = stObjMap.StObjs.Obtain<PocoDirectory>()!;
+            PocoDirectory = map.StObjs.Obtain<PocoDirectory>()!;
 
             var b = CK.AspNet.Tester.WebHostBuilderFactory.Create( null, null,
                 services =>
@@ -70,7 +73,7 @@ namespace CK.Cris.AspNet.Tests
                         // does the job.
                         services.AddAuthentication().AddWebFrontAuth( options => options.CookieMode = AuthenticationCookieMode.RootPath );
                     }
-                    services.AddStObjMap( TestHelper.Monitor, stObjMap );
+                    services.AddStObjMap( TestHelper.Monitor, map );
                     configureServices?.Invoke( services );
                 },
                 app =>
@@ -98,15 +101,15 @@ namespace CK.Cris.AspNet.Tests
 
         public PocoDirectory PocoDirectory { get; }
 
-        public async Task<CrisAspNetService.IAspNetCrisResult> GetCrisResultAsync( HttpResponseMessage r )
+        public async Task<IAspNetCrisResult> GetCrisResultAsync( HttpResponseMessage r )
         {
             r.EnsureSuccessStatusCode();
-            var result = PocoDirectory.Find<CrisAspNetService.IAspNetCrisResult>()!.JsonDeserialize( await r.Content.ReadAsStringAsync() );
+            var result = PocoDirectory.Find<IAspNetCrisResult>()!.ReadJson( await r.Content.ReadAsByteArrayAsync() );
             Throw.DebugAssert( result != null );
             return result;
         }
 
-        public async Task<CrisAspNetService.IAspNetCrisResult> GetCrisResultWithCorrelationIdSetToNullAsync( HttpResponseMessage r )
+        public async Task<IAspNetCrisResult> GetCrisResultWithCorrelationIdSetToNullAsync( HttpResponseMessage r )
         {
             var result = await GetCrisResultAsync( r );
             result.CorrelationId.Should().NotBeNullOrWhiteSpace();

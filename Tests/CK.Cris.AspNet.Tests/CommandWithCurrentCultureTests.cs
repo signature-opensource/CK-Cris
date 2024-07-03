@@ -1,24 +1,35 @@
 using CK.Core;
+using CK.Testing;
 using FluentAssertions;
 using NUnit.Framework;
-using Other;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 using static CK.Testing.StObjEngineTestHelper;
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 namespace CK.Cris.AspNet.Tests
 {
     [TestFixture]
     public class CommandWithCurrentCultureTests
     {
+        /// <summary>
+        /// Secondary <see cref="ICommandCurrentCulture"/> that adds a IsValid property.
+        /// </summary>
         [ExternalName( "TestCommand" )]
-        public interface ITestCommand : ICommand<string>, ICommandWithCurrentCulture
+        public interface ITestCommand : ICommand<string>, ICommandCurrentCulture
         {
-            public bool IsValid { get; set; }
+            /// <summary>
+            /// Gets or sets whether this is a valid incoming command.
+            /// When false, the command will not be validated by the [IncomingValidator].
+            /// </summary>
+            public bool IsIncomingValid { get; set; }
+
+            /// <summary>
+            /// Gets or sets whether this is a valid command.
+            /// When false, the command will not be validated by the [CommandHandlingValidator].
+            /// </summary>
+            public bool IsHandlingValid { get; set; }
         }
 
         public class OneHandler : IAutoService
@@ -29,12 +40,18 @@ namespace CK.Cris.AspNet.Tests
                 return culture.CurrentCulture.Name;
             }
 
-            [CommandValidator]
-            public void Validate( UserMessageCollector c, ITestCommand cmd, CurrentCultureInfo culture )
+            [IncomingValidator]
+            public void IncomingValidate( UserMessageCollector c, ITestCommand cmd, CurrentCultureInfo culture )
             {
-                Throw.DebugAssert( c.CurrentCulture == culture );
-                c.Info( $"The current culture is {culture.CurrentCulture.Name}." );
-                if( !cmd.IsValid ) c.Error( $"Sorry, this command is invalid!", "Test.InvalidCommand" );
+                c.Info( $"The collector is '{c.Culture}' The current is '{culture.CurrentCulture}'.", "Test.Info" );
+                if( !cmd.IsIncomingValid ) c.Error( $"Sorry, this command is INCOMING invalid!", "Test.InvalidIncomingCommand" );
+            }
+
+            [CommandHandlingValidator]
+            public void HandlingValidate( UserMessageCollector c, ITestCommand cmd, CurrentCultureInfo culture )
+            {
+                Throw.DebugAssert( c.CurrentCultureInfo == culture );
+                if( !cmd.IsHandlingValid ) c.Error( $"Sorry, this command is HANDLING invalid!", "Test.InvalidHandlingCommand" );
             }
         }
 
@@ -42,18 +59,30 @@ namespace CK.Cris.AspNet.Tests
         [Test]
         public async Task command_with_no_current_culture_uses_the_english_default_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( ITestCommand ), typeof( OneHandler ) );
-            using( var s = new CrisTestHostServer( c ) )
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( ITestCommand ), typeof( OneHandler ) );
+            using( var s = new CrisTestHostServer( configuration.FirstBinPath ) )
             {
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""TestCommand"",{""CurrentCultureName"":null,""IsValid"":true}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri + "?UseSimpleError", @"[""TestCommand"",{""CurrentCultureName"":null,""IsIncomingValid"":true,""IsHandlingValid"":true}]" );
                     string response = await r.Content.ReadAsStringAsync();
-                    response.Should().Match( @"{""result"":""en"",""validationMessages"":null,""correlationId"":""*""}" );
+                    var result = s.PocoDirectory.Find<IAspNetCrisResult>()!.ReadJson( response );
+                    Throw.DebugAssert( result != null );
+                    result.Result.Should().Be( "en" );
+                    result.ValidationMessages.Should().HaveCount( 2 )
+                            .And.Contain( new SimpleUserMessage( UserMessageLevel.Info, "The collector is 'en' The current is 'en'.", 0 ) )
+                            .And.Contain( new SimpleUserMessage( UserMessageLevel.Warn, "Culture name is null. It will be ignored.", 0 ) );
                 }
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""TestCommand"",{""CurrentCultureName"":null,""IsValid"":false}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri + "?UseSimpleError", @"[""TestCommand"",{""CurrentCultureName"":null,""IsIncomingValid"":false}]" );
                     string response = await r.Content.ReadAsStringAsync();
-                    response.Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""errors"":[""Sorry, this command is invalid!""],""logKey"":""*""}],""validationMessages"":[[4,""The current culture is en."",0],[16,""Sorry, this command is invalid!"",0]],""correlationId"":""*""}" );
+                    var result = s.PocoDirectory.Find<IAspNetCrisResult>()!.ReadJson( response );
+                    Throw.DebugAssert( result != null );
+                    result.ValidationMessages.Should().HaveCount( 3 )
+                            .And.Contain( new SimpleUserMessage( UserMessageLevel.Info, "The collector is 'en' The current is 'en'.", 0 ) )
+                            .And.Contain( new SimpleUserMessage( UserMessageLevel.Error, "Sorry, this command is INCOMING invalid!", 0 ) )
+                            .And.Contain( new SimpleUserMessage( UserMessageLevel.Warn, "Culture name is null. It will be ignored.", 0 ) );
+                    result.Result.Should().BeAssignableTo<IAspNetCrisResultError>();
                 }
             }
         }
@@ -61,18 +90,51 @@ namespace CK.Cris.AspNet.Tests
         [Test]
         public async Task command_with_culture_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( ITestCommand ), typeof( OneHandler ) );
-            using( var s = new CrisTestHostServer( c ) )
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" ).SetCachedTranslations( new[] {
+                ("Test.Info", "Le validateur est en '{0}', la culture courante en '{1}'."),
+                ("Test.InvalidIncomingCommand", "Désolé, INCOMING invalide."),
+                ("Test.InvalidHandlingCommand", "Désolé, HANDLING invalide."),
+            } );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( ITestCommand ), typeof( OneHandler ) );
+            using( var s = new CrisTestHostServer( configuration.FirstBinPath ) )
             {
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""TestCommand"",{""CurrentCultureName"":""fr"",""IsValid"":true}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri + "?UseSimpleError",
+                        """["TestCommand",{"CurrentCultureName":"fr","IsIncomingValid":true,"IsHandlingValid":true}]""" );
+
                     string response = await r.Content.ReadAsStringAsync();
-                    response.Should().Match( @"{""result"":""fr"",""validationMessages"":null,""correlationId"":""*""}" );
+                    var result = s.PocoDirectory.Find<IAspNetCrisResult>()!.ReadJson( response );
+                    Throw.DebugAssert( result != null );
+                    result.Result.Should().Be( "fr" );
+                    result.ValidationMessages.Should().HaveCount( 1 )
+                            .And.Contain( new SimpleUserMessage( UserMessageLevel.Info, "Le validateur est en 'fr', la culture courante en 'en'.", 0 ) );
                 }
                 {
-                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri, @"[""TestCommand"",{""CurrentCultureName"":null,""IsValid"":false}]" );
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri + "?UseSimpleError",
+                        """["TestCommand",{"CurrentCultureName":"fr","IsIncomingValid":false}]""" );
                     string response = await r.Content.ReadAsStringAsync();
-                    response.Should().Match( @"{""result"":[""AspNetCrisResultError"",{""isValidationError"":true,""errors"":[""Sorry, this command is invalid!""],""logKey"":""*""}],""validationMessages"":[[4,""The current culture is en."",0],[16,""Sorry, this command is invalid!"",0]],""correlationId"":""*""}" );
+                    var result = s.PocoDirectory.Find<IAspNetCrisResult>()!.ReadJson( response );
+                    Throw.DebugAssert( result != null );
+                    result.ValidationMessages.Should().HaveCount( 2 )
+                            .And.Contain( new SimpleUserMessage( UserMessageLevel.Info, "Le validateur est en 'fr', la culture courante en 'en'.", 0 ) )
+                            .And.Contain( new SimpleUserMessage( UserMessageLevel.Error, "Désolé, INCOMING invalide.", 0 ) );
+                    result.Result.Should().BeAssignableTo<IAspNetCrisResultError>();
+                    var e = (IAspNetCrisResultError)result.Result!;
+                    e.Errors.Should().ContainSingle( "Désolé, INCOMING invalide." );
+                }
+                {
+                    HttpResponseMessage? r = await s.Client.PostJSONAsync( CrisTestHostServer.CrisUri + "?UseSimpleError",
+                        """["TestCommand",{"CurrentCultureName":"fr","IsIncomingValid":true,"IsHandlingValid":false}]""" );
+                    string response = await r.Content.ReadAsStringAsync();
+                    var result = s.PocoDirectory.Find<IAspNetCrisResult>()!.ReadJson( response );
+                    Throw.DebugAssert( result != null );
+                    result.ValidationMessages.Should().HaveCount( 2 )
+                            .And.Contain( new SimpleUserMessage( UserMessageLevel.Info, "Le validateur est en 'fr', la culture courante en 'en'.", 0 ) )
+                            .And.Contain( new SimpleUserMessage( UserMessageLevel.Error, "Désolé, HANDLING invalide.", 0 ) );
+                    result.Result.Should().BeAssignableTo<IAspNetCrisResultError>();
+                    var e = (IAspNetCrisResultError)result.Result!;
+                    e.Errors.Should().ContainSingle( "Désolé, HANDLING invalide." );
                 }
             }
         }

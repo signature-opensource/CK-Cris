@@ -3,6 +3,7 @@ using CK.Cris;
 using CK.PerfectEvent;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -37,24 +38,24 @@ namespace CK.Cris
             {
                 _command = command;
                 _result = new TaskCompletionSource<TResult>( TaskCreationOptions.RunContinuationsAsynchronously );
-                _ = _command.SafeCompletion.ContinueWith( OnRequestCompletion!,
+                _ = _command.ExecutedCommand.ContinueWith( OnRequestCompletion!,
                                                              _result,
                                                              CancellationToken.None,
                                                              TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default );
             }
 
             [System.Diagnostics.CodeAnalysis.SuppressMessage( "Usage", "VSTHRD002:Avoid problematic synchronous waits", Justification = "This is called on a completed task." )]
-            static void OnRequestCompletion( Task<object?> c, object target )
+            static void OnRequestCompletion( Task<IExecutedCommand> c, object target )
             {
                 var result = (TaskCompletionSource<TResult>)target;
                 // Don't take any risk: even if there should not be Faulted or Canceled state
                 // on the CommandCompletion, transfers it if it happens.
-                if( c.Exception != null ) result.SetException( c.Exception );
+                if( c.Exception != null ) result.SetException( c.Exception.InnerExceptions );
                 else if( c.IsCanceled ) result.SetCanceled();
                 else
                 {
                     // If the completion is a ICrisResultError, resolves the result task with an exception.
-                    object? r = c.Result;
+                    object? r = c.Result.Result;
                     // The completion is null or an instance of some type (the most precise type among
                     // the different ICommand<TResult> TResult types. It may be a ICrisResultError and if
                     // the TResult is a ICrisResultError this is fine:
@@ -82,13 +83,13 @@ namespace CK.Cris
                             }
                             else
                             {
-                                var ex = new CKException( $"Request result is null. This is not compatible with '{typeof( TResult ).ToCSharpName()}'." );
+                                var ex = new CKException( $"Command result is null. This is not compatible with '{typeof( TResult ).ToCSharpName()}'." );
                                 result.SetException( ex );
                             }
                         }
                         else
                         {
-                            var ex = new CKException( $"Request result is a '{r.GetType().ToCSharpName()}'. This is not compatible with '{typeof( TResult ).ToCSharpName()}'." );
+                            var ex = new CKException( $"Command result is a '{r.GetType().ToCSharpName()}'. This is not compatible with '{typeof( TResult ).ToCSharpName()}'." );
                             result.SetException( ex );
                         }
                     }
@@ -108,21 +109,15 @@ namespace CK.Cris
 
             public T Command => _command.Command;
 
-            public Task<CrisValidationResult> ValidationResult => _command.ValidationResult;
-
             public ImmediateEvents ImmediateEvents => _command.ImmediateEvents;
 
             IAbstractCommand IExecutingCommand.Command => _command.Command;
 
             public ActivityMonitor.Token IssuerToken => _command.IssuerToken;
 
-            public DateTime CreationDate => _command.CreationDate;
+            public Task<IExecutedCommand<T>> ExecutedCommand => Unsafe.As<Task<IExecutedCommand<T>>>( _command.ExecutedCommand );
 
-            public Task<object?> SafeCompletion => _command.SafeCompletion;
-
-            public Task<object?> Completion => _command.Completion;
-
-            public IReadOnlyList<IEvent> Events => _command.Events;
+            Task<IExecutedCommand> IExecutingCommand.ExecutedCommand => _command.ExecutedCommand;
         }
 
         /// <summary>

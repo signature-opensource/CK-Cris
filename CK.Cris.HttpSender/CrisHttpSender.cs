@@ -1,18 +1,17 @@
 using CK.AppIdentity;
+using CK.Auth;
 using CK.Core;
+using CK.Cris.AspNet;
+using CK.Poco.Exc.Json;
 using Microsoft.IO;
+using Polly;
 using System;
 using System.Buffers;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-using Polly;
 using System.Threading;
-using System.Linq;
-using System.Net.Http.Headers;
-using CK.Auth;
+using System.Threading.Tasks;
 
 namespace CK.Cris.HttpSender
 {
@@ -23,61 +22,33 @@ namespace CK.Cris.HttpSender
     public sealed partial class CrisHttpSender : ICrisHttpSender
     {
         readonly HttpClient _httpClient;
-        readonly TokenHandler _tokenHandler;
+        readonly TokenAndTimeoutHandler _topHandler;
         readonly IRemoteParty _remote;
         readonly Uri _endpointUrl;
         readonly PocoDirectory _pocoDirectory;
+        readonly IPocoFactory<IAspNetCrisResult> _resultFactory;
+        readonly TimeSpan _configuredTimeout;
+
+        static readonly HttpRequestOptionsKey<TimeSpan> _timeoutKey = new HttpRequestOptionsKey<TimeSpan>( "Timeout" );
 
         static MCString? _protocolErrorMsg;
         static UserMessage ProtocolErrorMessage => new UserMessage( UserMessageLevel.Error,
                                                                     _protocolErrorMsg ??= MCString.CreateNonTranslatable(
-                                                                        NormalizedCultureInfo.CodeDefault,
-                                                                        "Protocol error." ) );
+                                                                    NormalizedCultureInfo.CodeDefault,
+                                                                    "Protocol error." ) );
 
         static MCString? _internalErrorMsg;
         private bool _skipAutomaticAuthorizationToken;
 
         static UserMessage InternalErrorMessage => new UserMessage( UserMessageLevel.Error,
                                                                     _internalErrorMsg ??= MCString.CreateNonTranslatable(
-                                                                        NormalizedCultureInfo.CodeDefault,
-                                                                        "Internal error." ) );
-
-        sealed class TokenHandler : DelegatingHandler
-        {
-            string? _token;
-            AuthenticationHeaderValue? _bearer;
-
-            public string? Token
-            {
-                get => _token;
-                set
-                {
-                    if( value == null )
-                    {
-                        _token = null;
-                        _bearer = null;
-                    }
-                    else
-                    {
-                        _token = value;
-                        _bearer = new AuthenticationHeaderValue( "Bearer", value );
-                    }
-                }
-            }
-
-            protected override Task<HttpResponseMessage> SendAsync( HttpRequestMessage request, CancellationToken cancellationToken )
-            {
-                if( _bearer != null )
-                {
-                    request.Headers.Authorization = _bearer;
-                }
-                return base.SendAsync( request, cancellationToken );
-            }
-        }
+                                                                    NormalizedCultureInfo.CodeDefault,
+                                                                    "Internal error." ) );
 
         internal CrisHttpSender( IRemoteParty remote,
                                  Uri endpointUrl,
                                  PocoDirectory pocoDirectory,
+                                 IPocoFactory<IAspNetCrisResult> resultFactory,
                                  TimeSpan? timeout,
                                  HttpRetryStrategyOptions? retryStrategy )
         {
@@ -88,12 +59,14 @@ namespace CK.Cris.HttpSender
                                             .AddRetry( retryStrategy );
                 handler = new ResilienceHandler( message => resilienceBuilder.Build() ) { InnerHandler = handler };
             }
-            handler = _tokenHandler = new TokenHandler{ InnerHandler = handler };
+            handler = _topHandler = new TokenAndTimeoutHandler{ InnerHandler = handler };
             _httpClient = new HttpClient( handler );
-            _httpClient.Timeout = timeout ?? TimeSpan.FromMinutes( 1 );
+            _configuredTimeout = timeout ?? TimeSpan.FromSeconds( 100 );
+            _httpClient.Timeout = Timeout.InfiniteTimeSpan;
             _remote = remote;
             _endpointUrl = endpointUrl;
             _pocoDirectory = pocoDirectory;
+            _resultFactory = resultFactory;
         }
 
         /// <inheritdoc />
@@ -108,30 +81,32 @@ namespace CK.Cris.HttpSender
         /// <inheritdoc />
         public string? AuthorizationToken
         {
-            get => _tokenHandler.Token;
-            set => _tokenHandler.Token = value;
+            get => _topHandler.Token;
+            set => _topHandler.Token = value;
         }
 
         /// <inheritdoc />
         public Task<IExecutedCommand<T>> SendAsync<T>( IActivityMonitor monitor,
                                                        T command,
+                                                       TimeSpan? timeout = null,
                                                        CancellationToken cancellationToken = default,
                                                        [CallerLineNumber] int lineNumber = 0,
                                                        [CallerFilePath] string? fileName = null )
             where T : class, IAbstractCommand
         {
-            return DoSendAsync( monitor, command, throwError: false, lineNumber, fileName, cancellationToken );
+            return DoSendAsync( monitor, command, throwError: false, lineNumber, fileName, timeout, cancellationToken );
         }
 
         /// <inheritdoc />
         public async Task<IExecutedCommand<T>> SendOrThrowAsync<T>( IActivityMonitor monitor,
                                                                     T command,
+                                                                    TimeSpan? timeout = null,
                                                                     CancellationToken cancellationToken = default,
                                                                     [CallerLineNumber] int lineNumber = 0,
                                                                     [CallerFilePath] string? fileName = null )
             where T : class, IAbstractCommand
         {
-            var r = await DoSendAsync( monitor, command, throwError: true, lineNumber, fileName, cancellationToken ).ConfigureAwait( false );
+            var r = await DoSendAsync( monitor, command, throwError: true, lineNumber, fileName, timeout, cancellationToken ).ConfigureAwait( false );
             if( r.Result is ICrisResultError e )
             {
                 throw e.CreateException( lineNumber, fileName );
@@ -142,11 +117,12 @@ namespace CK.Cris.HttpSender
         /// <inheritdoc />
         public async Task<TResult> SendAndGetResultOrThrowAsync<TResult>( IActivityMonitor monitor,
                                                                           ICommand<TResult> command,
+                                                                          TimeSpan? timeout = null,
                                                                           CancellationToken cancellationToken = default,
                                                                           [CallerLineNumber] int lineNumber = 0,
                                                                           [CallerFilePath] string? fileName = null )
         {
-            var r = await SendOrThrowAsync( monitor, command, cancellationToken, lineNumber, fileName ).ConfigureAwait( false );
+            var r = await SendOrThrowAsync( monitor, command, timeout, cancellationToken, lineNumber, fileName ).ConfigureAwait( false );
             return r.WithResult<TResult>().Result;
         }
 
@@ -155,6 +131,7 @@ namespace CK.Cris.HttpSender
                                                         bool throwError,
                                                         int lineNumber,
                                                         string? fileName,
+                                                        TimeSpan? timeout,
                                                         CancellationToken cancellationToken )
             where T : class, IAbstractCommand
         {
@@ -163,10 +140,7 @@ namespace CK.Cris.HttpSender
             try
             {
                 using var payload = (RecyclableMemoryStream)Util.RecyclableStreamManager.GetStream();
-                using( var wPayload = new Utf8JsonWriter( (IBufferWriter<byte>)payload ) )
-                {
-                    command.Write( wPayload );
-                }
+                _pocoDirectory.WriteJson( (IBufferWriter<byte>)payload, command, withType: true, PocoJsonExportOptions.Default );
                 monitor.Info( CrisDirectory.CrisTag, $"Sending {(payloadString = Encoding.UTF8.GetString( payload.GetReadOnlySequence() ))} to '{_remote.FullName}'.", lineNumber, fileName );
                 using var request = new HttpRequestMessage( HttpMethod.Post, _endpointUrl );
 
@@ -175,8 +149,15 @@ namespace CK.Cris.HttpSender
                 var ctx = ResilienceContextPool.Shared.Get( false, cancellationToken );
                 try
                 {
+                    if( !timeout.HasValue ) timeout = _configuredTimeout;
+                    // Normalizes TimeSpan.MaxValue to the less known System.Threading.Timeout.InfiniteTimeSpan
+                    // that is the one used by HttpClient.
+                    if( timeout.Value == TimeSpan.MaxValue ) timeout = Timeout.InfiniteTimeSpan;
+                    request.Options.Set( _timeoutKey, timeout.Value );
+
                     ctx.Properties.Set( _contextKey, new CallContext( this, monitor ) );
                     request.SetResilienceContext( ctx );
+
                     using var response = await _httpClient.SendAsync( request, cancellationToken ).ConfigureAwait( false );
                     response.EnsureSuccessStatusCode();
                     payloadResponse = await response.Content.ReadAsByteArrayAsync( cancellationToken ).ConfigureAwait( false );
@@ -186,17 +167,13 @@ namespace CK.Cris.HttpSender
                     ResilienceContextPool.Shared.Return( ctx );
                 }
 
-                var crisResult = ReadAspNetCrisResult( monitor, _pocoDirectory, payloadResponse, throwError );
-                if( crisResult.HasValue )
+                IAspNetCrisResult? result = _resultFactory.ReadJson( payloadResponse, PocoJsonImportOptions.Default );
+                if( result == null ) throw new Exception( "Received 'null' response." );
+                if( !_skipAutomaticAuthorizationToken )
                 {
-                    if( !_skipAutomaticAuthorizationToken )
-                    {
-                        HandleAutomaticAuthorizationToken( monitor, command, crisResult.Value.Result );
-                    }
-                    return new ExecutedCommand<T>( command, crisResult.Value.Result, null );
+                    HandleAutomaticAuthorizationToken( monitor, command, result.Result );
                 }
-                var protocolError = _pocoDirectory.Create<ICrisResultError>( e => e.Errors.Add( ProtocolErrorMessage ) );
-                return new ExecutedCommand<T>( command, protocolError, null );
+                return new ExecutedCommand<T>( command, result.Result, deferredExecutionInfo: null, events: null );
             }
             catch( Exception ex )
             {
@@ -207,61 +184,7 @@ namespace CK.Cris.HttpSender
                                 : null;
                 monitor.Error( CrisDirectory.CrisTag, $"While sending: {payloadString}{errorPayloadResponse}", ex );
                 var internalError = _pocoDirectory.Create<ICrisResultError>( e => e.Errors.Add( InternalErrorMessage ) );
-                return new ExecutedCommand<T>( command, internalError, null );
-            }
-
-            static (object? Result, string? CorrelationId)? ReadAspNetCrisResult( IActivityMonitor monitor,
-                                                                                  PocoDirectory pocoDirectory,
-                                                                                  ReadOnlySpan<byte> payload,
-                                                                                  bool throwError )
-            {
-                var reader = new Utf8JsonReader( payload );
-                Throw.DebugAssert( reader.TokenType == JsonTokenType.None );
-
-                if( reader.Read()
-                    && reader.TokenType == JsonTokenType.StartObject
-                    && reader.Read()
-                    && reader.TokenType == JsonTokenType.PropertyName
-                    && reader.ValueTextEquals( "result" )
-                    && reader.Read() )
-                {
-                    // TODO: expose the internal generated object? ReadAny( ref reader ) on PocoDirectory!
-                    object? result;
-                    switch( reader.TokenType )
-                    {
-                        case JsonTokenType.Null:
-                            reader.Read();
-                            result = null;
-                            break;
-                        case JsonTokenType.String:
-                            result = reader.GetString();
-                            reader.Read();
-                            break;
-                        case JsonTokenType.Number:
-                            result = reader.GetDouble();
-                            reader.Read();
-                            break;
-                        case JsonTokenType.False:
-                            result = false;
-                            reader.Read();
-                            break;
-                        case JsonTokenType.True:
-                            result = true;
-                            reader.Read();
-                            break;
-                        default:
-                            result = pocoDirectory.Read( ref reader );
-                            break;
-                    }
-                    if( reader.TokenType == JsonTokenType.PropertyName && reader.Read() )
-                    {
-                        return (result, reader.GetString());
-                    }
-                }
-                var msg = $"Unable to read Cris result from:{Environment.NewLine}{Encoding.UTF8.GetString( payload )}";
-                if( throwError ) throw new CKException( msg );
-                monitor.Error( msg );
-                return null;
+                return new ExecutedCommand<T>( command, internalError, deferredExecutionInfo: null, events: null );
             }
         }
 
@@ -271,7 +194,7 @@ namespace CK.Cris.HttpSender
             {
                 if( authResult.Success && command is IBasicLoginCommand or IRefreshAuthenticationCommand )
                 {
-                    _tokenHandler.Token = authResult.Token;
+                    _topHandler.Token = authResult.Token;
                     monitor.Info( $"Updating the AuthorizationToken. User '{authResult.Info.ActualUser.UserName} ({authResult.Info.ActualUser.UserId})'." );
                 }
                 else
@@ -282,7 +205,7 @@ namespace CK.Cris.HttpSender
             }
             else if( command is ILogoutCommand )
             {
-                _tokenHandler.Token = null;
+                _topHandler.Token = null;
                 monitor.Info( $"Logout command succeeded: clearing AuthorizationToken." );
             }
         }

@@ -7,7 +7,7 @@ namespace CK.Cris
     /// Strongly typed executed <typeparamref name="T"/> command.
     /// </summary>
     /// <typeparam name="T">Type of the command.</typeparam>
-    public interface IExecutedCommand<T> : IExecutedCommand where T : class, IAbstractCommand
+    public interface IExecutedCommand<out T> : IExecutedCommand where T : class, IAbstractCommand
     {
         /// <summary>
         /// Offers strongly types for the both the command and its result.
@@ -15,7 +15,7 @@ namespace CK.Cris
         /// compliant with the actual command result's type otherwise an <see cref="ArgumentException"/> is thrown.
         /// </summary>
         /// <typeparam name="TResult">The expected result type.</typeparam>
-        public interface IWithResult<TResult> : IExecutedCommand<T>
+        public interface IWithResult<out TResult> : IExecutedCommand<T>
         {
             /// <summary>
             /// Gets the strongly typed result of <see cref="ICommand{TResult}"/>.

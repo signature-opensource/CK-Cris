@@ -1,4 +1,5 @@
 using CK.Core;
+using CK.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -112,37 +113,37 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task command_and_events_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisExecutionContext ),
-                                                     typeof( IStupidCommand ),
-                                                     typeof( IRoutedImmediateEvent ),
-                                                     typeof( IRoutedEvent ),
-                                                     typeof( Handlers ),
-                                                     typeof( IFinalCommand ),
-                                                     typeof( ICallerOnlyFinalEvent ),
-                                                     typeof( FinalHandler ) );
-            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
-            using( var scope = appServices.CreateScope() )
+            var c = TestHelper.CreateTypeCollector( typeof( CrisExecutionContext ),
+                                                    typeof( IStupidCommand ),
+                                                    typeof( IRoutedImmediateEvent ),
+                                                    typeof( IRoutedEvent ),
+                                                    typeof( Handlers ),
+                                                    typeof( IFinalCommand ),
+                                                    typeof( ICallerOnlyFinalEvent ),
+                                                    typeof( FinalHandler ) );
+            using var auto = TestHelper.CreateAutomaticServicesWithMonitor( c );
+            using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
 
                 var executor = services.GetRequiredService<CrisExecutionContext>();
                 var command = services.GetRequiredService<PocoDirectory>().Create<IStupidCommand>( c => c.Message = "Run!" );
-                var (result, events) = await executor.ExecuteAsync( command );
+                var executed = await executor.ExecuteRootCommandAsync( command );
 
-                result.Should().Be( 1 );
+                executed.Result.Should().Be( 1 );
                 IStupidCommand.CallCount.Should().Be( 5 );
                 IFinalCommand.CallCount.Should().Be( 4 );
 
-                events.Should().HaveCount( 4 + 4 );
-                events.Take( 4 ).Should().AllBeAssignableTo<IRoutedEvent>();
-                events.Skip( 4 ).Should().AllBeAssignableTo<ICallerOnlyFinalEvent>();
+                executed.Events.Should().HaveCount( 4 + 4 );
+                executed.Events.Take( 4 ).Should().AllBeAssignableTo<IRoutedEvent>();
+                executed.Events.Skip( 4 ).Should().AllBeAssignableTo<ICallerOnlyFinalEvent>();
             }
         }
 
         [Test]
         public async Task CrisEventHub_relays_the_events_Async()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisExecutionContext ),
+            var c = TestHelper.CreateTypeCollector( typeof( CrisExecutionContext ),
                                                      typeof( IStupidCommand ),
                                                      typeof( IRoutedImmediateEvent ),
                                                      typeof( IRoutedEvent ),
@@ -151,8 +152,8 @@ namespace CK.Cris.Executor.Tests
                                                      typeof( ICallerOnlyFinalEvent ),
                                                      typeof( FinalHandler ) );
 
-            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
-            using( var scope = appServices.CreateScope() )
+            using var auto = TestHelper.CreateAutomaticServicesWithMonitor( c );
+            using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
 
@@ -165,11 +166,11 @@ namespace CK.Cris.Executor.Tests
 
                 var executor = services.GetRequiredService<CrisExecutionContext>();
                 var command = services.GetRequiredService<PocoDirectory>().Create<IStupidCommand>( c => c.Message = "Run!" );
-                var (_, events) = await executor.ExecuteAsync( command );
+                var executed = await executor.ExecuteRootCommandAsync( command );
 
-                events.Should().HaveCount( 4 + 4 );
-                events.Take( 4 ).Should().AllBeAssignableTo<IRoutedEvent>();
-                events.Skip( 4 ).Should().AllBeAssignableTo<ICallerOnlyFinalEvent>();
+                executed.Events.Should().HaveCount( 4 + 4 );
+                executed.Events.Take( 4 ).Should().AllBeAssignableTo<IRoutedEvent>();
+                executed.Events.Skip( 4 ).Should().AllBeAssignableTo<ICallerOnlyFinalEvent>();
 
                 immediateEventCollector.Count.Should().Be( 4 );
                 immediateEventCollector.Should().AllBeAssignableTo<IRoutedImmediateEvent>();

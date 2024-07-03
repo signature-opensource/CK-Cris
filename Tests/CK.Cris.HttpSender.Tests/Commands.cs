@@ -12,14 +12,19 @@ namespace CK.Cris.HttpSender.Tests
         string Color { get; set; }
     }
 
-    public interface IColoredAmbientValues : AmbientValues.IAmbientValues
+    public interface IColoredEndpointValues : AmbientValues.IAmbientValues
     {
         /// <summary>
-        /// The color of <see cref="ICommandColored"/> commands.
+        /// The color of <see cref="ICommandColored"/> part.
         /// </summary>
-        string Color { get; set; }
+        [AmbientServiceValue]
+        string? Color { get; set; }
     }
 
+    /// <summary>
+    /// A beautiful command has a <see cref="Beauty"/> and is a <see cref="ICommandColored"/>.
+    /// It returns a string.
+    /// </summary>
     public interface IBeautifulCommand : ICommandColored, ICommand<string>
     {
         string Beauty { get; set; }
@@ -33,7 +38,7 @@ namespace CK.Cris.HttpSender.Tests
     public class ColorAndNakedService : IAutoService
     {
         [CommandPostHandler]
-        public void GetColoredAmbientValues( AmbientValues.IAmbientValuesCollectCommand cmd, IColoredAmbientValues values )
+        public void GetColoredEndpointValues( AmbientValues.IAmbientValuesCollectCommand cmd, IColoredEndpointValues values )
         {
             values.Color = "Red";
         }

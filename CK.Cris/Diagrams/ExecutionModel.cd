@@ -23,25 +23,17 @@
   <Interface Name="CK.Cris.IExecutedCommand">
     <Position X="7.25" Y="0.5" Width="2.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAABAQAAgAAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAAABAAAAAAAAAAAAABAQAAgAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>ExecutedCommand\IExecutedCommand.cs</FileName>
     </TypeIdentifier>
   </Interface>
   <Interface Name="CK.Cris.IExecutedCommand&lt;T&gt;">
-    <Position X="7" Y="2.25" Width="3" />
+    <Position X="7" Y="2.5" Width="3" />
     <Compartments>
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
     <NestedTypes>
-      <Interface Name="CK.Cris.IExecutedCommand&lt;T&gt;.TypedResult&lt;TResult&gt;">
-        <InheritanceLine Type="CK.Cris.IExecutedCommand&lt;T&gt;" FixedFromPoint="true">
-          <Path>
-            <Point X="7" Y="4.313" />
-            <Point X="7.123" Y="4.313" />
-            <Point X="7.123" Y="4.79" />
-            <Point X="7.21" Y="4.79" />
-          </Path>
-        </InheritanceLine>
+      <Interface Name="CK.Cris.IExecutedCommand&lt;T&gt;.IWithResult&lt;TResult&gt;" Collapsed="true">
         <TypeIdentifier>
           <NewMemberFileName>ExecutedCommand\IExecutedCommand{T}.cs</NewMemberFileName>
         </TypeIdentifier>

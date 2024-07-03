@@ -9,7 +9,7 @@ using System.Text;
 
 namespace CK.Setup.Cris
 {
-    sealed class CommandPostHandlerAttributeImpl : BaseHandlerAttributeImpl, ICSCodeGenerator
+    sealed class CommandPostHandlerAttributeImpl : BaseHandlerAttributeImpl
     {
         readonly CommandPostHandlerAttribute _a;
 
@@ -19,11 +19,13 @@ namespace CK.Setup.Cris
             _a = a;
         }
 
-        public CSCodeGenerationResult Implement( IActivityMonitor monitor, ICSCodeGenerationContext codeGenContext )
+        private protected override CSCodeGenerationResult DoImplement( IActivityMonitor monitor,
+                                                                       IStObjMap engineMap,
+                                                                       CrisTypeRegistry crisTypeRegistry,
+                                                                       IStObjFinalClass impl,
+                                                                       MethodInfo method )
         {
-            var (registry, impl, method) = Prepare( monitor, codeGenContext );
-            Throw.DebugAssert( (registry == null) == (impl == null) );
-            return registry != null && registry.RegisterPostHandler( monitor, impl!, method, _a.FileName, _a.LineNumber )
+            return crisTypeRegistry.RegisterCommandPostHandler( monitor, impl!, method, _a.FileName, _a.LineNumber )
                     ? CSCodeGenerationResult.Success
                     : CSCodeGenerationResult.Failed;
         }

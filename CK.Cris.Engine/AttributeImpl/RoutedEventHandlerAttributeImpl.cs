@@ -1,12 +1,11 @@
 using CK.Core;
 using CK.Cris;
 using System;
-using System.Diagnostics;
 using System.Reflection;
 
 namespace CK.Setup.Cris
 {
-    sealed class RoutedEventHandlerAttributeImpl : BaseHandlerAttributeImpl, ICSCodeGenerator
+    sealed class RoutedEventHandlerAttributeImpl : BaseHandlerAttributeImpl
     {
         readonly RoutedEventHandlerAttribute _a;
 
@@ -16,11 +15,13 @@ namespace CK.Setup.Cris
             _a = a;
         }
 
-        public CSCodeGenerationResult Implement( IActivityMonitor monitor, ICSCodeGenerationContext codeGenContext )
+        private protected override CSCodeGenerationResult DoImplement( IActivityMonitor monitor,
+                                                                       IStObjMap engineMap,
+                                                                       CrisTypeRegistry crisTypeRegistry,
+                                                                       IStObjFinalClass impl,
+                                                                       MethodInfo method )
         {
-            var (registry, impl, method) = Prepare( monitor, codeGenContext );
-            Throw.DebugAssert( registry == null || impl != null, "registry available => final implementation of the class that implements the method exists." );
-            return registry != null && registry.RegisterRoutedEventHandler( monitor, impl!, method, _a.FileName, _a.LineNumber )
+            return crisTypeRegistry.RegisterMultiTargetHandler( monitor, MultiTargetHandlerKind.RoutedEventHandler, engineMap, impl!, method, _a.FileName, _a.LineNumber )
                     ? CSCodeGenerationResult.Success
                     : CSCodeGenerationResult.Failed;
         }

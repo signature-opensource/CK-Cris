@@ -1,16 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Temporary? should this be externalized in a CK.Cris.Globalization independent package? -->
-    <PackageReference Include="CK.Globalization" Version="0.6.0" />
-  </ItemGroup>
-  <ItemGroup>
+    <ProjectReference Include="..\CK.IO.AspNet\CK.IO.AspNet.csproj" />
     <ProjectReference Include="..\CK.Cris.BackgroundExecutor\CK.Cris.BackgroundExecutor.csproj" />
     <ProjectReference Include="..\CK.Cris.TypeScript\CK.Cris.TypeScript.csproj" />
   </ItemGroup>

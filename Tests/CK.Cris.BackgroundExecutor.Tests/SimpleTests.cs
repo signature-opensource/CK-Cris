@@ -1,5 +1,6 @@
 using CK.Auth;
 using CK.Core;
+using CK.Testing;
 using FluentAssertions;
 using FluentAssertions.Common;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,7 +22,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
     {
         static readonly List<string> Traces = new List<string>();
         [AllowNull]
-        ServiceProvider _services;
+        AutomaticServices _auto;
 
         static public string SafeTrace( string t )
         {
@@ -71,37 +72,38 @@ namespace CK.Cris.BackgroundExecutor.Tests
         }
 
         [OneTimeSetUp]
-        public async Task OneTimeSetUpAsync()
+        public void OneTimeSetUp()
         {
-            var c = TestHelper.CreateStObjCollector( typeof( CrisBackgroundExecutorService ),
-                                                     typeof( StdAuthenticationTypeSystem ),
-                                                     typeof( IDelayCommand ),
-                                                     typeof( StupidHandlers ),
-                                                     typeof( CrisExecutionContext ),
-                                                     typeof( RegularScopedService ) );
-            _services = await TestHelper.StartHostedServicesAsync( TestHelper.CreateAutomaticServices( c ).Services );
-            _services.GetRequiredService<CrisExecutionHost>().ParallelRunnerCount = 1;
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisBackgroundExecutorService ),
+                                                  typeof( StdAuthenticationTypeSystem ),
+                                                  typeof( IDelayCommand ),
+                                                  typeof( StupidHandlers ),
+                                                  typeof( CrisExecutionContext ),
+                                                  typeof( RegularScopedService ) );
+            _auto = configuration.RunSuccessfully().CreateAutomaticServices();
+            _auto.Services.GetRequiredService<CrisExecutionHost>().ParallelRunnerCount = 1;
         }
 
         [OneTimeTearDown]
-        public async Task OneTimeDearDownAsync()
+        public void OneTimeDearDown()
         {
-            await _services.DisposeAsync();
+            _auto.Dispose();
         }
 
         [Test]
         public async Task executing_commands_Async()
         {
-            using( var scope = _services.CreateScope() )
+            using( var scope = _auto.Services.CreateScope() )
             {
                 Traces.Clear();
                 var poco = scope.ServiceProvider.GetRequiredService<PocoDirectory>();
                 var back = scope.ServiceProvider.GetRequiredService<CrisBackgroundExecutorService>();
-                var ubiq = scope.ServiceProvider.GetRequiredService<EndpointUbiquitousInfo>();
+                var ubiq = scope.ServiceProvider.GetRequiredService<AmbientServiceHub>();
                 var commands = Enumerable.Range( 0, 20 )
                                          .Select( i => back.Submit( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ) );
                 TestHelper.Monitor.Info( "Waiting for commands to be executed." );
-                await Task.WhenAll( commands.Select( c => c.SafeCompletion ) );
+                await Task.WhenAll( commands.Select( c => c.ExecutedCommand ) );
                 var all = Traces.Concatenate();
                 var expected = Enumerable.Range( 0, 20 )
                                          .Select( i => $"In '{i}'., Out '{i}'." )
@@ -113,12 +115,12 @@ namespace CK.Cris.BackgroundExecutor.Tests
         [Test]
         public async Task executing_with_2_runners_Async()
         {
-            using( var scope = _services.CreateScope() )
+            using( var scope = _auto.Services.CreateScope() )
             {
                 Traces.Clear();
-                var poco = _services.GetRequiredService<PocoDirectory>();
-                var back = _services.GetRequiredService<CrisBackgroundExecutorService>();
-                var ubiq = scope.ServiceProvider.GetRequiredService<EndpointUbiquitousInfo>();
+                var poco = scope.ServiceProvider.GetRequiredService<PocoDirectory>();
+                var back = scope.ServiceProvider.GetRequiredService<CrisBackgroundExecutorService>();
+                var ubiq = scope.ServiceProvider.GetRequiredService<AmbientServiceHub>();
                 back.ExecutionHost.ParallelRunnerCount = 2;
 
                 // The runner count is done asynchronously. The second runner may not kick in
@@ -128,7 +130,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
                 var commands = Enumerable.Range( 0, 20 )
                                          .Select( i => back.Submit( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ) );
                 TestHelper.Monitor.Info( "Waiting for the commands to be executed." );
-                await Task.WhenAll( commands.Select( c => c.SafeCompletion ) );
+                await Task.WhenAll( commands.Select( c => c.ExecutedCommand ) );
                 Traces.Should().HaveCount( 2 * 20 );
 
                 var all = Traces.Concatenate();
@@ -142,18 +144,18 @@ namespace CK.Cris.BackgroundExecutor.Tests
         [Test]
         public async Task executing_with_4_runners_Async()
         {
-            using( var scope = _services.CreateScope() )
+            using( var scope = _auto.Services.CreateScope() )
             {
                 Traces.Clear();
-                var poco = _services.GetRequiredService<PocoDirectory>();
-                var back = _services.GetRequiredService<CrisBackgroundExecutorService>();
-                var ubiq = scope.ServiceProvider.GetRequiredService<EndpointUbiquitousInfo>();
+                var poco = _auto.Services.GetRequiredService<PocoDirectory>();
+                var back = _auto.Services.GetRequiredService<CrisBackgroundExecutorService>();
+                var ambientServices = scope.ServiceProvider.GetRequiredService<AmbientServiceHub>();
                 back.ExecutionHost.ParallelRunnerCount = 4;
 
                 var commands = Enumerable.Range( 0, 20 )
-                                         .Select( i => back.Submit( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ) );
+                                         .Select( i => back.Submit( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ambientServices ) );
                 TestHelper.Monitor.Info( "Waiting for the commands to be executed." );
-                await Task.WhenAll( commands.Select( c => c.SafeCompletion ) );
+                await Task.WhenAll( commands.Select( c => c.ExecutedCommand ) );
                 Traces.Should().HaveCount( 2 * 20 );
 
                 var all = Traces.Concatenate();
@@ -168,7 +170,7 @@ namespace CK.Cris.BackgroundExecutor.Tests
         [TestCase(150)]
         public async Task stress_test_runner_count_change_Async( int countChange )
         {
-            using( var scope = _services.CreateScope() )
+            using( var scope = _auto.Services.CreateScope() )
             {
                 Traces.Clear();
                 var poco = scope.ServiceProvider.GetRequiredService<PocoDirectory>();
@@ -200,8 +202,8 @@ namespace CK.Cris.BackgroundExecutor.Tests
                 {
                     for( int i = 0; i < countChange; i++ )
                     {
-                        var ubiq = scope.ServiceProvider.GetRequiredService<EndpointUbiquitousInfo>();
-                        await back.Submit( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ).SafeCompletion;
+                        var ambient = scope.ServiceProvider.GetRequiredService<AmbientServiceHub>();
+                        await back.Submit( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ambient ).ExecutedCommand;
                     }
                     back.ExecutionHost.ParallelRunnerCount = eventualRunnerCount;
                 } );

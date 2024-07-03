@@ -3,6 +3,7 @@ using CK.Cris;
 using CK.PerfectEvent;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,24 +20,19 @@ namespace CK.Cris
     {
         readonly IAbstractCommand _command;
         readonly ActivityMonitor.Token _issuerToken;
-        readonly TaskCompletionSource<CrisValidationResult> _validation;
-        readonly TaskCompletionSource<object?> _safeCompletion;
-        readonly TaskCompletionSource<object?> _completion;
+        readonly TaskCompletionSource<IExecutedCommand> _completion;
         readonly internal ImmediateEvents _immediate;
-        IReadOnlyList<IEvent> _events;
 
         internal ExecutingCommand( IAbstractCommand command,
                                    ActivityMonitor.Token issuerToken )
         {
             _issuerToken = issuerToken;
             _command = command;
-            _validation = new TaskCompletionSource<CrisValidationResult>( TaskCreationOptions.RunContinuationsAsynchronously );
-            _safeCompletion = new TaskCompletionSource<object?>( TaskCreationOptions.RunContinuationsAsynchronously );
-            _completion = new TaskCompletionSource<object?>( TaskCreationOptions.RunContinuationsAsynchronously );
-            // Avoid Unobserved exception on this task.
-            _ = _completion.Task.ContinueWith( t => t.Exception!.Handle( ex => true ), default, TaskContinuationOptions.OnlyOnFaulted|TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default );
+            _completion = new TaskCompletionSource<IExecutedCommand>( TaskCreationOptions.RunContinuationsAsynchronously );
+            // This is useless because this task is never faulted:
+            //    Avoid Unobserved exception on this task.
+            //    _ = _completion.Task.ContinueWith( t => t.Exception!.Handle( ex => true ), default, TaskContinuationOptions.OnlyOnFaulted|TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default );
             _immediate = new ImmediateEvents();
-            _events = Array.Empty<IEvent>();
         }
 
         /// <inheritdoc />
@@ -46,16 +42,7 @@ namespace CK.Cris
         public ActivityMonitor.Token IssuerToken => _issuerToken;
 
         /// <inheritdoc />
-        public DateTime CreationDate => _issuerToken.CreationDate.TimeUtc;
-
-        /// <inheritdoc />
-        public Task<CrisValidationResult> ValidationResult => _validation.Task;
-
-        /// <inheritdoc />
-        public Task<object?> SafeCompletion => _safeCompletion.Task;
-
-        /// <inheritdoc />
-        public Task<object?> Completion => _completion.Task;
+        public Task<IExecutedCommand> ExecutedCommand => _completion.Task;
 
         /// <summary>
         /// Gets a live collection of events emitted by the command execution.
@@ -67,38 +54,19 @@ namespace CK.Cris
         /// </summary>
         public ImmediateEvents ImmediateEvents => _immediate;
 
-        /// <inheritdoc />
-        public IReadOnlyList<IEvent> Events => _events;
-
         /// <summary>
         /// Gets the dark side of this executing command.
         /// </summary>
         public IDarkSideExecutingCommand DarkSide => this;
-
-        void IDarkSideExecutingCommand.SetValidationResult( CrisValidationResult v, ICrisResultError? validationError )
-        {
-            _validation.SetResult( v );
-            if( validationError != null )
-            {
-                DarkSide.SetResult( Array.Empty<IEvent>(), validationError );
-            }
-        }
 
         Task IDarkSideExecutingCommand.AddImmediateEventAsync( IActivityMonitor monitor, IEvent e )
         {
             return _immediate.AddAndRaiseAsync( monitor, e );
         }
 
-        void IDarkSideExecutingCommand.SetResult( IReadOnlyList<IEvent> events, object? result )
+        void IDarkSideExecutingCommand.SetResult( IExecutedCommand result )
         {
-            _events = events;
-            _safeCompletion.SetResult( result );
             _completion.SetResult( result );
-        }
-
-        void IDarkSideExecutingCommand.SetException( Exception ex )
-        {
-            _completion.SetException( ex );
         }
     }
 

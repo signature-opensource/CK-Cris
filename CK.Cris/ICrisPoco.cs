@@ -7,7 +7,6 @@ namespace CK.Cris
     /// all the objects managed by Cris. This super definer is not intended to be used
     /// directly: <see cref="IEvent"/>, <see cref="ICommand"/> and <see cref="ICommand{TResult}"/>
     /// are the interfaces to use to define events, commands without result and commands with a result.
-    /// </para>
     /// </summary>
     [CKTypeSuperDefiner]
     public interface ICrisPoco : IPoco

@@ -12,13 +12,17 @@
   <Comment CommentText="[CKTypeSuperDefiner]">
     <Position X="2.5" Y="3.75" Height="0.291" Width="1.442" />
   </Comment>
+  <Comment CommentText="[CKTypeSuperDefiner]">
+    <Position X="6.542" Y="2.767" Height="0.291" Width="1.442" />
+  </Comment>
   <Class Name="CK.Cris.CrisDirectory">
     <Position X="8.25" Y="0.5" Width="1.5" />
     <Members>
       <Method Name="CrisDirectory" Hidden="true" />
+      <Field Name="CrisTag" Hidden="true" />
     </Members>
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAAABAAAAAAACAAAAAAAAAAAAAAA=</HashCode>
       <FileName>CrisDirectory.cs</FileName>
     </TypeIdentifier>
     <Lollipop Position="0.2" />
@@ -55,7 +59,7 @@
   <Interface Name="CK.Cris.ICommand&lt;TResult&gt;" Collapsed="true">
     <Position X="6" Y="3.5" Width="2" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>Command\ICommand{TResult}.cs</FileName>
     </TypeIdentifier>
   </Interface>
@@ -100,8 +104,15 @@
       </Interface>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AAAAABAAABBAQACAEAAAAAAAAFAAAEAAAAAAAAAAAAA=</HashCode>
+      <HashCode>ACAAABAAABBAQACAEAAAAAAAEFAAAEAAAAAAAAAAACA=</HashCode>
       <FileName>ICrisPocoModel.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="CK.Cris.ICrisPocoPart" Collapsed="true">
+    <Position X="6.5" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>ICrisPocoPart.cs</FileName>
     </TypeIdentifier>
   </Interface>
   <Enum Name="CK.Cris.CrisPocoKind">
@@ -112,9 +123,9 @@
     </TypeIdentifier>
   </Enum>
   <Enum Name="CK.Cris.CrisHandlerKind">
-    <Position X="2.5" Y="4.5" Width="1.75" />
+    <Position X="2.5" Y="4.5" Width="2" />
     <TypeIdentifier>
-      <HashCode>IAAAAAAAAAAAIAAAAAABIAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>IAgEAAAAAAAAIAAAAAAAIAAAAAgAAAAAAAAAgAAAAAA=</HashCode>
       <FileName>CrisHandlerKind.cs</FileName>
     </TypeIdentifier>
   </Enum>

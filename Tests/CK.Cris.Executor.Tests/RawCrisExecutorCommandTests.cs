@@ -1,5 +1,6 @@
 using CK.Core;
 using CK.Setup;
+using CK.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -13,20 +14,6 @@ namespace CK.Cris.Executor.Tests
     [TestFixture]
     public class RawCrisExecutorCommandTests
     {
-        /// <summary>
-        /// Default common types registration for RawCommandExecutor.
-        /// </summary>
-        /// <param name="types">More types to register.</param>
-        /// <returns>The collector.</returns>
-        public static StObjCollector CreateRawExecutorCollector( params Type[] types )
-        {
-            var c = TestHelper.CreateStObjCollector(
-                typeof( RawCrisExecutor ),
-                typeof( CrisDirectory ) );
-            c.RegisterTypes( types );
-            return c;
-        }
-
 
         public interface ITestCommand : ICommand
         {
@@ -68,17 +55,19 @@ namespace CK.Cris.Executor.Tests
         [TestCase( "ValAsync" )]
         public async Task basic_handling_of_void_returns_Async( string kind )
         {
-            StObjCollector c = CreateRawExecutorCollector( typeof( ITestCommand ) );
-            c.RegisterType( kind switch
-            {
-                "RefAsync" => typeof( CmdRefAsyncHandler ),
-                "ValAsync" => typeof( CmdValAsyncHandler ),
-                "Sync" => typeof( CmdSyncHandler ),
-                _ => throw new NotImplementedException()
-            } );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                  typeof( ITestCommand ),
+                                                  kind switch
+                                                  {
+                                                      "RefAsync" => typeof( CmdRefAsyncHandler ),
+                                                      "ValAsync" => typeof( CmdValAsyncHandler ),
+                                                      "Sync" => typeof( CmdSyncHandler ),
+                                                      _ => throw new NotImplementedException()
+                                                  } );
 
-            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
-            using( var scope = appServices.CreateScope() )
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
+            using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
                 var executor = services.GetRequiredService<RawCrisExecutor>();
@@ -86,8 +75,8 @@ namespace CK.Cris.Executor.Tests
 
                 CmdSyncHandler.Called = false;
 
-                var result = await executor.RawExecuteAsync( services, cmd );
-                result.Should().BeNull();
+                var raw = await executor.RawExecuteAsync( services, cmd );
+                raw.Result.Should().BeNull();
                 CmdSyncHandler.Called.Should().BeTrue();
             }
         }
@@ -135,17 +124,19 @@ namespace CK.Cris.Executor.Tests
         [TestCase( "ValAsync" )]
         public async Task basic_handling_with_returned_type_Async( string kind )
         {
-            var c = CreateRawExecutorCollector( typeof( IIntTestCommand ) );
-            c.RegisterType( kind switch
-            {
-                "RefAsync" => typeof( CmdIntRefAsyncHandler ),
-                "ValAsync" => typeof( CmdIntValAsyncHandler ),
-                "Sync" => typeof( CmdIntSyncHandler ),
-                _ => throw new NotImplementedException()
-            } );
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                  typeof( IIntTestCommand ),
+                                                  kind switch
+                                                  {
+                                                      "RefAsync" => typeof( CmdIntRefAsyncHandler ),
+                                                      "ValAsync" => typeof( CmdIntValAsyncHandler ),
+                                                      "Sync" => typeof( CmdIntSyncHandler ),
+                                                      _ => throw new NotImplementedException()
+                                                  } );
 
-            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
-            using( var scope = appServices.CreateScope() )
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
+            using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
                 var executor = services.GetRequiredService<RawCrisExecutor>();
@@ -153,8 +144,8 @@ namespace CK.Cris.Executor.Tests
 
                 CmdIntSyncHandler.Called = false;
 
-                var result = await executor.RawExecuteAsync( services, cmd );
-                result.Should().Be( 3712 );
+                var raw = await executor.RawExecuteAsync( services, cmd );
+                raw.Result.Should().Be( 3712 );
                 CmdIntSyncHandler.Called.Should().BeTrue();
             }
         }
@@ -162,8 +153,13 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public void ambiguous_handler_detection()
         {
-            var c = CreateRawExecutorCollector( typeof( IIntTestCommand ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandler ) );
-            TestHelper.GenerateCode( c, engineConfigurator: null ).Success.Should().BeFalse();
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                  typeof( IIntTestCommand ),
+                                                  typeof( CmdIntRefAsyncHandler ),
+                                                  typeof( CmdIntValAsyncHandler ) );
+            configuration.GetFailedAutomaticServices(
+                "Ambiguity: both 'CmdIntValAsyncHandler.HandleCommandAsync( IIntTestCommand cmd )' and 'CK.Cris.Executor.Tests.RawCrisExecutorCommandTests+CmdIntRefAsyncHandler.HandleCommandAsync' handle 'CK.Cris.Executor.Tests.RawCrisExecutorCommandTests.IIntTestCommand' command." );
         }
 
         public class CmdIntValAsyncHandlerService : CmdIntValAsyncHandler, ICommandHandler<IIntTestCommand>
@@ -175,8 +171,13 @@ namespace CK.Cris.Executor.Tests
         public void ambiguous_handler_resolution_thanks_to_the_ICommanHandlerT_marker()
         {
             CmdIntValAsyncHandler.Called = false;
-            var c = CreateRawExecutorCollector( typeof( IIntTestCommand ), typeof( CmdIntRefAsyncHandler ), typeof( CmdIntValAsyncHandlerService ) );
-            TestHelper.GenerateCode( c, engineConfigurator: null ).Success.Should().BeTrue();
+
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                  typeof( IIntTestCommand ),
+                                                  typeof( CmdIntRefAsyncHandler ),
+                                                  typeof( CmdIntValAsyncHandlerService ) );
+            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
         }
 
 
@@ -211,22 +212,31 @@ namespace CK.Cris.Executor.Tests
         public void return_type_mismatch_detection()
         {
             {
-                var c = CreateRawExecutorCollector( typeof( IIntTestCommand ), typeof( CmdIntSyncHandlerWithBadReturnType1 ) );
-                CheckUniqueCommandHasNoHandler( c );
+                var configuration = TestHelper.CreateDefaultEngineConfiguration();
+                configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                      typeof( IIntTestCommand ),
+                                                      typeof( CmdIntSyncHandlerWithBadReturnType1 ) );
+                CheckUniqueCommandHasNoHandler( configuration );
             }
             {
-                var c = CreateRawExecutorCollector( typeof( IIntTestCommand ), typeof( CmdIntSyncHandlerWithBadReturnType2 ) );
-                CheckUniqueCommandHasNoHandler( c );
+                var configuration = TestHelper.CreateDefaultEngineConfiguration();
+                configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                      typeof( IIntTestCommand ),
+                                                      typeof( CmdIntSyncHandlerWithBadReturnType2 ) );
+                CheckUniqueCommandHasNoHandler( configuration );
             }
             {
-                var c = CreateRawExecutorCollector( typeof( IIntTestCommand ), typeof( CmdIntSyncHandlerWithBadReturnType3 ) );
-                CheckUniqueCommandHasNoHandler( c );
+                var configuration = TestHelper.CreateDefaultEngineConfiguration();
+                configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                                      typeof( IIntTestCommand ),
+                                                      typeof( CmdIntSyncHandlerWithBadReturnType3 ) );
+                CheckUniqueCommandHasNoHandler( configuration );
             }
 
-            static void CheckUniqueCommandHasNoHandler( Setup.StObjCollector c )
+            static void CheckUniqueCommandHasNoHandler( EngineConfiguration configuration )
             {
-                using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
-                using( var scope = appServices.CreateScope() )
+                using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
+                using( var scope = auto.Services.CreateScope() )
                 {
                     var directory = scope.ServiceProvider.GetRequiredService<CrisDirectory>();
                     directory.CrisPocoModels[0].Handlers.Should().BeEmpty();
@@ -256,9 +266,11 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task calling_public_AutoService_implementation_Async()
         {
-            var c = CreateRawExecutorCollector( typeof( ITestCommand ), typeof( CommandHandlerImpl ) );
-            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
-            using( var scope = appServices.CreateScope() )
+            var c = TestHelper.CreateTypeCollector( typeof( RawCrisExecutor ),
+                                                     typeof( ITestCommand ),
+                                                     typeof( CommandHandlerImpl ) );
+            using var auto = TestHelper.CreateAutomaticServicesWithMonitor( c );
+            using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
                 var executor = services.GetRequiredService<RawCrisExecutor>();
@@ -266,8 +278,8 @@ namespace CK.Cris.Executor.Tests
 
                 CommandHandlerImpl.Called = false;
 
-                var result = await executor.RawExecuteAsync( services, cmd );
-                result.Should().BeNull();
+                var raw = await executor.RawExecuteAsync( services, cmd );
+                raw.Result.Should().BeNull();
 
                 CommandHandlerImpl.Called.Should().BeTrue();
             }
@@ -291,9 +303,11 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task calling_explicit_AutoService_implementation_Async()
         {
-            var c = CreateRawExecutorCollector( typeof( ITestCommand ), typeof( CommandHandlerExplicitImpl ) );
-            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
-            using( var scope = appServices.CreateScope() )
+            var c = TestHelper.CreateTypeCollector( typeof(RawCrisExecutor),
+                                                     typeof(ITestCommand),
+                                                     typeof(CommandHandlerExplicitImpl) );
+            using var auto = TestHelper.CreateAutomaticServicesWithMonitor( c );
+            using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
                 var executor = services.GetRequiredService<RawCrisExecutor>();
@@ -301,48 +315,13 @@ namespace CK.Cris.Executor.Tests
 
                 CommandHandlerExplicitImpl.Called = false;
 
-                var result = await executor.RawExecuteAsync( services, cmd );
-                result.Should().BeNull();
+                var raw = await executor.RawExecuteAsync( services, cmd );
+                raw.Result.Should().BeNull();
 
                 CommandHandlerExplicitImpl.Called.Should().BeTrue();
             }
         }
 
         #endregion
-
-        #region [CommandHandler] on a regular base class of an IAutoService.
-
-        public interface IIntResultCommand : ICommand<int>
-        {
-        }
-
-        public class BaseClassWithHandler
-        {
-            [CommandHandler]
-            public int Run( IIntResultCommand cmd ) => cmd.GetHashCode();
-        }
-
-        public class SpecializedBaseClassService : BaseClassWithHandler, IAutoService
-        {
-        }
-
-        [Test]
-        public async Task calling_a_base_class_implementation_Async()
-        {
-            var c = CreateRawExecutorCollector( typeof( IIntResultCommand ), typeof( SpecializedBaseClassService ) );
-            using var appServices = TestHelper.CreateAutomaticServicesWithMonitor( c ).Services;
-            using( var scope = appServices.CreateScope() )
-            {
-                var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<RawCrisExecutor>();
-                var cmd = services.GetRequiredService<IPocoFactory<IIntResultCommand>>().Create();
-
-                var result = await executor.RawExecuteAsync( services, cmd );
-                result.Should().Be( cmd.GetHashCode() );
-            }
-        }
-
-        #endregion
-
     }
 }
