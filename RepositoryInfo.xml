@@ -1,8 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
 <RepositoryInfo>
-  <SimpleGitVersion StartingVersion="0.8.0-alpha">
+  <SimpleGitVersion StartingVersion="0.8.0-alpha" OnlyPatch="true">
     <Branches>
-      <Branch Name="develop" CIVersionMode="LastReleaseBased" VersionName="develop" />
-      <Branch Name="explo/ts-update" CIVersionMode="ZeroTimed" VersionName="explo" UseReleaseBuildConfigurationFrom="CI" />
+      <Branch Name="develop-Net6" CIVersionMode="LastReleaseBased" VersionName="develop" />
     </Branches>
   </SimpleGitVersion>
 </RepositoryInfo>
