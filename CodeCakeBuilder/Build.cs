@@ -61,7 +61,6 @@ namespace CodeCake
                 .Does( async () =>
                 {
                     await globalInfo.PushArtifactsAsync();
-                    StandardPushCKSetupComponents( globalInfo );
                } );
 
             // The Default task for this script can be set here.
