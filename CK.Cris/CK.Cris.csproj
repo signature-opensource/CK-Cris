@@ -3,7 +3,7 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Globalization" Version="0.7.0" />
-    <PackageReference Include="CK.StObj.Model" Version="26.0.0" />
+    <PackageReference Include="CK.Globalization" Version="0.0.0--04ytpix-develop" />
+    <PackageReference Include="CK.StObj.Model" Version="0.0.0--04ytpiy-develop" />
   </ItemGroup>
 </Project>
