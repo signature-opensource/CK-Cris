@@ -4,6 +4,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CK.Globalization" Version="0.0.0--04ytqpo-develop" />
-    <PackageReference Include="CK.StObj.Model" Version="0.0.0--04yvzzy-develop" />
+    <PackageReference Include="CK.StObj.Model" Version="0.0.0--04yxs3u-develop" />
   </ItemGroup>
 </Project>
