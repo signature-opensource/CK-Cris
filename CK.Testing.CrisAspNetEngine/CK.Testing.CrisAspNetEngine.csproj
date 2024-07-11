@@ -3,7 +3,7 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Testing.StObjTypeScriptEngine" Version="0.0.0--04yznbv-develop" />
+    <PackageReference Include="CK.Testing.StObjTypeScriptEngine" Version="0.0.0--04yzykz-develop" />
     <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="0.0.0--04yznbv-develop" />
   </ItemGroup>
   <ItemGroup>
