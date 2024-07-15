@@ -4,7 +4,7 @@
     <Description>Implements IBasicLoginCommand, IRefreshAuthenticationCommand and ILogoutCommand using the WebFrontAuthService.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.AspNet.Auth" Version="0.0.0--04z1nqv-develop" />
+    <PackageReference Include="CK.AspNet.Auth" Version="0.0.0--04z7c0l-develop" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris.Auth\CK.Cris.Auth.csproj" />
