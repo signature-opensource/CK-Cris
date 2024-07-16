@@ -3,7 +3,7 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Globalization" Version="0.0.0--04z8lm2-develop" />
-    <PackageReference Include="CK.StObj.Model" Version="0.0.0--04z8lm3-develop" />
+    <PackageReference Include="CK.Globalization" Version="0.0.0--04z92fo-develop" />
+    <PackageReference Include="CK.StObj.Model" Version="0.0.0--04z92fp-develop" />
   </ItemGroup>
 </Project>
