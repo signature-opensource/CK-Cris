@@ -3,8 +3,8 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Testing.StObjTypeScriptEngine" Version="0.0.0--04zaqpz-develop" />
-    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="0.0.0--04zaqpt-develop" />
+    <PackageReference Include="CK.Testing.StObjTypeScriptEngine" Version="0.0.0--04zb0ma-develop" />
+    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="0.0.0--04zb0m9-develop" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris.AspNet.Auth.Basic\CK.Cris.AspNet.Auth.Basic.csproj" />
