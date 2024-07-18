@@ -4,8 +4,8 @@
     <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.AppIdentity" Version="0.0.0--04z94ev-develop" />
-    <PackageReference Include="CK.Poco.Exc.Json" Version="0.0.0--04zaz0j-develop" />
+    <PackageReference Include="CK.AppIdentity" Version="0.0.0--04zc9l8-develop" />
+    <PackageReference Include="CK.Poco.Exc.Json" Version="0.0.0--04zc9l9-develop" />
     <PackageReference Include="Polly.Core" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>
