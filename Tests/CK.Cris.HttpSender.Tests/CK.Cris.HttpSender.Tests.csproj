@@ -10,7 +10,7 @@
     <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="0.0.0--04ze4y7-develop" />
+    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="0.0.0--04zedjw-develop" />
     <ProjectReference Include="..\..\CK.Testing.CrisAspNetEngine\CK.Testing.CrisAspNetEngine.csproj" />
   </ItemGroup>
   <ItemGroup>
