@@ -4,7 +4,7 @@
     <RootNamespace>CK.Cris</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.PerfectEvent" Version="0.0.0--04zdxpy-develop" />
+    <PackageReference Include="CK.PerfectEvent" Version="0.0.0--04zi8x3-develop" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />

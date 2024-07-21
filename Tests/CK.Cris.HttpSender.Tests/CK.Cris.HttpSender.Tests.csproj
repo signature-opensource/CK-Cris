@@ -5,12 +5,12 @@
     <LangVersion>11</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Testing.Nunit" Version="0.0.0--04zdxpx-develop" />
+    <PackageReference Include="CK.Testing.Nunit" Version="0.0.0--04zi8x1-develop" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="0.0.0--04zhooz-develop" />
+    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="0.0.0--04zi8xk-develop" />
     <ProjectReference Include="..\..\CK.Testing.CrisAspNetEngine\CK.Testing.CrisAspNetEngine.csproj" />
   </ItemGroup>
   <ItemGroup>
