@@ -1,11 +1,15 @@
+using CK.AspNet.Auth;
+using CK.Auth;
 using CK.Core;
 using CK.Testing;
-using FluentAssertions;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using NUnit.Framework;
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
-using static CK.Testing.StObjEngineTestHelper;
+using static CK.Setup.EngineResult;
+using static CK.Testing.MonitorTestHelper;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
@@ -119,7 +123,7 @@ namespace CK.Cris.AspNet.E2ETests
         }
 
         [Test]
-        public Task E2ETestWithCommands_Async()
+        public async Task E2ETestWithCommands_Async()
         {
             var targetProjectPath = TestHelper.GetTypeScriptWithTestsSupportTargetProjectPath();
 
@@ -132,12 +136,19 @@ namespace CK.Cris.AspNet.E2ETests
                                                   typeof( IColoredEndpointValues ),
                                                   typeof( ColorAndBuggyService ),
                                                   typeof( IBuggyCommand ),
-                                                  typeof( IWithMessageCommand ) );
+                                                  typeof( IWithMessageCommand ),
+                                                  typeof( CrisAspNetService ),
+                                                  typeof( AuthenticationInfoTokenService ),
+                                                  typeof( StdAuthenticationTypeSystem ) );
             configuration.FirstBinPath.EnsureTypeScriptConfigurationAspect( targetProjectPath, typeof( ICommand<> ), // Useless but harmless.
                                                                                                typeof( IBeautifulCommand ),
                                                                                                typeof( IBuggyCommand ),
                                                                                                typeof( IWithMessageCommand ) );
+            var map = configuration.RunSuccessfully().LoadMap();
+            var builder = WebApplication.CreateSlimBuilder();
+            await using var runningServer = await builder.CreateRunningAspNetAuthenticationServerAsync( map, configureApplication: app => app.UseMiddleware<CrisMiddleware>() );
 
+            await using var runner = TestHelper.CreateTypeScriptRunner( targetProjectPath, new Dictionary<string, string> { { "CRIS_ENDPOINT_URL", runningServer.ServerAddress + "/.cris" } } );
             // When running in Debug, this will wait until resume is set to true.
             // Until then, the .NET server is running and tests can be manually executed
             // written and fixed.
@@ -147,9 +158,10 @@ namespace CK.Cris.AspNet.E2ETests
             //
             // In regular run, this will not wait for resume.
             //
-            return configuration.FirstBinPath.RunCrisTypeScriptTestsAsync( resume: resume =>
-                                                                                   resume );
-        }
+            await TestHelper.SuspendAsync( resume => resume );
 
+            // Executes the TypeScript tests.
+            runner.Run();
+        }
     }
 }

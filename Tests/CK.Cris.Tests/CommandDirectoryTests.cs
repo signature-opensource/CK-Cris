@@ -1,17 +1,9 @@
 using CK.Core;
+using CK.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using static CK.Cris.Tests.ICommandHandlerTests;
-using System.Linq;
-using static CK.Testing.StObjEngineTestHelper;
-using System;
-using Microsoft.Extensions.Hosting;
-using System.Collections.Generic;
-using CK.Testing;
-using CK.Cris.AmbientValues;
-using static CK.Cris.Tests.AmbientValuesTests;
-using static CK.Cris.Tests.CommandResultTypeTests;
+using static CK.Testing.MonitorTestHelper;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 

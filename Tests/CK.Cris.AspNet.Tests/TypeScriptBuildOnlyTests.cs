@@ -7,7 +7,7 @@ using NUnit.Framework;
 using System.IO;
 using System.Threading.Tasks;
 using CK.Testing;
-using static CK.Testing.StObjEngineTestHelper;
+using static CK.Testing.MonitorTestHelper;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 

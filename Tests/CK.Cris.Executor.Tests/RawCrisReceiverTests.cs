@@ -8,8 +8,7 @@ using NUnit.Framework;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using static CK.Testing.StObjEngineTestHelper;
-using static System.Formats.Asn1.AsnWriter;
+using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Cris.Executor.Tests
 {

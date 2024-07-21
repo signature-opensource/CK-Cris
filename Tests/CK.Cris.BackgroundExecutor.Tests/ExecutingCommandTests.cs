@@ -1,4 +1,3 @@
-using CK.Auth;
 using CK.Core;
 using CK.Testing;
 using FluentAssertions;
@@ -6,8 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
 using System.Threading.Tasks;
-
-using static CK.Testing.StObjEngineTestHelper;
+using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Cris.BackgroundExecutor.Tests
 {

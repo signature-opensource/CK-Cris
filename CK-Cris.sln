@@ -51,8 +51,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentat
 		Documentation\AuthenticatedCommands.png = Documentation\AuthenticatedCommands.png
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Testing.CrisAspNetEngine", "CK.Testing.CrisAspNetEngine\CK.Testing.CrisAspNetEngine.csproj", "{E1ECA01B-38B6-484A-BB7E-3B9059F19903}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.HttpSender", "CK.Cris.HttpSender\CK.Cris.HttpSender.csproj", "{B9DE73FB-DF0F-4F36-8AE1-0CEFAB013BB7}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.HttpSender.Tests", "Tests\CK.Cris.HttpSender.Tests\CK.Cris.HttpSender.Tests.csproj", "{464E027C-C5A1-4061-8472-1F45D99802E3}"
@@ -67,9 +65,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.Auth", "CK.Cris.Aut
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.AspNet.Auth.Basic", "CK.Cris.AspNet.Auth.Basic\CK.Cris.AspNet.Auth.Basic.csproj", "{F7243676-9603-4D94-B655-61C084FEABD7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CK.Cris.DelayedCommand", "CK.Cris.DelayedCommand\CK.Cris.DelayedCommand.csproj", "{EB79302B-5DA3-4FD2-B546-042157BF17B5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.Cris.DelayedCommand", "CK.Cris.DelayedCommand\CK.Cris.DelayedCommand.csproj", "{EB79302B-5DA3-4FD2-B546-042157BF17B5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CK.IO.DelayedCommand", "CK.IO.DelayedCommand\CK.IO.DelayedCommand.csproj", "{95C023A8-BAF3-4224-BE9D-223E8BC2D1AE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CK.IO.DelayedCommand", "CK.IO.DelayedCommand\CK.IO.DelayedCommand.csproj", "{95C023A8-BAF3-4224-BE9D-223E8BC2D1AE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -129,10 +127,6 @@ Global
 		{30AAD169-49F5-4B14-A638-F5825F148DF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{30AAD169-49F5-4B14-A638-F5825F148DF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{30AAD169-49F5-4B14-A638-F5825F148DF7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E1ECA01B-38B6-484A-BB7E-3B9059F19903}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E1ECA01B-38B6-484A-BB7E-3B9059F19903}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E1ECA01B-38B6-484A-BB7E-3B9059F19903}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E1ECA01B-38B6-484A-BB7E-3B9059F19903}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B9DE73FB-DF0F-4F36-8AE1-0CEFAB013BB7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B9DE73FB-DF0F-4F36-8AE1-0CEFAB013BB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B9DE73FB-DF0F-4F36-8AE1-0CEFAB013BB7}.Release|Any CPU.ActiveCfg = Release|Any CPU

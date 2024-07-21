@@ -10,8 +10,6 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using static CK.Testing.MonitorTestHelper;
@@ -49,13 +47,11 @@ namespace CK.Cris.HttpSender.Tests
                                                               typeof( IPocoAuthenticationInfo ),
                                                               typeof( IPocoUserInfo ),
                                                               typeof( CrisAspNetService ),
-                                                              typeof( CrisWebFrontAuthCommandHandler ),
-                                                              typeof( FakeUserDatabase ),
-                                                              typeof( FakeWebFrontLoginService ) );
+                                                              typeof( CrisWebFrontAuthCommandHandler ) );
 
             var serverMap = serverEngineConfiguration.RunSuccessfully().LoadMap();
-            
-            await using var runningServer = await serverMap.CreateAspNetAuthServerAsync( configureApplication: app => app.UseMiddleware<CrisMiddleware>() );
+            var serverBuilder = WebApplication.CreateSlimBuilder();
+            await using var runningServer = await serverBuilder.CreateRunningAspNetAuthenticationServerAsync( serverMap, configureApplication: app => app.UseMiddleware<CrisMiddleware>() );
 
             var serverAddress = runningServer.ServerAddress;
 
@@ -76,11 +72,10 @@ namespace CK.Cris.HttpSender.Tests
                                                               typeof( CrisHttpSenderFeatureDriver ) );
 
             var callerMap = callerEngineConfiguration.RunSuccessfully().LoadMap();
-
-            await using var runningCaller = await callerMap.CreateRunningCallerAsync( serverAddress, generateSourceCode: false );
+            using var runningCaller = await LocalHelper.CreateRunningCallerAsync( callerMap, serverAddress );
 
             var callerPoco = runningCaller.Services.GetRequiredService<PocoDirectory>();
-            var sender = runningCaller.ApplicationIdentityService.Remotes
+            var sender = runningCaller.Services.GetRequiredService<ApplicationIdentityService>().Remotes
                                                     .Single( r => r.PartyName == "$Server" )
                                                     .GetRequiredFeature<CrisHttpSender>();
 
@@ -220,11 +215,12 @@ namespace CK.Cris.HttpSender.Tests
                                                               typeof( CrisHttpSenderFeatureDriver ));
             var map = callerEngineConfiguration.RunSuccessfully().LoadMap();
 
-            await using var runningCaller = await map.CreateRunningCallerAsync( "http://[::1]:65036/" );
+            // The serverAddress http://[::1]:65036/ has no running server.
+            using var runningCaller = await LocalHelper.CreateRunningCallerAsync( map, "http://[::1]:65036/" );
             var callerPoco = runningCaller.Services.GetRequiredService<PocoDirectory>();
-            var sender = runningCaller.ApplicationIdentityService.Remotes
-                                                    .Single( r => r.PartyName == "$Server" )
-                                                    .GetRequiredFeature<CrisHttpSender>();
+            var sender = runningCaller.Services.GetRequiredService<ApplicationIdentityService>().Remotes
+                                                .Single( r => r.PartyName == "$Server" )
+                                                .GetRequiredFeature<CrisHttpSender>();
             var cmd = callerPoco.Create<IBeautifulCommand>( c =>
             {
                 c.Color = "Black";

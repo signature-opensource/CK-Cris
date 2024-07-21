@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
 using System.Threading.Tasks;
-using static CK.Testing.StObjEngineTestHelper;
+using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Cris.Executor.Tests
 {
@@ -266,10 +266,12 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task calling_public_AutoService_implementation_Async()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( RawCrisExecutor ),
-                                                     typeof( ITestCommand ),
-                                                     typeof( CommandHandlerImpl ) );
-            using var auto = TestHelper.CreateAutomaticServicesWithMonitor( c );
+            using var auto = TestHelper.CreateAutomaticServicesWithMonitor(
+                [
+                    typeof( RawCrisExecutor ),
+                    typeof( ITestCommand ),
+                    typeof( CommandHandlerImpl )
+                ] );
             using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;
@@ -303,10 +305,12 @@ namespace CK.Cris.Executor.Tests
         [Test]
         public async Task calling_explicit_AutoService_implementation_Async()
         {
-            var c = TestHelper.CreateTypeCollector( typeof(RawCrisExecutor),
-                                                     typeof(ITestCommand),
-                                                     typeof(CommandHandlerExplicitImpl) );
-            using var auto = TestHelper.CreateAutomaticServicesWithMonitor( c );
+            using var auto = TestHelper.CreateAutomaticServicesWithMonitor(
+                [
+                    typeof(RawCrisExecutor),
+                    typeof(ITestCommand),
+                    typeof(CommandHandlerExplicitImpl)
+                ] );
             using( var scope = auto.Services.CreateScope() )
             {
                 var services = scope.ServiceProvider;

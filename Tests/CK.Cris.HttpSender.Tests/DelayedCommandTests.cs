@@ -9,13 +9,15 @@ using CK.Testing;
 using FluentAssertions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using static CK.Testing.StObjEngineTestHelper;
+using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Cris.HttpSender.Tests
 {
@@ -82,10 +84,12 @@ namespace CK.Cris.HttpSender.Tests
             // We need the fr culture for this test.
             NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
 
-            var serverConf = TestHelper.CreateDefaultEngineConfiguration();
-            serverConf.FirstBinPath.Types.Add( typeof( IAuthenticationInfo ),
+            var serverEngineConfiguration = TestHelper.CreateDefaultEngineConfiguration();
+            serverEngineConfiguration.FirstBinPath.Types.Add( typeof( IAuthenticationInfo ),
                                                typeof( CrisAuthenticationService ),
                                                typeof( AmbientValuesService ),
+                                               typeof( StdAuthenticationTypeSystem ),
+                                               typeof( AuthenticationInfoTokenService ),
                                                typeof( IDelayedCommand ),
                                                typeof( CrisDelayedCommandService ),
                                                typeof( CrisAspNetService ),
@@ -99,9 +103,11 @@ namespace CK.Cris.HttpSender.Tests
                                                typeof( IPocoAuthenticationInfo ),
                                                typeof( IPocoUserInfo ),
                                                typeof( CrisWebFrontAuthCommandHandler ) );
-            var runningServer = await serverConf.FirstBinPath.CreateAspNetAuthServerAsync( configureApplication: app => app.UseMiddleware<CrisMiddleware>() );
-            var serverAddress = runningServer.ServerAddress;
+            var serverMap = serverEngineConfiguration.RunSuccessfully().LoadMap();
+            var serverBuilder = WebApplication.CreateSlimBuilder();
+            await using var runningServer = await serverBuilder.CreateRunningAspNetAuthenticationServerAsync( serverMap, configureApplication: app => app.UseMiddleware<CrisMiddleware>() );
 
+            var serverAddress = runningServer.ServerAddress;
             var callerConf = TestHelper.CreateDefaultEngineConfiguration();
             callerConf.FirstBinPath.Types.Add( typeof( IDelayedCommand ),
                                                typeof( IFullCommand ),
@@ -117,10 +123,10 @@ namespace CK.Cris.HttpSender.Tests
                                                typeof( CrisHttpSenderFeatureDriver ) );
             var callerMap = callerConf.RunSuccessfully().LoadMap();
 
-            await using var runningCaller = await callerMap.CreateRunningCallerAsync( serverAddress, generateSourceCode: false );
+            using var runningCaller = await LocalHelper.CreateRunningCallerAsync( callerMap, serverAddress, cancellation );
 
             var callerPoco = runningCaller.Services.GetRequiredService<PocoDirectory>();
-            var sender = runningCaller.ApplicationIdentityService.Remotes
+            var sender = runningCaller.Services.GetRequiredService<ApplicationIdentityService>().Remotes
                                                     .Single( r => r.PartyName == "$Server" )
                                                     .GetRequiredFeature<CrisHttpSender>();
 

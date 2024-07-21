@@ -5,8 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
 using System.Linq;
-using static CK.Cris.Tests.CommandResultTypeTests;
-using static CK.Testing.StObjEngineTestHelper;
+using static CK.Testing.MonitorTestHelper;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
@@ -99,13 +98,15 @@ namespace CK.Cris.Tests
         [Test]
         public void Command_handler_service_must_be_unified_just_like_other_IAutoService()
         {
-            var c = TestHelper.CreateTypeCollector( typeof( CrisDirectory ),
-                                                     typeof( IWithTheResultUnifiedCommand ),
-                                                     typeof( CmdHandlerWithMore ),
-                                                     typeof( CmdHandlerWithAnother ),
-                                                     typeof( CmdHandlerAlternate ) );
-            TestHelper.GetFailedCollectorResult( c, "Service Class Unification: unable to resolve 'CK.Cris.Tests.ICommandHandlerTests+CmdHandlerOfBase' to a unique specialization.",
-                                                    "Base class 'CK.Cris.Tests.ICommandHandlerTests+CmdHandlerOfBase' cannot be unified by any of this candidates: 'ICommandHandlerTests.CmdHandlerWithAnother', 'ICommandHandlerTests.CmdHandlerWithMore'." );
+            TestHelper.GetFailedCollectorResult(
+                [ typeof( CrisDirectory ),
+                  typeof( IWithTheResultUnifiedCommand ),
+                  typeof( CmdHandlerWithMore ),
+                  typeof( CmdHandlerWithAnother ),
+                  typeof( CmdHandlerAlternate )
+                ],
+                "Service Class Unification: unable to resolve 'CK.Cris.Tests.ICommandHandlerTests+CmdHandlerOfBase' to a unique specialization.",
+                "Base class 'CK.Cris.Tests.ICommandHandlerTests+CmdHandlerOfBase' cannot be unified by any of this candidates: 'ICommandHandlerTests.CmdHandlerWithAnother', 'ICommandHandlerTests.CmdHandlerWithMore'." );
         }
 
         // This service unifies the Service, but doesn't solve the ICommand and IResult diamond: this fails (not during the service analysis like above
