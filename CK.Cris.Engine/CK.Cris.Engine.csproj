@@ -6,7 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CK.CodeGen" Version="0.0.0--04zi8x2-develop" />
-    <PackageReference Include="CK.StObj.Runtime" Version="0.0.0--04zijuh-develop" />
+    <PackageReference Include="CK.StObj.Runtime" Version="0.0.0--04zk0w8-develop" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
