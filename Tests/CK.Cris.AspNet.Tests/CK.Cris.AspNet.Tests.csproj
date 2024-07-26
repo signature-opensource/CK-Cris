@@ -8,13 +8,13 @@
     <Compile Include="..\CK.Cris.Tests\DiamondResultAndCommand.cs" Link="DiamondResultAndCommand.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Testing.StObjEngine" Version="0.0.0--04zk0w8-develop" />
-    <PackageReference Include="CK.Testing.StObjTypeScriptEngine" Version="0.0.0--04zlofw-develop" />
-    <PackageReference Include="CK.Testing.Nunit" Version="0.0.0--04zi8x1-develop" />
+    <PackageReference Include="CK.Testing.StObjEngine" Version="0.0.0--04zrd9b-develop" />
+    <PackageReference Include="CK.Testing.StObjTypeScriptEngine" Version="0.0.0--04zrd9r-develop" />
+    <PackageReference Include="CK.Testing.Nunit" Version="0.0.0--04zrd95-develop" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
     <!-- We also test CK.Auth.Cris here. -->
-    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="0.0.0--04zk4sq-develop" />
+    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="0.0.0--04zrd9o-develop" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\CK.Cris.Auth\CK.Cris.Auth.csproj" />
