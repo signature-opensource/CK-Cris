@@ -125,7 +125,7 @@ namespace CK.Cris.AspNet.E2ETests
         [Test]
         public async Task E2ETestWithCommands_Async()
         {
-            var targetProjectPath = TestHelper.GetTypeScriptWithTestsSupportTargetProjectPath();
+            var targetProjectPath = TestHelper.GetTypeScriptInlineTargetProjectPath();
 
             var configuration = TestHelper.CreateDefaultEngineConfiguration();
             configuration.FirstBinPath.Types.Add( typeof( ICommand<> ), // Useless but harmless.
