@@ -4,7 +4,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Testing.StObjEngine" Version="26.0.1" />
+    <PackageReference Include="CK.Testing.StObjEngine" Version="26.0.2--0001-develop" />
     <PackageReference Include="NUnit" Version="4.1.0" />
     <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" Version="4.5.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
