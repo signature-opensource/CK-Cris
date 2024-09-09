@@ -11,7 +11,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CK.Testing.AppIdentity" Version="0.5.1" />
-    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="0.19.2" />
+    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="0.19.3" />
     <ProjectReference Include="..\..\CK.Testing.CrisAspNetEngine\CK.Testing.CrisAspNetEngine.csproj" />
   </ItemGroup>
   <ItemGroup>
