@@ -16,6 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris.AspNet\CK.Cris.AspNet.csproj" />
-    <ProjectReference Include="..\CK.Cris.Engine\CK.Cris.Engine.csproj" />
+    <ProjectReference Include="..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
   </ItemGroup>
 </Project>

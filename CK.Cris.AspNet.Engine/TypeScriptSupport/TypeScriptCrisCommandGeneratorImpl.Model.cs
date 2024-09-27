@@ -1,5 +1,4 @@
 using CK.Core;
-using CK.Cris.AspNet;
 using CK.TypeScript.CodeGen;
 using System.Diagnostics.CodeAnalysis;
 

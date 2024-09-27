@@ -5,10 +5,10 @@ using CK.Cris.AmbientValues;
 using CK.Cris.AspNet;
 using CK.Setup.Cris;
 using CK.TypeScript.CodeGen;
+using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace CK.Setup
 {
