@@ -27,7 +27,7 @@ namespace CK.Setup
 
         static TypeScriptFile GenerateCrisEndpoint( IActivityMonitor monitor, TypeScriptContext context, TypeScriptFile modelFile )
         {
-            TypeScriptFile fEndpoint = modelFile.Folder.FindOrCreateFile( "CrisEndpoint.ts" );
+            TypeScriptFile fEndpoint = modelFile.Folder.FindOrCreateTypeScriptFile( "CrisEndpoint.ts" );
 
             // AmbientValuesOverride is in the same folder as AmbienValues.ts.
             var ambientValuesOverride = context.Root.TSTypes.FindByTypeName( "AmbientValuesOverride" );
@@ -186,7 +186,7 @@ namespace CK.Setup
                                               TypeScriptFile fEndpoint,
                                               ITSType ctsType )
         {
-            TypeScriptFile fHttpEndpoint = modelFile.Folder.FindOrCreateFile( "HttpCrisEndpoint.ts" );
+            TypeScriptFile fHttpEndpoint = modelFile.Folder.FindOrCreateTypeScriptFile( "HttpCrisEndpoint.ts" );
             // Importing:
             // - the Model objects ICommand, ExecutedCommand and CrisError.
             // - The base CrisEndPoint.

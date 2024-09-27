@@ -12,7 +12,7 @@ namespace CK.Setup
         {
             if( _modelFile == null )
             {
-                _modelFile = context.Root.Root.FindOrCreateFile( "CK/Cris/Model.ts" );
+                _modelFile = context.Root.Root.FindOrCreateTypeScriptFile( "CK/Cris/Model.ts" );
                 GenerateCrisModelFile( monitor, context, _modelFile );
                 _crisPoco = new TSBasicType( context.Root.TSTypes, "ICrisPoco", imports => imports.EnsureImport( _modelFile, "ICrisPoco" ), null );
                 _abstractCommand = new TSBasicType( context.Root.TSTypes, "IAbstractCommand", imports => imports.EnsureImport( _modelFile, "IAbstractCommand" ), null );

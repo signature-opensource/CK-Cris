@@ -20,5 +20,5 @@
   "scripts": {
     "test": "jest"
   },
-  "peerDependencies": {}
+  "ckVersion": 1
 }

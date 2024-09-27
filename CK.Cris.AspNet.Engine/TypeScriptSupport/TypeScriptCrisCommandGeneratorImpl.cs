@@ -171,7 +171,7 @@ namespace CK.Setup
         static void GenerateAmbientValuesOverride( TypeScriptFolder endpointValuesFolder, ImmutableArray<TSNamedCompositeField> fields )
         {
             var b = endpointValuesFolder
-                                .FindOrCreateManualFile( "AmbientValuesOverride.ts" )
+                                .FindOrCreateTypeScriptFile( "AmbientValuesOverride.ts" )
                                 .CreateType( "AmbientValuesOverride", null, null )
                                 .TypePart;
             b.Append( """
