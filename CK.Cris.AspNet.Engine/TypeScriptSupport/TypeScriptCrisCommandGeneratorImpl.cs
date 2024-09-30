@@ -123,7 +123,7 @@ namespace CK.Setup
                     if( pocoField.Type.IsNullable && crisDirectory.IsAmbientServiceValueField( pocoField ) )
                     {
                         // Documents it.
-                        f.DocumentationExtension = b => b.AppendLine( "(This is a Ambient Value.)", startNewLine: true );
+                        f.DocumentationExtension = b => b.AppendLine( "(This is a AmbientService Value.)", startNewLine: true );
                         // Adds the assignment: this property comes from its ambient value.
                         if( atLeastOne ) applyPart.NewLine();
                         // Generates:

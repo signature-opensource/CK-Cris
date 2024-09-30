@@ -3,11 +3,9 @@ import { HttpCrisEndpoint, CrisError, UserMessageLevel, SimpleUserMessage } from
 import { BeautifulCommand, BuggyCommand, WithMessageCommand } from "@local/ck-gen"; 
 
 // Trick from https://stackoverflow.com/a/77047461/190380
-if( process.env.VSCODE_INSPECTOR_OPTIONS ) {
-  jest.setTimeout(20 * 60 * 1000 ); // 20 minutes
-}
+if( process.env["VSCODE_INSPECTOR_OPTIONS"] ) jest.setTimeout(20 * 60 * 1000 ); // 20 minutes
 
-const crisEndpoint = process.env.CRIS_ENDPOINT_URL ?? "";
+const crisEndpoint = CKTypeScriptEnv["CRIS_ENDPOINT_URL"] ?? "";
 const withEndpoint = crisEndpoint ? it : it.skip;
 
 it('isConnect is false until the first command is sent', async () => {
