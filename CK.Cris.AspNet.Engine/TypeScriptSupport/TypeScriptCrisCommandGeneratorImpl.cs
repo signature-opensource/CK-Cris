@@ -14,15 +14,18 @@ namespace CK.Setup
 {
     public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerator
     {
-        TSBasicType? _crisPoco;
-        TSBasicType? _abstractCommand;
-        TSBasicType? _command;
         TypeScriptFile? _modelFile;
+        ITSDeclaredFileType? _crisPoco;
+        ITSDeclaredFileType? _abstractCommand;
+        ITSDeclaredFileType? _command;
 
         bool ITSCodeGenerator.Initialize( IActivityMonitor monitor, ITypeScriptContextInitializer initializer )
         {
-            // This can be called IF multiple contexts must be generated:
-            // we reset the cached instance here.
+            // This can be called multiple times IF multiple contexts must be generated:
+            // we reset the cached instances here.
+            _modelFile = null;
+            _crisPoco = null;
+            _abstractCommand = null;
             _command = null;
 
             // Those must be TypeScript types: this ensures that they are added to the TypeScript type set.
@@ -120,7 +123,7 @@ namespace CK.Setup
                     if( pocoField.Type.IsNullable && crisDirectory.IsAmbientServiceValueField( pocoField ) )
                     {
                         // Documents it.
-                        f.DocumentationExtension = b => b.AppendLine( "(This is a AmbientService Value.)", startNewLine: true );
+                        f.DocumentationExtension = b => b.AppendLine( "(This is a Ambient Value.)", startNewLine: true );
                         // Adds the assignment: this property comes from its ambient value.
                         if( atLeastOne ) applyPart.NewLine();
                         // Generates:

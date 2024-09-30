@@ -6,16 +6,16 @@ namespace CK.Setup
 {
     public sealed partial class TypeScriptCrisCommandGeneratorImpl
     {
-        [MemberNotNull( nameof( _command ), nameof( _abstractCommand ), nameof( _crisPoco ) )]
+        [MemberNotNull( nameof( _modelFile ), nameof( _command ), nameof( _abstractCommand ), nameof( _crisPoco ) )]
         TypeScriptFile EnsureCrisCommandModel( IActivityMonitor monitor, TypeScriptContext context )
         {
             if( _modelFile == null )
             {
                 _modelFile = context.Root.Root.FindOrCreateTypeScriptFile( "CK/Cris/Model.ts" );
                 GenerateCrisModelFile( monitor, context, _modelFile );
-                _crisPoco = new TSBasicType( context.Root.TSTypes, "ICrisPoco", imports => imports.EnsureImport( _modelFile, "ICrisPoco" ), null );
-                _abstractCommand = new TSBasicType( context.Root.TSTypes, "IAbstractCommand", imports => imports.EnsureImport( _modelFile, "IAbstractCommand" ), null );
-                _command = new TSBasicType( context.Root.TSTypes, "ICommand", imports => imports.EnsureImport( _modelFile, "ICommand" ), null );
+                _crisPoco = _modelFile.DeclareType( "ICrisPoco" );
+                _abstractCommand = _modelFile.DeclareType( "IAbstractCommand" );
+                _command = _modelFile.DeclareType( "ICommand" );
             }
             Throw.DebugAssert( _command != null && _abstractCommand != null && _crisPoco != null );
             return _modelFile;
