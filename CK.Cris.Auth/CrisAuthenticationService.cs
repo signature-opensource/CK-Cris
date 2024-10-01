@@ -26,6 +26,11 @@ namespace CK.Auth
         readonly IAuthenticationTypeSystem _authenticationTypeSystem;
         readonly IUserInfoProvider _userInfoProvider;
 
+        /// <summary>
+        /// Initializes a new <see cref="CrisAuthenticationService"/>.
+        /// </summary>
+        /// <param name="authenticationTypeSystem">The type system.</param>
+        /// <param name="userInfoProvider">The user info provider.</param>
         public CrisAuthenticationService( IAuthenticationTypeSystem authenticationTypeSystem, IUserInfoProvider userInfoProvider )
         {
             Throw.CheckNotNullArgument( authenticationTypeSystem );
@@ -49,7 +54,7 @@ namespace CK.Auth
         }
 
         /// <summary>
-        /// Checks whether <see cref="IAuthNormalPart.ActorId"/> is the same as the current <see cref="IAuthenticationInfo.User"/>
+        /// Checks whether <see cref="IAuthUnsafePart.ActorId"/> is the same as the current <see cref="IAuthenticationInfo.User"/>
         /// identifier and if not, emits an error in the message collector.
         /// <para>
         /// If the Poco is marked with <see cref="IAuthCriticalPart"/> (or <see cref="IAuthNormalPart"/>), the <see cref="IAuthenticationInfo.Level"/> must be

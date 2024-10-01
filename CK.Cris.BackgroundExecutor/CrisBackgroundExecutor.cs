@@ -8,7 +8,7 @@ namespace CK.Cris
     /// Background execution service of <see cref="IAbstractCommand"/>.
     /// <para>
     /// This is a scoped helper service that captures the current <see cref="AmbientServiceHub"/>
-    /// so that calling <see cref="CrisBackgroundExecutorService.Submit{T}(IActivityMonitor, T, AmbientServiceHub, bool, ActivityMonitor.Token?)"/>
+    /// so that calling <see cref="CrisBackgroundExecutorService.Submit{T}(T, AmbientServiceHub?, ActivityMonitor.Token, IDeferredCommandExecutionContext?, Func{IActivityMonitor, IExecutedCommand, IServiceProvider?, Task}?, bool?)"/>
     /// is simpler.
     /// </para>
     /// </summary>
@@ -17,6 +17,11 @@ namespace CK.Cris
         readonly CrisBackgroundExecutorService _service;
         readonly AmbientServiceHub _ambientServiceHub;
 
+        /// <summary>
+        /// Initializes a new <see cref="CrisBackgroundExecutor"/>.
+        /// </summary>
+        /// <param name="service">The singleton background execution service that does the actual job.</param>
+        /// <param name="ambientServices">The ambient services collector from the current context.</param>
         public CrisBackgroundExecutor( CrisBackgroundExecutorService service, AmbientServiceHub ambientServices )
         {
             _service = service;

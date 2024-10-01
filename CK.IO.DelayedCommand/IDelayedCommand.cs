@@ -24,7 +24,7 @@ namespace CK.Cris
         /// <summary>
         /// Gets or sets whether the command must only be kept in memory.
         /// <para>
-        /// By default, if the <see cref="CrisDelayedCommandService"/> is a persistent one,
+        /// By default, if the service that implements delayed command execution is a persistent one,
         /// the command is persisted.  
         /// </para>
         /// </summary>

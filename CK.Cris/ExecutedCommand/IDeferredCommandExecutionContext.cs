@@ -4,7 +4,7 @@ using System;
 namespace CK.Cris
 {
     /// <summary>
-    /// When a command not executed inline but deferred to another execution context, this is available on
+    /// When a command is not executed inline but deferred to another execution context, this is available on
     /// the <see cref="IExecutedCommand.DeferredExecutionContext"/>.
     /// <para>
     /// </para>

@@ -25,6 +25,12 @@ namespace CK.Cris
         DateTime _nextDate;
         const uint _maxTimer = uint.MaxValue - 1;
 
+        /// <summary>
+        /// Initializes a new <see cref="CrisDelayedCommandService"/>.
+        /// </summary>
+        /// <param name="backgroundExecutorService">The background executor service.</param>
+        /// <param name="pocoDirectory">The Poco directory.</param>
+        /// <param name="rawCrisExecutor">The Cris executor.</param>
         public CrisDelayedCommandService( CrisBackgroundExecutorService backgroundExecutorService, PocoDirectory pocoDirectory, RawCrisExecutor rawCrisExecutor )
         {
             _memoryStore = new PriorityQueue<DelayedCommandEntry, DateTime>();
@@ -39,7 +45,7 @@ namespace CK.Cris
 
         /// <summary>
         /// Core method that stores the command in the in-memory priority queue and manages the timer: the stored
-        /// command will eventually be submitted to the <see cref="CrisBackgroundExecutorService"/> and <see cref="OnCommandSubmitted(int, IExecutingCommand{ICommand})"/>
+        /// command will eventually be submitted to the <see cref="CrisBackgroundExecutorService"/> and <see cref="OnCommandExecuting(DelayedCommandEntry)"/>
         /// will be called.
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>

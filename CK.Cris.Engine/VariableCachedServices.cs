@@ -23,7 +23,7 @@ namespace CK.Setup.Cris
         int _lastPartVarCount;
 
         /// <summary>
-        /// Initializes a ne< <see cref="VariableCachedServices"/>.
+        /// Initializes a new <see cref="VariableCachedServices"/>.
         /// </summary>
         /// <param name="engineMap">The engine map.</param>
         /// <param name="function">The function scope.</param>

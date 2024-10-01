@@ -24,13 +24,28 @@ namespace CK.Setup.Cris
     /// </summary>
     public sealed class HandlerMultiTargetMethod : HandlerBase
     {
-        public override CrisHandlerKind Kind => _kind;
-        public readonly ParameterInfo ThisPocoParameter;
-        public readonly ParameterInfo? ArgumentParameter;
-        public readonly ParameterInfo? ArgumentParameter2;
-        public readonly bool IsRefAsync;
-        public readonly bool IsValAsync;
         readonly CrisHandlerKind _kind;
+
+        /// <summary>
+        /// The kind of handler.
+        /// </summary>
+        public override CrisHandlerKind Kind => _kind;
+
+        /// <summary>
+        /// The parameter that is the command, event or part.
+        /// </summary>
+        public readonly ParameterInfo ThisPocoParameter;
+
+        /// <summary>
+        /// The first parameter (depends on the <see cref="Kind"/>).
+        /// </summary>
+        public readonly ParameterInfo? ArgumentParameter;
+
+        /// <summary>
+        /// The second parameter (the <see cref="ICrisIncomingValidationContext"/> for IncomingValidator).
+        /// </summary>
+        public readonly ParameterInfo? ArgumentParameter2;
+
 
         internal HandlerMultiTargetMethod( CrisType crisType,
                                            CrisHandlerKind kind,
@@ -44,15 +59,13 @@ namespace CK.Setup.Cris
                                            ParameterInfo? argumentParameter2,
                                            bool isRefAsync,
                                            bool isValAsync )
-            : base( crisType, owner, method, parameters, fileName, lineNumber )
+            : base( crisType, owner, method, parameters, fileName, lineNumber, isRefAsync, isValAsync )
         {
             Throw.DebugAssert( argumentParameter != null || argumentParameter2 != null );
             _kind = kind;
             ThisPocoParameter = thisPocoParameter;
             ArgumentParameter = argumentParameter;
             ArgumentParameter2 = argumentParameter2;
-            IsRefAsync = isRefAsync;
-            IsValAsync = isValAsync;
         }
     }
 

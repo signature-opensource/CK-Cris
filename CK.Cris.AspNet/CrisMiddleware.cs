@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace CK.Cris.AspNet
 {
+    /// <summary>
+    /// Middleware that handles "/.cris" requests from javascript frontend (and "/.cris/net" for Http command senders).
+    /// </summary>
     public class CrisMiddleware
     {
         static readonly PathString _crisPath = new PathString( "/.cris" );
@@ -14,6 +17,11 @@ namespace CK.Cris.AspNet
         readonly RequestDelegate _next;
         readonly CrisAspNetService _service;
 
+        /// <summary>
+        /// Initializes a new <see cref="CrisMiddleware"/>.
+        /// </summary>
+        /// <param name="next">The next middleware.</param>
+        /// <param name="service">The Cris AspNet service.</param>
         public CrisMiddleware( RequestDelegate next, CrisAspNetService service )
         {
             Throw.CheckNotNullArgument( next );
@@ -64,7 +72,7 @@ namespace CK.Cris.AspNet
                     // with the same behavior as from TypeScript: this avoids to serialize the UserMessage and use only
                     // the SimpleUserMessage (HttpCrisSender uses the full UserMessage format).
                     bool useSimpleError = isNetPath
-                                            ? ctx.Request.Query["UseSimpleError"].Any()
+                                            ? ctx.Request.Query["UseSimpleError"].Count != 0
                                             : true;
 
                     var (result,typeFilterName) = await _service.DoHandleAsync( monitor,

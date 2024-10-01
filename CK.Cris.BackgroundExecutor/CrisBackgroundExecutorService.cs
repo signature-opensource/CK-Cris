@@ -9,7 +9,7 @@ namespace CK.Cris
     /// <summary>
     /// Background execution service of <see cref="IAbstractCommand"/>. The interface is limited to:
     /// <list type="bullet">
-    ///     <item>The <see cref="Submit{T}(IActivityMonitor, T, AmbientServiceHub, bool, ActivityMonitor.Token?)"/> method to submit a command.</item>
+    ///     <item>One of the <c>Submit</c>{T} overloads to submit a command.</item>
     ///     <item>The <see cref="IExecutingCommand{T}"/> returned instance to track the execution.</item>
     /// </list>
     /// You may use the <see cref="CrisBackgroundExecutor"/> that is a scoped service and handles kindly the <see cref="AmbientServiceHub"/>.
@@ -18,12 +18,27 @@ namespace CK.Cris
     [Setup.AlsoRegisterType( typeof( CrisBackgroundDIContainerDefinition ) )]
     public class CrisBackgroundExecutorService : ContainerCommandExecutor<CrisBackgroundDIContainerDefinition.Data>, ISingletonAutoService
     {
+        /// <summary>
+        /// Initializes a new <see cref="CrisBackgroundExecutorService"/>.
+        /// </summary>
+        /// <param name="executionHost">The shared execution host.</param>
+        /// <param name="container">The current DI container.</param>
         public CrisBackgroundExecutorService( CrisExecutionHost executionHost,
                                               IDIContainer<CrisBackgroundDIContainerDefinition.Data> container )
             : base( executionHost, container )
         {
         }
 
+        /// <summary>
+        /// Overridden to either:
+        /// <list type="bullet">
+        ///     <item>Creates the <see cref="AsyncServiceScope"/> if the <paramref name="job"/> has a <see cref="AmbientServiceHub"/>.</item>
+        ///     <item>Restores a <see cref="AmbientServiceHub"/> from the command before creating the <see cref="AsyncServiceScope"/>.</item>
+        /// </list>
+        /// </summary>
+        /// <param name="monitor">The monitor to use.</param>
+        /// <param name="job">The starting job.</param>
+        /// <returns>An error xor the configured DI scope to use.</returns>
         protected override ValueTask<(ICrisResultError?,AsyncServiceScope)> PrepareJobAsync( IActivityMonitor monitor, CrisJob job )
         {
             var scopedData = Unsafe.As<CrisBackgroundDIContainerDefinition.Data>( job.ScopedData );
@@ -36,9 +51,9 @@ namespace CK.Cris
 
         async ValueTask<(ICrisResultError?,AsyncServiceScope)> RestoreAsync( IActivityMonitor monitor, CrisJob job, CrisBackgroundDIContainerDefinition.Data scopedData )
         {
-            var errorOrHub = await ExecutionHost.RawCrisExecutor.RestoreAmbientServicesAsync( monitor, job.Command );
-            if( errorOrHub.Error != null ) return (errorOrHub.Error,default);
-            scopedData.AmbientServiceHub = errorOrHub.Hub;
+            var (error, hub) = await ExecutionHost.RawCrisExecutor.RestoreAmbientServicesAsync( monitor, job.Command );
+            if( error != null ) return (error,default);
+            scopedData.AmbientServiceHub = hub;
             return await base.PrepareJobAsync( monitor, job );
         }
 

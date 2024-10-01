@@ -14,6 +14,11 @@ namespace CK.Cris
         readonly CrisEventHub _hub;
         readonly PocoDirectory _pocoDirectory;
 
+        /// <summary>
+        /// Initializes a new <see cref="DarkSideCrisEventHub"/>.
+        /// </summary>
+        /// <param name="hub">The Cris event hub.</param>
+        /// <param name="pocoDirectory">The Poco directory.</param>
         public DarkSideCrisEventHub( CrisEventHub hub, PocoDirectory pocoDirectory )
         {
             _hub = hub;

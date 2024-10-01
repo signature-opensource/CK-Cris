@@ -67,6 +67,7 @@ namespace CK.Cris
             ++_count;
         }
 
+        /// <inheritdoc/>
         public int Count => _count;
 
         sealed class Node
@@ -80,6 +81,9 @@ namespace CK.Cris
             }
         }
 
+        /// <summary>
+        /// Implements a thread safe enumerator.
+        /// </summary>
         public struct Enumerator : IEnumerator<IEvent>
         {
             Node? _current;
@@ -89,7 +93,8 @@ namespace CK.Cris
                 _current = s._first;
             }
 
-            public IEvent Current
+            /// <inheritdoc/>
+            public readonly IEvent Current
             {
                 get
                 {
@@ -98,21 +103,27 @@ namespace CK.Cris
                 }
             }
 
-            object IEnumerator.Current => Current;
+            readonly object IEnumerator.Current => Current;
 
-            public void Dispose()
+            /// <inheritdoc />
+            public readonly void Dispose()
             {
             }
 
+            /// <inheritdoc />
             public bool MoveNext()
             {
                 _current = _current?.Next;
                 return _current != null;
             }
 
-            public void Reset() => Throw.NotSupportedException();
+            /// <summary>
+            /// Not supported.
+            /// </summary>
+            public readonly void Reset() => Throw.NotSupportedException();
         }
 
+        /// <inheritdoc />
         public Enumerator GetEnumerator() => new Enumerator( this );
 
         IEnumerator<IEvent> IEnumerable<IEvent>.GetEnumerator() => GetEnumerator();

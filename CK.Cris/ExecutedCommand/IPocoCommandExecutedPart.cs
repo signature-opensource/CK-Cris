@@ -1,8 +1,12 @@
-﻿using CK.Core;
+using CK.Core;
 using System.Collections.Generic;
 
 namespace CK.Cris
 {
+    /// <summary>
+    /// A command part that captures a <see cref="IExecutedCommand"/>.
+    /// <see cref="Initialize(IExecutedCommand)"/> can be used to initialize it.
+    /// </summary>
     [CKTypeDefiner]
     public interface IPocoCommandExecutedPart : IPoco
     {

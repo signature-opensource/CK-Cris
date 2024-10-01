@@ -13,7 +13,7 @@ namespace CK.Cris
     public interface IDarkSideExecutingCommand
     {
         /// <summary>
-        /// Adds an immediate event to the <see cref="IExecutedCommand.ImmediateEvents"/> collector.
+        /// Adds an immediate event to the <see cref="IExecutingCommand.ImmediateEvents"/> collector.
         /// The <see cref="ImmediateEvents.Added"/> event is immediately raised.
         /// </summary>
         /// <param name="monitor">The monitor.</param>

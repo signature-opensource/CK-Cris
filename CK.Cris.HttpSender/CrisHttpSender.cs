@@ -72,6 +72,7 @@ namespace CK.Cris.HttpSender
         /// <inheritdoc />
         public IRemoteParty Remote => _remote;
 
+        /// <inheritdoc />
         public bool SkipAutomaticAuthorizationToken
         {
             get => _skipAutomaticAuthorizationToken;

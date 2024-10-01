@@ -74,7 +74,7 @@ namespace CK.Cris
         /// This must be called sequentially, the returned task must be awaited: no parallel is supported.
         /// </para>
         /// </summary>
-        /// <param name="command">The command to execute.</param>
+        /// <param name="configure">Configurator for the command to execute.</param>
         /// <param name="stopEventPropagation">True to not propagate the events to the caller: <see cref="IExecutedCommand.Events"/>
         /// must be manually handled and emitted again if needed.</param>
         /// <returns>The executed command with its events.</returns>

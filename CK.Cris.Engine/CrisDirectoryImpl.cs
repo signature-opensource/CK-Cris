@@ -23,6 +23,7 @@ namespace CK.Setup.Cris
             alsoRegister( typeof( ICrisResultError ) );
         }
 
+        /// <inheritdoc />
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
             // Skips the purely unified BinPath.

@@ -12,7 +12,6 @@ namespace CK.Cris
     /// </para>
     /// <para>
     /// This is the low level API, the concrete class implements all the generated code that does the hard work.
-    /// <see cref="ICrisExecution"/>
     /// </para>
     /// </summary>
     [Setup.AlsoRegisterType( typeof( CrisDirectory ) )]

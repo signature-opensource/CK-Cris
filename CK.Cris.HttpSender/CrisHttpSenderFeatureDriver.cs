@@ -28,7 +28,7 @@ namespace CK.Cris.HttpSender
         /// </summary>
         /// <param name="s">The application identity service.</param>
         /// <param name="pocoDirectory">The poco directory.</param>
-        /// 
+        /// <param name="resultReader">The AspNet crist result factory.</param>
         public CrisHttpSenderFeatureDriver( ApplicationIdentityService s,
                                             PocoDirectory pocoDirectory,
                                             IPocoFactory<IAspNetCrisResult> resultReader )

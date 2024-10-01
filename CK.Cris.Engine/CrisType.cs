@@ -103,7 +103,7 @@ namespace CK.Setup.Cris
 
         /// <summary>
         /// Gets a unique, zero-based index that identifies this Cris object among all
-        /// the <see cref="CrisPocoModels"/>.
+        /// the <see cref="ICrisDirectoryServiceEngine.CrisTypes"/>.
         /// </summary>
         public int CrisPocoIndex => _crisPocoIndex;
 
@@ -115,8 +115,6 @@ namespace CK.Setup.Cris
         /// <summary>
         /// Gets whether there are asynchronous post handlers to call.
         /// </summary>
-        /// <param name="e">The entry.</param>
-        /// <returns>True if asynchronous calls must be made.</returns>
         public bool HasPostHandlerAsyncCall => _postHandlers != null && _postHandlers.Any( h => h.IsRefAsync || h.IsValAsync );
 
         /// <summary>

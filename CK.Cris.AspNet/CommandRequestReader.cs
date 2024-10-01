@@ -15,6 +15,7 @@ namespace CK.Cris.AspNet
     /// <param name="pocoDirectory">The poco directory.</param>
     /// <param name="messageCollector">The message collector to use for errors, warnings and logs.</param>
     /// <param name="payload">The request payload.</param>
+    /// <param name="readOptions">The <see cref="PocoJsonImportOptions"/> to use.</param>
     /// <returns>
     /// A non null command on success. When null, at least one <see cref="UserMessageLevel.Error"/> message should be in the collector.
     /// </returns>

@@ -32,6 +32,12 @@ namespace CK.Setup.Cris
             else _handlers.Insert( _syncCount++, m );
         }
 
+        /// <summary>
+        /// Gets the handler at the specified index. Synchronous handlers come first followed by 
+        /// <see cref="AsyncHandlerCount"/> asyncronous handlers.
+        /// </summary>
+        /// <param name="index">The index.</param>
+        /// <returns>The handler.</returns>
         public HandlerMultiTargetMethod this[int index] => ((IReadOnlyList<HandlerMultiTargetMethod>)_handlers)[index];
 
         /// <summary>

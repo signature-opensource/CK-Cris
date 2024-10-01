@@ -13,8 +13,6 @@ namespace CK.Cris
 {
     /// <summary>
     /// Non generic base class for <see cref="ExecutingCommand{T}"/>.
-    /// An executing command carries the <see cref="Command"/>, the <see cref="ValidationResult"/> and the eventual <see cref="SafeCompletion"/>.
-    /// of a <see cref="ICommand"/> or <see cref="ICommand{TResult}"/>.
     /// </summary>
     public class ExecutingCommand : IExecutingCommand, IDarkSideExecutingCommand
     {

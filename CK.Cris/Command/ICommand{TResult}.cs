@@ -14,6 +14,9 @@ namespace CK.Cris
     /// <typeparam name="TResult">Type of the expected result.</typeparam>
     public interface ICommand<out TResult> : IAbstractCommand
     {
+        /// <summary>
+        /// Required by the CKomposale framwork.
+        /// </summary>
         [AutoImplementationClaim] public static TResult TResultType => default!;
     }
 

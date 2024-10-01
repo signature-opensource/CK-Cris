@@ -16,6 +16,9 @@ using System.Threading.Tasks;
 
 namespace CK.Cris.AspNet
 {
+    /// <summary>
+    /// Primary service that handles frontend commands (or commands sent on http).
+    /// </summary>
     [ContainerConfiguredSingletonService]
     [AlsoRegisterType( typeof( CrisDirectory ) )]
     [AlsoRegisterType( typeof( TypeScriptCrisCommandGenerator ) )]
@@ -35,6 +38,15 @@ namespace CK.Cris.AspNet
         readonly IPocoFactory<IAspNetCrisResultError> _errorResultFactory;
         readonly IPocoFactory<ICrisResultError> _crisErrorResultFactory;
 
+        /// <summary>
+        /// Initializes a new <see cref="CrisAspNetService"/>.
+        /// </summary>
+        /// <param name="poco">The Poco directory.</param>
+        /// <param name="validator">The raw validator service.</param>
+        /// <param name="backgroundExecutor">The background executor service.</param>
+        /// <param name="resultFactory">The AspNet result factory.</param>
+        /// <param name="errorResultFactory">The AspNet error result factory.</param>
+        /// <param name="backendErrorResultFactory">The Cris error factory.</param>
         public CrisAspNetService( PocoDirectory poco,
                                   RawCrisReceiver validator,
                                   CrisBackgroundExecutorService backgroundExecutor,
@@ -155,7 +167,7 @@ namespace CK.Cris.AspNet
                 {
                     e.LogKey = correlationToken.Key;
                 }
-                /// A Cris result HTTP status code must always be 200 OK (except on Internal Server Error).
+                // A Cris result HTTP status code must always be 200 OK (except on Internal Server Error).
                 request.HttpContext.Response.StatusCode = 200;
                 return (result, readResult.TypeFilterName ?? "TypeScript");
             }
@@ -287,11 +299,11 @@ namespace CK.Cris.AspNet
                                                                       bool? skipValidation = false )
         {
             Throw.CheckArgument( typeFilterName.StartsWith( "TypeScript" ) );
-            bool usePascalCase = request.Query["UsePascalCase"].Any();
-            bool indented = request.Query["Indented"].Any();
-            bool typeLess = request.Query["TypeLess"].Any();
-            if( !skipValidation.HasValue ) skipValidation = request.Query["SkipValidation"].Any();
-            var encoder = request.Query["UnsafeRelaxedJsonEscaping"].Any()
+            bool usePascalCase = request.Query["UsePascalCase"].Count != 0;
+            bool indented = request.Query["Indented"].Count != 0;
+            bool typeLess = request.Query["TypeLess"].Count != 0;
+            if( !skipValidation.HasValue ) skipValidation = request.Query["SkipValidation"].Count != 0;
+            var encoder = request.Query["UnsafeRelaxedJsonEscaping"].Count != 0
                             ? System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
                             : System.Text.Encodings.Web.JavaScriptEncoder.Default;
             var o = new PocoJsonExportOptions()
@@ -333,7 +345,7 @@ namespace CK.Cris.AspNet
                     return false;
                 }
             }
-            bool allowTrailingCommas = request.Query["AllowTrailingCommas"].Any();
+            bool allowTrailingCommas = request.Query["AllowTrailingCommas"].Count != 0;
             importOptions = new PocoJsonImportOptions()
             {
                 ReaderOptions = new JsonReaderOptions() { AllowTrailingCommas = allowTrailingCommas },

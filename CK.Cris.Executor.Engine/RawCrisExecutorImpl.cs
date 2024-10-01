@@ -8,9 +8,12 @@ using System.Reflection;
 
 namespace CK.Setup.Cris
 {
-
+    /// <summary>
+    /// Implements the <see cref="RawCrisExecutor"/> concrete class. 
+    /// </summary>
     public partial class RawCrisExecutorImpl : CSCodeGeneratorType
     {
+        /// <inheritdoc />
         public override CSCodeGenerationResult Implement( IActivityMonitor monitor, Type classType, ICSCodeGenerationContext c, ITypeScope scope )
         {
             Throw.CheckState( "Applies only to the RawCrisExecutor class.", classType == typeof( RawCrisExecutor ) );

@@ -16,7 +16,7 @@ namespace CK.Cris
     ///   Create a <see cref="AsyncServiceScope"/> to handle command validation and command execution.
     ///   </item>
     ///   <item>
-    ///   Expose the execution impacts to the external world thanks to: <see cref="OnCrisValidationResultAsync"/>, <see cref="OnImmediateEventAsync"/>
+    ///   Expose the execution impacts to the external world thanks to <see cref="OnImmediateEventAsync"/>
     ///   and <see cref="SetFinalResultAsync"/> extension points.
     ///   </item>
     /// </list>
@@ -41,25 +41,9 @@ namespace CK.Cris
         internal protected abstract ValueTask<(ICrisResultError?, AsyncServiceScope)> PrepareJobAsync( IActivityMonitor monitor, CrisJob job );
 
         /// <summary>
-        /// Extension point called when a command has been validated.
-        /// This is always called: this signals the start of a command handling.
-        /// <para>
-        /// Does nothing by default.
-        /// </para>
-        /// </summary>
-        /// <param name="monitor">The monitor.</param>
-        /// <param name="job">The executing job.</param>
-        /// <param name="validation">
-        /// The validation result. When <see cref="CrisValidationResult.Success"/> is false, this ends the command handling
-        /// (<see cref="SetFinalResultAsync(IActivityMonitor, CrisJob, object?, ImmutableArray{UserMessage}, ImmutableArray{IEvent})"/>) is not called).
-        /// </param>
-        /// <returns>The awaitable.</returns>
-        internal protected virtual Task OnCrisValidationResultAsync( IActivityMonitor monitor, CrisJob job, CrisValidationResult validation ) => Task.CompletedTask;
-
-        /// <summary>
         /// Extension point called when a command emits an immediate event (routed or caller only events).
         /// Note that all local impacts have been already handled: the <see cref="CrisEventHub"/> has already raised the event
-        /// and if <see cref="CrisJob.ExecutingCommand"/> is not null, the <see cref="IExecutingCommand.Events"/> have been updated.
+        /// and if <see cref="CrisJob.ExecutingCommand"/> is not null, the <see cref="IExecutingCommand.ImmediateEvents"/> have been updated.
         /// <para>
         /// Does nothing by default.
         /// </para>

@@ -1,9 +1,9 @@
-﻿using CK.Cris.AmbientValues;
+using CK.Cris.AmbientValues;
 
 namespace CK.Cris
 {
     /// <summary>
-    /// Retrieves <see cref="ICommandCurrentCulture.CurrentCultureName"/> value.
+    /// Retrieves <see cref="ICurrentCulturePart.CurrentCultureName"/> value.
     /// </summary>
     public interface ICultureAmbientValues : IAmbientValues
     {

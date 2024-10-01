@@ -4,6 +4,9 @@ using System.Threading.Tasks;
 
 namespace CK.Cris
 {
+    /// <summary>
+    /// Captures a <see cref="IDelayedCommand"/> that is waiting for its execution.
+    /// </summary>
     public sealed class DelayedCommandEntry : IDeferredCommandExecutionContext
     {
         readonly int _seqId;

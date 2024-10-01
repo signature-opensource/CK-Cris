@@ -108,6 +108,7 @@ namespace CK.Cris
         /// <para>
         /// When not specified, this defaults to <see cref="CoreApplicationIdentity.IsDevelopmentOrUninitialized"/>:
         /// in "#Dev" or when the identity is not yet settled, the incoming validation is ran.
+        /// </para>
         /// <para>
         /// The trick here is that the default, in practice, is <c>true</c>: a command should always be executed
         /// in a context that is compliant with the DI container configuration and this is what the [RestoreAmbientService]

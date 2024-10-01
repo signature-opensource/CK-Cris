@@ -11,6 +11,9 @@ namespace CK.Cris
         internal PerfectEventSender<IEvent> _immediate;
         internal PerfectEventSender<IEvent> _all;
 
+        /// <summary>
+        /// Initialize a new hub.
+        /// </summary>
         public CrisEventHub()
         {
             _immediate = new PerfectEventSender<IEvent>();
@@ -18,8 +21,14 @@ namespace CK.Cris
             _immediate.CreateRelay( _all );
         }
 
+        /// <summary>
+        /// Raised on immediate events (see <see cref="ImmediateEventAttribute"/>).
+        /// </summary>
         public PerfectEvent<IEvent> Immediate => _immediate.PerfectEvent;
 
+        /// <summary>
+        /// Raised on immediate events an routed events (see <see cref="RoutedEventAttribute"/>).
+        /// </summary>
         public PerfectEvent<IEvent> All => _all.PerfectEvent;
     }
 
