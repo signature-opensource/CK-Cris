@@ -12,6 +12,9 @@ using System.Linq;
 
 namespace CK.Setup
 {
+    /// <summary>
+    /// Implements <see cref="TypeScriptCrisCommandGenerator"/>.
+    /// </summary>
     public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerator
     {
         TypeScriptFile? _modelFile;
