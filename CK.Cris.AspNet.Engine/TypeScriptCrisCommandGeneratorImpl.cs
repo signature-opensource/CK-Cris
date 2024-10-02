@@ -218,12 +218,6 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                 _crisPoco = _modelFile.DeclareType( "ICrisPoco" );
                 _abstractCommand = _modelFile.DeclareType( "IAbstractCommand" );
                 _command = _modelFile.DeclareType( "ICommand" );
-                var crisEndpoint = GenerateCrisEndpoint( e.Monitor, context, _modelFile );
-                // If there is no Json serialization, we skip the HttpEndpoint as it uses the CTSType.
-                if( context.PocoCodeGenerator.CTSTypeSystem != null )
-                {
-                    GenerateCrisHttpEndpoint( e.Monitor, _modelFile, crisEndpoint, context.PocoCodeGenerator.CTSTypeSystem.CTSType );
-                }
             }
             Throw.DebugAssert( _command != null && _abstractCommand != null && _crisPoco != null );
             return _modelFile;
@@ -369,7 +363,6 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                                                  TypeScriptFile modelFile )
         {
             TypeScriptFile fEndpoint = modelFile.Folder.FindOrCreateTypeScriptFile( "CrisEndpoint.ts" );
-            var crisEndPoint = fEndpoint.CreateType( "CrisEndpoint", null, null );
 
             // AmbientValuesOverride is in the same folder as AmbienValues.ts.
             var ambientValuesOverride = context.Root.TSTypes.FindByTypeName( "AmbientValuesOverride" );
@@ -379,11 +372,12 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
             // - the Model objects ICommand, ExecutedCommand and CrisError.
             // - The IAmbientValues and IAmbientValuesCollectCommand.
             // - The AmbientValuesOverride.
-            crisEndPoint.File.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" )
-                                        .EnsureImport( monitor, typeof( IAmbientValues ),
-                                                                typeof( IAmbientValuesCollectCommand ) )
-                                        .EnsureImport( ambientValuesOverride );
+            fEndpoint.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" )
+                             .EnsureImport( monitor, typeof( IAmbientValues ), typeof( IAmbientValuesCollectCommand ) )
+                             .EnsureImport( ambientValuesOverride );
 
+            var crisEndPoint = fEndpoint.CreateType( "CrisEndpoint", null, null );
+            // Letf opened (closer on the part).
             crisEndPoint.TypePart.Append( """
                     /**
                     * Abstract Cris endpoint. 
@@ -517,7 +511,6 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                                 }
                             }
                         }
-                    }
                     """ );
             return crisEndPoint;
         }
@@ -529,8 +522,6 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                                                       ITSType ctsType )
         {
             TypeScriptFile fHttpEndpoint = modelFile.Folder.FindOrCreateTypeScriptFile( "HttpCrisEndpoint.ts" );
-            var httpCrisEndPoint = fHttpEndpoint.CreateType( "HttpCrisEndpoint", null, null );
-
             // Importing:
             // - the Model objects ICommand, ExecutedCommand and CrisError.
             // - The base CrisEndPoint.
@@ -543,14 +534,14 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
             var axios = modelFile.Root.LibraryManager.RegisterLibrary( monitor, "axios", "^1.5.1", DependencyKind.Dependency );
             if( axios == null ) return null;
 
-            httpCrisEndPoint.File.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" )
-                                            .EnsureImport( crisEndpoint )
-                                            .EnsureImport( monitor, typeof( IAspNetCrisResult ) )
-                                            .EnsureImportFromLibrary( axios, "AxiosInstance", "AxiosHeaders", "RawAxiosRequestConfig" )
-                                            .EnsureImport( ctsType )
-                                            .EnsureImport( monitor, typeof( IAspNetCrisResultError ) );
+            fHttpEndpoint.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" )
+                                 .EnsureImport( crisEndpoint )
+                                 .EnsureImport( monitor, typeof( IAspNetCrisResult ) )
+                                 .EnsureImportFromLibrary( axios, "AxiosInstance", "AxiosHeaders", "RawAxiosRequestConfig" )
+                                 .EnsureImport( ctsType )
+                                 .EnsureImport( monitor, typeof( IAspNetCrisResultError ) );
 
-            httpCrisEndPoint.TypePart.Append( """
+            fHttpEndpoint.Body.Append( """
                                 const defaultCrisAxiosConfig: RawAxiosRequestConfig = {
                                     responseType: 'text',
                                     headers: {
@@ -560,6 +551,11 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                                     }
                                 };
 
+                                """ );
+
+            var httpCrisEndPoint = fHttpEndpoint.CreateType( "HttpCrisEndpoint", null, null );
+            // Letf opened (closer on the part).
+            httpCrisEndPoint.TypePart.Append( """
                                 /**
                                 * Http Cris Command endpoint. 
                                 **/
@@ -611,7 +607,6 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                                             this.setIsConnected(false);
                                             return {command, result: new CrisError(command, false, ["Communication error"], error )};                                              }
                                     }
-                                }
                                 """ );
             return httpCrisEndPoint;
         }
