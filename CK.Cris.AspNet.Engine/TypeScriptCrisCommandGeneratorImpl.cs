@@ -353,7 +353,7 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                 // If there is no Json serialization, we skip the HttpEndpoint as it uses the CTSType.
                 if( context.PocoCodeGenerator.CTSTypeSystem != null )
                 {
-                    GenerateCrisHttpEndpoint( e.Monitor, _modelFile, crisEndpoint, context.PocoCodeGenerator.CTSTypeSystem.CTSType );
+                    GenerateCrisHttpEndpoint( e.Monitor, _modelFile, crisEndpoint, context.PocoCodeGenerator.CTSTypeSystem.CTSType, context.BinPathConfiguration.TypeFilterName );
                 }
             }
         }
@@ -519,7 +519,8 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
         static ITSFileType? GenerateCrisHttpEndpoint( IActivityMonitor monitor,
                                                       TypeScriptFile modelFile,
                                                       ITSFileType crisEndpoint,
-                                                      ITSType ctsType )
+                                                      ITSType ctsType,
+                                                      string typeFilterName )
         {
             TypeScriptFile fHttpEndpoint = modelFile.Folder.FindOrCreateTypeScriptFile( "HttpCrisEndpoint.ts" );
             // Importing:
@@ -555,25 +556,39 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
 
             var httpCrisEndPoint = fHttpEndpoint.CreateType( "HttpCrisEndpoint", null, null );
             // Letf opened (closer on the part).
-            httpCrisEndPoint.TypePart.Append( """
+            httpCrisEndPoint.TypePart.Append( $$$"""
                                 /**
                                 * Http Cris Command endpoint. 
                                 **/
                                 export class HttpCrisEndpoint extends CrisEndpoint
                                 {
+
+                                    #typeFilterName : string;
+                                    #crisEndpointUrl : string;
+
                                     /**
-                                    * Replaceable axios configuration.
-                                    **/
+                                     * Gets the TypeFilterName that defines the exchangeable set of objects
+                                     * with the backend.
+                                     * Defaults to '{{{typeFilterName}}}' (for this ck-gen folder).
+                                     */
+                                    public get typeFilterName() { return this.#typeFilterName; }
+
+                                    /**
+                                     * Replaceable axios configuration.
+                                     */
                                     public axiosConfig: RawAxiosRequestConfig; 
 
                                     /**
-                                    * Initializes a new HttpEndpoint that uses an Axios instance bound to a endpoint url.  
-                                    * @param axios The axios instance.
-                                    * @param crisEndpointUrl The Cris endpoint url to use.
-                                    **/
-                                    constructor(private readonly axios: AxiosInstance, private readonly crisEndpointUrl: string)
+                                     * Initializes a new HttpEndpoint that uses an Axios instance bound to a endpoint url.  
+                                     * @param axios The axios instance.
+                                     * @param crisEndpointUrl The Cris endpoint url to use.
+                                     * @param typeFilterName The TypeFilterName that defines the set of objects that can be exchanged with the backend.
+                                     */
+                                    constructor(private readonly axios: AxiosInstance, private readonly crisEndpointUrl: string, typeFilterName: string = "{{{typeFilterName}}}")
                                     {
                                         super();
+                                        this.#typeFilterName = typeFilterName;
+                                        this.#crisEndpointUrl = crisEndpointUrl + (crisEndpointUrl.indexOf('?') < 0 ? "?" : "&" ) + "TypeFilterName=" + typeFilterName;
                                         this.axiosConfig = defaultCrisAxiosConfig;
                                     }
 
