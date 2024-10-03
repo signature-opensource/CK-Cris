@@ -532,7 +532,7 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
             // - The IAspNetCrisResultError that must be transformed into a CrisError.
 
             // The AfterCodeGeneration detect monitor error or fatal.
-            var axios = modelFile.Root.LibraryManager.RegisterLibrary( monitor, "axios", "^1.5.1", DependencyKind.Dependency );
+            var axios = modelFile.Root.LibraryManager.RegisterLibrary( monitor, "axios", DependencyKind.PeerDependency );
             if( axios == null ) return null;
 
             fHttpEndpoint.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" )

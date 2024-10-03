@@ -1,0 +1,23 @@
+{
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@local/ck-gen": "workspace:*",
+    "@types/jest": "^29.5.13",
+    "@types/node": "^22.7.4",
+    "@yarnpkg/sdks": "^3.2",
+    "jest": "^29.7",
+    "jest-environment-jsdom": "^29.7",
+    "ts-jest": "^29.2.5",
+    "typescript": "=5.4.5"
+  },
+  "name": "diamondresultandcommand_works",
+  "private": true,
+  "ckVersion": 1,
+  "workspaces": [
+    "ck-gen"
+  ],
+  "dependencies": {},
+  "peerDependencies": {}
+}
