@@ -534,6 +534,7 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
             // The AfterCodeGeneration detect monitor error or fatal.
             var axios = modelFile.Root.LibraryManager.RegisterLibrary( monitor, "axios", DependencyKind.PeerDependency );
             if( axios == null ) return null;
+            axios.IsUsed = true;
 
             fHttpEndpoint.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" )
                                  .EnsureImport( crisEndpoint )
