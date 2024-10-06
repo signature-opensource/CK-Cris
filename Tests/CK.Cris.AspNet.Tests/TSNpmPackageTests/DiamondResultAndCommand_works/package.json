@@ -1,7 +1,12 @@
 {
+  "name": "diamondresultandcommand_works",
+  "private": true,
   "scripts": {
     "test": "jest"
   },
+  "workspaces": [
+    "ck-gen"
+  ],
   "devDependencies": {
     "@local/ck-gen": "workspace:*",
     "@types/jest": "^29.5.13",
@@ -12,12 +17,8 @@
     "ts-jest": "^29.2.5",
     "typescript": "=5.4.5"
   },
-  "name": "diamondresultandcommand_works",
-  "private": true,
   "ckVersion": 1,
-  "workspaces": [
-    "ck-gen"
-  ],
-  "dependencies": {},
-  "peerDependencies": {}
+  "dependencies": {
+    "axios": "^1.7.7"
+  }
 }
