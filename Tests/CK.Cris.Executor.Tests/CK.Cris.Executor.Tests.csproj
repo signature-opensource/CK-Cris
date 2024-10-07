@@ -4,9 +4,9 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Auth.Abstractions" Version="0.0.0--053ij2b-develop" />
-    <PackageReference Include="CK.Testing.StObjEngine" Version="0.0.0--053ij2i-develop" />
-    <PackageReference Include="CK.Testing.Nunit" Version="0.0.0--053ij2b-develop" />
+    <PackageReference Include="CK.Auth.Abstractions" Version="0.0.0--053ijhz-develop" />
+    <PackageReference Include="CK.Testing.StObjEngine" Version="0.0.0--053iji0-develop" />
+    <PackageReference Include="CK.Testing.Nunit" Version="0.0.0--053ijhr-develop" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
   </ItemGroup>
