@@ -3,27 +3,26 @@ using CK.Cris;
 using System;
 using System.Reflection;
 
-namespace CK.Setup.Cris
+namespace CK.Setup.Cris;
+
+sealed class RoutedEventHandlerAttributeImpl : BaseHandlerAttributeImpl
 {
-    sealed class RoutedEventHandlerAttributeImpl : BaseHandlerAttributeImpl
+    readonly RoutedEventHandlerAttribute _a;
+
+    public RoutedEventHandlerAttributeImpl( RoutedEventHandlerAttribute a, Type t, MethodInfo m )
+        : base( t, m )
     {
-        readonly RoutedEventHandlerAttribute _a;
+        _a = a;
+    }
 
-        public RoutedEventHandlerAttributeImpl( RoutedEventHandlerAttribute a, Type t, MethodInfo m )
-            : base( t, m )
-        {
-            _a = a;
-        }
-
-        private protected override CSCodeGenerationResult DoImplement( IActivityMonitor monitor,
-                                                                       IStObjMap engineMap,
-                                                                       CrisTypeRegistry crisTypeRegistry,
-                                                                       IStObjFinalClass impl,
-                                                                       MethodInfo method )
-        {
-            return crisTypeRegistry.RegisterMultiTargetHandler( monitor, MultiTargetHandlerKind.RoutedEventHandler, engineMap, impl!, method, _a.FileName, _a.LineNumber )
-                    ? CSCodeGenerationResult.Success
-                    : CSCodeGenerationResult.Failed;
-        }
+    private protected override CSCodeGenerationResult DoImplement( IActivityMonitor monitor,
+                                                                   IStObjMap engineMap,
+                                                                   CrisTypeRegistry crisTypeRegistry,
+                                                                   IStObjFinalClass impl,
+                                                                   MethodInfo method )
+    {
+        return crisTypeRegistry.RegisterMultiTargetHandler( monitor, MultiTargetHandlerKind.RoutedEventHandler, engineMap, impl!, method, _a.FileName, _a.LineNumber )
+                ? CSCodeGenerationResult.Success
+                : CSCodeGenerationResult.Failed;
     }
 }

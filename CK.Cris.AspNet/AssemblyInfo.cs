@@ -1,5 +1,3 @@
-using System;
-
 [assembly: CK.Setup.IsPFeature()]
 //[assembly: CK.Setup.RequiredEngine( "CK.Cris.Engine" )]
 

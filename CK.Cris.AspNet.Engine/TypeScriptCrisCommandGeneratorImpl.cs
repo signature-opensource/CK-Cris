@@ -563,14 +563,14 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                                 **/
                                 export class HttpCrisEndpoint extends CrisEndpoint
                                 {
-
+                                    #axios: AxiosInstance;
                                     #typeFilterName : string;
                                     #crisEndpointUrl : string;
 
                                     /**
                                      * Gets the TypeFilterName that defines the exchangeable set of objects
                                      * with the backend.
-                                     * Defaults to '{{{typeFilterName}}}' (for this ck-gen folder).
+                                     * Defaults to CTSType.typeFilterName = '{{{typeFilterName}}}' (the TypeFilterName for this ck-gen folder).
                                      */
                                     public get typeFilterName() { return this.#typeFilterName; }
 
@@ -580,14 +580,15 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                                     public axiosConfig: RawAxiosRequestConfig; 
 
                                     /**
-                                     * Initializes a new HttpEndpoint that uses an Axios instance bound to a endpoint url.  
+                                     * Initializes a new HttpCrisEndpoint.  
                                      * @param axios The axios instance.
                                      * @param crisEndpointUrl The Cris endpoint url to use.
                                      * @param typeFilterName The TypeFilterName that defines the set of objects that can be exchanged with the backend.
                                      */
-                                    constructor(private readonly axios: AxiosInstance, private readonly crisEndpointUrl: string, typeFilterName: string = "{{{typeFilterName}}}")
+                                    constructor( axios: AxiosInstance, crisEndpointUrl: string, typeFilterName: string = CTSType.typeFilterName)
                                     {
                                         super();
+                                        this.#axios = axios;
                                         this.#typeFilterName = typeFilterName;
                                         this.#crisEndpointUrl = crisEndpointUrl + (crisEndpointUrl.indexOf('?') < 0 ? "?" : "&" ) + "TypeFilterName=" + typeFilterName;
                                         this.axiosConfig = defaultCrisAxiosConfig;
@@ -598,7 +599,7 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                                         try
                                         {
                                             const req = JSON.stringify(CTSType.toTypedJson(command));
-                                            const resp = await this.axios.post(this.crisEndpointUrl, req, this.axiosConfig);
+                                            const resp = await this.#axios.post(this.#crisEndpointUrl, req, this.axiosConfig);
                                             const netResult = <AspNetResult>CTSType["AspNetResult"].nosj( JSON.parse(resp.data) );
                                             let r = netResult.result;
                                             if( r instanceof AspNetCrisResultError ) 

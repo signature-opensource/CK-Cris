@@ -7,145 +7,113 @@ using System.Linq;
 using System.Threading.Tasks;
 using static CK.Testing.MonitorTestHelper;
 
-namespace CK.Cris.Executor.Tests
+namespace CK.Cris.Executor.Tests;
+
+[TestFixture]
+public class CrisExecutionContextTests
 {
-    [TestFixture]
-    public class CrisExecutionContextTests
+    [RoutedEvent]
+    public interface IRoutedEvent : IEvent
     {
-        [RoutedEvent]
-        public interface IRoutedEvent : IEvent
-        {
-            public static int CallCount;
-        }
+        public static int CallCount;
+    }
 
-        [RoutedEvent, ImmediateEvent]
-        public interface IRoutedImmediateEvent : IEvent
-        {
-            public static int CallCount;
-        }
+    [RoutedEvent, ImmediateEvent]
+    public interface IRoutedImmediateEvent : IEvent
+    {
+        public static int CallCount;
+    }
 
-        [ImmediateEvent]
-        public interface ICallerOnlyImmediateEvent : IEvent
-        {
-            public static int CallCount;
-        }
+    [ImmediateEvent]
+    public interface ICallerOnlyImmediateEvent : IEvent
+    {
+        public static int CallCount;
+    }
 
-        public interface ICallerOnlyFinalEvent : IEvent
-        {
-        }
+    public interface ICallerOnlyFinalEvent : IEvent
+    {
+    }
 
-        public interface IStupidCommand : ICommand<int>
-        {
-            public static int CallCount;
+    public interface IStupidCommand : ICommand<int>
+    {
+        public static int CallCount;
 
-            string Message { get; set; }
-        }
+        string Message { get; set; }
+    }
 
-        public interface IFinalCommand : ICommand
-        {
-            public static int CallCount;
-        }
+    public interface IFinalCommand : ICommand
+    {
+        public static int CallCount;
+    }
 
-        public class Handlers : ISingletonAutoService
+    public class Handlers : ISingletonAutoService
+    {
+        [CommandHandler]
+        public async Task<int> HandleStupidCommandAsync( IActivityMonitor monitor, ICrisCommandContext ctx, IStupidCommand e )
         {
-            [CommandHandler]
-            public async Task<int> HandleStupidCommandAsync( IActivityMonitor monitor, ICrisCommandContext ctx, IStupidCommand e )
+            using( monitor.OpenInfo( $"Stupid command called. Message = {e.Message}" ) )
             {
-                using( monitor.OpenInfo( $"Stupid command called. Message = {e.Message}" ) )
+                var c = ++IStupidCommand.CallCount;
+                if( c < 5 )
                 {
-                    var c = ++IStupidCommand.CallCount;
-                    if( c < 5 )
-                    {
-                        await ctx.EmitEventAsync<IRoutedImmediateEvent>( e => { } );
-                        await ctx.EmitEventAsync<IRoutedEvent>( e => { } );
-                    }
-                    return c;
+                    await ctx.EmitEventAsync<IRoutedImmediateEvent>( e => { } );
+                    await ctx.EmitEventAsync<IRoutedEvent>( e => { } );
                 }
-            }
-
-            [RoutedEventHandler]
-            public async Task OnIRoutedImmediateEventCallStupidCommandAsync( ICrisEventContext ctx, IRoutedImmediateEvent e )
-            {
-                ++IRoutedImmediateEvent.CallCount;
-                using( ctx.Monitor.OpenTrace( $"IRoutedImmediateEvent => StupidCommand" ) )
-                {
-                    var r = (int)(await ctx.ExecuteCommandAsync<IStupidCommand>( c => c.Message = "Triggered by an event." ))!;
-                    ctx.Monitor.CloseGroup( $"StupidCommand result = {r}" );
-                }
-            }
-
-            [RoutedEventHandler]
-            public void OnIRoutedImmediateEventTraceCallCounts( IActivityMonitor monitor, IRoutedImmediateEvent e )
-            {
-                monitor.Trace( $"Calls count: IStupidCommand: {IStupidCommand.CallCount}, IRoutedImmediateEvent: {IRoutedImmediateEvent.CallCount}, IRoutedEvent: {IRoutedEvent.CallCount}." );
-            }
-
-            [RoutedEventHandler]
-            public async Task OnIRoutedEventAsync( ICrisEventContext ctx, IRoutedEvent e )
-            {
-                ++IRoutedEvent.CallCount;
-                ctx.Monitor.Trace( $"IRoutedEvent called. Executing IFinalCommand." );
-                await ctx.ExecuteCommandAsync<IFinalCommand>( c => { } );
+                return c;
             }
         }
 
-        public class FinalHandler : ISingletonAutoService
+        [RoutedEventHandler]
+        public async Task OnIRoutedImmediateEventCallStupidCommandAsync( ICrisEventContext ctx, IRoutedImmediateEvent e )
         {
-            [CommandHandler]
-            public async Task HandleFinalCommandAsync( ICrisCommandContext ctx, IFinalCommand f )
+            ++IRoutedImmediateEvent.CallCount;
+            using( ctx.Monitor.OpenTrace( $"IRoutedImmediateEvent => StupidCommand" ) )
             {
-                ++IFinalCommand.CallCount;
-                ctx.Monitor.Info( $"Final called." );
-                await ctx.EmitEventAsync<ICallerOnlyFinalEvent>( e => { } );
+                var r = (int)(await ctx.ExecuteCommandAsync<IStupidCommand>( c => c.Message = "Triggered by an event." ))!;
+                ctx.Monitor.CloseGroup( $"StupidCommand result = {r}" );
             }
         }
 
-        [SetUp] public void ResetCounters()
+        [RoutedEventHandler]
+        public void OnIRoutedImmediateEventTraceCallCounts( IActivityMonitor monitor, IRoutedImmediateEvent e )
         {
-            IRoutedEvent.CallCount = 0;
-            IRoutedImmediateEvent.CallCount = 0;
-            ICallerOnlyImmediateEvent.CallCount = 0;
-            IStupidCommand.CallCount = 0;
-            IFinalCommand.CallCount = 0;
+            monitor.Trace( $"Calls count: IStupidCommand: {IStupidCommand.CallCount}, IRoutedImmediateEvent: {IRoutedImmediateEvent.CallCount}, IRoutedEvent: {IRoutedEvent.CallCount}." );
         }
 
-        [Test]
-        public async Task command_and_events_Async()
+        [RoutedEventHandler]
+        public async Task OnIRoutedEventAsync( ICrisEventContext ctx, IRoutedEvent e )
         {
-            using var auto = TestHelper.CreateAutomaticServicesWithMonitor(
-                [
-                    typeof( CrisExecutionContext ),
-                    typeof( IStupidCommand ),
-                    typeof( IRoutedImmediateEvent ),
-                    typeof( IRoutedEvent ),
-                    typeof( Handlers ),
-                    typeof( IFinalCommand ),
-                    typeof( ICallerOnlyFinalEvent ),
-                    typeof( FinalHandler )
-                ] );
-            using( var scope = auto.Services.CreateScope() )
-            {
-                var services = scope.ServiceProvider;
-
-                var executor = services.GetRequiredService<CrisExecutionContext>();
-                var command = services.GetRequiredService<PocoDirectory>().Create<IStupidCommand>( c => c.Message = "Run!" );
-                var executed = await executor.ExecuteRootCommandAsync( command );
-
-                executed.Result.Should().Be( 1 );
-                IStupidCommand.CallCount.Should().Be( 5 );
-                IFinalCommand.CallCount.Should().Be( 4 );
-
-                executed.Events.Should().HaveCount( 4 + 4 );
-                executed.Events.Take( 4 ).Should().AllBeAssignableTo<IRoutedEvent>();
-                executed.Events.Skip( 4 ).Should().AllBeAssignableTo<ICallerOnlyFinalEvent>();
-            }
+            ++IRoutedEvent.CallCount;
+            ctx.Monitor.Trace( $"IRoutedEvent called. Executing IFinalCommand." );
+            await ctx.ExecuteCommandAsync<IFinalCommand>( c => { } );
         }
+    }
 
-        [Test]
-        public async Task CrisEventHub_relays_the_events_Async()
+    public class FinalHandler : ISingletonAutoService
+    {
+        [CommandHandler]
+        public async Task HandleFinalCommandAsync( ICrisCommandContext ctx, IFinalCommand f )
         {
+            ++IFinalCommand.CallCount;
+            ctx.Monitor.Info( $"Final called." );
+            await ctx.EmitEventAsync<ICallerOnlyFinalEvent>( e => { } );
+        }
+    }
 
-            using var auto = TestHelper.CreateAutomaticServicesWithMonitor(
+    [SetUp]
+    public void ResetCounters()
+    {
+        IRoutedEvent.CallCount = 0;
+        IRoutedImmediateEvent.CallCount = 0;
+        ICallerOnlyImmediateEvent.CallCount = 0;
+        IStupidCommand.CallCount = 0;
+        IFinalCommand.CallCount = 0;
+    }
+
+    [Test]
+    public async Task command_and_events_Async()
+    {
+        using var auto = TestHelper.CreateAutomaticServicesWithMonitor(
             [
                 typeof( CrisExecutionContext ),
                 typeof( IStupidCommand ),
@@ -156,31 +124,63 @@ namespace CK.Cris.Executor.Tests
                 typeof( ICallerOnlyFinalEvent ),
                 typeof( FinalHandler )
             ] );
-            using( var scope = auto.Services.CreateScope() )
-            {
-                var services = scope.ServiceProvider;
+        using( var scope = auto.Services.CreateScope() )
+        {
+            var services = scope.ServiceProvider;
 
-                // No concurrency issue here. We can keep things naive.
-                var immediateEventCollector = new List<IEvent>();
-                var allEventCollector = new List<IEvent>();
-                var hub = services.GetRequiredService<CrisEventHub>();
-                hub.Immediate.Sync += ( monitor, e ) => immediateEventCollector.Add( e );
-                hub.All.Sync += ( monitor, e ) => allEventCollector.Add( e );
+            var executor = services.GetRequiredService<CrisExecutionContext>();
+            var command = services.GetRequiredService<PocoDirectory>().Create<IStupidCommand>( c => c.Message = "Run!" );
+            var executed = await executor.ExecuteRootCommandAsync( command );
 
-                var executor = services.GetRequiredService<CrisExecutionContext>();
-                var command = services.GetRequiredService<PocoDirectory>().Create<IStupidCommand>( c => c.Message = "Run!" );
-                var executed = await executor.ExecuteRootCommandAsync( command );
+            executed.Result.Should().Be( 1 );
+            IStupidCommand.CallCount.Should().Be( 5 );
+            IFinalCommand.CallCount.Should().Be( 4 );
 
-                executed.Events.Should().HaveCount( 4 + 4 );
-                executed.Events.Take( 4 ).Should().AllBeAssignableTo<IRoutedEvent>();
-                executed.Events.Skip( 4 ).Should().AllBeAssignableTo<ICallerOnlyFinalEvent>();
+            executed.Events.Should().HaveCount( 4 + 4 );
+            executed.Events.Take( 4 ).Should().AllBeAssignableTo<IRoutedEvent>();
+            executed.Events.Skip( 4 ).Should().AllBeAssignableTo<ICallerOnlyFinalEvent>();
+        }
+    }
 
-                immediateEventCollector.Count.Should().Be( 4 );
-                immediateEventCollector.Should().AllBeAssignableTo<IRoutedImmediateEvent>();
+    [Test]
+    public async Task CrisEventHub_relays_the_events_Async()
+    {
 
-                allEventCollector.Should().StartWith( immediateEventCollector );
-                allEventCollector.Skip( 4 ).Should().AllBeAssignableTo<IRoutedEvent>();
-            }
+        using var auto = TestHelper.CreateAutomaticServicesWithMonitor(
+        [
+            typeof( CrisExecutionContext ),
+            typeof( IStupidCommand ),
+            typeof( IRoutedImmediateEvent ),
+            typeof( IRoutedEvent ),
+            typeof( Handlers ),
+            typeof( IFinalCommand ),
+            typeof( ICallerOnlyFinalEvent ),
+            typeof( FinalHandler )
+        ] );
+        using( var scope = auto.Services.CreateScope() )
+        {
+            var services = scope.ServiceProvider;
+
+            // No concurrency issue here. We can keep things naive.
+            var immediateEventCollector = new List<IEvent>();
+            var allEventCollector = new List<IEvent>();
+            var hub = services.GetRequiredService<CrisEventHub>();
+            hub.Immediate.Sync += ( monitor, e ) => immediateEventCollector.Add( e );
+            hub.All.Sync += ( monitor, e ) => allEventCollector.Add( e );
+
+            var executor = services.GetRequiredService<CrisExecutionContext>();
+            var command = services.GetRequiredService<PocoDirectory>().Create<IStupidCommand>( c => c.Message = "Run!" );
+            var executed = await executor.ExecuteRootCommandAsync( command );
+
+            executed.Events.Should().HaveCount( 4 + 4 );
+            executed.Events.Take( 4 ).Should().AllBeAssignableTo<IRoutedEvent>();
+            executed.Events.Skip( 4 ).Should().AllBeAssignableTo<ICallerOnlyFinalEvent>();
+
+            immediateEventCollector.Count.Should().Be( 4 );
+            immediateEventCollector.Should().AllBeAssignableTo<IRoutedImmediateEvent>();
+
+            allEventCollector.Should().StartWith( immediateEventCollector );
+            allEventCollector.Skip( 4 ).Should().AllBeAssignableTo<IRoutedEvent>();
         }
     }
 }

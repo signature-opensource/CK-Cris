@@ -1,11 +1,10 @@
 ﻿using CK.Cris;
 
-namespace CK.Auth
+namespace CK.Auth;
+
+/// <summary>
+/// Removes any current authentication information.
+/// </summary>
+public interface ILogoutCommand : ICommand
 {
-    /// <summary>
-    /// Removes any current authentication information.
-    /// </summary>
-    public interface ILogoutCommand : ICommand
-    {
-    }
 }

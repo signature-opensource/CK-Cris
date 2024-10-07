@@ -1,15 +1,14 @@
 using CK.Cris.AmbientValues;
 
-namespace CK.Cris
+namespace CK.Cris;
+
+/// <summary>
+/// Retrieves <see cref="ICurrentCulturePart.CurrentCultureName"/> value.
+/// </summary>
+public interface ICultureAmbientValues : IAmbientValues
 {
     /// <summary>
-    /// Retrieves <see cref="ICurrentCulturePart.CurrentCultureName"/> value.
+    /// Gets or sets the current culture name.
     /// </summary>
-    public interface ICultureAmbientValues : IAmbientValues
-    {
-        /// <summary>
-        /// Gets or sets the current culture name.
-        /// </summary>
-        string CurrentCultureName { get; set; }
-    }
+    string CurrentCultureName { get; set; }
 }

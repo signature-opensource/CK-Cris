@@ -1,5 +1,4 @@
 using CK.Core;
-using System;
 
 namespace CK.Cris
 {

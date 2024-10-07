@@ -102,7 +102,7 @@ namespace CK.Cris.AspNet.Tests
             // Value: 0 is invalid.
             {
                 TestHandler.Called = false;
-                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri+"?UseSimpleError", @"[""Test"",{""Value"":0}]" );
+                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri + "?UseSimpleError", @"[""Test"",{""Value"":0}]" );
                 Throw.DebugAssert( r != null );
                 TestHandler.Called.Should().BeFalse( "Validation error." );
 
@@ -134,7 +134,7 @@ namespace CK.Cris.AspNet.Tests
                 result.ValidationMessages.Should().BeNull( "Since there is no handler, there's no validation at all." );
                 Throw.DebugAssert( result.Result != null );
                 var resultError = (IAspNetCrisResultError)result.Result;
-                resultError.IsValidationError.Should().BeFalse();    
+                resultError.IsValidationError.Should().BeFalse();
             }
         }
 
@@ -159,7 +159,7 @@ namespace CK.Cris.AspNet.Tests
             var pocoDirectory = runningServer.Services.GetRequiredService<PocoDirectory>();
 
             {
-                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri+ "?UseSimpleError", @"[""Test"",{""Value"":3712}]" );
+                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri + "?UseSimpleError", @"[""Test"",{""Value"":3712}]" );
                 Throw.DebugAssert( r != null );
                 var result = await pocoDirectory.GetCrisResultAsync( r );
                 result.CorrelationId.Should().NotBeNullOrWhiteSpace();
