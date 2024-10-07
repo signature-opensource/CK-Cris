@@ -1,4 +1,4 @@
-﻿namespace CK.Cris.HttpSender.Tests;
+namespace CK.Cris.HttpSender.Tests;
 
 public interface ITotalResult : IStandardResultPart
 {

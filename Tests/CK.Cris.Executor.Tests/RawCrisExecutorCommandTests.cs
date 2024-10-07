@@ -307,9 +307,9 @@ public class RawCrisExecutorCommandTests
     {
         using var auto = TestHelper.CreateAutomaticServicesWithMonitor(
             [
-                typeof(RawCrisExecutor),
-                typeof(ITestCommand),
-                typeof(CommandHandlerExplicitImpl)
+                typeof( RawCrisExecutor ),
+                typeof( ITestCommand ),
+                typeof( CommandHandlerExplicitImpl )
             ] );
         using( var scope = auto.Services.CreateScope() )
         {

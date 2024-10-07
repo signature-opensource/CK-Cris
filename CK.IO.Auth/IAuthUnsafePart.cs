@@ -1,4 +1,4 @@
-﻿using CK.Cris;
+using CK.Cris;
 
 namespace CK.Auth;
 

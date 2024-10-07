@@ -99,11 +99,11 @@ public class ICommandHandlerTests
     public void Command_handler_service_must_be_unified_just_like_other_IAutoService()
     {
         TestHelper.GetFailedCollectorResult(
-            [ typeof( CrisDirectory ),
-              typeof( IWithTheResultUnifiedCommand ),
-              typeof( CmdHandlerWithMore ),
-              typeof( CmdHandlerWithAnother ),
-              typeof( CmdHandlerAlternate )
+            [typeof( CrisDirectory ),
+                typeof( IWithTheResultUnifiedCommand ),
+                typeof( CmdHandlerWithMore ),
+                typeof( CmdHandlerWithAnother ),
+                typeof( CmdHandlerAlternate )
             ],
             "Service Class Unification: unable to resolve 'CK.Cris.Tests.ICommandHandlerTests+CmdHandlerOfBase' to a unique specialization.",
             "Base class 'CK.Cris.Tests.ICommandHandlerTests+CmdHandlerOfBase' cannot be unified by any of this candidates: 'ICommandHandlerTests.CmdHandlerWithAnother', 'ICommandHandlerTests.CmdHandlerWithMore'." );
