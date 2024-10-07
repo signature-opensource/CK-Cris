@@ -11,7 +11,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CK.Testing.StObjEngine" Version="0.0.0--053isn2-develop" />
-    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="0.0.0--053ispg-develop" />
+    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="0.0.0--053ith8-develop" />
     <PackageReference Include="CK.AppIdentity.Hosting" Version="0.0.0--053imdg-develop" />
   </ItemGroup>
   <ItemGroup>
