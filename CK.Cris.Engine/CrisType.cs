@@ -332,18 +332,18 @@ public sealed partial class CrisType
             case MultiTargetHandlerKind.ConfigureAmbientServices: Add( CrisHandlerKind.ConfigureAmbientServices, ref _ambientServicesConfigurators ); break;
             case MultiTargetHandlerKind.RestoreAmbientServices: Add( CrisHandlerKind.RestoreAmbientServices, ref _ambientServicesRestorers ); break;
             case MultiTargetHandlerKind.RoutedEventHandler:
+            {
+                if( _kind != CrisPocoKind.RoutedImmediateEvent && _kind != CrisPocoKind.RoutedEvent )
                 {
-                    if( _kind != CrisPocoKind.RoutedImmediateEvent && _kind != CrisPocoKind.RoutedEvent )
-                    {
-                        monitor.Warn( $"Method '{MethodName( method, parameters )}' will never be called: event '{PocoName}' is not decorated with [RoutedEvent] attribute (it can only be observed by the caller)." );
-                    }
-                    else
-                    {
-                        _eventHandlers ??= new List<HandlerRoutedEventMethod>();
-                        _eventHandlers.Add( new HandlerRoutedEventMethod( this, owner, method, parameters, fileName, lineNumber, cmdOrPartParameter, isRefAsync, isValAsync ) );
-                    }
-                    break;
+                    monitor.Warn( $"Method '{MethodName( method, parameters )}' will never be called: event '{PocoName}' is not decorated with [RoutedEvent] attribute (it can only be observed by the caller)." );
                 }
+                else
+                {
+                    _eventHandlers ??= new List<HandlerRoutedEventMethod>();
+                    _eventHandlers.Add( new HandlerRoutedEventMethod( this, owner, method, parameters, fileName, lineNumber, cmdOrPartParameter, isRefAsync, isValAsync ) );
+                }
+                break;
+            }
         }
         return true;
     }
