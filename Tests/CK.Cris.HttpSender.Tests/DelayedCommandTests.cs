@@ -103,7 +103,7 @@ public class DelayedCommandTests
                                                           typeof( IPocoAuthenticationInfo ),
                                                           typeof( IPocoUserInfo ),
                                                           typeof( CrisWebFrontAuthCommandHandler ) );
-        var serverMap = serverEngineConfiguration.RunSuccessfully().LoadMap();
+        var serverMap = (await serverEngineConfiguration.RunSuccessfullyAsync()).LoadMap();
         var serverBuilder = WebApplication.CreateSlimBuilder();
         await using var runningServer = await serverBuilder.CreateRunningAspNetAuthenticationServerAsync( serverMap, configureApplication: app => app.UseMiddleware<CrisMiddleware>() );
 
@@ -121,7 +121,7 @@ public class DelayedCommandTests
                                            typeof( CommonPocoJsonSupport ),
                                            typeof( ApplicationIdentityService ),
                                            typeof( CrisHttpSenderFeatureDriver ) );
-        var callerMap = callerConf.RunSuccessfully().LoadMap();
+        var callerMap = (await callerConf.RunSuccessfullyAsync()).LoadMap();
 
         using var runningCaller = await LocalHelper.CreateRunningCallerAsync( callerMap, serverAddress, cancellation );
 

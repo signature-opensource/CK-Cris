@@ -3,6 +3,7 @@ using CK.Testing;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Threading.Tasks;
 using static CK.Testing.MonitorTestHelper;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
@@ -19,11 +20,11 @@ public class CrisDirectoryTests
     }
 
     [Test]
-    public void simple_command_models()
+    public async Task simple_command_models_Async()
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( ITestCommand ) );
-        using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
+        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
 
         var poco = auto.Services.GetRequiredService<PocoDirectory>();
 
@@ -44,13 +45,13 @@ public class CrisDirectoryTests
     }
 
     [Test]
-    public void IEvent_cannot_be_a_ICommand()
+    public async Task IEvent_cannot_be_a_ICommand_Async()
     {
         using( TestHelper.Monitor.CollectTexts( out var texts ) )
         {
             var configuration = TestHelper.CreateDefaultEngineConfiguration();
             configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( ITestSpecCommand ) );
-            configuration.GetFailedAutomaticServices(
+            await configuration.GetFailedAutomaticServicesAsync(
                 "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ITestCommand' cannot be both a IEvent and a IAbstractCommand." );
         }
     }
@@ -60,13 +61,13 @@ public class CrisDirectoryTests
     }
 
     [Test]
-    public void IEvent_cannot_be_a_ICommand_TResult()
+    public async Task IEvent_cannot_be_a_ICommand_TResult_Async()
     {
         using( TestHelper.Monitor.CollectTexts( out var texts ) )
         {
             var configuration = TestHelper.CreateDefaultEngineConfiguration();
             configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( ICmdNoWay ) );
-            configuration.GetFailedAutomaticServices(
+            await configuration.GetFailedAutomaticServicesAsync(
                 "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ICmdNoWay' cannot be both a IEvent and a IAbstractCommand." );
         }
     }

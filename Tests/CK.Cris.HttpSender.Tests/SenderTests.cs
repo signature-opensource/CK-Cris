@@ -49,7 +49,7 @@ public class SenderTests
                                                           typeof( CrisAspNetService ),
                                                           typeof( CrisWebFrontAuthCommandHandler ) );
 
-        var serverMap = serverEngineConfiguration.RunSuccessfully().LoadMap();
+        var serverMap = (await serverEngineConfiguration.RunSuccessfullyAsync()).LoadMap();
         var serverBuilder = WebApplication.CreateSlimBuilder();
         await using var runningServer = await serverBuilder.CreateRunningAspNetAuthenticationServerAsync( serverMap, configureApplication: app => app.UseMiddleware<CrisMiddleware>() );
 
@@ -71,7 +71,7 @@ public class SenderTests
                                                           typeof( ApplicationIdentityService ),
                                                           typeof( CrisHttpSenderFeatureDriver ) );
 
-        var callerMap = callerEngineConfiguration.RunSuccessfully().LoadMap();
+        var callerMap = (await callerEngineConfiguration.RunSuccessfullyAsync()).LoadMap();
         using var runningCaller = await LocalHelper.CreateRunningCallerAsync( callerMap, serverAddress );
 
         var callerPoco = runningCaller.Services.GetRequiredService<PocoDirectory>();
@@ -213,7 +213,7 @@ public class SenderTests
                                                           typeof( ApplicationIdentityService ),
                                                           typeof( ApplicationIdentityServiceConfiguration ),
                                                           typeof( CrisHttpSenderFeatureDriver ) );
-        var map = callerEngineConfiguration.RunSuccessfully().LoadMap();
+        var map = (await callerEngineConfiguration.RunSuccessfullyAsync()).LoadMap();
 
         // The serverAddress http://[::1]:65036/ has no running server.
         using var runningCaller = await LocalHelper.CreateRunningCallerAsync( map, "http://[::1]:65036/" );

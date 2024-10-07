@@ -71,7 +71,7 @@ public class SimpleTests
     }
 
     [OneTimeSetUp]
-    public void OneTimeSetUp()
+    public async Task OneTimeSetUpAsync()
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( typeof( CrisBackgroundExecutorService ),
@@ -80,7 +80,7 @@ public class SimpleTests
                                               typeof( StupidHandlers ),
                                               typeof( CrisExecutionContext ),
                                               typeof( RegularScopedService ) );
-        _auto = configuration.RunSuccessfully().CreateAutomaticServices();
+        _auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         _auto.Services.GetRequiredService<CrisExecutionHost>().ParallelRunnerCount = 1;
     }
 

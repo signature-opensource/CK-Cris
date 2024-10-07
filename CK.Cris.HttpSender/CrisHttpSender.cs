@@ -18,6 +18,10 @@ namespace CK.Cris.HttpSender;
 /// <summary>
 /// Supports sending Cris commands to "<see cref="IRemoteParty.Address"/>/.cris/net" endpoint.
 /// The remote address must be a "http://" or "https://" address without any path or query part.
+/// <para>
+/// This sender is anonymous and can send any command that are in the "AllExchangeable" type set of the
+/// receiver.
+/// </para>
 /// </summary>
 public sealed partial class CrisHttpSender : ICrisHttpSender
 {
@@ -140,7 +144,7 @@ public sealed partial class CrisHttpSender : ICrisHttpSender
         string? payloadString = null;
         try
         {
-            using var payload = (RecyclableMemoryStream)Util.RecyclableStreamManager.GetStream();
+            using var payload = Util.RecyclableStreamManager.GetStream();
             _pocoDirectory.WriteJson( (IBufferWriter<byte>)payload, command, withType: true, PocoJsonExportOptions.Default );
             monitor.Info( CrisDirectory.CrisTag, $"Sending {(payloadString = Encoding.UTF8.GetString( payload.GetReadOnlySequence() ))} to '{_remote.FullName}'.", lineNumber, fileName );
             using var request = new HttpRequestMessage( HttpMethod.Post, _endpointUrl );

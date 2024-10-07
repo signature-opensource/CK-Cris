@@ -81,7 +81,7 @@ public class CollectAmbientValuesTests
         var authTypeSystem = new StdAuthenticationTypeSystem();
         var authInfo = authTypeSystem.AuthenticationInfo.Create( authTypeSystem.UserInfo.Create( 3712, "John" ), DateTime.UtcNow.AddDays( 1 ) );
 
-        using var auto = configuration.RunSuccessfully().CreateAutomaticServices( configureServices: services =>
+        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices( configureServices: services =>
         {
             services.AddScoped<IAuthenticationInfo>( s => authInfo );
             services.AddScoped<IActivityMonitor>( s => TestHelper.Monitor );
@@ -125,7 +125,7 @@ public class CollectAmbientValuesTests
     }
 
     [Test]
-    public void IAmbiantValues_must_cover_all_AmbientServiceValue_properties()
+    public async Task IAmbiantValues_must_cover_all_AmbientServiceValue_properties_Async()
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
@@ -134,7 +134,7 @@ public class CollectAmbientValuesTests
                                               typeof( ISomePart ),
                                               typeof( ISomeCommand ),
                                               typeof( FakeHandlerButRequiredOtherwiseCommandIsSkipped ) );
-        configuration.GetFailedAutomaticServices(
+        await configuration.GetFailedAutomaticServicesAsync(
             "Missing IAmbientValues properties for [AmbientServiceValue] properties.",
             new[] { "'int Something { get; set; }'" } );
     }
@@ -164,7 +164,7 @@ public class CollectAmbientValuesTests
                                               typeof( NormalizedCultureInfoUbiquitousServiceDefault ),
                                               typeof( ICultureCommand ),
                                               typeof( FakeCommandHandler ) );
-        using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
+        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         auto.Services.GetRequiredService<IEnumerable<IHostedService>>().Should().HaveCount( 1, "Required to initialize the Global Service Provider." );
 
         using( var scope = auto.Services.CreateScope() )

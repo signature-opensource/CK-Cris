@@ -66,7 +66,7 @@ public class RawCrisExecutorCommandTests
                                                   _ => throw new NotImplementedException()
                                               } );
 
-        using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
+        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         using( var scope = auto.Services.CreateScope() )
         {
             var services = scope.ServiceProvider;
@@ -135,7 +135,7 @@ public class RawCrisExecutorCommandTests
                                                   _ => throw new NotImplementedException()
                                               } );
 
-        using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
+        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         using( var scope = auto.Services.CreateScope() )
         {
             var services = scope.ServiceProvider;
@@ -151,14 +151,14 @@ public class RawCrisExecutorCommandTests
     }
 
     [Test]
-    public void ambiguous_handler_detection()
+    public async Task ambiguous_handler_detection_Async()
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
                                               typeof( IIntTestCommand ),
                                               typeof( CmdIntRefAsyncHandler ),
                                               typeof( CmdIntValAsyncHandler ) );
-        configuration.GetFailedAutomaticServices(
+        await configuration.GetFailedAutomaticServicesAsync(
             "Ambiguity: both 'CmdIntValAsyncHandler.HandleCommandAsync( IIntTestCommand cmd )' and 'CK.Cris.Executor.Tests.RawCrisExecutorCommandTests+CmdIntRefAsyncHandler.HandleCommandAsync' handle 'CK.Cris.Executor.Tests.RawCrisExecutorCommandTests.IIntTestCommand' command." );
     }
 
@@ -168,7 +168,7 @@ public class RawCrisExecutorCommandTests
 
 
     [Test]
-    public void ambiguous_handler_resolution_thanks_to_the_ICommanHandlerT_marker()
+    public async Task ambiguous_handler_resolution_thanks_to_the_ICommanHandlerT_marker_Async()
     {
         CmdIntValAsyncHandler.Called = false;
 
@@ -177,7 +177,7 @@ public class RawCrisExecutorCommandTests
                                               typeof( IIntTestCommand ),
                                               typeof( CmdIntRefAsyncHandler ),
                                               typeof( CmdIntValAsyncHandlerService ) );
-        using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
+        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
     }
 
 
@@ -209,33 +209,33 @@ public class RawCrisExecutorCommandTests
     }
 
     [Test]
-    public void return_type_mismatch_detection()
+    public async Task return_type_mismatch_detection_Async()
     {
         {
             var configuration = TestHelper.CreateDefaultEngineConfiguration();
             configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
                                                   typeof( IIntTestCommand ),
                                                   typeof( CmdIntSyncHandlerWithBadReturnType1 ) );
-            CheckUniqueCommandHasNoHandler( configuration );
+            await CheckUniqueCommandHasNoHandlerAsync( configuration );
         }
         {
             var configuration = TestHelper.CreateDefaultEngineConfiguration();
             configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
                                                   typeof( IIntTestCommand ),
                                                   typeof( CmdIntSyncHandlerWithBadReturnType2 ) );
-            CheckUniqueCommandHasNoHandler( configuration );
+            await CheckUniqueCommandHasNoHandlerAsync( configuration );
         }
         {
             var configuration = TestHelper.CreateDefaultEngineConfiguration();
             configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
                                                   typeof( IIntTestCommand ),
                                                   typeof( CmdIntSyncHandlerWithBadReturnType3 ) );
-            CheckUniqueCommandHasNoHandler( configuration );
+            await CheckUniqueCommandHasNoHandlerAsync( configuration );
         }
 
-        static void CheckUniqueCommandHasNoHandler( EngineConfiguration configuration )
+        static async Task CheckUniqueCommandHasNoHandlerAsync( EngineConfiguration configuration )
         {
-            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
+            using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
             using( var scope = auto.Services.CreateScope() )
             {
                 var directory = scope.ServiceProvider.GetRequiredService<CrisDirectory>();
@@ -266,7 +266,7 @@ public class RawCrisExecutorCommandTests
     [Test]
     public async Task calling_public_AutoService_implementation_Async()
     {
-        using var auto = TestHelper.CreateAutomaticServicesWithMonitor(
+        using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
             [
                 typeof( RawCrisExecutor ),
                 typeof( ITestCommand ),
@@ -305,7 +305,7 @@ public class RawCrisExecutorCommandTests
     [Test]
     public async Task calling_explicit_AutoService_implementation_Async()
     {
-        using var auto = TestHelper.CreateAutomaticServicesWithMonitor(
+        using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
             [
                 typeof( RawCrisExecutor ),
                 typeof( ITestCommand ),

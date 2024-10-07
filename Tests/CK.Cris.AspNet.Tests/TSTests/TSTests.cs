@@ -142,7 +142,7 @@ public class TSTests
                                                                                            typeof( IBeautifulCommand ),
                                                                                            typeof( IBuggyCommand ),
                                                                                            typeof( IWithMessageCommand ) );
-        var map = configuration.RunSuccessfully().LoadMap();
+        var map = (await configuration.RunSuccessfullyAsync()).LoadMap();
         var builder = WebApplication.CreateSlimBuilder();
         await using var runningServer = await builder.CreateRunningAspNetAuthenticationServerAsync( map, configureApplication: app => app.UseMiddleware<CrisMiddleware>() );
 

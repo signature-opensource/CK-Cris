@@ -3,6 +3,7 @@ using CK.Cris.AmbientValues;
 using CK.Testing;
 using NUnit.Framework;
 using System;
+using System.Threading.Tasks;
 using static CK.Testing.MonitorTestHelper;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
@@ -26,11 +27,11 @@ public class AmbientValuesTests
 
     [TestCase( typeof( IInvalid1Command ), "int" )]
     [TestCase( typeof( IInvalid2Command ), "string" )]
-    public void AmbientValues_must_be_nullable( Type t, string badType )
+    public async Task AmbientValues_must_be_nullable_Async( Type t, string badType )
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), t );
-        configuration.GetFailedAutomaticServices(
+        await configuration.GetFailedAutomaticServicesAsync(
             $"[AmbientServiceValue] '{badType} CK.Cris.Tests.AmbientValuesTests.{t.Name}.NoWay' must be nullable. Ambient values must always be nullable." );
     }
 
@@ -46,11 +47,11 @@ public class AmbientValuesTests
 
     [TestCase( typeof( IInvalid1Values ), "int" )]
     [TestCase( typeof( IInvalid2Values ), "string" )]
-    public void IAmbientValues_properties_must_not_be_nullable( Type t, string badType )
+    public async Task IAmbientValues_properties_must_not_be_nullable_Async( Type t, string badType )
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), t );
-        configuration.GetFailedAutomaticServices( $"IAmbientValues properties cannot be nullable: {badType}? NoWay." );
+        await configuration.GetFailedAutomaticServicesAsync( $"IAmbientValues properties cannot be nullable: {badType}? NoWay." );
     }
 
     public interface IAmNotCrisPoco : IPoco
@@ -60,13 +61,13 @@ public class AmbientValuesTests
     }
 
     [Test]
-    public void AmbientValues_properties_can_only_appear_in_Cris_Poco_Types()
+    public async Task AmbientValues_properties_can_only_appear_in_Cris_Poco_Types_Async()
     {
         // Add the IAmbientValuesCollectCommand so that there is at least one Poco otherwise
         // Poco handling is skipped.
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IAmNotCrisPoco ), typeof( IAmbientValuesCollectCommand ) );
-        configuration.GetFailedAutomaticServices(
+        await configuration.GetFailedAutomaticServicesAsync(
             "Invalid [AmbientServiceValue] 'CK.Cris.Tests.AmbientValuesTests.IAmNotCrisPoco.NoWay' on PrimaryPoco. Only ICrisPoco properties can be AmbientService values." );
     }
 
@@ -89,7 +90,7 @@ public class AmbientValuesTests
     }
 
     [Test]
-    public void AmbientValues_properties_must_match_IAmbiantValues_properties_Types()
+    public async Task AmbientValues_properties_must_match_IAmbiantValues_properties_Types_Async()
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ),
@@ -98,7 +99,7 @@ public class AmbientValuesTests
                                               typeof( ITestAmbientValues ),
                                               typeof( IAmbientValuesCollectCommand ) );
         // no error: V1 is a string and V2 is an int.
-        using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
+        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
     }
 
 
@@ -111,14 +112,14 @@ public class AmbientValuesTests
     }
 
     [Test]
-    public void missing_AmbientServiceHub_in_RestoreAmbientServices()
+    public async Task missing_AmbientServiceHub_in_RestoreAmbientServices_Async()
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ),
                                               typeof( IAmCommand ),
                                               typeof( MissingAmbientServiceHub ),
                                               typeof( ITestAmbientValues ) );
-        configuration.GetFailedAutomaticServices(
+        await configuration.GetFailedAutomaticServicesAsync(
             "[RestoreAmbientServices] method 'MissingAmbientServiceHub.ConfigureCurrentCulture( IAmCommand cmd )' must take a 'AmbientServiceHub' parameter to configure the ambient services." );
     }
 

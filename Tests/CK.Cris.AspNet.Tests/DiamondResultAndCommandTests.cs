@@ -3,6 +3,7 @@ using CK.Testing;
 using FluentAssertions;
 using NUnit.Framework;
 using System.IO;
+using System.Threading.Tasks;
 using static CK.Testing.MonitorTestHelper;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
@@ -14,7 +15,7 @@ public class DiamondResultAndCommandTests
 {
     [Test]
     [Ignore( "This fails with 'Cannot find module 'axios' or its corresponding type declarations.' but WHY???" )]
-    public void DiamondResultAndCommand_works()
+    public async Task DiamondResultAndCommand_works_Async()
     {
         var targetOutputPath = TestHelper.GetTypeScriptNpmPackageTargetProjectPath();
 
@@ -23,7 +24,7 @@ public class DiamondResultAndCommandTests
                                               typeof( Cris.Tests.IWithTheResultUnifiedCommand ),
                                               typeof( Cris.Tests.IUnifiedResult ) );
         configuration.FirstBinPath.EnsureTypeScriptConfigurationAspect( targetOutputPath, typeof( Cris.Tests.IWithTheResultUnifiedCommand ) );
-        configuration.RunSuccessfully();
+        await configuration.RunSuccessfullyAsync();
 
         var fCommand = targetOutputPath.Combine( "ck-gen/src/CK/Cris/Tests/WithPocoResultCommand.ts" );
         var fResult = targetOutputPath.Combine( "ck-gen/src/CK/Cris/Tests/Result.ts" );

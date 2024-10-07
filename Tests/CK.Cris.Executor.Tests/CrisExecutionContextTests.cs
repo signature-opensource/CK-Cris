@@ -113,7 +113,7 @@ public class CrisExecutionContextTests
     [Test]
     public async Task command_and_events_Async()
     {
-        using var auto = TestHelper.CreateAutomaticServicesWithMonitor(
+        using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
             [
                 typeof( CrisExecutionContext ),
                 typeof( IStupidCommand ),
@@ -145,8 +145,7 @@ public class CrisExecutionContextTests
     [Test]
     public async Task CrisEventHub_relays_the_events_Async()
     {
-
-        using var auto = TestHelper.CreateAutomaticServicesWithMonitor(
+        using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
         [
             typeof( CrisExecutionContext ),
             typeof( IStupidCommand ),

@@ -70,7 +70,7 @@ public class CommandWithCurrentCultureTests
                                               typeof( AuthenticationInfoTokenService ),
                                               typeof( StdAuthenticationTypeSystem ) );
 
-        var map = configuration.RunSuccessfully().LoadMap();
+        var map = (await configuration.RunSuccessfullyAsync()).LoadMap();
         var builder = WebApplication.CreateSlimBuilder();
         await using var runningServer = await builder.CreateRunningAspNetAuthenticationServerAsync( map, configureApplication: app => app.UseMiddleware<CrisMiddleware>() );
         var client = runningServer.Client;
@@ -114,7 +114,7 @@ public class CommandWithCurrentCultureTests
                                               typeof( AuthenticationInfoTokenService ),
                                               typeof( StdAuthenticationTypeSystem ) );
 
-        var map = configuration.RunSuccessfully().LoadMap();
+        var map = (await configuration.RunSuccessfullyAsync()).LoadMap();
         var builder = WebApplication.CreateSlimBuilder();
         await using var runningServer = await builder.CreateRunningAspNetAuthenticationServerAsync( map, configureApplication: app => app.UseMiddleware<CrisMiddleware>() );
         var client = runningServer.Client;
