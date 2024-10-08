@@ -75,7 +75,7 @@ public partial class CrisAspNetService : ISingletonAutoService
     /// <param name="reader">The payload reader.</param>
     /// <param name="useSimpleError">False to keep <see cref="ICrisResultError"/> instead of the simpler <see cref="IAspNetCrisResultError"/>.</param>
     /// <param name="currentCultureInfo">Optional current culture.</param>
-    /// <returns>The command result and the <see cref="ExchangeableRuntimeFilter.Name"/> if it is valid.</returns>
+    /// <returns>The command result and the <see cref="ExchangeableRuntimeFilter.Name"/> to use to send the response.</returns>
     public Task<(IAspNetCrisResult Result, string TypeFilterName)> HandleRequestAsync( IActivityMonitor monitor,
                                                                                        HttpRequest request,
                                                                                        CommandRequestReader reader,
@@ -104,13 +104,14 @@ public partial class CrisAspNetService : ISingletonAutoService
                                                      currentCultureInfo,
                                                      readOptions,
                                                      useSimpleError );
+            Throw.DebugAssert( readResult.TypeFilterName != null );
             AmbientServiceHub? ambientServiceHub = null;
             IEnumerable<UserMessage> allValidationMessages = readResult.ValidationMessages.UserMessages;
             IAspNetCrisResult? result = readResult.ReadResultError;
             if( result == null )
             {
-                // No read error => no validation error (and we have a command and a valid TypeFilterName).
-                Throw.DebugAssert( readResult.Command != null && readResult.TypeFilterName != null );
+                // No read error => no validation error (and we have a command).
+                Throw.DebugAssert( readResult.Command != null );
                 // Incoming command validation.
                 CrisValidationResult validation = await _validator.IncomingValidateAsync( monitor, requestServices, readResult.Command );
                 allValidationMessages = allValidationMessages.Concat( validation.ValidationMessages );
@@ -169,10 +170,9 @@ public partial class CrisAspNetService : ISingletonAutoService
             }
             // A Cris result HTTP status code must always be 200 OK (except on Internal Server Error).
             request.HttpContext.Response.StatusCode = 200;
-            return (result, readResult.TypeFilterName ?? "TypeScript");
+            return (result, readResult.TypeFilterName);
         }
     }
-
 
     static IDisposable? HandleIncomingCKDepToken( IActivityMonitor monitor, HttpRequest request, out ActivityMonitor.Token? token )
     {
@@ -190,7 +190,7 @@ public partial class CrisAspNetService : ISingletonAutoService
         return null;
     }
 
-    record struct ReadResult( IAbstractCommand? Command, IAspNetCrisResult? ReadResultError, string? TypeFilterName, UserMessageCollector ValidationMessages );
+    record struct ReadResult( IAbstractCommand? Command, IAspNetCrisResult? ReadResultError, string TypeFilterName, UserMessageCollector ValidationMessages );
 
     async Task<ReadResult> ReadCommandAsync( IActivityMonitor monitor,
                                              HttpRequest request,
@@ -203,10 +203,12 @@ public partial class CrisAspNetService : ISingletonAutoService
         var messageCollector = new UserMessageCollector( currentCultureInfo );
         if( readOptions == null && !TryCreateJsonImportOptions( request, messageCollector, out readOptions ) )
         {
-            return new ReadResult( null, CreateValidationErrorResult( messageCollector.UserMessages, null, useSimpleError ), null, messageCollector );
+            // If we cannot read the TypeFilterName then we use the "AllExchangeable" type set to return the validation error message.
+            return new ReadResult( null, CreateValidationErrorResult( messageCollector.UserMessages, null, useSimpleError ), "AllExchangeable", messageCollector );
         }
+        Throw.DebugAssert( "We now have a TypeFilterName.", readOptions.TypeFilterName != null );
         int length = -1;
-        using( var buffer = (RecyclableMemoryStream)Util.RecyclableStreamManager.GetStream() )
+        using( var buffer = Util.RecyclableStreamManager.GetStream() )
         {
             try
             {
@@ -242,7 +244,7 @@ public partial class CrisAspNetService : ISingletonAutoService
                 {
                     messageCollector.Error( "Unable to read Command Poco from empty request body.", "Cris.AspNet.EmptyBody" );
                 }
-                return new ReadResult( null, CreateValidationErrorResult( messageCollector.UserMessages, null, useSimpleError ), null, messageCollector );
+                return new ReadResult( null, CreateValidationErrorResult( messageCollector.UserMessages, null, useSimpleError ), readOptions.TypeFilterName, messageCollector );
             }
             catch( Exception ex )
             {
@@ -257,7 +259,7 @@ public partial class CrisAspNetService : ISingletonAutoService
                 {
                     monitor.Error( "Error while tracing request body.", error );
                 }
-                return new ReadResult( null, CreateValidationErrorResult( messageCollector.UserMessages, gError.GetLogKeyString(), useSimpleError ), null, messageCollector );
+                return new ReadResult( null, CreateValidationErrorResult( messageCollector.UserMessages, gError.GetLogKeyString(), useSimpleError ), readOptions.TypeFilterName, messageCollector );
             }
         }
 

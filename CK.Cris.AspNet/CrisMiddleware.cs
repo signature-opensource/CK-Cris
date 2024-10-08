@@ -49,7 +49,8 @@ public class CrisMiddleware
                 bool isNetPath = remainder.StartsWithSegments( _netPath );
 
                 // For front applications the TypeFilterName is or starts with "TypeScript", the optional "TypeFilterName" query string 
-                // sets this and a PocoJsonImportOptions is computed from it (with other options).
+                // sets this and a PocoJsonImportOptions is computed from it (with other options) by the
+                // public static CrisAspNetService.TryCreateJsonImportOptions helper.
                 //
                 // For a HttpCrisSender we use the PocoJsonImportOptions.Default ("AllExchangeable" type set). This is NOT ideal:
                 // the /.cris/net path allows all the exchangeable commands, but the HttpCrisSender is a temporary solution that will
@@ -74,11 +75,11 @@ public class CrisMiddleware
                                         : true;
 
                 var (result, typeFilterName) = await _service.DoHandleAsync( monitor,
-                                                                            ctx.Request,
-                                                                            reader,
-                                                                            useSimpleError,
-                                                                            currentCultureInfo: null,
-                                                                            readOptions );
+                                                                             ctx.Request,
+                                                                             reader,
+                                                                             useSimpleError,
+                                                                             currentCultureInfo: null,
+                                                                             readOptions );
 
                 // For front applications, the writer uses the TypeFilterName of the input. The CreateJsonExportOptions helper
                 // creates a PocoJsonExportOptions from the request and the TypeFilterName obtained for the reader.
