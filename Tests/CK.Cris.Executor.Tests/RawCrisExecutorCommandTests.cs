@@ -5,6 +5,7 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using static CK.Testing.MonitorTestHelper;
 
@@ -324,6 +325,47 @@ public class RawCrisExecutorCommandTests
 
             CommandHandlerExplicitImpl.Called.Should().BeTrue();
         }
+    }
+
+    #endregion
+
+
+    #region Unknown type injection
+
+    public interface IFluentEmail
+    {
+    }
+
+    public class SomeHandler : IAutoService
+    {
+        [CommandHandler]
+        public void Handle( ITestCommand command, IFluentEmail someObject )
+        {
+        }
+    }
+
+    [Test]
+    public async Task unknown_types_are_injected_Async()
+    {
+        using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
+            [
+                typeof( RawCrisExecutor ),
+                typeof( ITestCommand ),
+                typeof( SomeHandler )
+            ] );
+
+        using( var scope = auto.Services.CreateScope() )
+        {
+            var services = scope.ServiceProvider;
+            var executor = services.GetRequiredService<RawCrisExecutor>();
+            var cmd = services.GetRequiredService<IPocoFactory<ITestCommand>>().Create();
+
+            var raw = await executor.RawExecuteAsync( services, cmd );
+            var e = raw.Result as ICrisResultError;
+            Throw.DebugAssert( e != null );
+            e.Errors.Single().Text.Should().Be( "While executing 'CK.Cris.Executor.Tests.RawCrisExecutorCommandTests.ITestCommand'." );
+        }
+
     }
 
     #endregion
