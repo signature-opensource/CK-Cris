@@ -1,4 +1,3 @@
 
-[assembly: CK.Setup.IsModel()]
-[assembly: CK.Setup.RequiredSetupDependency( "CK.Cris.Executor.Engine" )]
+[assembly: CK.Setup.RequiredEngine( "CK.Cris.Executor.Engine" )]
 
