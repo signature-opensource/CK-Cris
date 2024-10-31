@@ -14,10 +14,29 @@ namespace CK.Cris.AspNet.Tests;
 public class DiamondResultAndCommandTests
 {
     [Test]
-    [Ignore( "This fails with 'Cannot find module 'axios' or its corresponding type declarations.' but WHY???" )]
     public async Task DiamondResultAndCommand_works_Async()
     {
-        var targetOutputPath = TestHelper.GetTypeScriptNpmPackageTargetProjectPath();
+        var targetOutputPath = TestHelper.GetTypeScriptInlineTargetProjectPath();
+
+        var configuration = TestHelper.CreateDefaultEngineConfiguration( compileOption: Setup.CompileOption.None );
+        configuration.FirstBinPath.Types.Add( typeof( CrisAspNetService ),
+                                              typeof( Cris.Tests.IWithTheResultUnifiedCommand ),
+                                              typeof( Cris.Tests.IUnifiedResult ) );
+        configuration.FirstBinPath.EnsureTypeScriptConfigurationAspect( targetOutputPath, typeof( Cris.Tests.IWithTheResultUnifiedCommand ) );
+        await configuration.RunSuccessfullyAsync();
+
+        var fCommand = targetOutputPath.Combine( "ck-gen/CK/Cris/Tests/WithPocoResultCommand.ts" );
+        var fResult = targetOutputPath.Combine( "ck-gen/CK/Cris/Tests/Result.ts" );
+
+        File.Exists( fCommand ).Should().BeTrue();
+        File.Exists( fResult ).Should().BeTrue();
+    }
+
+    [Test]
+    [Ignore( "This fails with 'Cannot find module 'axios' or its corresponding type declarations.' but WHY???" )]
+    public async Task DiamondResultAndCommand_NpmPackage_works_Async()
+    {
+        var targetOutputPath = TestHelper.GetTypeScriptInlineTargetProjectPath();
 
         var configuration = TestHelper.CreateDefaultEngineConfiguration( compileOption: Setup.CompileOption.None );
         configuration.FirstBinPath.Types.Add( typeof( CrisAspNetService ),

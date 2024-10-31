@@ -13,6 +13,14 @@
     "sourceMap": true,
     "target": "es2022",
     "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+    "paths": {
+      "@local/ck-gen": [
+        "./ck-gen"
+      ],
+      "@local/ck-gen/*": [
+        "./ck-gen/*"
+      ]
+    }
   }
 }
