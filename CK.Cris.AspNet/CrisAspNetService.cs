@@ -19,7 +19,7 @@ namespace CK.Cris.AspNet;
 /// <summary>
 /// Primary service that handles frontend commands (or commands sent on http).
 /// </summary>
-[ContainerConfiguredSingletonService]
+[SingletonContainerConfiguredService]
 [AlsoRegisterType( typeof( CrisDirectory ) )]
 [AlsoRegisterType( typeof( TypeScriptCrisCommandGenerator ) )]
 [AlsoRegisterType( typeof( CommonPocoJsonSupport ) )]

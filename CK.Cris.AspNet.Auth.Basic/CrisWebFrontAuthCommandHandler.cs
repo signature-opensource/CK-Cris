@@ -9,7 +9,7 @@ namespace CK.AspNet.Auth.Cris;
 /// Endpoint service that can handle <see cref="IBasicLoginCommand"/>, <see cref="IRefreshAuthenticationCommand"/>
 /// and <see cref="ILogoutCommand"/>.
 /// </summary>
-[ContainerConfiguredSingletonService]
+[SingletonContainerConfiguredService]
 public class CrisWebFrontAuthCommandHandler : ISingletonAutoService
 {
     readonly WebFrontAuthService _authService;

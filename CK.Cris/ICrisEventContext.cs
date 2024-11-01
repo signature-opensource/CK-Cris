@@ -12,8 +12,8 @@ namespace CK.Cris;
 /// warnings.
 /// </para>
 /// </summary>
-[ContainerConfiguredScopedService]
-public interface ICrisEventContext : IScopedAutoService
+[ScopedContainerConfiguredService]
+public interface ICrisEventContext : IAutoService
 {
     /// <summary>
     /// Gets the monitor that can be used to log activities.
