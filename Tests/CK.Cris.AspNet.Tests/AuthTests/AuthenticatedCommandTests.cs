@@ -84,7 +84,8 @@ public class AuthenticatedCommandTests
                                               typeof( StdAuthenticationTypeSystem ) );
         var map = (await configuration.RunSuccessfullyAsync()).LoadMap();
         var builder = WebApplication.CreateSlimBuilder();
-        await using var runningServer = await builder.CreateRunningAspNetAuthenticationServerAsync( map, configureApplication: app => app.UseMiddleware<CrisMiddleware>() );
+        builder.AppendApplicationBuilder( app => app.UseMiddleware<CrisMiddleware>() );
+        await using var runningServer = await builder.CreateRunningAspNetAuthenticationServerAsync( map );
         var client = runningServer.Client;
         var pocoDirectory = runningServer.Services.GetRequiredService<PocoDirectory>();
 
