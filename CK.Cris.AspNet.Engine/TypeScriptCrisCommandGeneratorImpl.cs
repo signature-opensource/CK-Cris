@@ -108,7 +108,7 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                 {
                     e.ImplementedInterfaces = e.ImplementedInterfaces.Where( i => i.Type != typeof( ICommand ) );
                 }
-                e.PocoTypePart.File.Imports.EnsureImport( EnsureCrisCommandModel( e.Monitor, e.TypeScriptContext ), "ICommandModel" );
+                e.PocoTypePart.File.Imports.ImportFromFile( EnsureCrisCommandModel( e.Monitor, e.TypeScriptContext ), "ICommandModel" );
                 e.PocoTypePart.NewLine()
                     .Append( "get commandModel(): ICommandModel { return " ).Append( e.TSGeneratedType.TypeName ).Append( ".#m; }" ).NewLine()
                     .NewLine()
@@ -372,9 +372,10 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
             // - the Model objects ICommand, ExecutedCommand and CrisError.
             // - The IAmbientValues and IAmbientValuesCollectCommand.
             // - The AmbientValuesOverride.
-            fEndpoint.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" )
-                             .EnsureImport( monitor, typeof( IAmbientValues ), typeof( IAmbientValuesCollectCommand ) )
-                             .EnsureImport( ambientValuesOverride );
+            fEndpoint.Imports.ImportFromFile( modelFile, "ICommand, ExecutedCommand, CrisError" );
+            fEndpoint.Imports.EnsureImport( monitor, typeof( IAmbientValues ) );
+            fEndpoint.Imports.EnsureImport( monitor, typeof( IAmbientValuesCollectCommand ) );
+            fEndpoint.Imports.Import( ambientValuesOverride );
 
             var crisEndPoint = fEndpoint.CreateType( "CrisEndpoint", null, null );
             // Letf opened (closer on the part).
@@ -536,12 +537,12 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
             if( axios == null ) return null;
             axios.IsUsed = true;
 
-            fHttpEndpoint.Imports.EnsureImport( modelFile, "ICommand", "ExecutedCommand", "CrisError" )
-                                 .EnsureImport( crisEndpoint )
-                                 .EnsureImport( monitor, typeof( IAspNetCrisResult ) )
-                                 .EnsureImportFromLibrary( axios, "AxiosInstance", "AxiosHeaders", "RawAxiosRequestConfig" )
-                                 .EnsureImport( ctsType )
-                                 .EnsureImport( monitor, typeof( IAspNetCrisResultError ) );
+            fHttpEndpoint.Imports.ImportFromFile( modelFile, "ICommand, ExecutedCommand, CrisError" );
+            fHttpEndpoint.Imports.Import( crisEndpoint );
+            fHttpEndpoint.Imports.EnsureImport( monitor, typeof( IAspNetCrisResult ) );
+            fHttpEndpoint.Imports.ImportFromLibrary( axios, "AxiosInstance, AxiosHeaders, RawAxiosRequestConfig" );
+            fHttpEndpoint.Imports.Import( ctsType );
+            fHttpEndpoint.Imports.EnsureImport( monitor, typeof( IAspNetCrisResultError ) );
 
             fHttpEndpoint.Body.Append( """
                                 const defaultCrisAxiosConfig: RawAxiosRequestConfig = {
