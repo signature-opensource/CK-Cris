@@ -586,9 +586,10 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                                      * @param crisEndpointUrl The Cris endpoint url to use.
                                      * @param typeFilterName The TypeFilterName that defines the set of objects that can be exchanged with the backend.
                                      */
-                                    constructor( axios: AxiosInstance, crisEndpointUrl: string, typeFilterName: string = CTSType.typeFilterName)
+                                    constructor( axios: AxiosInstance, crisEndpointUrl?: string, typeFilterName: string = CTSType.typeFilterName)
                                     {
                                         super();
+                                        if( !crisEndpointUrl ) crisEndpointUrl = window.location.origin + '/.cris';
                                         this.#axios = axios;
                                         this.#typeFilterName = typeFilterName;
                                         this.#crisEndpointUrl = crisEndpointUrl + (crisEndpointUrl.indexOf('?') < 0 ? "?" : "&" ) + "TypeFilterName=" + typeFilterName;
