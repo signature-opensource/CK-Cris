@@ -5,7 +5,7 @@
   <ItemGroup>
     <PackageReference Include="CK.AppIdentity" Version="0.6.0-a00-00-0013-develop" />
     <PackageReference Include="CK.Poco.Exc.Json" Version="27.0.0-a00-00-0034-develop" />
-    <PackageReference Include="Polly.Core" Version="8.4.2" />
+    <PackageReference Include="Polly.Core" Version="8.5.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.IO.AspNet\CK.IO.AspNet.csproj" />
