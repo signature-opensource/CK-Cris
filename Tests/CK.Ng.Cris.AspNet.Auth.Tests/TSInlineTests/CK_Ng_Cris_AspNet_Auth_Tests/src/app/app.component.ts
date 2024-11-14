@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { CKGenAppModule } from '@local/ck-gen';
+import { CKGenAppModule, CKGenInjected } from '@local/ck-gen';
 
 const ckGenInjected: CKGenInjected = [];
 @Component({
