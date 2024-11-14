@@ -18,6 +18,7 @@
     "@angular/platform-browser": "^18.2",
     "@angular/platform-browser-dynamic": "^18.2",
     "@angular/router": "^18.2",
+    "luxon": "^3.5",
     "rxjs": "~7.8",
     "tslib": "^2.3",
     "zone.js": "~0.14.10"
@@ -27,13 +28,18 @@
     "@angular/cli": "^18.2.11",
     "@angular/compiler-cli": "^18.2",
     "@types/jest": "^29.5.14",
+    "@types/luxon": "^3.4.2",
     "@types/node": "^22.9",
     "@yarnpkg/sdks": "^3.2.0",
+    "axios": "^1.7.7",
     "jest": "^29.7",
     "jest-environment-jsdom": "^29.7",
     "jest-preset-angular": "^14.2.4",
     "ts-jest": "^29.2.5",
     "typescript": "~5.5.2"
   },
-  "ckVersion": 1
+  "ckVersion": 1,
+  "peerDependencies": {
+    "axios": "^1.7.7"
+  }
 }

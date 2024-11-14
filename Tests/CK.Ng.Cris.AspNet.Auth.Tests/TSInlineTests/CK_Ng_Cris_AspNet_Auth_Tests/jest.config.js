@@ -24,7 +24,7 @@ module.exports = {
         // backend servers).
         // Do NOT alter the comments below.
         // Start-CKTypeScriptEnv
-        CKTypeScriptEnv: {"CK_TYPESCRIPT_ENGINE":"true"}
+        CKTypeScriptEnv: {}
         // Stop-CKTypeScriptEnv-Stop
     },
     setupFilesAfterEnv: ['<rootDir>/jest-setup.ts']
