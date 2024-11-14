@@ -1,4 +1,4 @@
-using CK.StObj.TypeScript;
+using CK.TypeScript;
 using CK.TS.Angular;
 
 namespace CK.Ng.Cris.AspNet;

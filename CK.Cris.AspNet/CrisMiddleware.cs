@@ -88,7 +88,7 @@ public class CrisMiddleware
                                     : _service.CreateJsonExportOptions( ctx.Request, typeFilterName, skipValidation: true );
 
                 // If the returned result (that is a IAspNetCrisResult Poco) is fotlered out, this is a serious issue: this type
-                // is automatically registered in the "TypeScript" set by CK.StObj.TypeScript.
+                // is automatically registered in the "TypeScript" set by CK.TypeScript.
                 if( !_service._pocoDirectory.WriteJson( ctx.Response.BodyWriter, result, withType: false, writeOptions ) )
                 {
                     Throw.CKException( $"Poco '{result.GetType().FullName}' has been filtered out by '{typeFilterName}' ExchangeableRuntimeFilter." );

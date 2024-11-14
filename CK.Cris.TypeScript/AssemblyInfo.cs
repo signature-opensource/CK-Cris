@@ -1,2 +1,2 @@
 
-[assembly: CK.Core.PreserveAssemblyReference( typeof( CK.StObj.TypeScript.TypeScriptAttribute ) )]
+[assembly: CK.Core.PreserveAssemblyReference( typeof( CK.TypeScript.TypeScriptAttribute ) )]
