@@ -5,7 +5,7 @@ using System.ComponentModel;
 namespace CK.Cris;
 
 /// <summary>
-/// Defines a standard result part.
+/// Defines a standard result part with a <see cref="Success"/> flag and <see cref="UserMessage"/>.
 /// <para>
 /// Use <see cref="CommandStandardResultExtension.SetUserMessages(IStandardResultPart, UserMessageCollector, bool)"/> extension
 /// method to easily configure this part from a <see cref="UserMessageCollector"/>.

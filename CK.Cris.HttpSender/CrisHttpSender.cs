@@ -3,7 +3,6 @@ using CK.Auth;
 using CK.Core;
 using CK.Cris.AspNet;
 using CK.Poco.Exc.Json;
-using Microsoft.IO;
 using Polly;
 using System;
 using System.Buffers;

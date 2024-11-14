@@ -1,5 +1,3 @@
-using CK.Core;
-
 namespace CK.Cris;
 
 /// <summary>
