@@ -386,16 +386,16 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                     */
                     export abstract class CrisEndpoint
                     {
-                        private _ambientValuesRequest: Promise<AmbientValues>|undefined;
-                        private _ambientValues: AmbientValues|undefined;
-                        private _subscribers: Set<( eventSource: CrisEndpoint ) => void>;
-                        private _isConnected: boolean;
+                        #ambientValuesRequest: Promise<AmbientValues>|undefined;
+                        #ambientValues: AmbientValues|undefined;
+                        #subscribers: Set<( eventSource: CrisEndpoint ) => void>;
+                        #isConnected: boolean;
 
                         constructor()
                         {
                             this.ambientValuesOverride = new AmbientValuesOverride();
-                            this._isConnected = false;
-                            this._subscribers = new Set<() => void>();
+                            this.#isConnected = false;
+                            this.#subscribers = new Set<() => void>();
                         }
 
                         /**
@@ -411,7 +411,7 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                         * Gets whether this HttpEndpointService is connected: the last command sent
                         * has been handled by the server. 
                         **/
-                        public get isConnected(): boolean { return this._isConnected; }
+                        public get isConnected(): boolean { return this.#isConnected; }
 
                         /**
                         * Registers a callback function that will be called when isConnected changed.
@@ -419,7 +419,7 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                         */
                         public addOnIsConnectedChanged( func: ( eventSource: CrisEndpoint ) => void ): void 
                         {
-                            if( func ) this._subscribers.add( func );
+                            if( func ) this.#subscribers.add( func );
                         }
 
                         /**
@@ -428,25 +428,25 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                         * @returns True if the callback has been found and removed, false otherwise.
                         */
                         public removeOnIsConnectedChange( func: ( eventSource: CrisEndpoint ) => void ): boolean {
-                            return this._subscribers.delete( func );
+                            return this.#subscribers.delete( func );
                         }
 
                         /**
                         * Sets whether this endpoint is connected or not. When setting false, this triggers
                         * an update of the endpoint values that will run until success and eventually set
                         * a true isConnected back.
-                        * @param value Whether the connection mus be considered available or not.
+                        * @param value Whether the connection must be considered available or not.
                         */
                         protected setIsConnected( value: boolean ): void 
                         {
-                            if( this._isConnected !== value )
+                            if( this.#isConnected !== value )
                             {
-                                this._isConnected = value;
+                                this.#isConnected = value;
                                 if( !value ) 
                                 {
                                     this.updateAmbientValuesAsync();
                                 }
-                                this._subscribers.forEach( func => func( this ) );
+                                this.#subscribers.forEach( func => func( this ) );
                             }
                         }
 
@@ -458,9 +458,9 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                         **/    
                         public updateAmbientValuesAsync() : Promise<AmbientValues>
                         {
-                            if( this._ambientValuesRequest ) return this._ambientValuesRequest;
-                            this._ambientValues = undefined;
-                            return this._ambientValuesRequest = this.waitForAmbientValuesAsync();
+                            if( this.#ambientValuesRequest ) return this.#ambientValuesRequest;
+                            this.#ambientValues = undefined;
+                            return this.#ambientValuesRequest = this.waitForAmbientValuesAsync();
                         }
 
                         /**
@@ -468,7 +468,7 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                         **/    
                         public async sendAsync<T>(command: ICommand<T>): Promise<ExecutedCommand<T>>
                         {
-                            let a = this._ambientValues;
+                            let a = this.#ambientValues;
                             // Don't use coalesce here since there may be no ambient values (an empty object is truthy).
                             if( a === undefined ) a = await this.updateAmbientValuesAsync();
                             command.commandModel.applyAmbientValues( command, a, this.ambientValuesOverride );
@@ -505,10 +505,10 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                                 }
                                 else
                                 {
-                                    this._ambientValuesRequest = undefined;
-                                    this._ambientValues = <AmbientValues>e.result;
+                                    this.#ambientValuesRequest = undefined;
+                                    this.#ambientValues = <AmbientValues>e.result;
                                     this.setIsConnected( true );
-                                    return this._ambientValues;
+                                    return this.#ambientValues;
                                 }
                             }
                         }
