@@ -1,17 +1,17 @@
 {
   "compilerOptions": {
-    "target": "es2022",
     "strict": true,
-    "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
     "noPropertyAccessFromIndexSignature": true,
+    "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "declaration": false,
     "declarationMap": false,
     "esModuleInterop": true,
     "sourceMap": false,
+    "target": "es2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "paths": {
