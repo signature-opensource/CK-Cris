@@ -16,7 +16,7 @@ namespace CK.Cris;
 /// </summary>
 [ContextBoundDelegation( "CK.Setup.Cris.RawCrisReceiverImpl, CK.Cris.Executor.Engine" )]
 // To simplify testing.
-[AlsoRegisterType( typeof( NormalizedCultureInfoUbiquitousServiceDefault ) )]
+[AlsoRegisterType( typeof( NormalizedCultureInfoAmbientServiceDefault ) )]
 [AlsoRegisterType( typeof( TranslationService ) )]
 [AlsoRegisterType( typeof( NormalizedCultureInfo ) )]
 [AlsoRegisterType( typeof( CurrentCultureInfo ) )]

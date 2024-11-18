@@ -161,7 +161,6 @@ public class CollectAmbientValuesTests
                                               typeof( RawCrisReceiver ),
                                               typeof( CrisCultureService ),
                                               typeof( NormalizedCultureInfo ),
-                                              typeof( NormalizedCultureInfoUbiquitousServiceDefault ),
                                               typeof( ICultureCommand ),
                                               typeof( FakeCommandHandler ) );
         using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
