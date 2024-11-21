@@ -5,99 +5,98 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
 using System.Threading.Tasks;
-using static CK.Testing.StObjEngineTestHelper;
+using static CK.Testing.MonitorTestHelper;
 
-namespace CK.Cris.Executor.Tests
+namespace CK.Cris.Executor.Tests;
+
+[TestFixture]
+public class RawCrisExecutorEventTests
 {
-    [TestFixture]
-    public class RawCrisExecutorEventTests
+    [RoutedEvent]
+    public interface ITestEvent : IEvent
     {
-        [RoutedEvent]
-        public interface ITestEvent : IEvent
+        public static int CallCount;
+    }
+
+    public class EventSyncHandler : IAutoService
+    {
+        [RoutedEventHandler]
+        public void HandleEvent( ITestEvent e )
         {
-            public static int CallCount;
+            ++ITestEvent.CallCount;
+        }
+    }
+
+    public class EventAsyncHandler : IAutoService
+    {
+        [RoutedEventHandler]
+        public Task HandleEventAsync( ITestEvent e )
+        {
+            ++ITestEvent.CallCount;
+            return Task.CompletedTask;
+        }
+    }
+
+    public class EventValueTaskAsyncHandler : IAutoService
+    {
+        [RoutedEventHandler]
+        public ValueTask HandleEventAsync( ITestEvent e )
+        {
+            ++ITestEvent.CallCount;
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    [TestCase( "Sync" )]
+    [TestCase( "RefAsync" )]
+    [TestCase( "ValAsync" )]
+    public async Task dispatching_an_event_Async( string kind )
+    {
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                              typeof( CrisDirectory ),
+                                              typeof( ITestEvent ),
+                                              kind switch
+                                              {
+                                                  "RefAsync" => typeof( EventAsyncHandler ),
+                                                  "ValAsync" => typeof( EventValueTaskAsyncHandler ),
+                                                  "Sync" => typeof( EventSyncHandler ),
+                                                  _ => throw new NotImplementedException()
+                                              } );
+        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        using( var scope = auto.Services.CreateScope() )
+        {
+            var services = scope.ServiceProvider;
+            var executor = services.GetRequiredService<RawCrisExecutor>();
+            var e = services.GetRequiredService<IPocoFactory<ITestEvent>>().Create();
+
+            ITestEvent.CallCount = 0;
+            await executor.DispatchEventAsync( services, e );
+            ITestEvent.CallCount.Should().Be( 1 );
         }
 
-        public class EventSyncHandler : IAutoService
+    }
+
+    [Test]
+    public async Task dispatching_an_event_to_3_handlers_Async()
+    {
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                              typeof( CrisDirectory ),
+                                              typeof( ITestEvent ),
+                                              typeof( EventAsyncHandler ),
+                                              typeof( EventValueTaskAsyncHandler ),
+                                              typeof( EventSyncHandler ) );
+        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        using( var scope = auto.Services.CreateScope() )
         {
-            [RoutedEventHandler]
-            public void HandleEvent( ITestEvent e )
-            {
-                ++ITestEvent.CallCount;
-            }
-        }
+            var services = scope.ServiceProvider;
+            var executor = services.GetRequiredService<RawCrisExecutor>();
+            var e = services.GetRequiredService<IPocoFactory<ITestEvent>>().Create();
 
-        public class EventAsyncHandler : IAutoService
-        {
-            [RoutedEventHandler]
-            public Task HandleEventAsync( ITestEvent e )
-            {
-                ++ITestEvent.CallCount;
-                return Task.CompletedTask;
-            }
-        }
-
-        public class EventValueTaskAsyncHandler : IAutoService
-        {
-            [RoutedEventHandler]
-            public ValueTask HandleEventAsync( ITestEvent e )
-            {
-                ++ITestEvent.CallCount;
-                return ValueTask.CompletedTask;
-            }
-        }
-
-        [TestCase( "Sync" )]
-        [TestCase( "RefAsync" )]
-        [TestCase( "ValAsync" )]
-        public async Task dispatching_an_event_Async( string kind )
-        {
-            var configuration = TestHelper.CreateDefaultEngineConfiguration();
-            configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
-                                                  typeof( CrisDirectory ),
-                                                  typeof( ITestEvent ),
-                                                  kind switch
-                                                  {
-                                                    "RefAsync" => typeof( EventAsyncHandler ),
-                                                    "ValAsync" => typeof( EventValueTaskAsyncHandler ),
-                                                    "Sync" => typeof( EventSyncHandler ),
-                                                    _ => throw new NotImplementedException()
-                                                  } );
-            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
-            using( var scope = auto.Services.CreateScope() )
-            {
-                var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<RawCrisExecutor>();
-                var e = services.GetRequiredService<IPocoFactory<ITestEvent>>().Create();
-
-                ITestEvent.CallCount = 0;
-                await executor.DispatchEventAsync( services, e );
-                ITestEvent.CallCount.Should().Be( 1 );
-            }
-
-        }
-
-        [Test]
-        public async Task dispatching_an_event_to_3_handlers_Async()
-        {
-            var configuration = TestHelper.CreateDefaultEngineConfiguration();
-            configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
-                                                  typeof( CrisDirectory ),
-                                                  typeof( ITestEvent ),
-                                                  typeof( EventAsyncHandler ),
-                                                  typeof( EventValueTaskAsyncHandler ),
-                                                  typeof( EventSyncHandler ) );
-            using var auto = configuration.RunSuccessfully().CreateAutomaticServices();
-            using( var scope = auto.Services.CreateScope() )
-            {
-                var services = scope.ServiceProvider;
-                var executor = services.GetRequiredService<RawCrisExecutor>();
-                var e = services.GetRequiredService<IPocoFactory<ITestEvent>>().Create();
-
-                ITestEvent.CallCount = 0;
-                await executor.DispatchEventAsync( services, e );
-                ITestEvent.CallCount.Should().Be( 3 );
-            }
+            ITestEvent.CallCount = 0;
+            await executor.DispatchEventAsync( services, e );
+            ITestEvent.CallCount.Should().Be( 3 );
         }
     }
 }

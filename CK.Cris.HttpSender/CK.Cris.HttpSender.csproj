@@ -1,12 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <ImplicitUsings>disable</ImplicitUsings>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.AppIdentity" Version="0.5.0" />
-    <PackageReference Include="CK.Poco.Exc.Json" Version="26.0.0" />
-    <PackageReference Include="Polly.Core" Version="8.0.0" />
+    <PackageReference Include="CK.AppIdentity" Version="0.6.0" />
+    <PackageReference Include="CK.Poco.Exc.Json" Version="27.0.0" />
+    <PackageReference Include="Polly.Core" Version="8.5.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.IO.AspNet\CK.IO.AspNet.csproj" />

@@ -2,145 +2,141 @@ using CK.AppIdentity;
 using CK.Core;
 using CK.Cris.AspNet;
 using CK.Setup;
-using Microsoft.Extensions.Configuration;
-using Polly.Retry;
-using Polly.Timeout;
 using System;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace CK.Cris.HttpSender
+namespace CK.Cris.HttpSender;
+
+/// <summary>
+/// This feature applies only to <see cref="IRemoteParty"/> that may be <see cref="IRemoteParty.IsExternalParty"/>
+/// or not. The <see cref="CrisHttpSender"/> feature is added only if a "CrisHttpSender" key appears in the remote's
+/// configuration. This configuration can be a "true" value (that uses a default configuration).
+/// </summary>
+[AlsoRegisterType( typeof( IAspNetCrisResult ) )]
+public sealed class CrisHttpSenderFeatureDriver : ApplicationIdentityFeatureDriver
 {
+    readonly PocoDirectory _pocoDirectory;
+    readonly IPocoFactory<IAspNetCrisResult> _resultReader;
+
     /// <summary>
-    /// This feature applies only to <see cref="IRemoteParty"/> that may be <see cref="IRemoteParty.IsExternalParty"/>
-    /// or not. The <see cref="CrisHttpSender"/> feature is added only if a "CrisHttpSender" key appears in the remote's
-    /// configuration. This configuration can be a "true" value (that uses a default configuration).
+    /// Initializes a new <see cref="CrisHttpSenderFeatureDriver"/>.
     /// </summary>
-    [AlsoRegisterType( typeof( IAspNetCrisResult ) )]
-    public sealed class CrisHttpSenderFeatureDriver : ApplicationIdentityFeatureDriver
+    /// <param name="s">The application identity service.</param>
+    /// <param name="pocoDirectory">The poco directory.</param>
+    /// <param name="resultReader">The AspNet crist result factory.</param>
+    public CrisHttpSenderFeatureDriver( ApplicationIdentityService s,
+                                        PocoDirectory pocoDirectory,
+                                        IPocoFactory<IAspNetCrisResult> resultReader )
+        : base( s, isAllowedByDefault: true )
     {
-        readonly PocoDirectory _pocoDirectory;
-        readonly IPocoFactory<IAspNetCrisResult> _resultReader;
+        _pocoDirectory = pocoDirectory;
+        _resultReader = resultReader;
+    }
 
-        /// <summary>
-        /// Initializes a new <see cref="CrisHttpSenderFeatureDriver"/>.
-        /// </summary>
-        /// <param name="s">The application identity service.</param>
-        /// <param name="pocoDirectory">The poco directory.</param>
-        /// 
-        public CrisHttpSenderFeatureDriver( ApplicationIdentityService s,
-                                            PocoDirectory pocoDirectory,
-                                            IPocoFactory<IAspNetCrisResult> resultReader )
-            : base( s, isAllowedByDefault: true )
+    /// <summary>
+    /// Adds the <see cref="CrisHttpSender"/> feature to any <see cref="FeatureLifetimeContext.GetAllRemotes()"/>
+    /// that has a "CrisHttpSender" section.
+    /// </summary>
+    /// <param name="context">The lifetime context.</param>
+    /// <returns>True on success, false on error.</returns>
+    protected override Task<bool> SetupAsync( FeatureLifetimeContext context )
+    {
+        bool success = true;
+        foreach( var r in context.GetAllRemotes().Where( r => IsAllowedFeature( r ) ) )
         {
-            _pocoDirectory = pocoDirectory;
-            _resultReader = resultReader;
+            success &= PlugFeature( context.Monitor, r );
         }
+        return Task.FromResult( success );
+    }
 
-        /// <summary>
-        /// Adds the <see cref="CrisHttpSender"/> feature to any <see cref="FeatureLifetimeContext.GetAllRemotes()"/>
-        /// that has a "CrisHttpSender" section.
-        /// </summary>
-        /// <param name="context">The lifetime context.</param>
-        /// <returns>True on success, false on error.</returns>
-        protected override Task<bool> SetupAsync( FeatureLifetimeContext context )
+    /// <summary>
+    /// Adds the <see cref="CrisHttpSender"/> feature to any <see cref="FeatureLifetimeContext.GetAllRemotes()"/>
+    /// that has a "CrisHttpSender" section.
+    /// </summary>
+    /// <param name="context">The lifetime context.</param>
+    /// <param name="party">The dynamic party to initialize.</param>
+    /// <returns>True on success, false on error.</returns>
+    protected override Task<bool> SetupDynamicRemoteAsync( FeatureLifetimeContext context, IOwnedParty party )
+    {
+        // Since we only use the GetAllRemotes helper, SetupAsync does the job.
+        return SetupAsync( context );
+    }
+
+    /// <summary>
+    /// Tears down the <see cref="CrisHttpSender"/> feature (by disposing its HttpClient)
+    /// from any <see cref="FeatureLifetimeContext.GetAllRemotes()"/> that has it.
+    /// </summary>
+    /// <param name="context">The lifetime context.</param>
+    /// <returns>The awaitable.</returns>
+    protected override Task TeardownAsync( FeatureLifetimeContext context )
+    {
+        foreach( var r in context.GetAllRemotes() )
         {
-            bool success = true;
-            foreach( var r in context.GetAllRemotes().Where( r => IsAllowedFeature( r ) ) )
+            // Feature instances cannot be removed, they must just be torn down.
+            var f = r.GetFeature<CrisHttpSender>();
+            f?.TearDown();
+        }
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Tears down the <see cref="CrisHttpSender"/> feature (by disposing its HttpClient)
+    /// from any <see cref="FeatureLifetimeContext.GetAllRemotes()"/> that has it.
+    /// </summary>
+    /// <param name="context">The lifetime context.</param>
+    /// <param name="party">The dynamic party to cleanup.</param>
+    /// <returns>The awaitable.</returns>
+    protected override Task TeardownDynamicRemoteAsync( FeatureLifetimeContext context, IOwnedParty party )
+    {
+        // Since we only use the GetAllRemotes helper, TeardownAsync does the job.
+        return TeardownAsync( context );
+    }
+
+    bool PlugFeature( IActivityMonitor monitor, IRemoteParty r )
+    {
+        // Allow "CrisHttpSender" = "false" or "true".
+        // This supports default, empty, configuration.
+        if( r.Configuration.Configuration.ShouldApplyConfiguration( "CrisHttpSender", optOut: false, out var config ) )
+        {
+            if( r.Address is null
+                || !Uri.TryCreate( r.Address, UriKind.Absolute, out var uri )
+                || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) )
             {
-                success &= PlugFeature( context.Monitor, r );
+                monitor.Error( $"Unable to setup feature 'CrisHttpSender' on '{r.FullName}': Address '{r.Address}' must be a valid http:// or https:// url." );
+                return false;
             }
-            return Task.FromResult( success );
-        }
-
-        /// <summary>
-        /// Adds the <see cref="CrisHttpSender"/> feature to any <see cref="FeatureLifetimeContext.GetAllRemotes()"/>
-        /// that has a "CrisHttpSender" section.
-        /// </summary>
-        /// <param name="context">The lifetime context.</param>
-        /// <param name="party">The dynamic party to initialize.</param>
-        /// <returns>True on success, false on error.</returns>
-        protected override Task<bool> SetupDynamicRemoteAsync( FeatureLifetimeContext context, IOwnedParty party )
-        {
-            // Since we only use the GetAllRemotes helper, SetupAsync does the job.
-            return SetupAsync( context );
-        }
-
-        /// <summary>
-        /// Tears down the <see cref="CrisHttpSender"/> feature (by disposing its HttpClient)
-        /// from any <see cref="FeatureLifetimeContext.GetAllRemotes()"/> that has it.
-        /// </summary>
-        /// <param name="context">The lifetime context.</param>
-        /// <returns>The awaitable.</returns>
-        protected override Task TeardownAsync( FeatureLifetimeContext context )
-        {
-            foreach( var r in context.GetAllRemotes() )
+            if( uri.PathAndQuery != "/" )
             {
-                // Feature instances cannot be removed, they must just be torn down.
-                var f = r.GetFeature<CrisHttpSender>();
-                f?.TearDown();
+                monitor.Error( $"Unable to setup feature 'CrisHttpSender' on '{r.FullName}': Address '{r.Address}' url must not have a path and/or a query part." );
+                return false;
             }
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Tears down the <see cref="CrisHttpSender"/> feature (by disposing its HttpClient)
-        /// from any <see cref="FeatureLifetimeContext.GetAllRemotes()"/> that has it.
-        /// </summary>
-        /// <param name="context">The lifetime context.</param>
-        /// <param name="party">The dynamic party to cleanup.</param>
-        /// <returns>The awaitable.</returns>
-        protected override Task TeardownDynamicRemoteAsync( FeatureLifetimeContext context, IOwnedParty party )
-        {
-            // Since we only use the GetAllRemotes helper, TeardownAsync does the job.
-            return TeardownAsync( context );
-        }
-
-        bool PlugFeature( IActivityMonitor monitor, IRemoteParty r )
-        {
-            // Allow "CrisHttpSender" = "false" or "true".
-            // This supports default, empty, configuration.
-            if( r.Configuration.Configuration.ShouldApplyConfiguration( "CrisHttpSender", optOut: false, out var config ) )
+            HttpRetryStrategyOptions? retryStrategy = null;
+            if( config.ShouldApplyConfiguration( "Retry", optOut: true, out var retryConfig ) )
             {
-                if( r.Address is null
-                    || !Uri.TryCreate( r.Address, UriKind.Absolute, out var uri )
-                    || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) )
+                retryStrategy = CrisHttpSender.CreateRetryStrategy( monitor, retryConfig );
+            }
+            TimeSpan? timeout = null;
+            if( config != null )
+            {
+                var s = config["Timeout"];
+                if( s != null )
                 {
-                    monitor.Error( $"Unable to setup feature 'CrisHttpSender' on '{r.FullName}': Address '{r.Address}' must be a valid http:// or https:// url." );
-                    return false;
-                }
-                if( uri.PathAndQuery != "/" )
-                {
-                    monitor.Error( $"Unable to setup feature 'CrisHttpSender' on '{r.FullName}': Address '{r.Address}' url must not have a path and/or a query part." );
-                    return false;
-                }
-                HttpRetryStrategyOptions? retryStrategy = null;
-                if( config.ShouldApplyConfiguration( "Retry", optOut: true, out var retryConfig ) )
-                {
-                    retryStrategy = CrisHttpSender.CreateRetryStrategy( monitor, retryConfig );
-                }
-                TimeSpan? timeout = null;
-                if( config != null )
-                {
-                    var s = config["Timeout"];
-                    if( s != null )
+                    if( TimeSpan.TryParse( s, CultureInfo.InvariantCulture, out var tOut ) )
                     {
-                        if( TimeSpan.TryParse( s, CultureInfo.InvariantCulture, out var tOut ) )
-                        {
-                            timeout = tOut;
-                        }
-                        else
-                        {
-                            monitor.Warn( $"Unable to parse CrisHttpSender Timout '{s}' for remote '{r}'. Using default value of 100 seconds." );
-                        }
+                        timeout = tOut;
+                    }
+                    else
+                    {
+                        monitor.Warn( $"Unable to parse CrisHttpSender Timout '{s}' for remote '{r}'. Using default value of 100 seconds." );
                     }
                 }
-                monitor.Info( $"Enabling 'CrisHttpSender' on '{r}' with address '{uri}'." );
-                r.AddFeature( new CrisHttpSender( r, new( uri, ".cris/net"), _pocoDirectory, _resultReader, timeout, retryStrategy ) );
             }
-            return true;
+            monitor.Info( $"Enabling 'CrisHttpSender' on '{r}' with address '{uri}'." );
+            r.AddFeature( new CrisHttpSender( r, new( uri, ".cris/net" ), _pocoDirectory, _resultReader, timeout, retryStrategy ) );
         }
-
+        return true;
     }
+
 }

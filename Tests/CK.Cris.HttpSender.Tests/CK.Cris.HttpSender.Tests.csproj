@@ -1,18 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <LangVersion>11</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="NUnit" Version="4.1.0" />
-    <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all" Version="4.5.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
+    <PackageReference Include="CK.Testing.NUnit" Version="11.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Testing.AppIdentity" Version="0.5.0" />
-    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="0.19.0" />
-    <ProjectReference Include="..\..\CK.Testing.CrisAspNetEngine\CK.Testing.CrisAspNetEngine.csproj" />
+    <PackageReference Include="CK.Testing.StObjEngine" Version="27.0.0" />
+    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="24.0.0" />
+    <PackageReference Include="CK.AppIdentity.Hosting" Version="0.6.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\CK.Cris.AspNet.Engine\CK.Cris.AspNet.Engine.csproj" />

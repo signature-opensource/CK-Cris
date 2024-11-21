@@ -3,28 +3,27 @@ using CK.Cris;
 using System;
 using System.Reflection;
 
-namespace CK.Setup.Cris
+namespace CK.Setup.Cris;
+
+
+sealed class CommandHandlingValidatorAttributeImpl : BaseHandlerAttributeImpl
 {
+    readonly CommandHandlingValidatorAttribute _a;
 
-    sealed class CommandHandlingValidatorAttributeImpl : BaseHandlerAttributeImpl
+    public CommandHandlingValidatorAttributeImpl( CommandHandlingValidatorAttribute a, Type t, MethodInfo m )
+        : base( t, m )
     {
-        readonly CommandHandlingValidatorAttribute _a;
+        _a = a;
+    }
 
-        public CommandHandlingValidatorAttributeImpl( CommandHandlingValidatorAttribute a, Type t, MethodInfo m )
-            : base( t, m )
-        {
-            _a = a;
-        }
-
-        private protected override CSCodeGenerationResult DoImplement( IActivityMonitor monitor,
-                                                                       IStObjMap engineMap,
-                                                                       CrisTypeRegistry crisTypeRegistry,
-                                                                       IStObjFinalClass impl,
-                                                                       MethodInfo method )
-        {
-            return crisTypeRegistry.RegisterMultiTargetHandler( monitor, MultiTargetHandlerKind.CommandHandlingValidator, engineMap, impl!, method, _a.FileName, _a.LineNumber )
-                    ? CSCodeGenerationResult.Success
-                    : CSCodeGenerationResult.Failed;
-        }
+    private protected override CSCodeGenerationResult DoImplement( IActivityMonitor monitor,
+                                                                   IStObjMap engineMap,
+                                                                   CrisTypeRegistry crisTypeRegistry,
+                                                                   IStObjFinalClass impl,
+                                                                   MethodInfo method )
+    {
+        return crisTypeRegistry.RegisterMultiTargetHandler( monitor, MultiTargetHandlerKind.CommandHandlingValidator, engineMap, impl!, method, _a.FileName, _a.LineNumber )
+                ? CSCodeGenerationResult.Success
+                : CSCodeGenerationResult.Failed;
     }
 }

@@ -1,18 +1,17 @@
-﻿using CK.Core;
+using CK.Core;
 using CK.Cris;
 
-namespace CK.Auth
+namespace CK.Auth;
+
+/// <summary>
+/// Extends the basic <see cref="IAuthUnsafePart"/> to add the <see cref="DeviceId"/> field.
+/// </summary>
+[CKTypeDefiner]
+public interface IAuthDeviceIdPart : IAuthUnsafePart
 {
     /// <summary>
-    /// Extends the basic <see cref="IAuthUnsafePart"/> to add the <see cref="DeviceId"/> field.
+    /// Gets or sets the device identifier.
     /// </summary>
-    [CKTypeDefiner]
-    public interface IAuthDeviceIdPart : IAuthUnsafePart
-    {
-        /// <summary>
-        /// Gets or sets the device identifier.
-        /// </summary>
-        [AmbientServiceValue]
-        string? DeviceId { get; set; }
-    }
+    [AmbientServiceValue]
+    string? DeviceId { get; set; }
 }
