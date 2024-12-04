@@ -152,13 +152,13 @@ public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAu
         catch( Exception ex )
         {
             // Ensures that the crisResult exists and sets its Result to a ICrisErrorResult.
-            var currentCulture = isScopedCreated ? scoped.ServiceProvider.GetService<CurrentCultureInfo>() : null;
+            IServiceProvider? serviceProvider = isScopedCreated ? scoped.ServiceProvider : null;
             error = _errorResultFactory.Create();
-            PocoFactoryExtensions.OnUnhandledError( monitor, ex, job.Command, true, currentCulture, error.Errors.Add );
+            PocoFactoryExtensions.OnUnhandledError( monitor, ex, job.Command, true, serviceProvider?.GetService<CurrentCultureInfo>(), error.Errors.Add );
             error.LogKey = gLog.GetLogKeyString();
 
             executed = job.CreateExecutedCommand( error, validationMessages, ImmutableArray<IEvent>.Empty );
-            await job.SetFinalResultAsync( monitor, executed, scoped.ServiceProvider );
+            await job.SetFinalResultAsync( monitor, executed, serviceProvider );
         }
         finally
         {

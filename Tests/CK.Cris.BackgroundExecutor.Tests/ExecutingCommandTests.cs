@@ -37,8 +37,7 @@ public class ExecutingCommandTests
     public async Task using_scoped_CrisBackgroundExecutor_is_simple_Async()
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
-        configuration.FirstBinPath.Types.Add( typeof( CrisBackgroundExecutorService ),
-                                              typeof( IMyCommand ),
+        configuration.FirstBinPath.Types.Add( typeof( IMyCommand ),
                                               typeof( IMyCommandResult ),
                                               typeof( MyHandler ),
                                               typeof( CrisBackgroundExecutorService ),
@@ -50,6 +49,26 @@ public class ExecutingCommandTests
         var executor = scoped.ServiceProvider.GetRequiredService<CrisBackgroundExecutor>();
         var cmd = poco.Create<IMyCommand>( c => c.WantedPower = 3712 );
         var ec = executor.Submit( TestHelper.Monitor, cmd ).WithResult<IMyCommandResult>();
+
+        var r = await ec.Result;
+        r.Power.Should().Be( 1856 );
+    }
+
+    [Test]
+    public async Task using_CrisBackgroundExecutorService_without_any_hub_Async()
+    {
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( IMyCommand ),
+                                              typeof( IMyCommandResult ),
+                                              typeof( MyHandler ),
+                                              typeof( CrisBackgroundExecutorService ) );
+        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+
+        using var scoped = auto.Services.CreateScope();
+        var poco = scoped.ServiceProvider.GetRequiredService<PocoDirectory>();
+        var executor = scoped.ServiceProvider.GetRequiredService<CrisBackgroundExecutorService>();
+        var cmd = poco.Create<IMyCommand>( c => c.WantedPower = 3712 );
+        var ec = executor.Submit( TestHelper.Monitor, cmd, null ).WithResult<IMyCommandResult>();
 
         var r = await ec.Result;
         r.Power.Should().Be( 1856 );
