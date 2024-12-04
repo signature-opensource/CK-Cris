@@ -56,7 +56,7 @@ public sealed partial class CrisType
 
     /// <summary>
     /// Gets the ambient services configurator methods.
-    /// Only <see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/> can have validators.
+    /// Only <see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/> can have configurators.
     /// </summary>
     public MultiTargetHandlerList AmbientServicesConfigurators => _ambientServicesConfigurators!;
 

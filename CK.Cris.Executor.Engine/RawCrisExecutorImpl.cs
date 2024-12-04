@@ -43,11 +43,11 @@ public partial class RawCrisExecutorImpl : CSCodeGeneratorType
                         return Task.FromResult( new RawCrisExecutor.RawResult( e, null ) );
                     }
 
-                    // No event handlers => nothing to do.
+                    // Default Implementation Method: No event handlers => nothing to do.
                     Task DispatchEventAsync( IServiceProvider s ) => Task.CompletedTask;
 
-                    // No service restorers => nothing to do.
-                    ValueTask<(ICrisResultError?,AmbientServiceHub?)> RestoreAsync( IActivityMonitor monitor ) => ValueTask.FromResult<(ICrisResultError?,AmbientServiceHub?)>( (null,null) );
+                    // Default Implementation Method: No service restorers => nothing to do (except creating a new default AmbientServiceHub).
+                    ValueTask<(ICrisResultError?,AmbientServiceHub?)> RestoreAsync( IActivityMonitor monitor ) => ValueTask.FromResult<(ICrisResultError?,AmbientServiceHub?)>( (null,new AmbientServiceHub_CK()) );
                 }
                 
                 """ );
