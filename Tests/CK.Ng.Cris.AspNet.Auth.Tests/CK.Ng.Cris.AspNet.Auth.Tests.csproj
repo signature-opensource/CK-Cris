@@ -4,11 +4,11 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.AppIdentity.Hosting" Version="0.6.1--0001-develop" />
-    <PackageReference Include="CK.Testing.TypeScriptEngine" Version="0.20.1--0001-develop" />
-    <PackageReference Include="CK.Testing.Nunit" Version="11.0.1--0001-develop" />
-    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="24.0.1--0001-develop" />
-    <PackageReference Include="CK.TS.Angular.Engine" Version="0.20.1--0001-develop" />
+    <PackageReference Include="CK.AppIdentity.Hosting" Version="0.6.0" />
+    <PackageReference Include="CK.Testing.TypeScriptEngine" Version="0.21.0" />
+    <PackageReference Include="CK.Testing.Nunit" Version="11.0.0" />
+    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="24.1.0" />
+    <PackageReference Include="CK.TS.Angular.Engine" Version="0.21.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
   </ItemGroup>
