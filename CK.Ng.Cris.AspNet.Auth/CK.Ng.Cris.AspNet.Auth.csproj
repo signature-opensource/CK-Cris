@@ -3,10 +3,10 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Ng.Axios" Version="0.0.0.0--056t7c4-explo" />
-    <PackageReference Include="CK.Testing.TypeScriptEngine" Version="0.0.0.0--056t7c4-explo" />
-    <PackageReference Include="CK.TS.Angular.Engine" Version="0.0.0.0--056t7c4-explo" />
-    <PackageReference Include="CK.TS.AspNet.Auth" Version="0.0.0.0--056t7c4-explo" />
+    <PackageReference Include="CK.Ng.Axios" Version="0.21.1--0006-develop" />
+    <PackageReference Include="CK.Testing.TypeScriptEngine" Version="0.21.1--0006-develop" />
+    <PackageReference Include="CK.TS.Angular.Engine" Version="0.21.1--0006-develop" />
+    <PackageReference Include="CK.TS.AspNet.Auth" Version="0.21.1--0006-develop" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Ng.Cris.AspNet\CK.Ng.Cris.AspNet.csproj" />
