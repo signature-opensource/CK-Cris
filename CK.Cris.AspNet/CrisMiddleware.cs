@@ -73,7 +73,7 @@ public class CrisMiddleware
                 bool useSimpleError = isNetPath
                                         ? ctx.Request.Query["UseSimpleError"].Count != 0
                                         : true;
-
+                WIP!
                 var (result, typeFilterName) = await _service.DoHandleAsync( monitor,
                                                                              ctx.Request,
                                                                              reader,
