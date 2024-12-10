@@ -34,6 +34,14 @@ public class TSTests
     {
     }
 
+    /// <summary>
+    /// This command is empty but returns a UserMessage but CK.TypeScript
+    /// maps UserMessage to the SimpleUserMessage TS type.
+    /// </summary>
+    public interface IWithUserMessageCommand : ICommand<UserMessage>
+    {
+    }
+
     public class ColorAndBuggyService : IAutoService
     {
         /// <summary>
@@ -56,7 +64,13 @@ public class TSTests
         [CommandHandler]
         public SimpleUserMessage Handle( CurrentCultureInfo culture, IWithMessageCommand cmd )
         {
-            return culture.InfoMessage( $"Local servert time is {DateTime.Now}." );
+            return culture.InfoMessage( $"Local server time is {DateTime.Now}." );
+        }
+
+        [CommandHandler]
+        public UserMessage Handle( CurrentCultureInfo culture, IWithUserMessageCommand cmd )
+        {
+            return culture.WarnMessage( $"I'm a UserMessage and it is {DateTime.Now}." ).With( 12 );
         }
 
         [CommandHandlingValidator]
@@ -135,13 +149,15 @@ public class TSTests
                                               typeof( ColorAndBuggyService ),
                                               typeof( IBuggyCommand ),
                                               typeof( IWithMessageCommand ),
+                                              typeof( IWithUserMessageCommand ),
                                               typeof( CrisAspNetService ),
                                               typeof( AuthenticationInfoTokenService ),
                                               typeof( StdAuthenticationTypeSystem ) );
         configuration.FirstBinPath.EnsureTypeScriptConfigurationAspect( targetProjectPath, typeof( ICommand<> ), // Useless but harmless.
                                                                                            typeof( IBeautifulCommand ),
                                                                                            typeof( IBuggyCommand ),
-                                                                                           typeof( IWithMessageCommand ) );
+                                                                                           typeof( IWithMessageCommand ),
+                                                                                           typeof( IWithUserMessageCommand ) );
         var map = (await configuration.RunSuccessfullyAsync()).LoadMap();
         var builder = WebApplication.CreateSlimBuilder();
         await using var runningServer = await builder.CreateRunningAspNetAuthenticationServerAsync( map, configureApplication: app => app.UseMiddleware<CrisMiddleware>() );
