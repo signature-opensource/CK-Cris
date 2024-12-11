@@ -103,12 +103,11 @@ namespace CK.Cris.AspNet.Tests
             // Value: 0 is invalid.
             {
                 TestHandler.Called = false;
-                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri + "?UseSimpleError", @"[""Test"",{""Value"":0}]" );
+                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, @"[""Test"",{""Value"":0}]" );
                 Throw.DebugAssert( r != null );
                 TestHandler.Called.Should().BeFalse( "Validation error." );
 
-                var result = await pocoDirectory.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                result.ToString().Should().Match( @"{""Result"":[""AspNetCrisResultError"",{""IsValidationError"":true,""Errors"":[""Value must be positive.""],""LogKey"":""*""}],""ValidationMessages"":[[16,""Value must be positive."",0]],""CorrelationId"":null}" );
+                await pocoDirectory.GetValidationErrorsAsync( r, new SimpleUserMessage( UserMessageLevel.Error, "Value must be positive." ) );
             }
         }
 
@@ -130,12 +129,12 @@ namespace CK.Cris.AspNet.Tests
             var pocoDirectory = runningServer.Services.GetRequiredService<PocoDirectory>();
 
             {
-                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri + "?UseSimpleError", @"[""Test"",{""Value"":3712}]" );
+                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, @"[""Test"",{""Value"":3712}]" );
                 Throw.DebugAssert( r != null );
                 var result = await pocoDirectory.GetCrisResultAsync( r );
                 result.ValidationMessages.Should().BeNull( "Since there is no handler, there's no validation at all." );
                 Throw.DebugAssert( result.Result != null );
-                var resultError = (IAspNetCrisResultError)result.Result;
+                var resultError = (ICrisResultError)result.Result;
                 resultError.IsValidationError.Should().BeFalse();
             }
         }
@@ -162,18 +161,18 @@ namespace CK.Cris.AspNet.Tests
             var pocoDirectory = runningServer.Services.GetRequiredService<PocoDirectory>();
 
             {
-                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri + "?UseSimpleError", @"[""Test"",{""Value"":3712}]" );
+                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, @"[""Test"",{""Value"":3712}]" );
                 Throw.DebugAssert( r != null );
                 var result = await pocoDirectory.GetCrisResultAsync( r );
                 result.CorrelationId.Should().NotBeNullOrWhiteSpace();
                 Throw.DebugAssert( result.ValidationMessages != null );
-                result.ValidationMessages[0].Message.Should().Match( "An unhandled error occurred while validating command 'Test' (LogKey: *)." );
-                result.ValidationMessages[1].Message.Should().Match( "This should not happen!" );
-                // The ValidationMessages are the same as the ICrisAspNetResultError.
+                result.ValidationMessages[0].Text.Should().Match( "An unhandled error occurred while validating command 'Test' (LogKey: *)." );
+                result.ValidationMessages[1].Text.Should().Match( "This should not happen!" );
+                // The ValidationMessages are the same as the ICrisResultError.
                 Throw.DebugAssert( result.Result != null );
-                var resultError = (IAspNetCrisResultError)result.Result;
+                var resultError = (ICrisResultError)result.Result;
                 resultError.IsValidationError.Should().BeTrue();
-                resultError.Errors.Should().BeEquivalentTo( result.ValidationMessages.Select( m => m.Message ) );
+                resultError.Errors.Should().BeEquivalentTo( result.ValidationMessages );
             }
         }
 
@@ -193,36 +192,34 @@ namespace CK.Cris.AspNet.Tests
             var pocoDirectory = runningServer.Services.GetRequiredService<PocoDirectory>();
             // SimpleErrorResult.LogKey is null for really empty input.
             {
-                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri + "?UseSimpleError", "" );
+                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, "" );
                 Throw.DebugAssert( r != null );
-                var result = await pocoDirectory.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                result.ToString().Should().Be( @"{""Result"":[""AspNetCrisResultError"",{""IsValidationError"":true,""Errors"":[""Unable to read Command Poco from empty request body.""],""LogKey"":null}],""ValidationMessages"":[[16,""Unable to read Command Poco from empty request body."",0]],""CorrelationId"":null}" );
+                await pocoDirectory.GetValidationErrorsAsync( r, new SimpleUserMessage( UserMessageLevel.Error, "Unable to read Command Poco from empty request body." ) );
             }
             // Here SimpleErrorResult.LogKey is set.
             {
-                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri + "?UseSimpleError", "----" );
+                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, "----" );
                 Throw.DebugAssert( r != null );
-                var result = await pocoDirectory.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                result.ToString().Should().Match( @"{""Result"":[""AspNetCrisResultError"",{""IsValidationError"":true,""Errors"":[""Unable to read Command Poco from request body (byte length = 4).""],""LogKey"":""*""}],""ValidationMessages"":[[16,""Unable to read Command Poco from request body (byte length = 4)."",0]],""CorrelationId"":null}" );
+                await pocoDirectory.GetValidationErrorsAsync( r, new SimpleUserMessage( UserMessageLevel.Error, "Unable to read Command Poco from request body (byte length = 4)." ) );
             }
             {
-                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri + "?UseSimpleError", "\"X\"" );
+                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, "\"X\"" );
                 Throw.DebugAssert( r != null );
-                var result = await pocoDirectory.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                result.ToString().Should().Match( @"{""Result"":[""AspNetCrisResultError"",{""IsValidationError"":true,""Errors"":[""Unable to read Command Poco from request body (byte length = 3).""],""LogKey"":""*""}],""ValidationMessages"":[[16,""Unable to read Command Poco from request body (byte length = 3)."",0]],""CorrelationId"":null}" );
+                await pocoDirectory.GetValidationErrorsAsync( r, new SimpleUserMessage( UserMessageLevel.Error, "Unable to read Command Poco from request body (byte length = 3)." ) );
             }
             {
-                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri + "?UseSimpleError", "{}" );
+                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, "{}" );
                 Throw.DebugAssert( r != null );
                 var result = await pocoDirectory.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                result.ToString().Should().Match( @"{""Result"":[""AspNetCrisResultError"",{""IsValidationError"":true,""Errors"":[""Unable to read Command Poco from request body (byte length = 2).""],""LogKey"":""*""}],""ValidationMessages"":[[16,""Unable to read Command Poco from request body (byte length = 2)."",0]],""CorrelationId"":null}" );
+                await pocoDirectory.GetValidationErrorsAsync( r, new SimpleUserMessage( UserMessageLevel.Error, "Unable to read Command Poco from request body (byte length = 2)." ) );
             }
             {
-                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri + "?UseSimpleError", @"[""Unknown"",{""value"":3712}]" );
+                HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, @"[""Unknown"",{""value"":3712}]" );
                 Throw.DebugAssert( r != null );
                 var result = await pocoDirectory.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                result.ToString().Should().Match( @"{""Result"":[""AspNetCrisResultError"",{""IsValidationError"":true,""Errors"":[""Unable to read Command Poco from request body (byte length = 26).""],""LogKey"":""*""}],""ValidationMessages"":[[16,""Unable to read Command Poco from request body (byte length = 26)."",0]],""CorrelationId"":null}" );
+                await pocoDirectory.GetValidationErrorsAsync( r, new SimpleUserMessage( UserMessageLevel.Error, "Unable to read Command Poco from request body (byte length = 26)." ) );
             }
+
         }
 
     }

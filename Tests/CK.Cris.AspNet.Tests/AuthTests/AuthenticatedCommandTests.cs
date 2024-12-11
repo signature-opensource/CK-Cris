@@ -96,25 +96,18 @@ public class AuthenticatedCommandTests
             result.ToString().Should().Be( @"{""Result"":null,""ValidationMessages"":null,""CorrelationId"":null}" );
         }
         {
-            HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri + "?UseSimpleError", @"[""UnsafeWithResultCommand"",{""UserInfo"":""YES. There is no ActorId in the Json => it is let to null.""}]" );
+            HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, @"[""UnsafeWithResultCommand"",{""UserInfo"":""YES. There is no ActorId in the Json => it is let to null.""}]" );
             Throw.DebugAssert( r != null );
-            var result = await pocoDirectory.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-            result.ToString().Should().Match( """{"Result":["AspNetCrisResultError",{"IsValidationError":true,"Errors":["Invalid property: ActorId cannot be null."],"LogKey":"*"}],"ValidationMessages":[[16,"Invalid property: ActorId cannot be null.",0]],"CorrelationId":null}""" );
+            await pocoDirectory.GetValidationErrorsAsync( r, new SimpleUserMessage( UserMessageLevel.Error, "Invalid property: ActorId cannot be null." ) );
         }
         {
-            HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri + "?UseSimpleError", @"[""UnsafeCommand"",{""UserInfo"":""NO WAY!"",""ActorId"":3712}]" );
+            HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""NO WAY!"",""ActorId"":3712}]" );
             Throw.DebugAssert( r != null );
-            IAspNetCrisResult result = await pocoDirectory.GetCrisResultAsync( r );
+            var result = await pocoDirectory.GetValidationErrorsAsync( r, new SimpleUserMessage( UserMessageLevel.Error, "Invalid actor identifier: the provided identifier doesn't match the current authentication." ) );
             var correlationId = ActivityMonitor.Token.Parse( result.CorrelationId );
             string.IsNullOrWhiteSpace( correlationId.OriginatorId ).Should().BeFalse();
-            var error = result.Result as IAspNetCrisResultError;
-            Debug.Assert( error != null );
-            error.IsValidationError.Should().BeTrue();
-            error.Errors.Should().HaveCount( 1 );
-            error.Errors[0].Should().Be( "Invalid actor identifier: the provided identifier doesn't match the current authentication." );
-            var errorLogKey = ActivityMonitor.LogKey.Parse( error.LogKey );
+            var errorLogKey = ActivityMonitor.LogKey.Parse( ((ICrisResultError)result.Result!).LogKey );
             string.IsNullOrWhiteSpace( errorLogKey.OriginatorId ).Should().BeFalse();
-            error.ToString().Should().Match( """{"IsValidationError":true,"Errors":["Invalid actor identifier: the provided identifier doesn*t match the current authentication."],"LogKey":"*"}""" );
         }
         UnsafeHandler.LastUserInfo = null;
         await client.AuthenticationBasicLoginAsync( "Albert", true );
@@ -126,17 +119,15 @@ public class AuthenticatedCommandTests
             UnsafeHandler.LastUserInfo.Should().Be( "Yes! Albert 3712 is logged in." );
         }
         {
-            HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri + "?UseSimpleError", @"[""UnsafeCommand"",{""UserInfo"":""NO WAY!"",""ActorId"":7}]" );
+            HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""NO WAY!"",""ActorId"":7}]" );
             Throw.DebugAssert( r != null );
-            var result = await pocoDirectory.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-            result.ToString().Should().Match( """{"Result":["AspNetCrisResultError",{"IsValidationError":true,"Errors":["Invalid actor identifier: the provided identifier doesn*t match the current authentication."],"LogKey":"*"}],"ValidationMessages":[[16,"Invalid actor identifier: the provided identifier doesn*t match the current authentication.",0]],"CorrelationId":null}""" );
+            await pocoDirectory.GetValidationErrorsAsync( r, new SimpleUserMessage( UserMessageLevel.Error, "Invalid actor identifier: the provided identifier doesn't match the current authentication." ) );
         }
         await client.AuthenticationLogoutAsync();
         {
-            HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri + "?UseSimpleError", @"[""UnsafeCommand"",{""UserInfo"":""NO! Albert is no more here."",""ActorId"":3712}]" );
+            HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""NO! Albert is no more here."",""ActorId"":3712}]" );
             Throw.DebugAssert( r != null );
-            var result = await pocoDirectory.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-            result.ToString().Should().Match( @"{""Result"":[""AspNetCrisResultError"",{""IsValidationError"":true,""Errors"":[""Invalid actor identifier: the provided identifier doesn*t match the current authentication.""],""LogKey"":""*""}],""ValidationMessages"":[[16,""Invalid actor identifier: the provided identifier doesn*t match the current authentication."",0]],""CorrelationId"":null}" );
+            await pocoDirectory.GetValidationErrorsAsync( r, new SimpleUserMessage( UserMessageLevel.Error, "Invalid actor identifier: the provided identifier doesn't match the current authentication." ) );
         }
     }
 

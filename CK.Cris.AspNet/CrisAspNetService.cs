@@ -23,8 +23,7 @@ namespace CK.Cris.AspNet;
 [AlsoRegisterType( typeof( TypeScriptCrisCommandGenerator ) )]
 [AlsoRegisterType( typeof( CommonPocoJsonSupport ) )]
 [AlsoRegisterType( typeof( RawCrisReceiver ) )]
-[AlsoRegisterType( typeof( IAspNetCrisResult ) )]
-[AlsoRegisterType( typeof( IAspNetCrisResultError ) )]
+[AlsoRegisterType( typeof( ICrisCallResult ) )]
 [AlsoRegisterType( typeof( CrisBackgroundExecutorService ) )]
 [AlsoRegisterType( typeof( IAmbientValuesCollectCommand ) )]
 [AlsoRegisterType( typeof( CrisCultureService ) )]
@@ -33,8 +32,7 @@ public partial class CrisAspNetService : ISingletonAutoService
     readonly RawCrisReceiver _validator;
     readonly CrisBackgroundExecutorService _backgroundExecutor;
     internal readonly PocoDirectory _pocoDirectory;
-    readonly IPocoFactory<IAspNetCrisResult> _resultFactory;
-    readonly IPocoFactory<IAspNetCrisResultError> _errorResultFactory;
+    readonly IPocoFactory<ICrisCallResult> _resultFactory;
     readonly IPocoFactory<ICrisResultError> _crisErrorResultFactory;
 
     /// <summary>
@@ -44,21 +42,18 @@ public partial class CrisAspNetService : ISingletonAutoService
     /// <param name="validator">The raw validator service.</param>
     /// <param name="backgroundExecutor">The background executor service.</param>
     /// <param name="resultFactory">The AspNet result factory.</param>
-    /// <param name="errorResultFactory">The AspNet error result factory.</param>
-    /// <param name="backendErrorResultFactory">The Cris error factory.</param>
+    /// <param name="errorResultFactory">The Cris error factory.</param>
     public CrisAspNetService( PocoDirectory poco,
                               RawCrisReceiver validator,
                               CrisBackgroundExecutorService backgroundExecutor,
-                              IPocoFactory<IAspNetCrisResult> resultFactory,
-                              IPocoFactory<IAspNetCrisResultError> errorResultFactory,
-                              IPocoFactory<ICrisResultError> backendErrorResultFactory )
+                              IPocoFactory<ICrisCallResult> resultFactory,
+                              IPocoFactory<ICrisResultError> errorResultFactory )
     {
         _pocoDirectory = poco;
         _validator = validator;
         _backgroundExecutor = backgroundExecutor;
         _resultFactory = resultFactory;
-        _errorResultFactory = errorResultFactory;
-        _crisErrorResultFactory = backendErrorResultFactory;
+        _crisErrorResultFactory = errorResultFactory;
     }
 
     /// <summary>
@@ -66,28 +61,25 @@ public partial class CrisAspNetService : ISingletonAutoService
     /// validated and executed by the <see cref="CrisBackgroundExecutorService"/> or inline if it can.
     /// <para>
     /// Any specific input processing or pre processing can be done by the <paramref name="reader"/> function.
-    /// Output of the <see cref="IAspNetCrisResult"/> MUST use the returned TypeFilterName.
+    /// Output of the <see cref="ICrisCallResult"/> MUST use the returned TypeFilterName.
     /// </para>
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="request">The http request.</param>
     /// <param name="reader">The payload reader.</param>
-    /// <param name="useSimpleError">False to keep <see cref="ICrisResultError"/> instead of the simpler <see cref="IAspNetCrisResultError"/>.</param>
     /// <param name="currentCultureInfo">Optional current culture.</param>
     /// <returns>The command result and the <see cref="ExchangeableRuntimeFilter.Name"/> to use to send the response.</returns>
-    public Task<(IAspNetCrisResult Result, string TypeFilterName)> HandleRequestAsync( IActivityMonitor monitor,
+    public Task<(ICrisCallResult Result, string TypeFilterName)> HandleRequestAsync( IActivityMonitor monitor,
                                                                                        HttpRequest request,
                                                                                        CommandRequestReader reader,
-                                                                                       bool useSimpleError = true,
                                                                                        CurrentCultureInfo? currentCultureInfo = null )
     {
-        return DoHandleAsync( monitor, request, reader, useSimpleError, currentCultureInfo, null );
+        return DoHandleAsync( monitor, request, reader, currentCultureInfo, null );
     }
 
-    internal async Task<(IAspNetCrisResult Result, string TypeFilterName)> DoHandleAsync( IActivityMonitor monitor,
+    internal async Task<(ICrisCallResult Result, string TypeFilterName)> DoHandleAsync( IActivityMonitor monitor,
                                                                                           HttpRequest request,
                                                                                           CommandRequestReader reader,
-                                                                                          bool useSimpleError,
                                                                                           CurrentCultureInfo? currentCultureInfo,
                                                                                           PocoJsonImportOptions? readOptions )
     {
@@ -101,12 +93,11 @@ public partial class CrisAspNetService : ISingletonAutoService
                                                      request,
                                                      reader,
                                                      currentCultureInfo,
-                                                     readOptions,
-                                                     useSimpleError );
+                                                     readOptions );
             Throw.DebugAssert( readResult.TypeFilterName != null );
             AmbientServiceHub? ambientServiceHub = null;
             IEnumerable<UserMessage> allValidationMessages = readResult.ValidationMessages.UserMessages;
-            IAspNetCrisResult? result = readResult.ReadResultError;
+            ICrisCallResult? result = readResult.ReadResultError;
             if( result == null )
             {
                 // No read error => no validation error (and we have a command).
@@ -116,7 +107,7 @@ public partial class CrisAspNetService : ISingletonAutoService
                 allValidationMessages = allValidationMessages.Concat( validation.ValidationMessages );
                 if( !validation.Success )
                 {
-                    result = CreateValidationErrorResult( allValidationMessages, validation.LogKey, useSimpleError );
+                    result = CreateValidationErrorResult( allValidationMessages, validation.LogKey );
                 }
                 ambientServiceHub = validation.AmbientServiceHub;
             }
@@ -147,17 +138,7 @@ public partial class CrisAspNetService : ISingletonAutoService
                 {
                     result.ValidationMessages = allValidationMessages
                                                     .Concat( executedCommand.ValidationMessages )
-                                                    .Select( m => m.AsSimpleUserMessage() )
                                                     .ToList();
-                }
-                // Simplifies the error if asked to to.
-                if( useSimpleError && result.Result is ICrisResultError error )
-                {
-                    IAspNetCrisResultError simpleError = _errorResultFactory.Create();
-                    simpleError.Errors.AddRange( error.Errors.Select( m => m.Text ) );
-                    simpleError.IsValidationError = error.IsValidationError;
-                    simpleError.LogKey = error.LogKey;
-                    result.Result = simpleError;
                 }
             }
             var correlationToken = monitor.CreateToken();
@@ -189,21 +170,20 @@ public partial class CrisAspNetService : ISingletonAutoService
         return null;
     }
 
-    record struct ReadResult( IAbstractCommand? Command, IAspNetCrisResult? ReadResultError, string TypeFilterName, UserMessageCollector ValidationMessages );
+    record struct ReadResult( IAbstractCommand? Command, ICrisCallResult? ReadResultError, string TypeFilterName, UserMessageCollector ValidationMessages );
 
     async Task<ReadResult> ReadCommandAsync( IActivityMonitor monitor,
                                              HttpRequest request,
                                              CommandRequestReader reader,
                                              CurrentCultureInfo? currentCultureInfo,
-                                             PocoJsonImportOptions? readOptions,
-                                             bool useSimpleError )
+                                             PocoJsonImportOptions? readOptions )
     {
         currentCultureInfo ??= request.HttpContext.RequestServices.GetRequiredService<CurrentCultureInfo>();
         var messageCollector = new UserMessageCollector( currentCultureInfo );
         if( readOptions == null && !TryCreateJsonImportOptions( request, messageCollector, out readOptions ) )
         {
             // If we cannot read the TypeFilterName then we use the "AllExchangeable" type set to return the validation error message.
-            return new ReadResult( null, CreateValidationErrorResult( messageCollector.UserMessages, null, useSimpleError ), "AllExchangeable", messageCollector );
+            return new ReadResult( null, CreateValidationErrorResult( messageCollector.UserMessages, null ), "AllExchangeable", messageCollector );
         }
         Throw.DebugAssert( "We now have a TypeFilterName.", readOptions.TypeFilterName != null );
         int length = -1;
@@ -243,7 +223,7 @@ public partial class CrisAspNetService : ISingletonAutoService
                 {
                     messageCollector.Error( "Unable to read Command Poco from empty request body.", "Cris.AspNet.EmptyBody" );
                 }
-                return new ReadResult( null, CreateValidationErrorResult( messageCollector.UserMessages, null, useSimpleError ), readOptions.TypeFilterName, messageCollector );
+                return new ReadResult( null, CreateValidationErrorResult( messageCollector.UserMessages, null ), readOptions.TypeFilterName, messageCollector );
             }
             catch( Exception ex )
             {
@@ -258,7 +238,7 @@ public partial class CrisAspNetService : ISingletonAutoService
                 {
                     monitor.Error( "Error while tracing request body.", error );
                 }
-                return new ReadResult( null, CreateValidationErrorResult( messageCollector.UserMessages, gError.GetLogKeyString(), useSimpleError ), readOptions.TypeFilterName, messageCollector );
+                return new ReadResult( null, CreateValidationErrorResult( messageCollector.UserMessages, gError.GetLogKeyString() ), readOptions.TypeFilterName, messageCollector );
             }
         }
 
@@ -280,6 +260,9 @@ public partial class CrisAspNetService : ISingletonAutoService
     /// Helper that reads optional "UsePascalCase", "Indented", "TypeLess", "UnsafeRelaxedJsonEscaping"
     /// and optionally "SkipValidation" keys from request's query to build the options that can be used
     /// to write the json result.
+    /// <para>
+    /// This always sets the <see cref="PocoJsonExportOptions.AlwaysExportSimpleUserMessage"/> to true.
+    /// </para>
     /// <para>
     /// Using the <see cref="System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping"/> is not recommended. 
     /// </para>
@@ -309,6 +292,7 @@ public partial class CrisAspNetService : ISingletonAutoService
                         : System.Text.Encodings.Web.JavaScriptEncoder.Default;
         var o = new PocoJsonExportOptions()
         {
+            AlwaysExportSimpleUserMessage = true,
             TypeFilterName = typeFilterName,
             UseCamelCase = !usePascalCase,
             TypeLess = typeLess,
@@ -402,39 +386,24 @@ public partial class CrisAspNetService : ISingletonAutoService
         return ValueTask.FromResult<IAbstractCommand?>( c );
     }
 
-    IAspNetCrisResult CreateValidationErrorResult( IEnumerable<UserMessage> messages, string? logKey, bool useSimpleError )
+    ICrisCallResult CreateValidationErrorResult( IEnumerable<UserMessage> messages, string? logKey )
     {
-        IAspNetCrisResult result = _resultFactory.Create();
-        ICrisResultError? error = null;
-        IAspNetCrisResultError? simpleError = null;
+        ICrisCallResult result = _resultFactory.Create();
+        ICrisResultError? error = _crisErrorResultFactory.Create();
+        error.IsValidationError = true;
+        error.LogKey = logKey;
+        result.Result = error;
 
-        if( useSimpleError )
-        {
-            simpleError = _errorResultFactory.Create();
-            simpleError.IsValidationError = true;
-            simpleError.LogKey = logKey;
-            result.Result = simpleError;
-        }
-        else
-        {
-            error = _crisErrorResultFactory.Create();
-            error.IsValidationError = true;
-            error.LogKey = logKey;
-            result.Result = error;
-        }
-
-        var validationMessages = new List<SimpleUserMessage>();
+        var validationMessages = new List<UserMessage>();
         foreach( var message in messages )
         {
             if( message.Level == UserMessageLevel.Error )
             {
-                if( useSimpleError ) simpleError!.Errors.Add( message.Text );
-                else error!.Errors.Add( message );
+                error.Errors.Add( message );
             }
             validationMessages.Add( message );
         }
         result.ValidationMessages = validationMessages;
-
         return result;
     }
 

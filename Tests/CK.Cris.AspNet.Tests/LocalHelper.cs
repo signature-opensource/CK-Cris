@@ -1,5 +1,6 @@
 using CK.Core;
 using FluentAssertions;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 
@@ -9,18 +10,31 @@ static class LocalHelper
 {
     public const string CrisUri = "/.cris/net";
 
-    static public async Task<IAspNetCrisResult> GetCrisResultAsync( this PocoDirectory p, HttpResponseMessage r )
+    static public async Task<ICrisCallResult> GetCrisResultAsync( this PocoDirectory p, HttpResponseMessage r )
     {
-        var result = p.Find<IAspNetCrisResult>()!.ReadJson( await r.Content.ReadAsByteArrayAsync() );
+        var result = p.Find<ICrisCallResult>()!.ReadJson( await r.Content.ReadAsByteArrayAsync() );
         Throw.DebugAssert( result != null );
         return result;
     }
 
-    static public async Task<IAspNetCrisResult> GetCrisResultWithCorrelationIdSetToNullAsync( this PocoDirectory p, HttpResponseMessage r )
+    static public async Task<ICrisCallResult> GetCrisResultWithCorrelationIdSetToNullAsync( this PocoDirectory p, HttpResponseMessage r )
     {
         var result = await GetCrisResultAsync( p, r );
         result.CorrelationId.Should().NotBeNullOrWhiteSpace();
         result.CorrelationId = null;
+        return result;
+    }
+
+    static public async Task<ICrisCallResult> GetValidationErrorsAsync( this PocoDirectory p, HttpResponseMessage r, params SimpleUserMessage[] messages )
+    {
+        var result = await GetCrisResultAsync( p, r );
+        result.ValidationMessages.Should().NotBeNull();
+        result.ValidationMessages!.Select( m => m.AsSimpleUserMessage() ).Should().BeEquivalentTo( messages );
+        result.Result.Should().NotBeNull();
+        result.Result.Should().BeAssignableTo<ICrisResultError>();
+        var e = (ICrisResultError)result.Result!;
+        e.IsValidationError.Should().BeTrue();
+        e.Errors.Select( m => m.AsSimpleUserMessage() ).Should().BeEquivalentTo( messages );
         return result;
     }
 

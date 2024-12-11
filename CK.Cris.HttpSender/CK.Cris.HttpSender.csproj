@@ -8,7 +8,6 @@
     <PackageReference Include="Polly.Core" Version="8.5.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CK.IO.AspNet\CK.IO.AspNet.csproj" />
     <ProjectReference Include="..\CK.IO.Auth.Basic\CK.IO.Auth.Basic.csproj" />
   </ItemGroup>
 </Project>

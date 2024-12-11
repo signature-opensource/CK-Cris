@@ -1,6 +1,5 @@
 using CK.AppIdentity;
 using CK.Core;
-using CK.Cris.AspNet;
 using CK.Setup;
 using System;
 using System.Globalization;
@@ -14,11 +13,11 @@ namespace CK.Cris.HttpSender;
 /// or not. The <see cref="CrisHttpSender"/> feature is added only if a "CrisHttpSender" key appears in the remote's
 /// configuration. This configuration can be a "true" value (that uses a default configuration).
 /// </summary>
-[AlsoRegisterType( typeof( IAspNetCrisResult ) )]
+[AlsoRegisterType( typeof( ICrisCallResult ) )]
 public sealed class CrisHttpSenderFeatureDriver : ApplicationIdentityFeatureDriver
 {
     readonly PocoDirectory _pocoDirectory;
-    readonly IPocoFactory<IAspNetCrisResult> _resultReader;
+    readonly IPocoFactory<ICrisCallResult> _resultReader;
 
     /// <summary>
     /// Initializes a new <see cref="CrisHttpSenderFeatureDriver"/>.
@@ -28,7 +27,7 @@ public sealed class CrisHttpSenderFeatureDriver : ApplicationIdentityFeatureDriv
     /// <param name="resultReader">The AspNet crist result factory.</param>
     public CrisHttpSenderFeatureDriver( ApplicationIdentityService s,
                                         PocoDirectory pocoDirectory,
-                                        IPocoFactory<IAspNetCrisResult> resultReader )
+                                        IPocoFactory<ICrisCallResult> resultReader )
         : base( s, isAllowedByDefault: true )
     {
         _pocoDirectory = pocoDirectory;

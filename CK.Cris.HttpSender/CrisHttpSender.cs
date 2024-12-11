@@ -1,7 +1,6 @@
 using CK.AppIdentity;
 using CK.Auth;
 using CK.Core;
-using CK.Cris.AspNet;
 using CK.Poco.Exc.Json;
 using Polly;
 using System;
@@ -29,7 +28,7 @@ public sealed partial class CrisHttpSender : ICrisHttpSender
     readonly IRemoteParty _remote;
     readonly Uri _endpointUrl;
     readonly PocoDirectory _pocoDirectory;
-    readonly IPocoFactory<IAspNetCrisResult> _resultFactory;
+    readonly IPocoFactory<ICrisCallResult> _resultFactory;
     readonly TimeSpan _configuredTimeout;
 
     static readonly HttpRequestOptionsKey<TimeSpan> _timeoutKey = new HttpRequestOptionsKey<TimeSpan>( "Timeout" );
@@ -51,7 +50,7 @@ public sealed partial class CrisHttpSender : ICrisHttpSender
     internal CrisHttpSender( IRemoteParty remote,
                              Uri endpointUrl,
                              PocoDirectory pocoDirectory,
-                             IPocoFactory<IAspNetCrisResult> resultFactory,
+                             IPocoFactory<ICrisCallResult> resultFactory,
                              TimeSpan? timeout,
                              HttpRetryStrategyOptions? retryStrategy )
     {
@@ -171,7 +170,7 @@ public sealed partial class CrisHttpSender : ICrisHttpSender
                 ResilienceContextPool.Shared.Return( ctx );
             }
 
-            IAspNetCrisResult? result = _resultFactory.ReadJson( payloadResponse, PocoJsonImportOptions.Default );
+            ICrisCallResult? result = _resultFactory.ReadJson( payloadResponse, PocoJsonImportOptions.Default );
             if( result == null ) throw new Exception( "Received 'null' response." );
             if( !_skipAutomaticAuthorizationToken )
             {
