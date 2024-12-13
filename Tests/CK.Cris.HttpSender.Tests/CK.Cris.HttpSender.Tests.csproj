@@ -4,14 +4,14 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Testing.NUnit" Version="11.0.1--0005-develop" />
+    <PackageReference Include="CK.Testing.NUnit" Version="11.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Testing.StObjEngine" Version="27.0.1--0012-develop" />
-    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="24.1.1--0010-develop" />
-    <PackageReference Include="CK.AppIdentity.Hosting" Version="0.6.1--0005-develop" />
+    <PackageReference Include="CK.Testing.StObjEngine" Version="28.0.0" />
+    <PackageReference Include="CK.Testing.AspNetServer.Auth" Version="25.0.0" />
+    <PackageReference Include="CK.AppIdentity.Hosting" Version="0.6.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\CK.Cris.AspNet.Engine\CK.Cris.AspNet.Engine.csproj" />
