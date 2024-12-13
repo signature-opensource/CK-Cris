@@ -50,12 +50,12 @@ public class CrisMiddleware
 
                 // For front applications the TypeFilterName is or starts with "TypeScript", the optional "TypeFilterName" query string 
                 // sets this and a PocoJsonImportOptions is computed from it (with other options) by the
-                // public static CrisAspNetService.TryCreateJsonImportOptions helper.
+                // public CrisAspNetService.TryCreateJsonImportOptions helper.
                 //
                 // For a HttpCrisSender we use the PocoJsonImportOptions.Default ("AllExchangeable" type set). This is NOT ideal:
                 // the /.cris/net path allows all the exchangeable commands, but the HttpCrisSender is a temporary solution that will
                 // be replaced with the Transport feature. If it stays here, it SHOULD be refactored to use a type set (or a family)
-                // explictly defined or its identity should be enforced.
+                // explicitly defined or its identity should be enforced.
                 //
                 var readOptions = isNetPath
                                     ? PocoJsonImportOptions.Default
@@ -76,15 +76,9 @@ public class CrisMiddleware
                 PocoJsonExportOptions writeOptions;
                 if( isNetPath )
                 {
-                    // Option for /.cris/net: the AlwaysExportSimpleUserMessage simplifies the tests and enables to test the backend
-                    // with the same behavior as from TypeScript: this avoids to serialize the UserMessage and use only
-                    // the SimpleUserMessage (HttpCrisSender uses the full UserMessage format).
+                    // There is no option for /.cris/net: using AlwaysExportSimpleUserMessage doesn't make sense.
                     // This uses the "AllExportable" Poco type set.
                     writeOptions = PocoJsonExportOptions.Default;
-                    if( ctx.Request.Query["AlwaysExportSimpleUserMessage"].Count != 0 )
-                    {
-                        writeOptions = new PocoJsonExportOptions( writeOptions ) { AlwaysExportSimpleUserMessage = true };
-                    }
                 }
                 else
                 {
