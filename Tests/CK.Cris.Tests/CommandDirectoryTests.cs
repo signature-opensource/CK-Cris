@@ -24,7 +24,7 @@ public class CrisDirectoryTests
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( ITestCommand ) );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
 
         var poco = auto.Services.GetRequiredService<PocoDirectory>();
 

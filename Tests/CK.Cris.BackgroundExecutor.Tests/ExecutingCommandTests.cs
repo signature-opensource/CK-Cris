@@ -42,7 +42,7 @@ public class ExecutingCommandTests
                                               typeof( MyHandler ),
                                               typeof( CrisBackgroundExecutorService ),
                                               typeof( CrisBackgroundExecutor ) );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
 
         using var scoped = auto.Services.CreateScope();
         var poco = scoped.ServiceProvider.GetRequiredService<PocoDirectory>();
@@ -62,7 +62,7 @@ public class ExecutingCommandTests
                                               typeof( IMyCommandResult ),
                                               typeof( MyHandler ),
                                               typeof( CrisBackgroundExecutorService ) );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
 
         using var scoped = auto.Services.CreateScope();
         var poco = scoped.ServiceProvider.GetRequiredService<PocoDirectory>();
@@ -102,7 +102,7 @@ public class ExecutingCommandTests
                                               typeof( MyExtendedHandler ),
                                               typeof( CrisBackgroundExecutorService ),
                                               typeof( CrisBackgroundExecutor ) );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
 
         using var scoped = auto.Services.CreateScope();
         var poco = scoped.ServiceProvider.GetRequiredService<PocoDirectory>();

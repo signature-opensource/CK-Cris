@@ -22,7 +22,7 @@ public class CommandResultTypeTests
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IIntCommand ) );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
 
         var d = auto.Services.GetRequiredService<CrisDirectory>();
         d.CrisPocoModels[0].ResultType.Should().Be( typeof( int ) );
@@ -37,7 +37,7 @@ public class CommandResultTypeTests
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IIntButObjectCommand ) );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         var d = auto.Services.GetRequiredService<CrisDirectory>();
         var cmdModel = d.CrisPocoModels[0];
         cmdModel.CommandType.Should().BeAssignableTo( typeof( IIntButObjectCommand ) );
@@ -63,7 +63,7 @@ public class CommandResultTypeTests
         {
             var configuration = TestHelper.CreateDefaultEngineConfiguration();
             configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IWithMorePocoResultCommand ), typeof( IMoreResult ) );
-            using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+            await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
             var d = auto.Services.GetRequiredService<CrisDirectory>();
             var cmdModel = d.CrisPocoModels[0];
             cmdModel.CommandType.Should().BeAssignableTo( typeof( IWithMorePocoResultCommand ) );
@@ -72,7 +72,7 @@ public class CommandResultTypeTests
         {
             var configuration = TestHelper.CreateDefaultEngineConfiguration();
             configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IWithAnotherPocoResultCommand ), typeof( IAnotherResult ) );
-            using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+            await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
             var d = auto.Services.GetRequiredService<CrisDirectory>();
             var cmdModel = d.CrisPocoModels[0];
             cmdModel.CommandType.Should().BeAssignableTo( typeof( IWithAnotherPocoResultCommand ) );
@@ -87,7 +87,7 @@ public class CommandResultTypeTests
         {
             var configuration = TestHelper.CreateDefaultEngineConfiguration();
             configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IWithTheResultUnifiedCommand ), typeof( IUnifiedResult ) );
-            using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+            await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
             var d = auto.Services.GetRequiredService<CrisDirectory>();
             var cmdModel = d.CrisPocoModels[0];
             cmdModel.CommandType.Should().BeAssignableTo( typeof( IWithTheResultUnifiedCommand ) );

@@ -29,7 +29,7 @@ public class RawCrisReceiverTests
             typeof( RawCrisReceiver ), typeof( CrisDirectory ), typeof( ICrisResultError ), typeof( AmbientValues.IAmbientValues ),
             typeof( ITestCommand ) );
 
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
 
         var directory = auto.Services.GetRequiredService<PocoDirectory>();
         var cmd = directory.Create<ITestCommand>();
@@ -58,7 +58,7 @@ public class RawCrisReceiverTests
         configuration.FirstBinPath.Types.Add( typeof( RawCrisReceiver ), typeof( CrisDirectory ),
                                               typeof( ITestCommand ),
                                               typeof( BuggyValidator ) );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
 
         var directory = auto.Services.GetRequiredService<PocoDirectory>();
         var cmd = directory.Create<ITestCommand>();
@@ -113,7 +113,7 @@ public class RawCrisReceiverTests
         if( singletonService ) configuration.FirstBinPath.Types.Add( typeof( SimplestValidatorEverSingleton ) );
         if( scopedService ) configuration.FirstBinPath.Types.Add( typeof( SimplestValidatorEverScoped ) );
 
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
 
         using( var scope = auto.Services.CreateScope() )
         {
@@ -196,7 +196,7 @@ public class RawCrisReceiverTests
         var authTypeSystem = new StdAuthenticationTypeSystem();
         var authInfo = authTypeSystem.AuthenticationInfo.Create( authTypeSystem.UserInfo.Create( 3712, "John" ), DateTime.UtcNow.AddDays( 1 ) );
 
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices( configureServices: services =>
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices( configureServices: services =>
         {
             services.AddScoped( s => authInfo );
         } );
@@ -275,7 +275,7 @@ public class RawCrisReceiverTests
             typeof( ITestCommand ),
             typeof( ValidatorWithLogs ) );
 
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices( configureServices: services =>
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices( configureServices: services =>
         {
             services.AddScoped<IActivityMonitor, ActivityMonitor>();
             services.AddScoped( sp => sp.GetRequiredService<IActivityMonitor>().ParallelLogger );
@@ -325,7 +325,7 @@ public class RawCrisReceiverTests
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( typeof( RawCrisReceiver ), typeof( CrisDirectory ), typeof( ITestCommand ), typeof( ValidatorWithBoth ) );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         // Triggers a resolution of IEnumerable<IHostedService>: this is enough to setup the DI containers.
         auto.Services.GetServices<IHostedService>();
 
