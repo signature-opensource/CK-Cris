@@ -5,7 +5,6 @@ using NUnit.Framework;
 using System.Threading.Tasks;
 using CK.Testing;
 using Microsoft.Extensions.Hosting;
-using CK.Core;
 using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Ng.Cris.AspNet.Auth.Tests;

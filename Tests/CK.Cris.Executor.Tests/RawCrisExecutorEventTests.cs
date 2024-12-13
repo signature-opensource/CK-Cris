@@ -63,7 +63,7 @@ public class RawCrisExecutorEventTests
                                                   "Sync" => typeof( EventSyncHandler ),
                                                   _ => throw new NotImplementedException()
                                               } );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         using( var scope = auto.Services.CreateScope() )
         {
             var services = scope.ServiceProvider;
@@ -87,7 +87,7 @@ public class RawCrisExecutorEventTests
                                               typeof( EventAsyncHandler ),
                                               typeof( EventValueTaskAsyncHandler ),
                                               typeof( EventSyncHandler ) );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         using( var scope = auto.Services.CreateScope() )
         {
             var services = scope.ServiceProvider;

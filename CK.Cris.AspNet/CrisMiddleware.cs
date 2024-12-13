@@ -50,42 +50,44 @@ public class CrisMiddleware
 
                 // For front applications the TypeFilterName is or starts with "TypeScript", the optional "TypeFilterName" query string 
                 // sets this and a PocoJsonImportOptions is computed from it (with other options) by the
-                // public static CrisAspNetService.TryCreateJsonImportOptions helper.
+                // public CrisAspNetService.TryCreateJsonImportOptions helper.
                 //
                 // For a HttpCrisSender we use the PocoJsonImportOptions.Default ("AllExchangeable" type set). This is NOT ideal:
                 // the /.cris/net path allows all the exchangeable commands, but the HttpCrisSender is a temporary solution that will
                 // be replaced with the Transport feature. If it stays here, it SHOULD be refactored to use a type set (or a family)
-                // explictly defined or its identity should be enforced.
+                // explicitly defined or its identity should be enforced.
                 //
                 var readOptions = isNetPath
                                     ? PocoJsonImportOptions.Default
                                     : null;
 
-                // The public CrisAspNetService.StandardReadCommandAsync helper checks that the TypeFilterName is or start with "TypeScript".
+                // The public CrisAspNetService.StandardReadCommandAsync helper checks that the TypeFilterName is (or starts with) "TypeScript".
                 // The internal DoStandardReadAsync does the job with no check.
                 CommandRequestReader reader = isNetPath
                                                 ? CrisAspNetService.DoStandardReadAsync
                                                 : CrisAspNetService.StandardReadCommandAsync;
 
-                // Option for /.cris/net: the UseSimpleError simplifies the tests and enables to test the backend
-                // with the same behavior as from TypeScript: this avoids to serialize the UserMessage and use only
-                // the SimpleUserMessage (HttpCrisSender uses the full UserMessage format).
-                bool useSimpleError = isNetPath
-                                        ? ctx.Request.Query["UseSimpleError"].Count != 0
-                                        : true;
-
                 var (result, typeFilterName) = await _service.DoHandleAsync( monitor,
                                                                              ctx.Request,
                                                                              reader,
-                                                                             useSimpleError,
                                                                              currentCultureInfo: null,
                                                                              readOptions );
 
-                // For front applications, the writer uses the TypeFilterName of the input. The CreateJsonExportOptions helper
-                // creates a PocoJsonExportOptions from the request and the TypeFilterName obtained for the reader.
-                var writeOptions = isNetPath
-                                    ? PocoJsonExportOptions.Default
-                                    : _service.CreateJsonExportOptions( ctx.Request, typeFilterName, skipValidation: true );
+                PocoJsonExportOptions writeOptions;
+                if( isNetPath )
+                {
+                    // There is no option for /.cris/net: using AlwaysExportSimpleUserMessage doesn't make sense.
+                    // This uses the "AllExportable" Poco type set.
+                    writeOptions = PocoJsonExportOptions.Default;
+                }
+                else
+                {
+                    // For front applications, the writer uses the TypeFilterName of the input.
+                    // The CreateJsonExportOptions helper creates a PocoJsonExportOptions from the request and
+                    // the TypeFilterName obtained for the reader.
+                    // This always use AlwaysExportSimpleUserMessage = true.
+                    writeOptions = _service.CreateJsonExportOptions( ctx.Request, typeFilterName, skipValidation: true );
+                }
 
                 // If the returned result (that is a IAspNetCrisResult Poco) is fotlered out, this is a serious issue: this type
                 // is automatically registered in the "TypeScript" set by CK.TypeScript.

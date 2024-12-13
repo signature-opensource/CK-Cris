@@ -56,7 +56,7 @@ public class ICommandHandlerTests
                                               typeof( IResult ),
                                               typeof( CmdHandlerOfBase ),
                                               typeof( CmdHandlerAlternate ) );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         var d = auto.Services.GetRequiredService<CrisDirectory>();
 
         var cmd = auto.Services.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
@@ -80,7 +80,7 @@ public class ICommandHandlerTests
                                               typeof( IMoreResult ),
                                               typeof( CmdHandlerWithMore ),
                                               typeof( CmdHandlerAlternate ) );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         var d = auto.Services.GetRequiredService<CrisDirectory>();
 
         var cmd = auto.Services.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
@@ -158,7 +158,7 @@ public class ICommandHandlerTests
                                               typeof( CmdHandlerWithMore ),
                                               typeof( CmdHandlerWithAnother ),
                                               typeof( CmdHandlerAlternate ) );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         var d = auto.Services.GetRequiredService<CrisDirectory>();
 
         var cmd = auto.Services.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
@@ -193,7 +193,7 @@ public class ICommandHandlerTests
                                               typeof( IWithTheResultUnifiedCommand ),
                                               typeof( IUnifiedResult ),
                                               typeof( CmdHandlerUnifiedSpecialized ), typeof( CmdHandlerWithMore ), typeof( CmdHandlerWithAnother ), typeof( CmdHandlerAlternate ) );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         var d = auto.Services.GetRequiredService<CrisDirectory>();
 
         var cmd = auto.Services.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
@@ -231,7 +231,7 @@ public class ICommandHandlerTests
         configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ),
                                               typeof( ITestCommand ),
                                               typeof( BaseClassWithHandler ) );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         var d = auto.Services.GetRequiredService<CrisDirectory>();
         d.CrisPocoModels.Should().HaveCount( 1 );
         d.CrisPocoModels[0].Handlers.Should().BeEmpty();
@@ -250,7 +250,7 @@ public class ICommandHandlerTests
         configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ),
                                               typeof( ITestCommand ),
                                               typeof( SpecializedBaseClassService ) );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         var d = auto.Services.GetRequiredService<CrisDirectory>();
         d.CrisPocoModels.Should().HaveCount( 1 );
         var handler = d.CrisPocoModels[0].Handlers.Single();

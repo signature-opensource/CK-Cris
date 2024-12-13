@@ -2,7 +2,6 @@ using CK.CodeGen;
 using CK.Core;
 using CK.Cris;
 using CK.Cris.AmbientValues;
-using CK.Cris.AspNet;
 using CK.Setup.Cris;
 using CK.TypeScript.CodeGen;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,8 +19,8 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
 {
     ITSCodeGenerator? ITSCodeGeneratorFactory.CreateTypeScriptGenerator( IActivityMonitor monitor, ITypeScriptContextInitializer initializer )
     {
-        if( initializer.EnsureRegister( monitor, typeof( IAspNetCrisResult ), mustBePocoType: true )
-               && initializer.EnsureRegister( monitor, typeof( IAspNetCrisResultError ), mustBePocoType: true )
+        if( initializer.EnsureRegister( monitor, typeof( ICrisCallResult ), mustBePocoType: true )
+               && initializer.EnsureRegister( monitor, typeof( ICrisResultError ), mustBePocoType: true )
                && initializer.EnsureRegister( monitor, typeof( IAmbientValues ), mustBePocoType: true )
                && initializer.EnsureRegister( monitor, typeof( IAmbientValuesCollectCommand ), mustBePocoType: true ) )
         {
@@ -539,10 +538,11 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
 
             fHttpEndpoint.Imports.ImportFromFile( modelFile, "ICommand, ExecutedCommand, CrisError" );
             fHttpEndpoint.Imports.Import( crisEndpoint );
-            fHttpEndpoint.Imports.EnsureImport( monitor, typeof( IAspNetCrisResult ) );
+            fHttpEndpoint.Imports.EnsureImport( monitor, typeof( ICrisCallResult ) );
             fHttpEndpoint.Imports.ImportFromLibrary( axios, "AxiosInstance, AxiosHeaders, RawAxiosRequestConfig" );
             fHttpEndpoint.Imports.Import( ctsType );
-            fHttpEndpoint.Imports.EnsureImport( monitor, typeof( IAspNetCrisResultError ) );
+            fHttpEndpoint.Imports.EnsureImport( monitor, typeof( ICrisResultError ) );
+            fHttpEndpoint.Imports.EnsureImport( monitor, typeof( UserMessageLevel ) );
 
             fHttpEndpoint.Body.Append( """
                                 const defaultCrisAxiosConfig: RawAxiosRequestConfig = {
@@ -602,11 +602,12 @@ public sealed partial class TypeScriptCrisCommandGeneratorImpl : ITSCodeGenerato
                                         {
                                             const req = JSON.stringify(CTSType.toTypedJson(command));
                                             const resp = await this.#axios.post(this.#crisEndpointUrl, req, this.axiosConfig);
-                                            const netResult = <AspNetResult>CTSType["AspNetResult"].nosj( JSON.parse(resp.data) );
+                                            const netResult = <CrisCallResult>CTSType["CrisCallResult"].nosj( JSON.parse(resp.data) );
                                             let r = netResult.result;
-                                            if( r instanceof AspNetCrisResultError ) 
+                                            if( r instanceof CrisResultError ) 
                                             {
-                                                r = new CrisError(command, r.isValidationError, r.errors, undefined, netResult.validationMessages, r.logKey);
+                                                const errors = r.errors.filter( m => m.level === UserMessageLevel.Error ).map( m => m.message );
+                                                r = new CrisError(command, r.isValidationError, errors, undefined, netResult.validationMessages, r.logKey);
                                             }
                                             return {command: command, result: <T|CrisError>r, validationMessages: netResult.validationMessages, correlationId: netResult.correlationId };
                                         }

@@ -67,7 +67,7 @@ public class RawCrisExecutorCommandTests
                                                   _ => throw new NotImplementedException()
                                               } );
 
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         using( var scope = auto.Services.CreateScope() )
         {
             var services = scope.ServiceProvider;
@@ -136,7 +136,7 @@ public class RawCrisExecutorCommandTests
                                                   _ => throw new NotImplementedException()
                                               } );
 
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         using( var scope = auto.Services.CreateScope() )
         {
             var services = scope.ServiceProvider;
@@ -178,7 +178,7 @@ public class RawCrisExecutorCommandTests
                                               typeof( IIntTestCommand ),
                                               typeof( CmdIntRefAsyncHandler ),
                                               typeof( CmdIntValAsyncHandlerService ) );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
     }
 
 
@@ -236,7 +236,7 @@ public class RawCrisExecutorCommandTests
 
         static async Task CheckUniqueCommandHasNoHandlerAsync( EngineConfiguration configuration )
         {
-            using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+            await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
             using( var scope = auto.Services.CreateScope() )
             {
                 var directory = scope.ServiceProvider.GetRequiredService<CrisDirectory>();
@@ -267,7 +267,7 @@ public class RawCrisExecutorCommandTests
     [Test]
     public async Task calling_public_AutoService_implementation_Async()
     {
-        using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
+        await using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
             [
                 typeof( RawCrisExecutor ),
                 typeof( ITestCommand ),
@@ -306,7 +306,7 @@ public class RawCrisExecutorCommandTests
     [Test]
     public async Task calling_explicit_AutoService_implementation_Async()
     {
-        using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
+        await using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
             [
                 typeof( RawCrisExecutor ),
                 typeof( ITestCommand ),
@@ -347,7 +347,7 @@ public class RawCrisExecutorCommandTests
     [Test]
     public async Task unknown_types_are_injected_Async()
     {
-        using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
+        await using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
             [
                 typeof( RawCrisExecutor ),
                 typeof( ITestCommand ),

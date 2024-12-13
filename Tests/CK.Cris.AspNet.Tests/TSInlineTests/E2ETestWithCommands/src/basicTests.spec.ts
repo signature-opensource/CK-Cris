@@ -1,6 +1,6 @@
 import axios from "axios"; 
 import { HttpCrisEndpoint, CrisError, UserMessageLevel, SimpleUserMessage } from "@local/ck-gen"; 
-import { BeautifulCommand, BuggyCommand, WithMessageCommand } from "@local/ck-gen"; 
+import { BeautifulCommand, BuggyCommand, WithMessageCommand, WithUserMessageCommand } from "@local/ck-gen"; 
 
 // Trick from https://stackoverflow.com/a/77047461/190380
 if( process.env["VSCODE_INSPECTOR_OPTIONS"] ) jest.setTimeout(20 * 60 * 1000 ); // 20 minutes
@@ -106,7 +106,16 @@ it('A command can return a SimpleMessage.', async () => {
   const cmd = new WithMessageCommand();
   var r = await ep.sendOrThrowAsync(cmd);
   expect( r instanceof SimpleUserMessage );
-  expect( r.message.startsWith("Local servert time is") );
+  expect( r.message.startsWith("Local server time is") );
   expect( r.depth).toBe( 0 );
   expect( r.level).toBe( UserMessageLevel.Info );
+});
+it('A command can return a UserMessage but in TypeScript, this is a SimpleUserMessage.', async () => {
+  const ep = new HttpCrisEndpoint(axios, crisEndpoint);
+  const cmd = new WithUserMessageCommand();
+  var r = await ep.sendOrThrowAsync(cmd);
+  expect( r instanceof SimpleUserMessage );
+  expect( r.message.startsWith("I'm a UserMessage and it is ") );
+  expect( r.depth ).toBe( 12 );
+  expect( r.level ).toBe( UserMessageLevel.Warn );
 });

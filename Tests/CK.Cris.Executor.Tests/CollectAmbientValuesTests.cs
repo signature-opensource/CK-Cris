@@ -81,7 +81,7 @@ public class CollectAmbientValuesTests
         var authTypeSystem = new StdAuthenticationTypeSystem();
         var authInfo = authTypeSystem.AuthenticationInfo.Create( authTypeSystem.UserInfo.Create( 3712, "John" ), DateTime.UtcNow.AddDays( 1 ) );
 
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices( configureServices: services =>
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices( configureServices: services =>
         {
             services.AddScoped<IAuthenticationInfo>( s => authInfo );
             services.AddScoped<IActivityMonitor>( s => TestHelper.Monitor );
@@ -163,7 +163,7 @@ public class CollectAmbientValuesTests
                                               typeof( NormalizedCultureInfo ),
                                               typeof( ICultureCommand ),
                                               typeof( FakeCommandHandler ) );
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         auto.Services.GetRequiredService<IEnumerable<IHostedService>>().Should().HaveCount( 1, "Required to initialize the Global Service Provider." );
 
         using( var scope = auto.Services.CreateScope() )

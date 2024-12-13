@@ -99,7 +99,7 @@ public class AmbientValuesTests
                                               typeof( ITestAmbientValues ),
                                               typeof( IAmbientValuesCollectCommand ) );
         // no error: V1 is a string and V2 is an int.
-        using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
     }
 
 
