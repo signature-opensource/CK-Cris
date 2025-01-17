@@ -35,3 +35,4 @@ public interface IDelayedCommand : ICommand
     [NullInvalid]
     IAbstractCommand? Command { get; set; }
 }
+
