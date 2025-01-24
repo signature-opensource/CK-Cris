@@ -5,7 +5,6 @@ import { CKGenAppModule, CKGenInjected } from '@local/ck-gen';
 const ckGenInjected: CKGenInjected = [];
 @Component({
   selector: 'app-root',
-  standalone: true,
   imports: [RouterOutlet, CKGenAppModule, ...ckGenInjected],
   templateUrl: './app.component.html',
   styleUrl: './app.component.less'

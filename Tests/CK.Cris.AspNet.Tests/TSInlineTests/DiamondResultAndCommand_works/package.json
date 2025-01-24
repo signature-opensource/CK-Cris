@@ -17,5 +17,6 @@
   "ckVersion": 1,
   "peerDependencies": {
     "axios": "^1.7.7"
-  }
+  },
+  "packageManager": "yarn@4.6.0"
 }

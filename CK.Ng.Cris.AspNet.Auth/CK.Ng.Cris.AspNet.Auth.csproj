@@ -1,13 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="CK.Ng.Axios" Version="0.22.1--0002-develop" />
-    <PackageReference Include="CK.TS.Angular.Engine" Version="0.22.1--0002-develop" />
-    <PackageReference Include="CK.TS.AspNet.Auth" Version="0.22.1--0002-develop" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\CK.Ng.Cris.AspNet\CK.Ng.Cris.AspNet.csproj" />
-  </ItemGroup>
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="CK.Ng.Axios" Version="0.22.1--0008-develop" />
+        <PackageReference Include="CK.TS.Angular.Engine" Version="0.22.1--0008-develop" />
+        <PackageReference Include="CK.TS.AspNet.Auth" Version="0.22.1--0008-develop" />
+        <PackageReference Include="CK.TypeScript" Version="0.22.1--0008-develop" />
+        <PackageReference Include="CK.TypeScript.Engine" Version="0.22.1--0008-develop" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="**\*.ts">
+            <LogicalName>ck@$([System.String]::new('%(RelativeDir)').Replace('\','/'))%(FileName)%(Extension)</LogicalName>
+        </EmbeddedResource>
+    </ItemGroup>
+    
+    <ItemGroup>
+        <ProjectReference Include="..\CK.Ng.Cris.AspNet\CK.Ng.Cris.AspNet.csproj" />
+    </ItemGroup>
 </Project>
