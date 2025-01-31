@@ -4,13 +4,11 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <PackageReference Include="CK.Ng.Axios" Version="0.22.1--0008-develop" />
-        <PackageReference Include="CK.TS.Angular.Engine" Version="0.22.1--0008-develop" />
+        <PackageReference Include="CK.EmbeddedResources.Abstractions" Version="0.22.1--0008-develop" />
         <PackageReference Include="CK.TS.AspNet.Auth" Version="0.22.1--0008-develop" />
-        <PackageReference Include="CK.TypeScript" Version="0.22.1--0008-develop" />
-        <PackageReference Include="CK.TypeScript.Engine" Version="0.22.1--0008-develop" />
     </ItemGroup>
 
+    <!-- Required because CK.EmbeddedResources.Abstractions transitive build files DON'T appear here! -->
     <ItemGroup>
         <EmbeddedResource Include="**\*.ts">
             <LogicalName>ck@$([System.String]::new('%(RelativeDir)').Replace('\','/'))%(FileName)%(Extension)</LogicalName>
