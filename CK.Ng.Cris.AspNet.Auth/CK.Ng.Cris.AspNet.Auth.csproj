@@ -8,7 +8,10 @@
         <PackageReference Include="CK.TS.AspNet.Auth" Version="0.22.1--0008-develop" />
     </ItemGroup>
 
-    <!-- Required because CK.EmbeddedResources.Abstractions transitive build files DON'T appear here! -->
+    <!--
+    Required because CK.EmbeddedResources.Abstractions transitive build files DON'T appear here!
+    https://github.com/NuGet/Home/issues/14077
+    -->
     <ItemGroup>
         <EmbeddedResource Include="**\*.ts">
             <LogicalName>ck@$([System.String]::new('%(RelativeDir)').Replace('\','/'))%(FileName)%(Extension)</LogicalName>
