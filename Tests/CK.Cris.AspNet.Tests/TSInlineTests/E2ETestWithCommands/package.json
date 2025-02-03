@@ -15,8 +15,8 @@
     "typescript": "=5.4.5"
   },
   "ckVersion": 1,
-  "dependencies": {},
   "peerDependencies": {
     "axios": "^1.7.7"
-  }
+  },
+  "packageManager": "yarn@4.6.0"
 }

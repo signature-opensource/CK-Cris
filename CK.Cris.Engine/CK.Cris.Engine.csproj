@@ -5,8 +5,8 @@
     <LangVersion>11</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.CodeGen" Version="11.0.0" />
-    <PackageReference Include="CK.StObj.Runtime" Version="28.0.0" />
+    <PackageReference Include="CK.CodeGen" Version="11.1.0" />
+    <PackageReference Include="CK.StObj.Runtime" Version="28.1.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />

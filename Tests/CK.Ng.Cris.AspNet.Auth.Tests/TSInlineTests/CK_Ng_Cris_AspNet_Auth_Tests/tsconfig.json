@@ -10,19 +10,15 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "esModuleInterop": true,
-    "sourceMap": true,
-    "declaration": false,
     "experimentalDecorators": true,
     "moduleResolution": "bundler",
     "importHelpers": true,
     "target": "ES2022",
     "module": "ES2022",
-    "lib": [
-      "ES2022",
-      "dom"
-    ],
     "allowSyntheticDefaultImports": true,
+    "declaration": false,
     "declarationMap": false,
+    "sourceMap": false,
     "paths": {
       "@local/ck-gen": [
         "./ck-gen"
