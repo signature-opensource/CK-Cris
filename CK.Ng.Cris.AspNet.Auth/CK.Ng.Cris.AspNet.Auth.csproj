@@ -1,21 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="CK.EmbeddedResources.Abstractions" Version="0.22.1--0014-develop" />
-    <PackageReference Include="CK.TS.AspNet.Auth" Version="0.22.1--0014-develop" />
-  </ItemGroup>
-  <!--
-    Required because CK.EmbeddedResources.Abstractions transitive build files DON'T appear here!
-    https://github.com/NuGet/Home/issues/14077
-    -->
-  <ItemGroup>
-    <EmbeddedResource Include="**\*.ts">
-      <LogicalName>ck@$([System.String]::new('%(RelativeDir)').Replace('\','/'))%(FileName)%(Extension)</LogicalName>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\CK.Ng.Cris.AspNet\CK.Ng.Cris.AspNet.csproj" />
-  </ItemGroup>
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="CK.EmbeddedResources.Abstractions" Version="0.22.1--0014-develop" />
+        <PackageReference Include="CK.TS.AspNet.Auth" Version="0.22.1--0014-develop" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\CK.Ng.Cris.AspNet\CK.Ng.Cris.AspNet.csproj" />
+    </ItemGroup>
+
 </Project>
