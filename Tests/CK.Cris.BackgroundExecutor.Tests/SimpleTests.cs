@@ -1,7 +1,7 @@
 using CK.Auth;
 using CK.Core;
 using CK.Testing;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
@@ -58,7 +58,7 @@ public class SimpleTests
         [CommandHandler]
         public async Task HandleCommandAsync( IActivityMonitor monitor, IDelayCommand command, RegularScopedService scopedOne )
         {
-            scopedOne.Should().NotBeNull();
+            scopedOne.ShouldNotBeNull();
             monitor.Trace( SafeTrace( $"In '{command.Name}'." ) );
             var d = command.Delay;
             if( d != 0 )
@@ -107,7 +107,7 @@ public class SimpleTests
             var expected = Enumerable.Range( 0, 20 )
                                      .Select( i => $"In '{i}'., Out '{i}'." )
                                      .Concatenate();
-            all.Should().Be( expected );
+            all.ShouldBe( expected );
         }
     }
 
@@ -130,13 +130,13 @@ public class SimpleTests
                                      .Select( i => back.Submit( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ubiq ) );
             TestHelper.Monitor.Info( "Waiting for the commands to be executed." );
             await Task.WhenAll( commands.Select( c => c.ExecutedCommand ) );
-            Traces.Should().HaveCount( 2 * 20 );
+            Traces.Count.ShouldBe( 2 * 20 );
 
             var all = Traces.Concatenate();
             var expected = Enumerable.Range( 0, 20 )
                                      .Select( i => $"In '{i}'., Out '{i}'." )
                                      .Concatenate();
-            all.Should().NotBe( expected );
+            all.ShouldNotBe( expected );
         }
     }
 
@@ -155,13 +155,13 @@ public class SimpleTests
                                      .Select( i => back.Submit( TestHelper.Monitor, poco.Create<IDelayCommand>( c => c.Name = i.ToString() ), ambientServices ) );
             TestHelper.Monitor.Info( "Waiting for the commands to be executed." );
             await Task.WhenAll( commands.Select( c => c.ExecutedCommand ) );
-            Traces.Should().HaveCount( 2 * 20 );
+            Traces.Count.ShouldBe( 2 * 20 );
 
             var all = Traces.Concatenate();
             var expected = Enumerable.Range( 0, 20 )
                                      .Select( i => $"In '{i}'., Out '{i}'." )
                                      .Concatenate();
-            all.Should().NotBe( expected );
+            all.ShouldNotBe( expected );
         }
     }
 
@@ -214,8 +214,8 @@ public class SimpleTests
             // If the final delta is important, we need some time for the runner count to stabilize.
             await Task.Delay( 50 );
 
-            back.ExecutionHost.ParallelRunnerCount.Should().Be( eventualRunnerCount );
-            Traces.Should().HaveCount( 2 * countChange );
+            back.ExecutionHost.ParallelRunnerCount.ShouldBe( eventualRunnerCount );
+            Traces.Count.ShouldBe( 2 * countChange );
         }
     }
 

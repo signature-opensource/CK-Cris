@@ -2,7 +2,7 @@ using CK.Auth;
 using CK.Core;
 using CK.Cris.AmbientValues;
 using CK.Testing;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NUnit.Framework;
@@ -96,12 +96,12 @@ public class CollectAmbientValuesTests
             var r = await executor.RawExecuteAsync( services, cmd );
             Throw.DebugAssert( r.Result != null );
             var auth = (IAuthAmbientValues)r.Result;
-            auth.ActorId.Should().Be( 3712 );
-            auth.ActualActorId.Should().Be( 3712 );
-            auth.DeviceId.Should().Be( authInfo.DeviceId );
+            auth.ActorId.ShouldBe( 3712 );
+            auth.ActualActorId.ShouldBe( 3712 );
+            auth.DeviceId.ShouldBe( authInfo.DeviceId );
 
             var sec = (ISecurityAmbientValues)r.Result;
-            sec.Roles.Should().BeEquivalentTo( "Administrator", "Tester", "Approver" );
+            sec.Roles.ShouldBe( "Administrator", "Tester", "Approver" );
         }
     }
 
@@ -164,7 +164,7 @@ public class CollectAmbientValuesTests
                                               typeof( ICultureCommand ),
                                               typeof( FakeCommandHandler ) );
         await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
-        auto.Services.GetRequiredService<IEnumerable<IHostedService>>().Should().HaveCount( 1, "Required to initialize the Global Service Provider." );
+        auto.Services.GetRequiredService<IEnumerable<IHostedService>>().Count.ShouldBe( 1, "Required to initialize the Global Service Provider." );
 
         using( var scope = auto.Services.CreateScope() )
         {
@@ -174,7 +174,7 @@ public class CollectAmbientValuesTests
             var cmd = poco.Create<ICultureCommand>( c => c.CurrentCultureName = "fr" );
 
             var ambient = s.GetRequiredService<AmbientServiceHub>();
-            ambient.GetCurrentValue<ExtendedCultureInfo>().Should().BeSameAs( NormalizedCultureInfo.CodeDefault,
+            ambient.GetCurrentValue<ExtendedCultureInfo>().ShouldBeSameAs( NormalizedCultureInfo.CodeDefault,
                 "No global ConfigureServices, NormalizedCultureInfoUbiquitousServiceDefault has done its job." );
 
             var receiver = s.GetRequiredService<RawCrisReceiver>();
@@ -182,7 +182,7 @@ public class CollectAmbientValuesTests
 
             Throw.DebugAssert( validationResult.AmbientServiceHub != null );
 
-            validationResult.AmbientServiceHub.GetCurrentValue<ExtendedCultureInfo>().Name.Should().Be( "fr" );
+            validationResult.AmbientServiceHub.GetCurrentValue<ExtendedCultureInfo>().Name.ShouldBe( "fr" );
         }
     }
 

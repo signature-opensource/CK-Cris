@@ -1,6 +1,6 @@
 using CK.Core;
 using CK.Testing;
-using FluentAssertions;
+using Shouldly;
 using NUnit.Framework;
 using System.IO;
 using System.Threading.Tasks;
@@ -28,8 +28,8 @@ public class DiamondResultAndCommandTests
         var fCommand = targetOutputPath.Combine( "ck-gen/CK/Cris/Tests/WithPocoResultCommand.ts" );
         var fResult = targetOutputPath.Combine( "ck-gen/CK/Cris/Tests/Result.ts" );
 
-        File.Exists( fCommand ).Should().BeTrue();
-        File.Exists( fResult ).Should().BeTrue();
+        File.Exists( fCommand ).ShouldBeTrue();
+        File.Exists( fResult ).ShouldBeTrue();
     }
 
     [Test]
@@ -48,8 +48,8 @@ public class DiamondResultAndCommandTests
         var fCommand = targetOutputPath.Combine( "ck-gen/src/CK/Cris/Tests/WithPocoResultCommand.ts" );
         var fResult = targetOutputPath.Combine( "ck-gen/src/CK/Cris/Tests/Result.ts" );
 
-        File.Exists( fCommand ).Should().BeTrue();
-        File.Exists( fResult ).Should().BeTrue();
+        File.Exists( fCommand ).ShouldBeTrue();
+        File.Exists( fResult ).ShouldBeTrue();
     }
 
 }

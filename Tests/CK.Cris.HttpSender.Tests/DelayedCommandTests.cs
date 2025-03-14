@@ -6,7 +6,7 @@ using CK.Core;
 using CK.Cris.AmbientValues;
 using CK.Cris.AspNet;
 using CK.Testing;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -139,7 +139,7 @@ public class DelayedCommandTests
             c.Password = "success";
         } );
         var loginAlbert = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, loginCommand, cancellationToken: cancellation );
-        loginAlbert.Info.User.UserName.Should().Be( "Albert" );
+        loginAlbert.Info.User.UserName.ShouldBe( "Albert" );
 
         // IFullCommand requires Normal authentication. 
         // Using Albert (2) and the device identifier.
@@ -151,7 +151,7 @@ public class DelayedCommandTests
 
         // Baseline: Albert (null current culture name): this is executed in the Global DI context.
         await sender.SendOrThrowAsync( TestHelper.Monitor, fullCommand, cancellationToken: cancellation );
-        FullCommandService.MessageAt( 0 ).Should().Match( "n°1-Albert-Albert-22-en-*" );
+        FullCommandService.MessageAt( 0 ).ShouldBe( "n°1-Albert-Albert-22-en-*" );
 
         // Delayed command now.
         var delayed = callerPoco.Create<IDelayedCommand>();
@@ -164,8 +164,8 @@ public class DelayedCommandTests
         {
             await Task.Delay( 50, cancellation );
         }
-        FullCommandService.MessageAt( 0 ).Should().Match( "n°1-Albert-Albert-22-en-*" );
-        FullCommandService.MessageAt( 1 ).Should().Be( "EVENT: n°1" );
+        FullCommandService.MessageAt( 0 ).ShouldBe( "n°1-Albert-Albert-22-en-*" );
+        FullCommandService.MessageAt( 1 ).ShouldBe( "EVENT: n°1" );
 
         delayed.ExecutionDate = DateTime.UtcNow.AddMilliseconds( 150 );
         fullCommand.DeviceId = "not-the-device-id";
@@ -174,8 +174,8 @@ public class DelayedCommandTests
         var error = executedCommand.Result as ICrisResultError;
         Throw.DebugAssert( error is not null );
         error = (ICrisResultError)executedCommand.Result!;
-        error.IsValidationError.Should().BeTrue();
-        error.Errors[0].Text.Should().StartWith( "Invalid device identifier: " );
+        error.IsValidationError.ShouldBeTrue();
+        error.Errors[0].Text.ShouldStartWith( "Invalid device identifier: " );
 
         // Logout.
         await sender.SendOrThrowAsync( TestHelper.Monitor, callerPoco.Create<ILogoutCommand>(), cancellationToken: cancellation );
@@ -186,8 +186,8 @@ public class DelayedCommandTests
         error = executedCommand.Result as ICrisResultError;
         Throw.DebugAssert( error is not null );
         error = (ICrisResultError)executedCommand.Result!;
-        error.IsValidationError.Should().BeTrue();
-        error.Errors[0].Text.Should().StartWith( "Invalid actor identifier: " );
+        error.IsValidationError.ShouldBeTrue();
+        error.Errors[0].Text.ShouldStartWith( "Invalid actor identifier: " );
 
     }
 }

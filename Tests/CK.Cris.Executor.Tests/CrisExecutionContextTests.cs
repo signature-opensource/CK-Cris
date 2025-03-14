@@ -1,5 +1,5 @@
 using CK.Core;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Generic;
@@ -132,13 +132,13 @@ public class CrisExecutionContextTests
             var command = services.GetRequiredService<PocoDirectory>().Create<IStupidCommand>( c => c.Message = "Run!" );
             var executed = await executor.ExecuteRootCommandAsync( command );
 
-            executed.Result.Should().Be( 1 );
-            IStupidCommand.CallCount.Should().Be( 5 );
-            IFinalCommand.CallCount.Should().Be( 4 );
+            executed.Result.ShouldBe( 1 );
+            IStupidCommand.CallCount.ShouldBe( 5 );
+            IFinalCommand.CallCount.ShouldBe( 4 );
 
-            executed.Events.Should().HaveCount( 4 + 4 );
-            executed.Events.Take( 4 ).Should().AllBeAssignableTo<IRoutedEvent>();
-            executed.Events.Skip( 4 ).Should().AllBeAssignableTo<ICallerOnlyFinalEvent>();
+            executed.Events.Count().ShouldBe( 4 + 4 );
+            executed.Events.Take( 4 ).ShouldAll( e => e.ShouldBeAssignableTo<IRoutedEvent>() );
+            executed.Events.Skip( 4 ).ShouldAll( e => e.ShouldBeAssignableTo<ICallerOnlyFinalEvent>() );
         }
     }
 
@@ -171,15 +171,15 @@ public class CrisExecutionContextTests
             var command = services.GetRequiredService<PocoDirectory>().Create<IStupidCommand>( c => c.Message = "Run!" );
             var executed = await executor.ExecuteRootCommandAsync( command );
 
-            executed.Events.Should().HaveCount( 4 + 4 );
-            executed.Events.Take( 4 ).Should().AllBeAssignableTo<IRoutedEvent>();
-            executed.Events.Skip( 4 ).Should().AllBeAssignableTo<ICallerOnlyFinalEvent>();
+            executed.Events.Count().ShouldBe( 4 + 4 );
+            executed.Events.Take( 4 ).ShouldAll( e => e.ShouldBeAssignableTo<IRoutedEvent>() );
+            executed.Events.Skip( 4 ).ShouldAll( e => e.ShouldBeAssignableTo<ICallerOnlyFinalEvent>() );
 
-            immediateEventCollector.Count.Should().Be( 4 );
-            immediateEventCollector.Should().AllBeAssignableTo<IRoutedImmediateEvent>();
+            immediateEventCollector.Count.ShouldBe( 4 );
+            immediateEventCollector.ShouldAll( e => e.ShouldBeAssignableTo<IRoutedImmediateEvent>() );
 
-            allEventCollector.Should().StartWith( immediateEventCollector );
-            allEventCollector.Skip( 4 ).Should().AllBeAssignableTo<IRoutedEvent>();
+            allEventCollector.Take( immediateEventCollector.Count ).ShouldBe( immediateEventCollector );
+            allEventCollector.Skip( 4 ).ShouldAll( e => e.ShouldBeAssignableTo<IRoutedEvent>() );
         }
     }
 }

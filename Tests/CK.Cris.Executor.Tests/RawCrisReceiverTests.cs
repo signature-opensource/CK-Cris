@@ -1,7 +1,7 @@
 using CK.Auth;
 using CK.Core;
 using CK.Testing;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NUnit.Framework;
@@ -36,7 +36,7 @@ public class RawCrisReceiverTests
 
         var validator = auto.Services.GetRequiredService<RawCrisReceiver>();
         var result = await validator.IncomingValidateAsync( TestHelper.Monitor, auto.Services, cmd );
-        result.Success.Should().BeTrue();
+        result.Success.ShouldBeTrue();
     }
 
     public class BuggyValidator : IAutoService
@@ -65,14 +65,14 @@ public class RawCrisReceiverTests
 
         var validator = auto.Services.GetRequiredService<RawCrisReceiver>();
         var result = await validator.IncomingValidateAsync( TestHelper.Monitor, auto.Services, cmd );
-        result.Success.Should().BeFalse();
-        result.ErrorMessages.Should().HaveCount( 2 )
-                   .And.Contain( m => m.Level == UserMessageLevel.Error
-                                      && m.ResName == "Cris.UnhandledValidationError"
-                                      && m.Text.StartsWith( "An unhandled error occurred while validating command 'Test' (LogKey:" ) )
-                   .And.Contain( m => m.Level == UserMessageLevel.Error
-                                      && m.ResName == "SHA.3pSE_AMsQ-7QNQP6WgA9j88mLSI"
-                                      && m.Message == "This should not happen!" );
+        result.Success.ShouldBeFalse();
+        result.ErrorMessages.Count().ShouldBe( 2 );
+        result.ErrorMessages.ShouldContain( m => m.Level == UserMessageLevel.Error
+                                              && m.ResName == "Cris.UnhandledValidationError"
+                                              && m.Text.StartsWith( "An unhandled error occurred while validating command 'Test' (LogKey:" ) )
+                            .ShouldContain( m => m.Level == UserMessageLevel.Error
+                                              && m.ResName == "SHA.3pSE_AMsQ-7QNQP6WgA9j88mLSI"
+                                              && m.Message == "This should not happen!" );
     }
 
     [ExternalName( "NoValidators" )]
@@ -124,29 +124,29 @@ public class RawCrisReceiverTests
 
             var cmd = services.GetRequiredService<IPocoFactory<ITestCommand>>().Create( c => c.Value = -1 );
             var result = await validator.IncomingValidateAsync( TestHelper.Monitor, services, cmd );
-            result.Success.Should().BeFalse();
+            result.Success.ShouldBeFalse();
             if( scopedService )
             {
-                result.ValidationMessages.Should().Contain( m => m.Level == UserMessageLevel.Error && m.Text == "[Scoped]Value should be greater than 0." );
+                result.ValidationMessages.ShouldContain( m => m.Level == UserMessageLevel.Error && m.Text == "[Scoped]Value should be greater than 0." );
             }
             if( singletonService )
             {
-                result.ValidationMessages.Should().Contain( m => m.Level == UserMessageLevel.Error && m.Text == "[Singleton]Value should be greater than 0." );
+                result.ValidationMessages.ShouldContain( m => m.Level == UserMessageLevel.Error && m.Text == "[Singleton]Value should be greater than 0." );
             }
 
             cmd.Value = 0;
             result = await validator.IncomingValidateAsync( TestHelper.Monitor, services, cmd );
-            result.Success.Should().BeTrue();
-            result.ValidationMessages.Any( m => m.Level == UserMessageLevel.Warn ).Should().BeTrue();
+            result.Success.ShouldBeTrue();
+            result.ValidationMessages.Any( m => m.Level == UserMessageLevel.Warn ).ShouldBeTrue();
             if( scopedService )
             {
-                result.ValidationMessages.Should().Contain( m => m.Level == UserMessageLevel.Warn && m.Text == "[Scoped]A positive Value would be better." );
+                result.ValidationMessages.ShouldContain( m => m.Level == UserMessageLevel.Warn && m.Text == "[Scoped]A positive Value would be better." );
             }
             if( singletonService )
             {
-                result.ValidationMessages.Should().Contain( m => m.Level == UserMessageLevel.Warn && m.Text == "[Singleton]A positive Value would be better." );
+                result.ValidationMessages.ShouldContain( m => m.Level == UserMessageLevel.Warn && m.Text == "[Singleton]A positive Value would be better." );
             }
-            result.ValidationMessages.Should().NotContain( m => m.Level == UserMessageLevel.Error );
+            result.ValidationMessages.ShouldNotContain( m => m.Level == UserMessageLevel.Error );
         }
     }
 
@@ -210,36 +210,36 @@ public class RawCrisReceiverTests
 
             var cmd = services.GetRequiredService<IPocoFactory<ITestSecureCommand>>().Create( c => c.Value = 1 );
             var result = await validator.IncomingValidateAsync( TestHelper.Monitor, services, cmd );
-            result.Success.Should().BeFalse();
-            result.ValidationMessages.Should().HaveCount( 3 )
-                    .And.Contain( m => m.Level == UserMessageLevel.Error && m.Text == "Security error." )
-                    .And.Contain( m => m.Level == UserMessageLevel.Info && m.Text == "AsyncValidator waiting for result..." )
-                    .And.Contain( m => m.Level == UserMessageLevel.Info && m.Text == "AsyncValidator is fine." );
+            result.Success.ShouldBeFalse();
+            result.ValidationMessages.Count().ShouldBe( 3 );
+            result.ValidationMessages.ShouldContain( m => m.Level == UserMessageLevel.Error && m.Text == "Security error." );
+            result.ValidationMessages.ShouldContain( m => m.Level == UserMessageLevel.Info && m.Text == "AsyncValidator waiting for result..." );
+            result.ValidationMessages.ShouldContain( m => m.Level == UserMessageLevel.Info && m.Text == "AsyncValidator is fine." );
 
             cmd.ActorId = 3712;
             result = await validator.IncomingValidateAsync( TestHelper.Monitor, services, cmd );
-            result.Success.Should().BeTrue();
-            result.ValidationMessages.Any( m => m.Level == UserMessageLevel.Warn ).Should().BeFalse();
-            result.ValidationMessages.Should().HaveCount( 2 )
-                   .And.Contain( m => m.Level == UserMessageLevel.Info && m.Text == "AsyncValidator waiting for result..." )
-                   .And.Contain( m => m.Level == UserMessageLevel.Info && m.Text == "AsyncValidator is fine." );
+            result.Success.ShouldBeTrue();
+            result.ValidationMessages.Any( m => m.Level == UserMessageLevel.Warn ).ShouldBeFalse();
+            result.ValidationMessages.Count().ShouldBe( 2 );
+            result.ValidationMessages.ShouldContain( m => m.Level == UserMessageLevel.Info && m.Text == "AsyncValidator waiting for result..." )
+                   .ShouldContain( m => m.Level == UserMessageLevel.Info && m.Text == "AsyncValidator is fine." );
 
             cmd.Value = 0;
             result = await validator.IncomingValidateAsync( TestHelper.Monitor, services, cmd );
-            result.Success.Should().BeTrue();
-            result.ValidationMessages.Should().HaveCount( 3 )
-                   .And.Contain( m => m.Level == UserMessageLevel.Warn && m.Text == "[Scoped]A positive Value would be better." )
-                   .And.Contain( m => m.Level == UserMessageLevel.Info && m.Text == "AsyncValidator waiting for result..." )
-                   .And.Contain( m => m.Level == UserMessageLevel.Info && m.Text == "AsyncValidator is fine." );
+            result.Success.ShouldBeTrue();
+            result.ValidationMessages.Count().ShouldBe( 3 );
+            result.ValidationMessages.ShouldContain( m => m.Level == UserMessageLevel.Warn && m.Text == "[Scoped]A positive Value would be better." )
+                   .ShouldContain( m => m.Level == UserMessageLevel.Info && m.Text == "AsyncValidator waiting for result..." )
+                   .ShouldContain( m => m.Level == UserMessageLevel.Info && m.Text == "AsyncValidator is fine." );
 
             cmd.ActorId = 3712;
             cmd.WarnByAsyncValidator = true;
             result = await validator.IncomingValidateAsync( TestHelper.Monitor, services, cmd );
-            result.Success.Should().BeTrue();
-            result.ValidationMessages.Should().HaveCount( 3 )
-                   .And.Contain( m => m.Level == UserMessageLevel.Warn && m.Text == "[Scoped]A positive Value would be better." )
-                   .And.Contain( m => m.Level == UserMessageLevel.Info && m.Text == "AsyncValidator waiting for result..." )
-                   .And.Contain( m => m.Level == UserMessageLevel.Warn && m.Text == "AsyncValidator is not happy!" );
+            result.Success.ShouldBeTrue();
+            result.ValidationMessages.Count().ShouldBe( 3 );
+            result.ValidationMessages.ShouldContain( m => m.Level == UserMessageLevel.Warn && m.Text == "[Scoped]A positive Value would be better." )
+                   .ShouldContain( m => m.Level == UserMessageLevel.Info && m.Text == "AsyncValidator waiting for result..." )
+                   .ShouldContain( m => m.Level == UserMessageLevel.Warn && m.Text == "AsyncValidator is not happy!" );
 
         }
     }
@@ -295,13 +295,13 @@ public class RawCrisReceiverTests
             using( monitor.CollectTexts( out var logs ) )
             {
                 CrisValidationResult result = await validator.IncomingValidateAsync( monitor, scope.ServiceProvider, cmd );
-                result.Success.Should().BeTrue();
-                result.ValidationMessages.Should().BeEmpty();
-                logs.Should().HaveCount( 1 )
+                result.Success.ShouldBeTrue();
+                result.ValidationMessages.ShouldBeEmpty();
+                logs.Count.ShouldBe( 1 )
                              .And.Contain( "I'm the (Incoming) ValidatorWithLogs." );
 
                 await executor.RawExecuteAsync( scope.ServiceProvider, cmd );
-                logs.Should().HaveCount( 2 )
+                logs.Count.ShouldBe( 2 )
                              .And.Contain( "I'm the (Incoming) ValidatorWithLogs." )
                              .And.Contain( "I'm the (CommandHandling) ValidatorWithLogs." );
             }
@@ -314,7 +314,7 @@ public class RawCrisReceiverTests
         [IncomingValidator]
         public void IncomingValidateCommand( UserMessageCollector messages, ICrisIncomingValidationContext context, ITestCommand cmd )
         {
-            context.Messages.Should().BeSameAs( messages );
+            context.Messages.ShouldBeSameAs( messages );
             messages.Info( "Validated!" );
         }
     }
@@ -337,8 +337,8 @@ public class RawCrisReceiverTests
             var cmd = directory.Create<ITestCommand>();
 
             CrisValidationResult result = await validator.IncomingValidateAsync( TestHelper.Monitor, scope.ServiceProvider, cmd );
-            result.Success.Should().BeTrue();
-            result.ValidationMessages.Select( m => m.Text ).Should().HaveCount( 1 )
+            result.Success.ShouldBeTrue();
+            result.ValidationMessages.Select( m => m.Text ).Count.ShouldBe( 1 )
                                 .And.Contain( "Validated!" );
 
         }

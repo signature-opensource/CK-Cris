@@ -2,7 +2,7 @@ using CK.AspNet.Auth;
 using CK.Auth;
 using CK.Core;
 using CK.Testing;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -93,7 +93,7 @@ public class AuthenticatedCommandTests
             HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""YES"",""ActorId"":0}]" );
             Throw.DebugAssert( r != null );
             var result = await pocoDirectory.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-            result.ToString().Should().Be( @"{""Result"":null,""ValidationMessages"":null,""CorrelationId"":null}" );
+            result.ToString().ShouldBe( @"{""Result"":null,""ValidationMessages"":null,""CorrelationId"":null}" );
         }
         {
             HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, @"[""UnsafeWithResultCommand"",{""UserInfo"":""YES. There is no ActorId in the Json => it is let to null.""}]" );
@@ -105,9 +105,9 @@ public class AuthenticatedCommandTests
             Throw.DebugAssert( r != null );
             var result = await pocoDirectory.GetValidationErrorsAsync( r, new SimpleUserMessage( UserMessageLevel.Error, "Invalid actor identifier: the provided identifier doesn't match the current authentication." ) );
             var correlationId = ActivityMonitor.Token.Parse( result.CorrelationId );
-            string.IsNullOrWhiteSpace( correlationId.OriginatorId ).Should().BeFalse();
+            string.IsNullOrWhiteSpace( correlationId.OriginatorId ).ShouldBeFalse();
             var errorLogKey = ActivityMonitor.LogKey.Parse( ((ICrisResultError)result.Result!).LogKey );
-            string.IsNullOrWhiteSpace( errorLogKey.OriginatorId ).Should().BeFalse();
+            string.IsNullOrWhiteSpace( errorLogKey.OriginatorId ).ShouldBeFalse();
         }
         UnsafeHandler.LastUserInfo = null;
         await client.AuthenticationBasicLoginAsync( "Albert", true );
@@ -115,8 +115,8 @@ public class AuthenticatedCommandTests
             HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, @"[""UnsafeCommand"",{""userInfo"":""Yes! Albert 3712 is logged in."",""actorId"":3712}]" );
             Throw.DebugAssert( r != null );
             var result = await pocoDirectory.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-            result.ToString().Should().Be( @"{""Result"":null,""ValidationMessages"":null,""CorrelationId"":null}" );
-            UnsafeHandler.LastUserInfo.Should().Be( "Yes! Albert 3712 is logged in." );
+            result.ToString().ShouldBe( @"{""Result"":null,""ValidationMessages"":null,""CorrelationId"":null}" );
+            UnsafeHandler.LastUserInfo.ShouldBe( "Yes! Albert 3712 is logged in." );
         }
         {
             HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, @"[""UnsafeCommand"",{""UserInfo"":""NO WAY!"",""ActorId"":7}]" );

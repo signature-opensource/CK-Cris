@@ -1,6 +1,6 @@
 using CK.Core;
 using CK.Testing;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -29,15 +29,15 @@ public class CrisDirectoryTests
         var poco = auto.Services.GetRequiredService<PocoDirectory>();
 
         var d = auto.Services.GetRequiredService<CrisDirectory>();
-        d.CrisPocoModels.Should().HaveCount( 1 );
+        d.CrisPocoModels.Count.ShouldBe( 1 );
         var m = d.CrisPocoModels[0];
-        m.Handlers.Should().BeEmpty();
-        m.CrisPocoIndex.Should().Be( 0 );
-        m.PocoName.Should().Be( "Test" );
-        m.PreviousNames.Should().BeEquivalentTo( "PreviousTest1", "PreviousTest2" );
-        m.Should().BeSameAs( poco.Find( "PreviousTest1" ) ).And.BeSameAs( poco.Find( "PreviousTest2" ) );
+        m.Handlers.ShouldBeEmpty();
+        m.CrisPocoIndex.ShouldBe( 0 );
+        m.PocoName.ShouldBe( "Test" );
+        m.PreviousNames.ShouldBe( "PreviousTest1", "PreviousTest2" );
+        m.ShouldBeSameAs( poco.Find( "PreviousTest1" ) ).And.BeSameAs( poco.Find( "PreviousTest2" ) );
         var cmd = m.Create();
-        cmd.CrisPocoModel.Should().BeSameAs( m );
+        cmd.CrisPocoModel.ShouldBeSameAs( m );
     }
 
     public interface ITestSpecCommand : ITestCommand, IEvent

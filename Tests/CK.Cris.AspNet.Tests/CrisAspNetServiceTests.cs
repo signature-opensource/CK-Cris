@@ -56,7 +56,7 @@ namespace CK.Cris.AspNet.Tests
     using CK.Auth;
     using CK.Core;
     using CK.Testing;
-    using FluentAssertions;
+    using Shouldly;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.Extensions.DependencyInjection;
     using NUnit.Framework;
@@ -92,20 +92,20 @@ namespace CK.Cris.AspNet.Tests
                 TestHandler.Called = false;
                 HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, @"[""Test"",{""Value"":3712}]" );
                 Throw.DebugAssert( r != null );
-                TestHandler.Called.Should().BeTrue();
+                TestHandler.Called.ShouldBeTrue();
 
                 string typedResponse = await r.Content.ReadAsStringAsync();
-                typedResponse.Should().StartWith( @"{""result"":null," );
+                typedResponse.ShouldStartWith( @"{""result"":null," );
 
                 var result = await pocoDirectory.GetCrisResultWithCorrelationIdSetToNullAsync( r );
-                result.ToString().Should().Be( @"{""Result"":null,""ValidationMessages"":null,""CorrelationId"":null}" );
+                result.ToString().ShouldBe( @"{""Result"":null,""ValidationMessages"":null,""CorrelationId"":null}" );
             }
             // Value: 0 is invalid.
             {
                 TestHandler.Called = false;
                 HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, @"[""Test"",{""Value"":0}]" );
                 Throw.DebugAssert( r != null );
-                TestHandler.Called.Should().BeFalse( "Validation error." );
+                TestHandler.Called.ShouldBeFalse( "Validation error." );
 
                 await pocoDirectory.GetValidationErrorsAsync( r, new SimpleUserMessage( UserMessageLevel.Error, "Value must be positive." ) );
             }
@@ -132,10 +132,10 @@ namespace CK.Cris.AspNet.Tests
                 HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, @"[""Test"",{""Value"":3712}]" );
                 Throw.DebugAssert( r != null );
                 var result = await pocoDirectory.GetCrisResultAsync( r );
-                result.ValidationMessages.Should().BeNull( "Since there is no handler, there's no validation at all." );
+                result.ValidationMessages.ShouldBeNull( "Since there is no handler, there's no validation at all." );
                 Throw.DebugAssert( result.Result != null );
                 var resultError = (ICrisResultError)result.Result;
-                resultError.IsValidationError.Should().BeFalse();
+                resultError.IsValidationError.ShouldBeFalse();
             }
         }
 
@@ -164,15 +164,15 @@ namespace CK.Cris.AspNet.Tests
                 HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, @"[""Test"",{""Value"":3712}]" );
                 Throw.DebugAssert( r != null );
                 var result = await pocoDirectory.GetCrisResultAsync( r );
-                result.CorrelationId.Should().NotBeNullOrWhiteSpace();
+                result.CorrelationId.ShouldNotBeNullOrWhiteSpace();
                 Throw.DebugAssert( result.ValidationMessages != null );
-                result.ValidationMessages[0].Text.Should().Match( "An unhandled error occurred while validating command 'Test' (LogKey: *)." );
-                result.ValidationMessages[1].Text.Should().Match( "This should not happen!" );
+                result.ValidationMessages[0].Text.ShouldBe( "An unhandled error occurred while validating command 'Test' (LogKey: *)." );
+                result.ValidationMessages[1].Text.ShouldBe( "This should not happen!" );
                 // The ValidationMessages are the same as the ICrisResultError.
                 Throw.DebugAssert( result.Result != null );
                 var resultError = (ICrisResultError)result.Result;
-                resultError.IsValidationError.Should().BeTrue();
-                resultError.Errors.Should().BeEquivalentTo( result.ValidationMessages );
+                resultError.IsValidationError.ShouldBeTrue();
+                resultError.Errors.ShouldBe( result.ValidationMessages );
             }
         }
 
