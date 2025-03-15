@@ -85,7 +85,7 @@ public class SenderTests
         // ActorId is set to its default 0 (this would have been the default value).
         totalCommand.ActorId = 0;
         var totalExecutedCommand = await sender.SendAsync( TestHelper.Monitor, totalCommand );
-        totalExecutedCommand.Result.Should().BeAssignableTo<ICrisResultError>();
+        totalExecutedCommand.Result.ShouldNotBeNull().ShouldBeAssignableTo<ICrisResultError>();
         var error = (ICrisResultError)totalExecutedCommand.Result!;
         error.IsValidationError.ShouldBeTrue();
         error.Errors[0].Text.ShouldStartWith( "Invalid authentication level: " );
@@ -102,7 +102,7 @@ public class SenderTests
         // Unexisting user id.
         totalCommand.ActorId = 9999999;
         totalExecutedCommand = await sender.SendAsync( TestHelper.Monitor, totalCommand );
-        totalExecutedCommand.Result.Should().BeAssignableTo<ICrisResultError>();
+        totalExecutedCommand.Result.ShouldNotBeNull().ShouldBeAssignableTo<ICrisResultError>();
         error = (ICrisResultError)totalExecutedCommand.Result!;
         error.IsValidationError.ShouldBeTrue();
         error.Errors[0].Text.ShouldStartWith( "Invalid actor identifier: " );
@@ -124,7 +124,7 @@ public class SenderTests
         // Albert in French sends an invalid action.
         totalCommand.Action = "Invalid";
         totalExecutedCommand = await sender.SendAsync( TestHelper.Monitor, totalCommand );
-        totalExecutedCommand.Result.Should().BeAssignableTo<ICrisResultError>();
+        totalExecutedCommand.Result.ShouldNotBeNull().ShouldBeAssignableTo<ICrisResultError>();
         error = (ICrisResultError)totalExecutedCommand.Result!;
         error.IsValidationError.ShouldBeTrue();
         error.Errors[0].Text.ShouldStartWith( "The Action must be Bug!, Error!, Warn! or empty. Not 'Invalid'." );
@@ -183,7 +183,7 @@ public class SenderTests
         // Command without result that throws.
         var nakedBug = callerPoco.Create<INakedCommand>( c => c.Event = "Bug!" );
         var nakedBugResult = await sender.SendAsync( TestHelper.Monitor, nakedBug );
-        nakedBugResult.Result.ShouldNotBeNull().And.BeAssignableTo<ICrisResultError>();
+        nakedBugResult.Result.ShouldNotBeNull().ShouldBeAssignableTo<ICrisResultError>();
 
         // Command without result that throws and use SendOrThrowAsync.
         var nakedBug2 = callerPoco.Create<INakedCommand>( c => c.Event = "Bug!" );
@@ -231,10 +231,10 @@ public class SenderTests
         {
             var result = await sender.SendAsync( TestHelper.Monitor, cmd );
             logs.ShouldContain( """Sending ["CK.Cris.HttpSender.Tests.IBeautifulCommand",{"beauty":"Marvellous","waitTime":0,"color":"Black"}] to 'Domain/$Server/#Dev'.""" )
-                .And.Contain( """Request failed on 'Domain/$Server/#Dev' (attempt n°0).""" )
-                .And.Contain( """Request failed on 'Domain/$Server/#Dev' (attempt n°1).""" )
-                .And.Contain( """Request failed on 'Domain/$Server/#Dev' (attempt n°2).""" )
-                .And.Contain( """While sending: ["CK.Cris.HttpSender.Tests.IBeautifulCommand",{"beauty":"Marvellous","waitTime":0,"color":"Black"}]""" );
+                .ShouldContain( """Request failed on 'Domain/$Server/#Dev' (attempt n°0).""" )
+                .ShouldContain( """Request failed on 'Domain/$Server/#Dev' (attempt n°1).""" )
+                .ShouldContain( """Request failed on 'Domain/$Server/#Dev' (attempt n°2).""" )
+                .ShouldContain( """While sending: ["CK.Cris.HttpSender.Tests.IBeautifulCommand",{"beauty":"Marvellous","waitTime":0,"color":"Black"}]""" );
         }
     }
 

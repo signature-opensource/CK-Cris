@@ -61,7 +61,6 @@ namespace CK.Cris.AspNet.Tests
     using Microsoft.Extensions.DependencyInjection;
     using NUnit.Framework;
     using Other;
-    using System.Linq;
     using System.Net.Http;
     using System.Threading.Tasks;
     using static CK.Testing.MonitorTestHelper;
@@ -166,7 +165,7 @@ namespace CK.Cris.AspNet.Tests
                 var result = await pocoDirectory.GetCrisResultAsync( r );
                 result.CorrelationId.ShouldNotBeNullOrWhiteSpace();
                 Throw.DebugAssert( result.ValidationMessages != null );
-                result.ValidationMessages[0].Text.ShouldBe( "An unhandled error occurred while validating command 'Test' (LogKey: *)." );
+                result.ValidationMessages[0].Text.ShouldStartWith( "An unhandled error occurred while validating command 'Test' (LogKey: " );
                 result.ValidationMessages[1].Text.ShouldBe( "This should not happen!" );
                 // The ValidationMessages are the same as the ICrisResultError.
                 Throw.DebugAssert( result.Result != null );

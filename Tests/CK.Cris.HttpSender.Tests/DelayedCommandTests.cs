@@ -151,7 +151,7 @@ public class DelayedCommandTests
 
         // Baseline: Albert (null current culture name): this is executed in the Global DI context.
         await sender.SendOrThrowAsync( TestHelper.Monitor, fullCommand, cancellationToken: cancellation );
-        FullCommandService.MessageAt( 0 ).ShouldBe( "n°1-Albert-Albert-22-en-*" );
+        FullCommandService.MessageAt( 0 ).ShouldMatch( "n°1-Albert-Albert-22-en-.*" );
 
         // Delayed command now.
         var delayed = callerPoco.Create<IDelayedCommand>();
@@ -164,7 +164,7 @@ public class DelayedCommandTests
         {
             await Task.Delay( 50, cancellation );
         }
-        FullCommandService.MessageAt( 0 ).ShouldBe( "n°1-Albert-Albert-22-en-*" );
+        FullCommandService.MessageAt( 0 ).ShouldMatch( "n°1-Albert-Albert-22-en-.*" );
         FullCommandService.MessageAt( 1 ).ShouldBe( "EVENT: n°1" );
 
         delayed.ExecutionDate = DateTime.UtcNow.AddMilliseconds( 150 );

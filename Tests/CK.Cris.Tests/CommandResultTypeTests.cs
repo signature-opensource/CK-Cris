@@ -40,7 +40,7 @@ public class CommandResultTypeTests
         await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         var d = auto.Services.GetRequiredService<CrisDirectory>();
         var cmdModel = d.CrisPocoModels[0];
-        cmdModel.CommandType.ShouldBeAssignableTo( typeof( IIntButObjectCommand ) );
+        cmdModel.CommandType.IsAssignableTo( typeof( IIntButObjectCommand ) ).ShouldBeTrue();
         cmdModel.ResultType.ShouldBe( typeof( int ) );
     }
 
@@ -66,8 +66,8 @@ public class CommandResultTypeTests
             await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
             var d = auto.Services.GetRequiredService<CrisDirectory>();
             var cmdModel = d.CrisPocoModels[0];
-            cmdModel.CommandType.ShouldBeAssignableTo( typeof( IWithMorePocoResultCommand ) );
-            cmdModel.ResultType.ShouldBeAssignableTo( typeof( IMoreResult ) );
+            cmdModel.CommandType.IsAssignableTo( typeof( IWithMorePocoResultCommand ) ).ShouldBeTrue();
+            cmdModel.ResultType.IsAssignableTo( typeof( IMoreResult ) ).ShouldBeTrue();
         }
         {
             var configuration = TestHelper.CreateDefaultEngineConfiguration();
@@ -75,8 +75,8 @@ public class CommandResultTypeTests
             await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
             var d = auto.Services.GetRequiredService<CrisDirectory>();
             var cmdModel = d.CrisPocoModels[0];
-            cmdModel.CommandType.ShouldBeAssignableTo( typeof( IWithAnotherPocoResultCommand ) );
-            cmdModel.ResultType.ShouldBeAssignableTo( typeof( IAnotherResult ) );
+            cmdModel.CommandType.IsAssignableTo( typeof( IWithAnotherPocoResultCommand ) ).ShouldBeTrue();
+            cmdModel.ResultType.IsAssignableTo( typeof( IAnotherResult ) ).ShouldBeTrue();
         }
         {
             var configuration = TestHelper.CreateDefaultEngineConfiguration();
@@ -90,8 +90,8 @@ public class CommandResultTypeTests
             await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
             var d = auto.Services.GetRequiredService<CrisDirectory>();
             var cmdModel = d.CrisPocoModels[0];
-            cmdModel.CommandType.ShouldBeAssignableTo( typeof( IWithTheResultUnifiedCommand ) );
-            cmdModel.ResultType.ShouldBeAssignableTo( typeof( IUnifiedResult ) );
+            cmdModel.CommandType.IsAssignableTo( typeof( IWithTheResultUnifiedCommand ) ).ShouldBeTrue();
+            cmdModel.ResultType.IsAssignableTo( typeof( IUnifiedResult ) ).ShouldBeTrue();
         }
     }
 

@@ -61,7 +61,7 @@ public class ICommandHandlerTests
 
         var cmd = auto.Services.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
         var handler = cmd.CrisPocoModel.Handlers.Single();
-        handler.Type.FinalType.ShouldNotBeNull().And.BeSameAs( typeof( CmdHandlerOfBase ) );
+        handler.Type.FinalType.ShouldBeSameAs( typeof( CmdHandlerOfBase ) );
     }
 
     public class CmdHandlerWithMore : CmdHandlerOfBase
@@ -84,10 +84,10 @@ public class ICommandHandlerTests
         var d = auto.Services.GetRequiredService<CrisDirectory>();
 
         var cmd = auto.Services.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
-        cmd.Should().BeAssignableTo<IWithMorePocoResultCommand>();
+        cmd.ShouldBeAssignableTo<IWithMorePocoResultCommand>();
 
         var handler = cmd.CrisPocoModel.Handlers.Single();
-        handler.Type.FinalType.ShouldNotBeNull().And.BeSameAs( typeof( CmdHandlerWithMore ) );
+        handler.Type.FinalType.ShouldBeSameAs( typeof( CmdHandlerWithMore ) );
     }
 
     public class CmdHandlerWithAnother : CmdHandlerOfBase
@@ -162,10 +162,10 @@ public class ICommandHandlerTests
         var d = auto.Services.GetRequiredService<CrisDirectory>();
 
         var cmd = auto.Services.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
-        cmd.Should().BeAssignableTo<IWithTheResultUnifiedCommand>();
+        cmd.ShouldBeAssignableTo<IWithTheResultUnifiedCommand>();
 
         var handler = cmd.CrisPocoModel.Handlers.Single();
-        handler.Type.FinalType.ShouldNotBeNull().And.BeSameAs( typeof( CmdHandlerUnified ) );
+        handler.Type.FinalType.ShouldBeSameAs( typeof( CmdHandlerUnified ) );
     }
 
     // Handlers can be virtual.
@@ -197,7 +197,7 @@ public class ICommandHandlerTests
         var d = auto.Services.GetRequiredService<CrisDirectory>();
 
         var cmd = auto.Services.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
-        cmd.Should().BeAssignableTo<IWithTheResultUnifiedCommand>();
+        cmd.ShouldBeAssignableTo<IWithTheResultUnifiedCommand>();
 
         var model = cmd.CrisPocoModel;
         model.Handlers.ShouldNotBeEmpty();

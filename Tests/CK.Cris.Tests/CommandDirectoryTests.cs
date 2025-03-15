@@ -34,8 +34,8 @@ public class CrisDirectoryTests
         m.Handlers.ShouldBeEmpty();
         m.CrisPocoIndex.ShouldBe( 0 );
         m.PocoName.ShouldBe( "Test" );
-        m.PreviousNames.ShouldBe( "PreviousTest1", "PreviousTest2" );
-        m.ShouldBeSameAs( poco.Find( "PreviousTest1" ) ).And.BeSameAs( poco.Find( "PreviousTest2" ) );
+        m.PreviousNames.ShouldBe( ["PreviousTest1", "PreviousTest2"], ignoreOrder: true );
+        m.ShouldBeSameAs( poco.Find( "PreviousTest1" ) ).ShouldBeSameAs( poco.Find( "PreviousTest2" ) );
         var cmd = m.Create();
         cmd.CrisPocoModel.ShouldBeSameAs( m );
     }

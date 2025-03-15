@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Net.Http;
 using System.Threading.Tasks;
 using static CK.Testing.MonitorTestHelper;
@@ -55,14 +54,14 @@ public class AuthenticatedCommandTests
         [CommandHandler]
         public void Execute( IUnsafeCommand cmd )
         {
-            cmd.UserInfo.Should().NotStartWith( "NO" );
+            cmd.UserInfo.ShouldNotStartWith( "NO" );
             LastUserInfo = cmd.UserInfo;
         }
 
         [CommandHandler]
         public List<int> Execute( IUnsafeWithResultCommand cmd )
         {
-            cmd.UserInfo.Should().NotStartWith( "NO" );
+            cmd.UserInfo.ShouldNotStartWith( "NO" );
             LastUserInfo = cmd.UserInfo;
             return new List<int>() { 42, 3712 };
         }

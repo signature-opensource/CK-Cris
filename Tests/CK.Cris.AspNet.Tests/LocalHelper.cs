@@ -30,8 +30,7 @@ static class LocalHelper
         var result = await GetCrisResultAsync( p, r );
         result.ValidationMessages.ShouldNotBeNull();
         result.ValidationMessages!.Select( m => m.AsSimpleUserMessage() ).ShouldBe( messages );
-        result.Result.ShouldNotBeNull();
-        result.Result.Should().BeAssignableTo<ICrisResultError>();
+        result.Result.ShouldNotBeNull().ShouldBeAssignableTo<ICrisResultError>();
         var e = (ICrisResultError)result.Result!;
         e.IsValidationError.ShouldBeTrue();
         e.Errors.Select( m => m.AsSimpleUserMessage() ).ShouldBe( messages );

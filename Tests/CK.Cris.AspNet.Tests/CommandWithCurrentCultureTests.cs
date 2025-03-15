@@ -100,7 +100,7 @@ public class CommandWithCurrentCultureTests
                     .ShouldBeEquivalentTo( new SimpleUserMessage( UserMessageLevel.Info, "The collector is 'en' The current is 'en'.", 0 ) );
             result.ValidationMessages[1].AsSimpleUserMessage()
                     .ShouldBeEquivalentTo( new SimpleUserMessage( UserMessageLevel.Error, "Sorry, this command is INCOMING invalid!", 0 ) );
-            result.ValidationMessages[3].AsSimpleUserMessage()
+            result.ValidationMessages[2].AsSimpleUserMessage()
                     .ShouldBeEquivalentTo( new SimpleUserMessage( UserMessageLevel.Warn, "Culture name is null. It will be ignored.", 0 ) );
             result.Result.ShouldBeAssignableTo<ICrisResultError>();
         }

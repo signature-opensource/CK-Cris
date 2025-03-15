@@ -297,13 +297,12 @@ public class RawCrisReceiverTests
                 CrisValidationResult result = await validator.IncomingValidateAsync( monitor, scope.ServiceProvider, cmd );
                 result.Success.ShouldBeTrue();
                 result.ValidationMessages.ShouldBeEmpty();
-                logs.Count.ShouldBe( 1 )
-                             .And.Contain( "I'm the (Incoming) ValidatorWithLogs." );
+                logs.ShouldHaveSingleItem().ShouldBe( "I'm the (Incoming) ValidatorWithLogs." );
 
                 await executor.RawExecuteAsync( scope.ServiceProvider, cmd );
-                logs.Count.ShouldBe( 2 )
-                             .And.Contain( "I'm the (Incoming) ValidatorWithLogs." )
-                             .And.Contain( "I'm the (CommandHandling) ValidatorWithLogs." );
+                logs.Count.ShouldBe( 2 );
+                logs.ShouldContain( "I'm the (Incoming) ValidatorWithLogs." )
+                    .ShouldContain( "I'm the (CommandHandling) ValidatorWithLogs." );
             }
 
         }
@@ -338,8 +337,8 @@ public class RawCrisReceiverTests
 
             CrisValidationResult result = await validator.IncomingValidateAsync( TestHelper.Monitor, scope.ServiceProvider, cmd );
             result.Success.ShouldBeTrue();
-            result.ValidationMessages.Select( m => m.Text ).Count.ShouldBe( 1 )
-                                .And.Contain( "Validated!" );
+            result.ValidationMessages.Select( m => m.Text ).ShouldHaveSingleItem()
+                                .ShouldBe( "Validated!" );
 
         }
     }

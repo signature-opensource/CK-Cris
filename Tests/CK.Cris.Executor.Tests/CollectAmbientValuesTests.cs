@@ -101,7 +101,7 @@ public class CollectAmbientValuesTests
             auth.DeviceId.ShouldBe( authInfo.DeviceId );
 
             var sec = (ISecurityAmbientValues)r.Result;
-            sec.Roles.ShouldBe( "Administrator", "Tester", "Approver" );
+            sec.Roles.ShouldBe( ["Administrator", "Tester", "Approver"], ignoreOrder: true );
         }
     }
 
@@ -164,7 +164,7 @@ public class CollectAmbientValuesTests
                                               typeof( ICultureCommand ),
                                               typeof( FakeCommandHandler ) );
         await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
-        auto.Services.GetRequiredService<IEnumerable<IHostedService>>().Count.ShouldBe( 1, "Required to initialize the Global Service Provider." );
+        auto.Services.GetRequiredService<IEnumerable<IHostedService>>().ShouldHaveSingleItem( "Required to initialize the Global Service Provider." );
 
         using( var scope = auto.Services.CreateScope() )
         {
