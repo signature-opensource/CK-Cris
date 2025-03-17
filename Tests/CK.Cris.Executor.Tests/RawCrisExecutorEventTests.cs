@@ -1,6 +1,5 @@
 using CK.Core;
 using CK.Testing;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
@@ -72,7 +71,7 @@ public class RawCrisExecutorEventTests
 
             ITestEvent.CallCount = 0;
             await executor.DispatchEventAsync( services, e );
-            ITestEvent.CallCount.Should().Be( 1 );
+            ITestEvent.CallCount.ShouldBe( 1 );
         }
 
     }
@@ -96,7 +95,7 @@ public class RawCrisExecutorEventTests
 
             ITestEvent.CallCount = 0;
             await executor.DispatchEventAsync( services, e );
-            ITestEvent.CallCount.Should().Be( 3 );
+            ITestEvent.CallCount.ShouldBe( 3 );
         }
     }
 }

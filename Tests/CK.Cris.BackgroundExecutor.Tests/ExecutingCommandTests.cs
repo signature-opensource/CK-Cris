@@ -1,6 +1,6 @@
 using CK.Core;
 using CK.Testing;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
@@ -51,7 +51,7 @@ public class ExecutingCommandTests
         var ec = executor.Submit( TestHelper.Monitor, cmd ).WithResult<IMyCommandResult>();
 
         var r = await ec.Result;
-        r.Power.Should().Be( 1856 );
+        r.Power.ShouldBe( 1856 );
     }
 
     [Test]
@@ -71,7 +71,7 @@ public class ExecutingCommandTests
         var ec = executor.Submit( TestHelper.Monitor, cmd, null ).WithResult<IMyCommandResult>();
 
         var r = await ec.Result;
-        r.Power.Should().Be( 1856 );
+        r.Power.ShouldBe( 1856 );
     }
 
 
@@ -116,17 +116,17 @@ public class ExecutingCommandTests
 
         var ec2 = ec.WithResult<IMyExtendedCommandResult>();
         var r = await ec.Result;
-        r.Power.Should().Be( 21 );
+        r.Power.ShouldBe( 21 );
 
         var r2 = await ec2.Result;
-        r2.Power.Should().Be( 21 );
-        r2.AnotherPower.Should().Be( "".GetHashCode() );
+        r2.Power.ShouldBe( 21 );
+        r2.AnotherPower.ShouldBe( "".GetHashCode() );
 
-        ec.WithResult<IMyCommandResult>().Should().BeSameAs( ec );
-        ec2.WithResult<IMyExtendedCommandResult>().Should().BeSameAs( ec2 );
+        ec.WithResult<IMyCommandResult>().ShouldBeSameAs( ec );
+        ec2.WithResult<IMyExtendedCommandResult>().ShouldBeSameAs( ec2 );
 
-        FluentActions.Invoking( () => ec.WithResult<string>() )
-            .Should().Throw<ArgumentException>();
+        Util.Invokable( () => ec.WithResult<string>() )
+            .ShouldThrow<ArgumentException>();
     }
 
 

@@ -1,6 +1,6 @@
 using CK.Core;
 using CK.Testing;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
@@ -61,7 +61,7 @@ public class ICommandHandlerTests
 
         var cmd = auto.Services.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
         var handler = cmd.CrisPocoModel.Handlers.Single();
-        handler.Type.FinalType.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerOfBase ) );
+        handler.Type.FinalType.ShouldBeSameAs( typeof( CmdHandlerOfBase ) );
     }
 
     public class CmdHandlerWithMore : CmdHandlerOfBase
@@ -84,10 +84,10 @@ public class ICommandHandlerTests
         var d = auto.Services.GetRequiredService<CrisDirectory>();
 
         var cmd = auto.Services.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
-        cmd.Should().BeAssignableTo<IWithMorePocoResultCommand>();
+        cmd.ShouldBeAssignableTo<IWithMorePocoResultCommand>();
 
         var handler = cmd.CrisPocoModel.Handlers.Single();
-        handler.Type.FinalType.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerWithMore ) );
+        handler.Type.FinalType.ShouldBeSameAs( typeof( CmdHandlerWithMore ) );
     }
 
     public class CmdHandlerWithAnother : CmdHandlerOfBase
@@ -162,10 +162,10 @@ public class ICommandHandlerTests
         var d = auto.Services.GetRequiredService<CrisDirectory>();
 
         var cmd = auto.Services.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
-        cmd.Should().BeAssignableTo<IWithTheResultUnifiedCommand>();
+        cmd.ShouldBeAssignableTo<IWithTheResultUnifiedCommand>();
 
         var handler = cmd.CrisPocoModel.Handlers.Single();
-        handler.Type.FinalType.Should().NotBeNull().And.BeSameAs( typeof( CmdHandlerUnified ) );
+        handler.Type.FinalType.ShouldBeSameAs( typeof( CmdHandlerUnified ) );
     }
 
     // Handlers can be virtual.
@@ -179,7 +179,7 @@ public class ICommandHandlerTests
         public override IUnifiedResult Run( IWithTheResultUnifiedCommand r )
         {
             var result = base.Run( r );
-            result.Val.Should().Be( 0 );
+            result.Val.ShouldBe( 0 );
             result.Val = 3712;
             return result;
         }
@@ -197,10 +197,10 @@ public class ICommandHandlerTests
         var d = auto.Services.GetRequiredService<CrisDirectory>();
 
         var cmd = auto.Services.GetRequiredService<IPocoFactory<IWithPocoResultCommand>>().Create();
-        cmd.Should().BeAssignableTo<IWithTheResultUnifiedCommand>();
+        cmd.ShouldBeAssignableTo<IWithTheResultUnifiedCommand>();
 
         var model = cmd.CrisPocoModel;
-        model.Handlers.Should().NotBeEmpty();
+        model.Handlers.ShouldNotBeEmpty();
         var handler = model.Handlers.Single();
 
         var handlerService = auto.Services.GetRequiredService<ICommandHandler<IWithPocoResultCommand>>();
@@ -208,7 +208,7 @@ public class ICommandHandlerTests
         Throw.DebugAssert( method != null );
         var result = (IResult?)method.Invoke( handlerService, new[] { cmd } );
         Throw.DebugAssert( result != null );
-        result.Val.Should().Be( 3712, "Calling the base method naturally uses the overridden method." );
+        result.Val.ShouldBe( 3712, "Calling the base method naturally uses the overridden method." );
     }
 
     public interface ITestCommand : ICommand<int>
@@ -233,8 +233,8 @@ public class ICommandHandlerTests
                                               typeof( BaseClassWithHandler ) );
         await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         var d = auto.Services.GetRequiredService<CrisDirectory>();
-        d.CrisPocoModels.Should().HaveCount( 1 );
-        d.CrisPocoModels[0].Handlers.Should().BeEmpty();
+        d.CrisPocoModels.Count.ShouldBe( 1 );
+        d.CrisPocoModels[0].Handlers.ShouldBeEmpty();
     }
 
     public abstract class SpecializedBaseClassService : BaseClassWithHandler, IAutoService
@@ -252,14 +252,14 @@ public class ICommandHandlerTests
                                               typeof( SpecializedBaseClassService ) );
         await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         var d = auto.Services.GetRequiredService<CrisDirectory>();
-        d.CrisPocoModels.Should().HaveCount( 1 );
+        d.CrisPocoModels.Count.ShouldBe( 1 );
         var handler = d.CrisPocoModels[0].Handlers.Single();
         Throw.DebugAssert( handler != null );
-        handler.Type.ClassType.Should().Be( typeof( SpecializedBaseClassService ) );
-        handler.Type.FinalType.FullName.Should().Be( "CK.Cris.Tests.ICommandHandlerTests_SpecializedBaseClassService_CK" );
-        handler.Type.IsScoped.Should().Be( false );
-        handler.Type.MultipleMappings.Should().BeEmpty();
-        handler.Type.UniqueMappings.Should().BeEmpty();
+        handler.Type.ClassType.ShouldBe( typeof( SpecializedBaseClassService ) );
+        handler.Type.FinalType.FullName.ShouldBe( "CK.Cris.Tests.ICommandHandlerTests_SpecializedBaseClassService_CK" );
+        handler.Type.IsScoped.ShouldBe( false );
+        handler.Type.MultipleMappings.ShouldBeEmpty();
+        handler.Type.UniqueMappings.ShouldBeEmpty();
     }
 
 }

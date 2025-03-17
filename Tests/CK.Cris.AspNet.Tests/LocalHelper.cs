@@ -1,5 +1,5 @@
 using CK.Core;
-using FluentAssertions;
+using Shouldly;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -20,7 +20,7 @@ static class LocalHelper
     static public async Task<ICrisCallResult> GetCrisResultWithCorrelationIdSetToNullAsync( this PocoDirectory p, HttpResponseMessage r )
     {
         var result = await GetCrisResultAsync( p, r );
-        result.CorrelationId.Should().NotBeNullOrWhiteSpace();
+        result.CorrelationId.ShouldNotBeNullOrWhiteSpace();
         result.CorrelationId = null;
         return result;
     }
@@ -28,13 +28,12 @@ static class LocalHelper
     static public async Task<ICrisCallResult> GetValidationErrorsAsync( this PocoDirectory p, HttpResponseMessage r, params SimpleUserMessage[] messages )
     {
         var result = await GetCrisResultAsync( p, r );
-        result.ValidationMessages.Should().NotBeNull();
-        result.ValidationMessages!.Select( m => m.AsSimpleUserMessage() ).Should().BeEquivalentTo( messages );
-        result.Result.Should().NotBeNull();
-        result.Result.Should().BeAssignableTo<ICrisResultError>();
+        result.ValidationMessages.ShouldNotBeNull();
+        result.ValidationMessages!.Select( m => m.AsSimpleUserMessage() ).ShouldBe( messages );
+        result.Result.ShouldNotBeNull().ShouldBeAssignableTo<ICrisResultError>();
         var e = (ICrisResultError)result.Result!;
-        e.IsValidationError.Should().BeTrue();
-        e.Errors.Select( m => m.AsSimpleUserMessage() ).Should().BeEquivalentTo( messages );
+        e.IsValidationError.ShouldBeTrue();
+        e.Errors.Select( m => m.AsSimpleUserMessage() ).ShouldBe( messages );
         return result;
     }
 

@@ -6,7 +6,7 @@ using CK.Core;
 using CK.Cris.AmbientValues;
 using CK.Cris.AspNet;
 using CK.Testing;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -85,10 +85,10 @@ public class SenderTests
         // ActorId is set to its default 0 (this would have been the default value).
         totalCommand.ActorId = 0;
         var totalExecutedCommand = await sender.SendAsync( TestHelper.Monitor, totalCommand );
-        totalExecutedCommand.Result.Should().BeAssignableTo<ICrisResultError>();
+        totalExecutedCommand.Result.ShouldNotBeNull().ShouldBeAssignableTo<ICrisResultError>();
         var error = (ICrisResultError)totalExecutedCommand.Result!;
-        error.IsValidationError.Should().BeTrue();
-        error.Errors[0].Text.Should().StartWith( "Invalid authentication level: " );
+        error.IsValidationError.ShouldBeTrue();
+        error.Errors[0].Text.ShouldStartWith( "Invalid authentication level: " );
 
         var loginCommand = callerPoco.Create<IBasicLoginCommand>( c =>
         {
@@ -97,37 +97,37 @@ public class SenderTests
         } );
 
         var loginAlbert = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, loginCommand );
-        loginAlbert.Info.User.UserName.Should().Be( "Albert" );
+        loginAlbert.Info.User.UserName.ShouldBe( "Albert" );
 
         // Unexisting user id.
         totalCommand.ActorId = 9999999;
         totalExecutedCommand = await sender.SendAsync( TestHelper.Monitor, totalCommand );
-        totalExecutedCommand.Result.Should().BeAssignableTo<ICrisResultError>();
+        totalExecutedCommand.Result.ShouldNotBeNull().ShouldBeAssignableTo<ICrisResultError>();
         error = (ICrisResultError)totalExecutedCommand.Result!;
-        error.IsValidationError.Should().BeTrue();
-        error.Errors[0].Text.Should().StartWith( "Invalid actor identifier: " );
+        error.IsValidationError.ShouldBeTrue();
+        error.Errors[0].Text.ShouldStartWith( "Invalid actor identifier: " );
 
         // Albert (null current culture name): this is executed in the Global DI context.
         totalCommand.ActorId = 3712;
         var totalResult = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, totalCommand );
-        totalResult.Success.Should().BeTrue();
-        totalResult.ActorId.Should().Be( 3712 );
-        totalResult.CultureName.Should().Be( "en" );
+        totalResult.Success.ShouldBeTrue();
+        totalResult.ActorId.ShouldBe( 3712 );
+        totalResult.CultureName.ShouldBe( "en" );
 
         // Albert in French: this is executed in a Background job. 
         totalCommand.CurrentCultureName = "fr";
         totalResult = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, totalCommand );
-        totalResult.Success.Should().BeTrue();
-        totalResult.ActorId.Should().Be( 3712, "The authentication info has been transferred." );
-        totalResult.CultureName.Should().Be( "fr", "The current culture is French." );
+        totalResult.Success.ShouldBeTrue();
+        totalResult.ActorId.ShouldBe( 3712, "The authentication info has been transferred." );
+        totalResult.CultureName.ShouldBe( "fr", "The current culture is French." );
 
         // Albert in French sends an invalid action.
         totalCommand.Action = "Invalid";
         totalExecutedCommand = await sender.SendAsync( TestHelper.Monitor, totalCommand );
-        totalExecutedCommand.Result.Should().BeAssignableTo<ICrisResultError>();
+        totalExecutedCommand.Result.ShouldNotBeNull().ShouldBeAssignableTo<ICrisResultError>();
         error = (ICrisResultError)totalExecutedCommand.Result!;
-        error.IsValidationError.Should().BeTrue();
-        error.Errors[0].Text.Should().StartWith( "The Action must be Bug!, Error!, Warn! or empty. Not 'Invalid'." );
+        error.IsValidationError.ShouldBeTrue();
+        error.Errors[0].Text.ShouldStartWith( "The Action must be Bug!, Error!, Warn! or empty. Not 'Invalid'." );
 
         // Logout.
         await sender.SendOrThrowAsync( TestHelper.Monitor, callerPoco.Create<ILogoutCommand>() );
@@ -140,7 +140,7 @@ public class SenderTests
 
     static async Task TestAuthenticationCommandsAsync( PocoDirectory callerPoco, CrisHttpSender sender )
     {
-        sender.AuthorizationToken.Should().BeNull( "No authentication token." );
+        sender.AuthorizationToken.ShouldBeNull( "No authentication token." );
 
         var loginCommand = callerPoco.Create<IBasicLoginCommand>( c =>
         {
@@ -149,19 +149,19 @@ public class SenderTests
         } );
 
         var initialAuth = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, loginCommand );
-        initialAuth.Success.Should().BeTrue();
-        initialAuth.Info.Level.Should().Be( AuthLevel.Normal );
-        initialAuth.Info.User.UserName.Should().Be( "Albert" );
-        sender.AuthorizationToken.Should().NotBeNull( "The AuthorizationToken is set." );
+        initialAuth.Success.ShouldBeTrue();
+        initialAuth.Info.Level.ShouldBe( AuthLevel.Normal );
+        initialAuth.Info.User.UserName.ShouldBe( "Albert" );
+        sender.AuthorizationToken.ShouldNotBeNull( "The AuthorizationToken is set." );
 
         var refreshCommand = callerPoco.Create<IRefreshAuthenticationCommand>();
         var refreshedAuth = await sender.SendAndGetResultOrThrowAsync( TestHelper.Monitor, refreshCommand );
-        refreshedAuth.Success.Should().BeTrue();
-        refreshedAuth.Info.User.UserName.Should().Be( "Albert" );
+        refreshedAuth.Success.ShouldBeTrue();
+        refreshedAuth.Info.User.UserName.ShouldBe( "Albert" );
 
         var logoutCommand = callerPoco.Create<ILogoutCommand>();
         await sender.SendOrThrowAsync( TestHelper.Monitor, logoutCommand );
-        sender.AuthorizationToken.Should().BeNull( "No more AuthorizationToken." );
+        sender.AuthorizationToken.ShouldBeNull( "No more AuthorizationToken." );
     }
 
     static async Task TestSimpleCommandsAsync( PocoDirectory callerPoco, CrisHttpSender sender )
@@ -173,22 +173,22 @@ public class SenderTests
             c.Beauty = "Marvellous";
         } );
         var result = await sender.SendAsync( TestHelper.Monitor, cmd );
-        result.Result.Should().Be( "Black - Marvellous - 0" );
+        result.Result.ShouldBe( "Black - Marvellous - 0" );
 
         // Command without result.
         var naked = callerPoco.Create<INakedCommand>( c => c.Event = "Something" );
         var nakedResult = await sender.SendAsync( TestHelper.Monitor, naked );
-        nakedResult.Result.Should().BeNull();
+        nakedResult.Result.ShouldBeNull();
 
         // Command without result that throws.
         var nakedBug = callerPoco.Create<INakedCommand>( c => c.Event = "Bug!" );
         var nakedBugResult = await sender.SendAsync( TestHelper.Monitor, nakedBug );
-        nakedBugResult.Result.Should().NotBeNull().And.BeAssignableTo<ICrisResultError>();
+        nakedBugResult.Result.ShouldNotBeNull().ShouldBeAssignableTo<ICrisResultError>();
 
         // Command without result that throws and use SendOrThrowAsync.
         var nakedBug2 = callerPoco.Create<INakedCommand>( c => c.Event = "Bug!" );
-        await FluentActions.Awaiting( () => sender.SendOrThrowAsync( TestHelper.Monitor, nakedBug2 ) )
-            .Should().ThrowAsync<CKException>();
+        await Util.Awaitable( () => sender.SendOrThrowAsync( TestHelper.Monitor, nakedBug2 ) )
+            .ShouldThrowAsync<CKException>();
         //
         // Why does FluentAssertions now fails to match this?
         // It used to work and this is still correct :(.
@@ -230,12 +230,11 @@ public class SenderTests
         using( TestHelper.Monitor.CollectTexts( out var logs ) )
         {
             var result = await sender.SendAsync( TestHelper.Monitor, cmd );
-            logs.Should()
-                .Contain( """Sending ["CK.Cris.HttpSender.Tests.IBeautifulCommand",{"beauty":"Marvellous","waitTime":0,"color":"Black"}] to 'Domain/$Server/#Dev'.""" )
-                .And.Contain( """Request failed on 'Domain/$Server/#Dev' (attempt n°0).""" )
-                .And.Contain( """Request failed on 'Domain/$Server/#Dev' (attempt n°1).""" )
-                .And.Contain( """Request failed on 'Domain/$Server/#Dev' (attempt n°2).""" )
-                .And.Contain( """While sending: ["CK.Cris.HttpSender.Tests.IBeautifulCommand",{"beauty":"Marvellous","waitTime":0,"color":"Black"}]""" );
+            logs.ShouldContain( """Sending ["CK.Cris.HttpSender.Tests.IBeautifulCommand",{"beauty":"Marvellous","waitTime":0,"color":"Black"}] to 'Domain/$Server/#Dev'.""" )
+                .ShouldContain( """Request failed on 'Domain/$Server/#Dev' (attempt n°0).""" )
+                .ShouldContain( """Request failed on 'Domain/$Server/#Dev' (attempt n°1).""" )
+                .ShouldContain( """Request failed on 'Domain/$Server/#Dev' (attempt n°2).""" )
+                .ShouldContain( """While sending: ["CK.Cris.HttpSender.Tests.IBeautifulCommand",{"beauty":"Marvellous","waitTime":0,"color":"Black"}]""" );
         }
     }
 

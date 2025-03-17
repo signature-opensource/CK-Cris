@@ -1,7 +1,7 @@
 using CK.Core;
 using CK.Setup;
 using CK.Testing;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
@@ -77,8 +77,8 @@ public class RawCrisExecutorCommandTests
             CmdSyncHandler.Called = false;
 
             var raw = await executor.RawExecuteAsync( services, cmd );
-            raw.Result.Should().BeNull();
-            CmdSyncHandler.Called.Should().BeTrue();
+            raw.Result.ShouldBeNull();
+            CmdSyncHandler.Called.ShouldBeTrue();
         }
     }
 
@@ -146,8 +146,8 @@ public class RawCrisExecutorCommandTests
             CmdIntSyncHandler.Called = false;
 
             var raw = await executor.RawExecuteAsync( services, cmd );
-            raw.Result.Should().Be( 3712 );
-            CmdIntSyncHandler.Called.Should().BeTrue();
+            raw.Result.ShouldBe( 3712 );
+            CmdIntSyncHandler.Called.ShouldBeTrue();
         }
     }
 
@@ -240,7 +240,7 @@ public class RawCrisExecutorCommandTests
             using( var scope = auto.Services.CreateScope() )
             {
                 var directory = scope.ServiceProvider.GetRequiredService<CrisDirectory>();
-                directory.CrisPocoModels[0].Handlers.Should().BeEmpty();
+                directory.CrisPocoModels[0].Handlers.ShouldBeEmpty();
             }
         }
     }
@@ -282,9 +282,9 @@ public class RawCrisExecutorCommandTests
             CommandHandlerImpl.Called = false;
 
             var raw = await executor.RawExecuteAsync( services, cmd );
-            raw.Result.Should().BeNull();
+            raw.Result.ShouldBeNull();
 
-            CommandHandlerImpl.Called.Should().BeTrue();
+            CommandHandlerImpl.Called.ShouldBeTrue();
         }
     }
 
@@ -321,9 +321,9 @@ public class RawCrisExecutorCommandTests
             CommandHandlerExplicitImpl.Called = false;
 
             var raw = await executor.RawExecuteAsync( services, cmd );
-            raw.Result.Should().BeNull();
+            raw.Result.ShouldBeNull();
 
-            CommandHandlerExplicitImpl.Called.Should().BeTrue();
+            CommandHandlerExplicitImpl.Called.ShouldBeTrue();
         }
     }
 
@@ -363,7 +363,7 @@ public class RawCrisExecutorCommandTests
             var raw = await executor.RawExecuteAsync( services, cmd );
             var e = raw.Result as ICrisResultError;
             Throw.DebugAssert( e != null );
-            e.Errors.Single().Text.Should().Be( "While executing 'CK.Cris.Executor.Tests.RawCrisExecutorCommandTests.ITestCommand'." );
+            e.Errors.Single().Text.ShouldBe( "While executing 'CK.Cris.Executor.Tests.RawCrisExecutorCommandTests.ITestCommand'." );
         }
 
     }

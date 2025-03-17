@@ -2,7 +2,7 @@ using CK.AspNet.Auth;
 using CK.Auth;
 using CK.Core;
 using CK.Testing;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -83,21 +83,26 @@ public class CommandWithCurrentCultureTests
             string response = await r.Content.ReadAsStringAsync();
             var result = pocoDirectory.Find<ICrisCallResult>()!.ReadJson( response );
             Throw.DebugAssert( result != null && result.ValidationMessages != null );
-            result.Result.Should().Be( "en" );
-            result.ValidationMessages.Select( m => m.AsSimpleUserMessage() ).Should().HaveCount( 2 )
-                    .And.Contain( new SimpleUserMessage( UserMessageLevel.Info, "The collector is 'en' The current is 'en'.", 0 ) )
-                    .And.Contain( new SimpleUserMessage( UserMessageLevel.Warn, "Culture name is null. It will be ignored.", 0 ) );
+            result.Result.ShouldBe( "en" );
+            result.ValidationMessages.Count.ShouldBe( 2 );
+            result.ValidationMessages[0].AsSimpleUserMessage()
+                    .ShouldBe( new SimpleUserMessage( UserMessageLevel.Info, "The collector is 'en' The current is 'en'.", 0 ) );
+            result.ValidationMessages[1].AsSimpleUserMessage()
+                    .ShouldBe( new SimpleUserMessage( UserMessageLevel.Warn, "Culture name is null. It will be ignored.", 0 ) );
         }
         {
             HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri, @"[""TestCommand"",{""CurrentCultureName"":null,""IsIncomingValid"":false}]" );
             string response = await r.Content.ReadAsStringAsync();
             var result = pocoDirectory.Find<ICrisCallResult>()!.ReadJson( response );
             Throw.DebugAssert( result != null && result.ValidationMessages != null );
-            result.ValidationMessages.Select( m => m.AsSimpleUserMessage() ).Should().HaveCount( 3 )
-                    .And.Contain( new SimpleUserMessage( UserMessageLevel.Info, "The collector is 'en' The current is 'en'.", 0 ) )
-                    .And.Contain( new SimpleUserMessage( UserMessageLevel.Error, "Sorry, this command is INCOMING invalid!", 0 ) )
-                    .And.Contain( new SimpleUserMessage( UserMessageLevel.Warn, "Culture name is null. It will be ignored.", 0 ) );
-            result.Result.Should().BeAssignableTo<ICrisResultError>();
+            result.ValidationMessages.Count.ShouldBe( 3 );
+            result.ValidationMessages[0].AsSimpleUserMessage()
+                    .ShouldBeEquivalentTo( new SimpleUserMessage( UserMessageLevel.Info, "The collector is 'en' The current is 'en'.", 0 ) );
+            result.ValidationMessages[1].AsSimpleUserMessage()
+                    .ShouldBeEquivalentTo( new SimpleUserMessage( UserMessageLevel.Error, "Sorry, this command is INCOMING invalid!", 0 ) );
+            result.ValidationMessages[2].AsSimpleUserMessage()
+                    .ShouldBeEquivalentTo( new SimpleUserMessage( UserMessageLevel.Warn, "Culture name is null. It will be ignored.", 0 ) );
+            result.Result.ShouldBeAssignableTo<ICrisResultError>();
         }
     }
 
@@ -130,9 +135,9 @@ public class CommandWithCurrentCultureTests
             string response = await r.Content.ReadAsStringAsync();
             var result = pocoDirectory.Find<ICrisCallResult>()!.ReadJson( response );
             Throw.DebugAssert( result != null && result.ValidationMessages != null );
-            result.Result.Should().Be( "fr" );
-            result.ValidationMessages.Select( m => m.AsSimpleUserMessage() ).Should().HaveCount( 1 )
-                    .And.Contain( new SimpleUserMessage( UserMessageLevel.Info, "Le validateur est en 'fr', la culture courante en 'en'.", 0 ) );
+            result.Result.ShouldBe( "fr" );
+            result.ValidationMessages.Select( m => m.AsSimpleUserMessage() ).ShouldHaveSingleItem()
+                    .ShouldBe( new SimpleUserMessage( UserMessageLevel.Info, "Le validateur est en 'fr', la culture courante en 'en'.", 0 ) );
         }
         {
             HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri,
@@ -140,12 +145,14 @@ public class CommandWithCurrentCultureTests
             string response = await r.Content.ReadAsStringAsync();
             var result = pocoDirectory.Find<ICrisCallResult>()!.ReadJson( response );
             Throw.DebugAssert( result != null && result.ValidationMessages != null );
-            result.ValidationMessages.Select(m => m.AsSimpleUserMessage()).Should().HaveCount( 2 )
-                    .And.Contain( new SimpleUserMessage( UserMessageLevel.Info, "Le validateur est en 'fr', la culture courante en 'en'.", 0 ) )
-                    .And.Contain( new SimpleUserMessage( UserMessageLevel.Error, "Désolé, INCOMING invalide.", 0 ) );
-            result.Result.Should().BeAssignableTo<ICrisResultError>();
+            result.ValidationMessages.Count.ShouldBe( 2 );
+            result.ValidationMessages[0].AsSimpleUserMessage()
+                .ShouldBe( new SimpleUserMessage( UserMessageLevel.Info, "Le validateur est en 'fr', la culture courante en 'en'.", 0 ) );
+            result.ValidationMessages[1].AsSimpleUserMessage()
+                    .ShouldBe( new SimpleUserMessage( UserMessageLevel.Error, "Désolé, INCOMING invalide.", 0 ) );
+            result.Result.ShouldBeAssignableTo<ICrisResultError>();
             var e = (ICrisResultError)result.Result!;
-            e.Errors.Should().ContainSingle( "Désolé, INCOMING invalide." );
+            e.Errors.ShouldHaveSingleItem().Text.ShouldBe( "Désolé, INCOMING invalide." );
         }
         {
             HttpResponseMessage? r = await client.PostJsonAsync( LocalHelper.CrisUri,
@@ -153,12 +160,14 @@ public class CommandWithCurrentCultureTests
             string response = await r.Content.ReadAsStringAsync();
             var result = pocoDirectory.Find<ICrisCallResult>()!.ReadJson( response );
             Throw.DebugAssert( result != null && result.ValidationMessages != null );
-            result.ValidationMessages.Select(m => m.AsSimpleUserMessage()).Should().HaveCount( 2 )
-                    .And.Contain( new SimpleUserMessage( UserMessageLevel.Info, "Le validateur est en 'fr', la culture courante en 'en'.", 0 ) )
-                    .And.Contain( new SimpleUserMessage( UserMessageLevel.Error, "Désolé, HANDLING invalide.", 0 ) );
-            result.Result.Should().BeAssignableTo<ICrisResultError>();
+            result.ValidationMessages.Count.ShouldBe( 2 );
+            result.ValidationMessages[0].AsSimpleUserMessage()
+                    .ShouldBe( new SimpleUserMessage( UserMessageLevel.Info, "Le validateur est en 'fr', la culture courante en 'en'.", 0 ) );
+            result.ValidationMessages[1].AsSimpleUserMessage()
+                    .ShouldBe( new SimpleUserMessage( UserMessageLevel.Error, "Désolé, HANDLING invalide.", 0 ) );
+            result.Result.ShouldBeAssignableTo<ICrisResultError>();
             var e = (ICrisResultError)result.Result!;
-            e.Errors.Should().ContainSingle( "Désolé, HANDLING invalide." );
+            e.Errors.ShouldHaveSingleItem().Text.ShouldBe( "Désolé, HANDLING invalide." );
         }
     }
 }
