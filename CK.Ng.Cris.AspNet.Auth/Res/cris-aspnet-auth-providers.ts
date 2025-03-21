@@ -1,5 +1,6 @@
 import { EnvironmentProviders, inject, makeEnvironmentProviders, provideAppInitializer } from '@angular/core';
-import { AuthService, HttpCrisEndpoint } from '@local/ck-gen';
+import { AuthService } from '@local/ck-gen/CK/AspNet/Auth';
+import { HttpCrisEndpoint } from '@local/ck-gen/CK/Cris/HttpCrisEndpoint';
 
 /**
  * Provides support providers for Cris and WFA pairing:
