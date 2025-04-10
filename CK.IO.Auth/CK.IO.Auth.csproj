@@ -5,6 +5,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
-    <PackageReference Include="CK.Auth.Abstractions" Version="9.0.1" />
+    <PackageReference Include="CK.Auth.Abstractions" Version="9.1.0" />
   </ItemGroup>
 </Project>
