@@ -29,7 +29,7 @@
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "less",
             "assets": [
-              {
+              { "glob": "**/*", "input": "ck-gen/ts-assets" }, {
                 "glob": "**/*",
                 "input": "public"
               }

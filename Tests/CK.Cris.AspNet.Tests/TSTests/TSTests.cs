@@ -162,7 +162,7 @@ public class TSTests
         var builder = WebApplication.CreateSlimBuilder();
         await using var runningServer = await builder.CreateRunningAspNetAuthenticationServerAsync( map, configureApplication: app => app.UseMiddleware<CrisMiddleware>() );
 
-        await using var runner = TestHelper.CreateTypeScriptRunner( targetProjectPath, new Dictionary<string, string> { { "CRIS_ENDPOINT_URL", runningServer.ServerAddress + "/.cris" } } );
+        await using var runner = TestHelper.CreateTypeScriptRunner( targetProjectPath, runningServer.ServerAddress, new Dictionary<string, string> { { "CRIS_ENDPOINT_URL", runningServer.ServerAddress + "/.cris" } } );
         // When running in Debug, this will wait until resume is set to true.
         // Until then, the .NET server is running and tests can be manually executed
         // written and fixed.

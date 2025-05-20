@@ -2,7 +2,8 @@
   "name": "e2etestwithcommands",
   "private": true,
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "ck-watch": "dotnet \"$PROJECT_CWD/../../bin/Debug/net8.0/CK.TypeScript.LiveEngine.dll\""
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
@@ -18,5 +19,5 @@
   "peerDependencies": {
     "axios": "^1.7.7"
   },
-  "packageManager": "yarn@4.6.0"
+  "packageManager": "yarn@4.8.1"
 }
