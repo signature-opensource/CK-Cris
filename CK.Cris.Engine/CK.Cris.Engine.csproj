@@ -1,19 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>CK.Setup.Cris</RootNamespace>
-    <Nullable>enable</Nullable>
+    <LangVersion>11</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.StObj.Runtime" Version="21.0.0" />
-    <!--
-          This CK.Cris.Engine directly implements the TypeScriptCrisCommandGeneratorImpl to avoid another (quite small) assembly.
-
-          Note that Cris TypeScript generation requires:
-          - the TypeScriptAspect is declared and one or more <TypeScript><OutuptPath>...</OutuptPath></TypeScript> is defined in the BinPathConfiguration.
-          - AND the CK.Cris.TypeScript must be referenced.
-    -->
-    <PackageReference Include="CK.StObj.TypeScript.Engine" Version="0.0.0--041cj3b-explo+v0.9.0" />
+    <PackageReference Include="CK.CodeGen" Version="12.1.0" />
+    <PackageReference Include="CK.StObj.Runtime" Version="29.1.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />

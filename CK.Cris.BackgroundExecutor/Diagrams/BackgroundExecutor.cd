@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="CK.Cris.CrisBackgroundEndpointDefinition">
+    <Position X="6.75" Y="3.75" Width="3" />
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <NestedTypes>
+      <Class Name="CK.Cris.CrisBackgroundEndpointDefinition.Data">
+        <TypeIdentifier>
+          <NewMemberFileName>CrisBackgroundEndpointDefinition.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>CrisBackgroundEndpointDefinition.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="CK.Core.EndpointDefinition&lt;TScopeData&gt;">
+    <Position X="6.75" Y="2.25" Width="3" />
+    <Members>
+      <Method Name="EndpointDefinition" Hidden="true" />
+    </Members>
+    <TypeIdentifier />
+  </Class>
+  <Class Name="CK.Core.EndpointDefinition">
+    <Position X="6.75" Y="0.5" Width="3" />
+    <NestedTypes>
+      <Class Name="CK.Core.EndpointDefinition.ScopedData" Collapsed="true">
+        <TypeIdentifier />
+      </Class>
+    </NestedTypes>
+    <TypeIdentifier />
+  </Class>
+  <Class Name="CK.Cris.CrisBackgroundExecutor">
+    <Position X="0.5" Y="0.5" Width="4.5" />
+    <Members>
+      <Field Name="_executionHost" Hidden="true" />
+      <Method Name="CreateAsyncScope" Hidden="true" />
+      <Method Name="CrisBackgroundExecutor" Hidden="true" />
+    </Members>
+    <AssociationLine Name="_endpoint" Type="CK.Core.IEndpointType&lt;TScopeData&gt;">
+      <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
+        <Position X="-1.173" Y="0.243" Height="0.182" Width="1.095" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <TypeIdentifier>
+      <HashCode>EAAAAAAAACAAAAAAAAAAAAQAAAAAAAAAAAAABAAACAA=</HashCode>
+      <FileName>CrisBackgroundExecutor.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="_endpoint" />
+    </ShowAsAssociation>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="CK.Cris.CrisJob">
+    <Position X="4" Y="3" Width="2" />
+    <TypeIdentifier />
+  </Class>
+  <Interface Name="CK.Core.IEndpointType&lt;TScopeData&gt;">
+    <Position X="0.5" Y="3" Width="2.25" />
+    <TypeIdentifier />
+  </Interface>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

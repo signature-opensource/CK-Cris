@@ -1,9 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <Nullable>enable</Nullable>
+    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>CK.Cris</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CK.PerfectEvent" Version="24.1.0" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
   </ItemGroup>

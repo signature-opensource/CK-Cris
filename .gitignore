@@ -249,17 +249,26 @@ paket-files/
 # JetBrains Rider
 .idea/
 *.sln.iml
-CodeCakeBuilder/Tools/
 
 Tests/**/TestResult*.xml
 Tests/**/Logs/
 Tests/**/CKSetup-WorkingDir/
-CodeCakeBuilder/MemoryKey.*.txt
-CodeCakeBuilder/UnitTestsDone.*.txt
 $StObjGen/
 
-/Tests/CK.Cris.Tests/TypeScriptOutput/
-/Tests/CK.Cris.AspNet.Tests/TypeScriptOutput/
-
+CodeCakeBuilder/MemoryKey.*.txt
+CodeCakeBuilder/UnitTestsDone.*.txt
+CodeCakeBuilder/Tools/
 CodeCakeBuilder/[Rr]elease/
 CodeCakeBuilder/[Rr]eleases/
+
+# Yarn - Not using Zero-Install (.yarn/cache and .pnp.* are not commited).
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Because we can have subordinated .yarn folder we must exclude any .yarn/install-state.gz.
+**/.yarn/install-state.gz

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CK.AppIdentity" Version="0.9.0" />
+    <PackageReference Include="CK.Poco.Exc.Json" Version="29.1.0" />
+    <PackageReference Include="Polly.Core" Version="8.5.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CK.IO.Auth.Basic\CK.IO.Auth.Basic.csproj" />
+  </ItemGroup>
+</Project>

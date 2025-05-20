@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <RootNamespace>CK.Cris</RootNamespace>
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- Always generate the xml documentation for tests in release or debug to generate the same IPoco comments. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.StObj.Model" Version="21.0.0" />
+    <PackageReference Include="CK.Globalization" Version="2.1.0" />
+    <PackageReference Include="CK.StObj.Model" Version="29.1.0" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>CK.Auth</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
+    <PackageReference Include="CK.Auth.Abstractions" Version="9.1.0" />
+  </ItemGroup>
+</Project>

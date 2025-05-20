@@ -1,46 +1,76 @@
 using CK.Core;
-using FluentAssertions;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using CK.Testing;
+using Shouldly;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using static CK.Testing.StObjEngineTestHelper;
+using static CK.Testing.MonitorTestHelper;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-namespace CK.Cris.Tests
+namespace CK.Cris.Tests;
+
+
+[TestFixture]
+public class CrisDirectoryTests
 {
-    [TestFixture]
-    public class CommandDirectoryTests
+    [ExternalName( "Test", "PreviousTest1", "PreviousTest2" )]
+    public interface ITestCommand : ICommand
     {
-        [ExternalName( "Test", "PreviousTest1", "PreviousTest2" )]
-        public interface ICmdTest : ICommand
-        {
-        }
-
-        [Test]
-        public void simple_command_models()
-        {
-            var c = TestHelper.CreateStObjCollector( typeof( CommandDirectory ), typeof( ICmdTest ), typeof( AmbientValues.IAmbientValues ) );
-            using var services = TestHelper.CreateAutomaticServices( c ).Services;
-            var poco = services.GetRequiredService<PocoDirectory>();
-
-            var d = services.GetRequiredService<CommandDirectory>();
-            d.Commands.Should().HaveCount( 1 );
-            var m = d.Commands[0];
-            m.Handler.Should().BeNull();
-            m.CommandIdx.Should().Be( 0 );
-            m.CommandName.Should().Be( "Test" );
-            m.PreviousNames.Should().BeEquivalentTo( "PreviousTest1", "PreviousTest2" );
-            m.Should().BeSameAs( poco.Find( "PreviousTest1" ) ).And.BeSameAs( poco.Find( "PreviousTest2" ) );
-            var cmd = m.Create();
-            cmd.CommandModel.Should().BeSameAs( m );
-        }
-
-
     }
+
+    [Test]
+    public async Task simple_command_models_Async()
+    {
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( ITestCommand ) );
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+
+        var poco = auto.Services.GetRequiredService<PocoDirectory>();
+
+        var d = auto.Services.GetRequiredService<CrisDirectory>();
+        d.CrisPocoModels.Count.ShouldBe( 1 );
+        var m = d.CrisPocoModels[0];
+        m.Handlers.ShouldBeEmpty();
+        m.CrisPocoIndex.ShouldBe( 0 );
+        m.PocoName.ShouldBe( "Test" );
+        m.PreviousNames.ShouldBe( ["PreviousTest1", "PreviousTest2"], ignoreOrder: true );
+        m.ShouldBeSameAs( poco.Find( "PreviousTest1" ) ).ShouldBeSameAs( poco.Find( "PreviousTest2" ) );
+        var cmd = m.Create();
+        cmd.CrisPocoModel.ShouldBeSameAs( m );
+    }
+
+    public interface ITestSpecCommand : ITestCommand, IEvent
+    {
+    }
+
+    [Test]
+    public async Task IEvent_cannot_be_a_ICommand_Async()
+    {
+        using( TestHelper.Monitor.CollectTexts( out var texts ) )
+        {
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( ITestSpecCommand ) );
+            await configuration.GetFailedAutomaticServicesAsync(
+                "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ITestCommand' cannot be both a IEvent and a IAbstractCommand." );
+        }
+    }
+
+    public interface ICmdNoWay : IEvent, ICommand<int>
+    {
+    }
+
+    [Test]
+    public async Task IEvent_cannot_be_a_ICommand_TResult_Async()
+    {
+        using( TestHelper.Monitor.CollectTexts( out var texts ) )
+        {
+            var configuration = TestHelper.CreateDefaultEngineConfiguration();
+            configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( ICmdNoWay ) );
+            await configuration.GetFailedAutomaticServicesAsync(
+                "Cris '[PrimaryPoco]CK.Cris.Tests.CrisDirectoryTests.ICmdNoWay' cannot be both a IEvent and a IAbstractCommand." );
+        }
+    }
+
 }
+
