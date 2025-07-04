@@ -3,8 +3,8 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.AppIdentity" Version="0.9.1--0003-develop" />
-    <PackageReference Include="CK.Poco.Exc.Json" Version="29.1.1--0007-develop" />
+    <PackageReference Include="CK.AppIdentity" Version="0.10.0" />
+    <PackageReference Include="CK.Poco.Exc.Json" Version="30.0.0" />
     <PackageReference Include="Polly.Core" Version="8.5.0" />
   </ItemGroup>
   <ItemGroup>
