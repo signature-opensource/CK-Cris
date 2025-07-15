@@ -8,7 +8,7 @@
     <Compile Include="..\CK.Cris.Tests\DiamondResultAndCommand.cs" Link="DiamondResultAndCommand.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Testing.TypeScriptEngine" Version="0.26.0" />
+    <PackageReference Include="CK.Testing.TypeScriptEngine" Version="0.26.2" />
     <PackageReference Include="CK.Testing.Nunit" Version="13.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
