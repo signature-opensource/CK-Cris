@@ -46,4 +46,5 @@ public class ExecutedCommand : IExecutedCommand
 
     /// <inheritdoc />
     public IDeferredCommandExecutionContext? DeferredExecutionContext => _deferredExecutionInfo;
+
 }

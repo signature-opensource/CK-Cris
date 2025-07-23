@@ -2,6 +2,7 @@ using CK.Core;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace CK.Cris;
@@ -88,30 +89,11 @@ public sealed class ExecutedCommand<T> : ExecutedCommand, IExecutedCommand<T> wh
     /// <inheritdoc />
     public IExecutedCommand<T>.IWithResult<TResult> WithResult<TResult>()
     {
-        // Building a strongly typed result: we check that the actual result type (that is
-        // the most precise type among the different ICommand<TResult> TResult types) is
-        // compatible with the requested TResult.
-        CheckResultType<TResult>( base.Command.CrisPocoModel );
+        if( base.Command.CrisPocoModel.ResultType == typeof( void ) )
+        {
+            Throw.ArgumentException( $"Command '{base.Command.CrisPocoModel.PocoName}' is a ICommand (without any result)." );
+        }
         return new ResultAdapter<TResult>( this );
     }
 
-    /// <summary>
-    /// Helper that checks the final result type and throws <see cref="ArgumentException"/> if the
-    /// requested result type is not valid.
-    /// </summary>
-    /// <typeparam name="TResult">The requested result type.</typeparam>
-    /// <param name="model">The command model.</param>
-    public static void CheckResultType<TResult>( ICrisPocoModel model )
-    {
-        var requestedType = typeof( TResult );
-        if( !requestedType.IsAssignableFrom( model.ResultType ) )
-        {
-            if( model.ResultType == typeof( void ) )
-            {
-                Throw.ArgumentException( $"Command '{model.PocoName}' is a ICommand (without any result)." );
-            }
-            Throw.ArgumentException( $"Command '{model.PocoName}' is a 'ICommand<{model.ResultType.ToCSharpName()}>'." +
-                                     $" This type of result is not compatible with '{requestedType.ToCSharpName()}'." );
-        }
-    }
 }

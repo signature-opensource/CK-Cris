@@ -216,74 +216,157 @@ public sealed partial class CrisType
 
     internal static string MethodName( MethodInfo m, ParameterInfo[]? parameters = null ) => $"{m.DeclaringType!.Name}.{m.Name}( {(parameters ?? m.GetParameters()).Select( p => p.ParameterType.Name + " " + p.Name ).Concatenate()} )";
 
+    enum BestCommandHandler
+    {
+        Ambiguous,
+        KeepCurrent,
+        KeepNew
+    }
+
     internal bool AddCommandHandler( IActivityMonitor monitor,
+                                     IPocoTypeSystem typeSystem,
                                      IStObjFinalClass owner,
                                      MethodInfo method,
                                      ParameterInfo[] parameters,
-                                     ParameterInfo parameter,
+                                     ParameterInfo command,
                                      bool isClosedHandler,
                                      string? fileName,
                                      int lineNumber )
     {
         var (unwrappedReturnType, isRefAsync, isValAsync) = GetReturnParameterInfo( method );
 
-        var expected = _commandResultType?.Type ?? typeof( void );
-
-        if( unwrappedReturnType != expected )
+        // First, check the returned type. We always skip an handler that returns a type
+        // not assignable to the ICommand<TResult>.
+        IPocoType? handlerUnwrappedReturnType = null;
+        if( _commandResultType == null )
         {
-            using( monitor.TemporarilySetMinimalFilter( LogFilter.Trace ) )
+            if( unwrappedReturnType != typeof( void ) )
             {
-                if( expected == typeof( void ) )
-                {
-                    monitor.Warn( $"Handler method '{MethodName( method, parameters )}' must not return any value but returns a '{unwrappedReturnType.Name}'. This handler is skipped." );
-                }
-                else
-                {
-                    monitor.Warn( $"Handler method '{MethodName( method, parameters )}': expected return type is '{expected.Name}', not '{unwrappedReturnType.Name}'. This handler is skipped." );
-                }
+                monitor.Warn( $"Handler method '{MethodName( method, parameters )}' must not return any value but returns a '{unwrappedReturnType.Name}'. This handler is skipped." );
+                return true;
+            }
+        }
+        else
+        {
+            handlerUnwrappedReturnType = typeSystem.FindByType( unwrappedReturnType );
+            if( handlerUnwrappedReturnType == null ||
+                (handlerUnwrappedReturnType != _commandResultType && !handlerUnwrappedReturnType.IsSubTypeOf( _commandResultType )) )
+            {
+                monitor.Warn( $"Handler method '{MethodName( method, parameters )}': expected return type is '{_commandResultType.Type:N}' but '{unwrappedReturnType:N}' is not compatible. This handler is skipped." );
                 return true;
             }
         }
         if( _commandHandlerService != null && owner != _commandHandlerService )
         {
-            monitor.Warn( $"Handler method '{MethodName( method, parameters )}' is skipped (the command handler is implemented by '{_commandHandlerService.ClassType:N}')." );
+            monitor.Info( $"""
+                        Handler method '{MethodName( method, parameters )}' is skipped.
+                        The command handler is implemented by '{_commandHandlerService.ClassType:N}' that is a 'ICommandHandler<{PocoName}>' service).
+                        """ );
             return true;
         }
         if( _commandHandler != null )
         {
-            if( _commandHandler.IsClosedHandler )
+            switch( ElectBestCommandHandlerParameterWise( monitor, method, parameters, command, isClosedHandler ) )
             {
-                if( isClosedHandler )
-                {
-                    monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{_commandHandler}' handle '{PocoName}' command." );
-                    return false;
-                }
-                WarnUnclosedHandlerSkipped( monitor, method, parameters );
-                return true;
-            }
-            // Current handler is an unclosed one.
-            if( isClosedHandler )
-            {
-                WarnUnclosedHandlerSkipped( monitor, _commandHandler.Method, _commandHandler.Parameters );
-            }
-            else
-            {
-                // Two unclosed handlers. Should we use the two command Parameter types to decide?
-                // - c1 == c2 => Ambiguity.
-                // - c1 is assignable from c2 => c2
-                // - c2 is assignable from c1 => c1
-                // - c1 independent of c2 => Ambiguity.
-                monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{_commandHandler}' handle '{PocoName}' command." );
-                return false;
+                case BestCommandHandler.KeepCurrent: return true;
+                case BestCommandHandler.KeepNew:
+                    break;
+                case BestCommandHandler.Ambiguous:
+                    if( _commandHandler.UnwrappedReturnType == handlerUnwrappedReturnType )
+                    {
+                        monitor.Error( $"Ambiguity: both '{MethodName( method, parameters )}' and '{_commandHandler}' handle '{PocoName}' command and returns the same result." );
+                        return false;
+                    }
+                    Throw.DebugAssert( "All void return cases have been handled.",
+                                       _commandHandler.UnwrappedReturnType != null && handlerUnwrappedReturnType != null );
+                    if( _commandHandler.UnwrappedReturnType.IsSubTypeOf( handlerUnwrappedReturnType ) )
+                    {
+                        InfoSpecializedReturnSkipped( monitor, MethodName( method, parameters ), _commandHandler.ToString(), PocoName );
+                        return true;
+                    }
+                    if( handlerUnwrappedReturnType.IsSubTypeOf( _commandHandler.UnwrappedReturnType ) )
+                    {
+                        InfoSpecializedReturnSkipped( monitor, _commandHandler.ToString(), MethodName( method, parameters ), PocoName );
+                    }
+                    else
+                    {
+                        monitor.Error( $"""
+                            Ambiguity: cannot choose between the following handlers for '{PocoName}' command as they return unrelated types:
+                            {MethodName( method, parameters )} returns '{handlerUnwrappedReturnType.CSharpName}'
+                            and
+                            {MethodName( _commandHandler.Method, _commandHandler.Parameters )} returns '{_commandHandler.UnwrappedReturnType.CSharpName}'
+                            """ );
+                        return false;
+                    }
+                    break;
             }
         }
-        _commandHandler = new HandlerMethod( this, owner, method, parameters, fileName, lineNumber, parameter, unwrappedReturnType, isRefAsync, isValAsync, isClosedHandler );
+        _commandHandler = new HandlerMethod( this, owner, method, parameters, fileName, lineNumber, command, handlerUnwrappedReturnType, isRefAsync, isValAsync, isClosedHandler );
         CheckSyncAsyncMethodName( monitor, method, parameters, _commandHandler.IsRefAsync || _commandHandler.IsValAsync );
         return true;
 
-        static void WarnUnclosedHandlerSkipped( IActivityMonitor monitor, MethodInfo method, ParameterInfo[] parameters )
+        static void InfoSpecializedReturnSkipped( IActivityMonitor monitor, string skipped, string kept, string pocoName )
         {
-            monitor.Warn( $"Handler method '{MethodName( method, parameters )}' for unclosed command type is skipped since a closed handler is available." );
+            monitor.Info( $"Handler method '{skipped}' is skipped since '{kept}' returns a more specialized result for '{pocoName}' command." );
+        }
+    }
+
+    BestCommandHandler ElectBestCommandHandlerParameterWise( IActivityMonitor monitor,
+                                                             MethodInfo method,
+                                                             ParameterInfo[] parameters,
+                                                             ParameterInfo command,
+                                                             bool isClosedHandler )
+    {
+        Throw.DebugAssert( _commandHandler != null );
+        if( _commandHandler.IsClosedHandler )
+        {
+            if( isClosedHandler )
+            {
+                return BestCommandHandler.Ambiguous;
+            }
+            InfoUnclosedSkipped( monitor, method, parameters );
+            return BestCommandHandler.KeepCurrent;
+        }
+        Throw.DebugAssert( "Current handler is an unclosed one.",
+                            !_commandHandler.IsClosedHandler );
+        if( isClosedHandler )
+        {
+            // Skip the current one.
+            InfoUnclosedSkipped( monitor, _commandHandler.Method, _commandHandler.Parameters );
+            return BestCommandHandler.KeepNew;
+        }
+        // Two unclosed handlers. Use the two command Parameter types to decide.
+        // - cur == new => Ambiguity.
+        // - cur is assignable from new => new
+        // - new is assignable from cur => cur
+        // - new independent of cur => Ambiguity.
+        var curCT = _commandHandler.CommandParameter.ParameterType;
+        var newCT = command.ParameterType;
+        if( curCT == newCT )
+        {
+            return BestCommandHandler.Ambiguous;
+        }
+        if( newCT.IsAssignableFrom( curCT ) )
+        {
+            InfoSpecializedSkipped( monitor, MethodName( method, parameters ), _commandHandler.ToString(), PocoName );
+            return BestCommandHandler.KeepCurrent;
+        }
+        if( curCT.IsAssignableFrom( newCT ) )
+        {
+            // Not ideal: MethodName will be recomputed
+            InfoSpecializedSkipped( monitor, _commandHandler.ToString(), MethodName( method, parameters ), PocoName );
+            return BestCommandHandler.KeepNew;
+        }
+        return BestCommandHandler.Ambiguous;
+
+        static void InfoUnclosedSkipped( IActivityMonitor monitor, MethodInfo method, ParameterInfo[] parameters )
+        {
+            monitor.Info( $"Handler method '{MethodName( method, parameters )}' for unclosed command type is skipped since a closed handler is available." );
+        }
+
+        static void InfoSpecializedSkipped( IActivityMonitor monitor, string skipped, string kept, string pocoName )
+        {
+            monitor.Info( $"Handler method '{skipped}' is skipped since '{kept}' handles a specialized '{pocoName}' command." );
         }
     }
 

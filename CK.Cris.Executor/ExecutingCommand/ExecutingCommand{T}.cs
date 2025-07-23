@@ -1,5 +1,6 @@
 using CK.Core;
 using System;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -85,7 +86,7 @@ public sealed class ExecutingCommand<T> : ExecutingCommand, IExecutingCommand<T>
                     }
                     else
                     {
-                        var ex = new CKException( $"Command result is a '{r.GetType().ToCSharpName()}'. This is not compatible with '{typeof( TResult ).ToCSharpName()}'." );
+                        var ex = new InvalidCastException( $"Command result is a '{r.GetType().ToCSharpName()}'. This is not compatible with '{typeof( TResult ).ToCSharpName()}'." );
                         result.SetException( ex );
                     }
                 }
@@ -125,10 +126,10 @@ public sealed class ExecutingCommand<T> : ExecutingCommand, IExecutingCommand<T>
     /// <returns>A strongly typed command and its result.</returns>
     public IExecutingCommand<T>.IResultAdapter<TResult> WithResult<TResult>()
     {
-        // Building a strongly typed result: we check that the actual result type (that is
-        // the most precise type among the different ICommand<TResult> TResult types) is
-        // compatible with the requested TResult.
-        ExecutedCommand<T>.CheckResultType<TResult>( base.Command.CrisPocoModel );
+        if( base.Command.CrisPocoModel.ResultType == typeof( void ) )
+        {
+            Throw.ArgumentException( $"Command '{base.Command.CrisPocoModel.PocoName}' is a ICommand (without any result)." );
+        }
         return new ResultAdapter<TResult>( this );
     }
 
