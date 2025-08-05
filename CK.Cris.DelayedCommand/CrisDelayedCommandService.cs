@@ -31,7 +31,9 @@ public class CrisDelayedCommandService : ISingletonAutoService
     /// <param name="backgroundExecutorService">The background executor service.</param>
     /// <param name="pocoDirectory">The Poco directory.</param>
     /// <param name="rawCrisExecutor">The Cris executor.</param>
-    public CrisDelayedCommandService( CrisBackgroundExecutorService backgroundExecutorService, PocoDirectory pocoDirectory, RawCrisExecutor rawCrisExecutor )
+    public CrisDelayedCommandService( CrisBackgroundExecutorService backgroundExecutorService,
+                                      PocoDirectory pocoDirectory,
+                                      RawCrisExecutor rawCrisExecutor )
     {
         _memoryStore = new PriorityQueue<DelayedCommandEntry, DateTime>();
         _timer = new Timer( OnTimer );
@@ -102,7 +104,12 @@ public class CrisDelayedCommandService : ISingletonAutoService
                 var delta = (long)(date - GetUtcNow()).TotalMilliseconds;
                 if( delta <= 0 )
                 {
-                    entry.SetExecuting( _backgroundExecutorService.Submit( entry.DelayedCommand.Command!, ambientServiceHub: null, entry.IssuerToken, entry, OnExecutedCommandAsync ) );
+                    entry.SetExecuting( _backgroundExecutorService.Submit( entry.DelayedCommand.Command!,
+                                                                           ambientServiceHub: null,
+                                                                           entry.IssuerToken,
+                                                                           entry,
+                                                                           OnExecutedCommandAsync,
+                                                                           incomingValidationCheck: true ) );
                     _memoryStore.Dequeue();
                     OnCommandExecuting( entry );
                 }
