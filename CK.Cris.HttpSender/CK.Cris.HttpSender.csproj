@@ -3,9 +3,9 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.IO.Auth.Basic" Version="0.39.2--0013-develop" />
-    <PackageReference Include="CK.AppIdentity" Version="0.10.1--0012-develop" />
-    <PackageReference Include="CK.Poco.Exc.Json" Version="30.0.1--0034-develop" />
+    <PackageReference Include="CK.IO.Auth.Basic" Version="0.39.2--0015-develop" />
+    <PackageReference Include="CK.AppIdentity" Version="0.10.1--0014-develop" />
+    <PackageReference Include="CK.Poco.Exc.Json" Version="30.0.1--0036-develop" />
     <PackageReference Include="Polly.Core" Version="8.5.0" />
   </ItemGroup>
 </Project>
