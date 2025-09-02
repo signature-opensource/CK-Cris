@@ -49,12 +49,18 @@ public sealed partial class CrisHttpSender : ICrisHttpSender
 
     internal CrisHttpSender( IRemoteParty remote,
                              Uri endpointUrl,
+                             bool disableServerCertificateValidation,
                              PocoDirectory pocoDirectory,
                              IPocoFactory<ICrisCallResult> resultFactory,
                              TimeSpan? timeout,
                              HttpRetryStrategyOptions? retryStrategy )
     {
-        HttpMessageHandler handler = new HttpClientHandler();
+        var httpHandler = new HttpClientHandler();
+        if( disableServerCertificateValidation )
+        {
+            httpHandler.ServerCertificateCustomValidationCallback = ( message, cert, chain, errors ) => true;
+        }
+        HttpMessageHandler handler = httpHandler;
         if( retryStrategy != null )
         {
             var resilienceBuilder = new ResiliencePipelineBuilder<HttpResponseMessage>()

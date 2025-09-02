@@ -116,6 +116,7 @@ public sealed class CrisHttpSenderFeatureDriver : ApplicationIdentityFeatureDriv
             {
                 retryStrategy = CrisHttpSender.CreateRetryStrategy( monitor, retryConfig );
             }
+            bool disableServerCertificateValidation = false;
             TimeSpan? timeout = null;
             if( config != null )
             {
@@ -131,9 +132,10 @@ public sealed class CrisHttpSenderFeatureDriver : ApplicationIdentityFeatureDriv
                         monitor.Warn( $"Unable to parse CrisHttpSender Timout '{s}' for remote '{r}'. Using default value of 100 seconds." );
                     }
                 }
+                disableServerCertificateValidation = config.TryGetBooleanValue( monitor, "DisableServerCertificateValidation" ) ?? false;
             }
             monitor.Info( $"Enabling 'CrisHttpSender' on '{r}' with address '{uri}'." );
-            r.AddFeature( new CrisHttpSender( r, new( uri, ".cris/net" ), _pocoDirectory, _resultReader, timeout, retryStrategy ) );
+            r.AddFeature( new CrisHttpSender( r, new( uri, ".cris/net" ), disableServerCertificateValidation, _pocoDirectory, _resultReader, timeout, retryStrategy ) );
         }
         return true;
     }
