@@ -14,8 +14,7 @@ namespace CK.Cris;
 /// This is a scoped service. 
 /// </para>
 /// </summary>
-[Setup.AlsoRegisterType( typeof( RawCrisExecutor ) )]
-[Setup.AlsoRegisterType( typeof( DarkSideCrisEventHub ) )]
+[AlsoRegisterType<RawCrisExecutor, DarkSideCrisEventHub>]
 public class CrisExecutionContext : ICrisCommandContext
 {
     readonly IServiceProvider _serviceProvider;

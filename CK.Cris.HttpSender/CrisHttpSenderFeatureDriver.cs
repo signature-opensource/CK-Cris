@@ -13,7 +13,7 @@ namespace CK.Cris.HttpSender;
 /// or not. The <see cref="CrisHttpSender"/> feature is added only if a "CrisHttpSender" key appears in the remote's
 /// configuration. This configuration can be a "true" value (that uses a default configuration).
 /// </summary>
-[AlsoRegisterType( typeof( ICrisCallResult ) )]
+[AlsoRegisterType<ICrisCallResult>]
 public sealed class CrisHttpSenderFeatureDriver : ApplicationIdentityFeatureDriver
 {
     readonly PocoDirectory _pocoDirectory;

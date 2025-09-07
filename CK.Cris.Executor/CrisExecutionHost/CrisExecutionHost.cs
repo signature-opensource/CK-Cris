@@ -16,8 +16,7 @@ namespace CK.Cris;
 /// (but nothing prevents other host to be instantiated and used independently).
 /// </para>
 /// </summary>
-[Setup.AlsoRegisterType( typeof( RawCrisReceiver ) )]
-[Setup.AlsoRegisterType( typeof( CrisExecutionContext ) )]
+[AlsoRegisterType<RawCrisReceiver,CrisExecutionContext>]
 public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAutoService
 {
     readonly IPocoFactory<ICrisResultError> _errorResultFactory;

@@ -8,7 +8,7 @@ namespace CK.Cris;
 /// <see cref="ImmediateSender"/> and <see cref="AllSender"/>, it also allows events to be dispatched outside
 /// of a command handler.
 /// </summary>
-[Setup.AlsoRegisterType( typeof( CrisEventHub ) )]
+[AlsoRegisterType<CrisEventHub>]
 public sealed class DarkSideCrisEventHub : ISingletonAutoService
 {
     readonly CrisEventHub _hub;

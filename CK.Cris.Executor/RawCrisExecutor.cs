@@ -14,7 +14,7 @@ namespace CK.Cris;
 /// This is the low level API, the concrete class implements all the generated code that does the hard work.
 /// </para>
 /// </summary>
-[Setup.AlsoRegisterType( typeof( CrisDirectory ) )]
+[AlsoRegisterType<CrisDirectory>]
 [CK.Setup.ContextBoundDelegation( "CK.Setup.Cris.RawCrisExecutorImpl, CK.Cris.Executor.Engine" )]
 public abstract class RawCrisExecutor : ISingletonAutoService
 {
