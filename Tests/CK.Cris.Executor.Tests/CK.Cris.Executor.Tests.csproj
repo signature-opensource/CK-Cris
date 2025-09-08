@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CK.Auth.Abstractions" Version="10.0.1--0019-develop" />
-    <PackageReference Include="CK.Testing.StObjEngine" Version="30.0.1--0046-develop" />
+    <PackageReference Include="CK.Testing.StObjEngine" Version="30.0.1--0047-develop" />
     <PackageReference Include="CK.Testing.Nunit" Version="13.0.1--0016-develop" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
