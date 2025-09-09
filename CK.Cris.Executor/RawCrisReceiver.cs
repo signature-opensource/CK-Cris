@@ -135,7 +135,7 @@ public abstract class RawCrisReceiver : ISingletonAutoService
         {
             // Do not use EnsureExtendedCultureInfo here. We don't want to be flood by random strings
             // that will damage the cache.
-            var fromCommand = ExtendedCultureInfo.FindExtendedCultureInfo( cC.CurrentCultureName );
+            var fromCommand = ExtendedCultureInfo.All.FindExtendedCultureInfo( cC.CurrentCultureName );
             if( fromCommand != null )
             {
                 currentCulture = new CurrentCultureInfo( services.GetRequiredService<TranslationService>(), fromCommand );
