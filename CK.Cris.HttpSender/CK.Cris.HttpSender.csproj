@@ -6,6 +6,6 @@
     <PackageReference Include="CK.IO.Auth.Basic" Version="0.39.3--0028-develop" />
     <PackageReference Include="CK.AppIdentity" Version="0.10.1--0019-develop" />
     <PackageReference Include="CK.Poco.Exc.Json" Version="30.0.1--0051-develop" />
-    <PackageReference Include="Polly.Core" Version="8.5.0" />
+    <PackageReference Include="Polly.Core" Version="8.6.3" />
   </ItemGroup>
 </Project>
