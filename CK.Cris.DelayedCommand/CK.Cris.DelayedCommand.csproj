@@ -3,8 +3,10 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="CK.Cris" Version="0.40.0" />
+    <PackageReference Include="CK.IO.DelayedCommand" Version="0.40.0" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\CK.Cris.BackgroundExecutor\CK.Cris.BackgroundExecutor.csproj" />
-    <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
-    <ProjectReference Include="..\CK.IO.DelayedCommand\CK.IO.DelayedCommand.csproj" />
   </ItemGroup>
 </Project>

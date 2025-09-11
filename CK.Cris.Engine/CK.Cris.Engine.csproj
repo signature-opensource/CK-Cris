@@ -1,14 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <RootNamespace>CK.Setup.Cris</RootNamespace>
-    <LangVersion>11</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.CodeGen" Version="13.0.0" />
-    <PackageReference Include="CK.StObj.Runtime" Version="30.0.0" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\CK.Cris\CK.Cris.csproj" />
+    <PackageReference Include="CK.Cris" Version="0.40.0" />
+    <PackageReference Include="CK.CodeGen" Version="14.0.0" />
+    <PackageReference Include="CK.StObj.Runtime" Version="31.0.0" />
   </ItemGroup>
 </Project>

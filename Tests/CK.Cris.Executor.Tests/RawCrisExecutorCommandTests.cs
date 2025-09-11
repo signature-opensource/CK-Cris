@@ -160,7 +160,9 @@ public class RawCrisExecutorCommandTests
                                               typeof( CmdIntRefAsyncHandler ),
                                               typeof( CmdIntValAsyncHandler ) );
         await configuration.GetFailedAutomaticServicesAsync(
-            "Ambiguity: both 'CmdIntValAsyncHandler.HandleCommandAsync( IIntTestCommand cmd )' and 'CK.Cris.Executor.Tests.RawCrisExecutorCommandTests+CmdIntRefAsyncHandler.HandleCommandAsync' handle 'CK.Cris.Executor.Tests.RawCrisExecutorCommandTests.IIntTestCommand' command." );
+            "Ambiguity: both 'CmdIntValAsyncHandler.HandleCommandAsync( IIntTestCommand cmd )' and " +
+            "'CK.Cris.Executor.Tests.RawCrisExecutorCommandTests+CmdIntRefAsyncHandler.HandleCommandAsync' handle " +
+            "'CK.Cris.Executor.Tests.RawCrisExecutorCommandTests.IIntTestCommand' command and returns the same result." );
     }
 
     public class CmdIntValAsyncHandlerService : CmdIntValAsyncHandler, ICommandHandler<IIntTestCommand>
@@ -205,7 +207,7 @@ public class RawCrisExecutorCommandTests
         [CommandHandler]
         public object HandleCommand( IIntTestCommand cmd )
         {
-            return "Won't compile, even if object generalize int: the EXACT result type must be returned.";
+            return "Won't compile, even if object generalize int: a specialized result type must be returned.";
         }
     }
 

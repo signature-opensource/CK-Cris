@@ -34,11 +34,16 @@ public class CrisExecutionContextTests
     {
     }
 
-    public interface IStupidCommand : ICommand<int>
+    public interface IStupidCommand : ICommand<IStupidCommandResult>
     {
         public static int CallCount;
 
         string Message { get; set; }
+    }
+
+    public interface IStupidCommandResult : ICrisBasicCommandResult
+    {
+        public int Value { get; set; }
     }
 
     public interface IFinalCommand : ICommand
@@ -49,7 +54,7 @@ public class CrisExecutionContextTests
     public class Handlers : ISingletonAutoService
     {
         [CommandHandler]
-        public async Task<int> HandleStupidCommandAsync( IActivityMonitor monitor, ICrisCommandContext ctx, IStupidCommand e )
+        public async Task<IStupidCommandResult> HandleStupidCommandAsync( IActivityMonitor monitor, ICrisCommandContext ctx, IStupidCommand e )
         {
             using( monitor.OpenInfo( $"Stupid command called. Message = {e.Message}" ) )
             {
@@ -59,7 +64,7 @@ public class CrisExecutionContextTests
                     await ctx.EmitEventAsync<IRoutedImmediateEvent>( e => { } );
                     await ctx.EmitEventAsync<IRoutedEvent>( e => { } );
                 }
-                return c;
+                return e.CreateResult( r => r.Value = c );
             }
         }
 
@@ -69,8 +74,8 @@ public class CrisExecutionContextTests
             ++IRoutedImmediateEvent.CallCount;
             using( ctx.Monitor.OpenTrace( $"IRoutedImmediateEvent => StupidCommand" ) )
             {
-                var r = (int)(await ctx.ExecuteCommandAsync<IStupidCommand>( c => c.Message = "Triggered by an event." ))!;
-                ctx.Monitor.CloseGroup( $"StupidCommand result = {r}" );
+                var r = (IStupidCommandResult)(await ctx.ExecuteCommandAsync<IStupidCommand>( c => c.Message = "Triggered by an event." ))!;
+                ctx.Monitor.CloseGroup( $"StupidCommand result = {r.Value}" );
             }
         }
 
@@ -116,7 +121,7 @@ public class CrisExecutionContextTests
         await using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
             [
                 typeof( CrisExecutionContext ),
-                typeof( IStupidCommand ),
+                typeof( IStupidCommand ), typeof( IStupidCommandResult ),
                 typeof( IRoutedImmediateEvent ),
                 typeof( IRoutedEvent ),
                 typeof( Handlers ),
@@ -132,7 +137,8 @@ public class CrisExecutionContextTests
             var command = services.GetRequiredService<PocoDirectory>().Create<IStupidCommand>( c => c.Message = "Run!" );
             var executed = await executor.ExecuteRootCommandAsync( command );
 
-            executed.Result.ShouldBe( 1 );
+            executed.Result.ShouldNotBeNull()
+                           .ShouldBeAssignableTo<IStupidCommandResult>().Value.ShouldBe( 1 );
             IStupidCommand.CallCount.ShouldBe( 5 );
             IFinalCommand.CallCount.ShouldBe( 4 );
 
@@ -148,7 +154,7 @@ public class CrisExecutionContextTests
         await using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
         [
             typeof( CrisExecutionContext ),
-            typeof( IStupidCommand ),
+            typeof( IStupidCommand ), typeof( IStupidCommandResult ),
             typeof( IRoutedImmediateEvent ),
             typeof( IRoutedEvent ),
             typeof( Handlers ),
@@ -182,4 +188,46 @@ public class CrisExecutionContextTests
             allEventCollector.Skip( 4 ).ShouldAll( e => e.ShouldBeAssignableTo<IRoutedEvent>() );
         }
     }
+
+    public interface IStupidCommandMore : IStupidCommand, ICommand<IStupidCommandResultMore>
+    {
+    }
+
+    public interface IStupidCommandResultMore : IStupidCommandResult
+    {
+    }
+
+    public class StupidCommandMoreHandler : ISingletonAutoService
+    {
+        [CommandHandler]
+        public IStupidCommandResultMore Handle( IStupidCommandMore c )
+        {
+            return c.CreateResult<IStupidCommandResultMore>( r => r.Value = 3712 );
+        }
+    }
+
+    [Test]
+    public async Task ExecuteRootCommand_Async()
+    {
+        await using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
+            [
+                typeof( CrisExecutionContext ),
+                typeof( IStupidCommand ),
+                typeof( IStupidCommandMore ), typeof( IStupidCommandResultMore ),
+                typeof( StupidCommandMoreHandler )
+            ] );
+        using( var scope = auto.Services.CreateScope() )
+        {
+            var services = scope.ServiceProvider;
+
+            var executor = services.GetRequiredService<CrisExecutionContext>();
+            var command = services.GetRequiredService<PocoDirectory>().Create<IStupidCommandMore>( c => c.Message = "Run!" );
+            var executed = await executor.ExecuteRootCommandAsync( command );
+
+            executed.Result.ShouldNotBeNull()
+                           .ShouldBeAssignableTo<IStupidCommandResultMore>().Value.ShouldBe( 3712 );
+        }
+    }
+
+
 }

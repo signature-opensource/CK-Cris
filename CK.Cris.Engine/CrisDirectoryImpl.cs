@@ -166,7 +166,7 @@ public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextB
                     classScope.Append( "public CK.Cris.ExecutedCommand CreateExecutedCommand( CK.Cris.IAbstractCommand command, object? r, ImmutableArray<UserMessage> v, ImmutableArray<CK.Cris.IEvent> e, CK.Cris.IDeferredCommandExecutionContext d )" )
                         .OpenBlock()
                         .Append( "Throw.CheckArgument( command?.CrisPocoModel == this );" ).NewLine()
-                        .Append( "return new CK.Cris.ExecutedCommand<" ).Append( e.CrisPocoType.CSharpName ).Append( ">( (" ).Append( e.CrisPocoType.CSharpName ).Append( ")command, r, v, e, d );" )
+                        .Append( "return new CK.Cris.ExecutedCommand<" ).Append( e.CrisPocoType.ImplTypeName ).Append( ">( (" ).Append( e.CrisPocoType.ImplTypeName ).Append( ")command, r, v, e, d );" )
                         .CloseBlock();
                 }
             }

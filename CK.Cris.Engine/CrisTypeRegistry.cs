@@ -378,11 +378,14 @@ internal sealed partial class CrisTypeRegistry : ICrisDirectoryServiceEngine
             if( !allowUnclosed )
             {
                 // If the Command is not the closure, we skip handlers of unclosed commands: we expect the final handler of the closure interface.
-                monitor.Info( $"Method {CrisType.MethodName( m, parameters )} cannot handle '{e.PocoName}' command because type '{p.ParameterType.Name}' doesn't represent the whole command." );
+                monitor.Info( $"""
+                    Method {CrisType.MethodName( m, parameters )} cannot handle '{e.PocoName}' command because type '{p.ParameterType.Name}' doesn't represent the whole command.
+                    If this method can actually handle the whole command, specify [CommandHandler( AllowUnclosedCommand = true )].
+                    """ );
                 return true;
             }
         }
-        return e.AddCommandHandler( monitor, impl, m, parameters, p, isClosedHandler, fileName, lineNumber );
+        return e.AddCommandHandler( monitor, _typeSystem, impl, m, parameters, p, isClosedHandler, fileName, lineNumber );
     }
 
     internal bool RegisterCommandPostHandler( IActivityMonitor monitor, IStObjFinalClass impl, MethodInfo m, string? fileName, int lineNumber )

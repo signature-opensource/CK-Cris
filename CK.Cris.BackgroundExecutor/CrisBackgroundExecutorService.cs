@@ -14,8 +14,7 @@ namespace CK.Cris;
 /// </list>
 /// You may use the <see cref="CrisBackgroundExecutor"/> that is a scoped service and handles kindly the <see cref="AmbientServiceHub"/>.
 /// </summary>
-[Setup.AlsoRegisterType( typeof( CrisExecutionHost ) )]
-[Setup.AlsoRegisterType( typeof( CrisBackgroundDIContainerDefinition ) )]
+[AlsoRegisterType<CrisExecutionHost,CrisBackgroundDIContainerDefinition>]
 public class CrisBackgroundExecutorService : ContainerCommandExecutor<CrisBackgroundDIContainerDefinition.Data>, ISingletonAutoService
 {
     /// <summary>

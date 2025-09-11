@@ -125,8 +125,10 @@ public class ExecutingCommandTests
         ec.WithResult<IMyCommandResult>().ShouldBeSameAs( ec );
         ec2.WithResult<IMyExtendedCommandResult>().ShouldBeSameAs( ec2 );
 
-        Util.Invokable( () => ec.WithResult<string>() )
-            .ShouldThrow<ArgumentException>();
+        await Should.ThrowAsync<InvalidCastException>( async () =>
+        {
+            var r = await ec.WithResult<string>().Result;
+        } );
     }
 
 

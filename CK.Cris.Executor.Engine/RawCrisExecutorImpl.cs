@@ -181,7 +181,7 @@ public partial class RawCrisExecutorImpl : CSCodeGeneratorType
     {
         HandlerMethod? h = e.CommandHandler;
         Throw.DebugAssert( h != null );
-        bool isVoidReturn = h.UnwrappedReturnType == typeof( void );
+        bool isVoidReturn = h.UnwrappedReturnType == null;
         bool isHandlerAsync = h.IsRefAsync || h.IsValAsync;
         bool isPostHandlerAsync = e.HasPostHandlerAsyncCall;
 

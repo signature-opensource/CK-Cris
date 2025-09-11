@@ -21,9 +21,9 @@ public sealed class HandlerMethod : HandlerBase
     public readonly ParameterInfo CommandParameter;
 
     /// <summary>
-    /// The returned type.
+    /// The returned type. Null for void.
     /// </summary>
-    public readonly Type UnwrappedReturnType;
+    public readonly IPocoType? UnwrappedReturnType;
 
     /// <summary>
     /// Whether this handler handles the IPoco's closure.
@@ -37,7 +37,7 @@ public sealed class HandlerMethod : HandlerBase
                             string? fileName,
                             int lineNumber,
                             ParameterInfo commandParameter,
-                            Type unwrappedReturnType,
+                            IPocoType? unwrappedReturnType,
                             bool isRefAsync,
                             bool isValAsync,
                             bool isClosedHandler )
