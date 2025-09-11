@@ -3,8 +3,8 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Cris" Version="0.39.3--0031-develop" />
+    <PackageReference Include="CK.Cris" Version="0.39.3--0032-develop" />
     <PackageReference Include="CK.CodeGen" Version="13.0.1--0020-develop" />
-    <PackageReference Include="CK.StObj.Runtime" Version="30.0.1--0054-develop" />
+    <PackageReference Include="CK.StObj.Runtime" Version="30.0.1--0055-develop" />
   </ItemGroup>
 </Project>
