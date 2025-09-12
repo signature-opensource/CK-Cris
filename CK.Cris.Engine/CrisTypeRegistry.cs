@@ -221,14 +221,31 @@ internal sealed partial class CrisTypeRegistry : ICrisDirectoryServiceEngine
                 var reduced = withResult.ComputeMinimal();
                 if( reduced.Count > 1 )
                 {
-                    monitor.Error( $"Command '{command}' declares incompatible results '{reduced.Select( a => a.ToString() ).Concatenate( "' ,'" )}': " +
-                                   $"result types are incompatible and cannot be reduced." );
+                    monitor.Error( $"""
+                        Command '{command}' declares incompatible results '{reduced.Select( a => a.ToString() ).Concatenate( "' ,'" )}'.
+                        Result types are incompatible and cannot be reduced.
+                        """ );
                     success = false;
                 }
                 else if( reduced.Count == 1 )
                 {
                     resultType = reduced[0].GenericArguments[0].Type;
                     kind = CrisPocoKind.CommandWithResult;
+                }
+                else
+                {
+                    Throw.DebugAssert( reduced.Count == 0 );
+                    var unregistered = command.AllAbstractTypes.Where( a => a.ImplementationLess && a.GenericTypeDefinition == commandWithResultType )
+                                                               .SelectMany( a => a.GenericArguments.Select( g => g.Type.NonNullable ) )
+                                                               .Distinct();
+                    if( unregistered.Any() )
+                    {
+                        monitor.Error( $"""
+                                        Command '{command}' has at least one unregistered type:
+                                        {unregistered.Select( t => t.ToString() ).Concatenate()}.
+                                        """ );
+                        success = false;
+                    }
                 }
             }
             var handlerServices = command.SecondaryTypes.Select( s => s.Type ).Append( command.Type )

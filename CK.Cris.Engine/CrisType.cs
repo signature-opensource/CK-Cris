@@ -242,15 +242,28 @@ public sealed partial class CrisType
         {
             if( unwrappedReturnType != typeof( void ) )
             {
-                monitor.Warn( $"Handler method '{MethodName( method, parameters )}' must not return any value but returns a '{unwrappedReturnType.Name}'. This handler is skipped." );
+                monitor.Warn( $"""
+                    Handler method '{MethodName( method, parameters )}' must not return any value but returns a '{unwrappedReturnType:C}'.
+                    This handler is skipped.
+                    This may be due to an unregistered type command result.
+                    """ );
                 return true;
             }
         }
         else
         {
+            // We are forced to work with Oblivious here because unwrappedReturnType is not resolved with the NullableContextInfo here.
+            //
+            // It is a pity because the _commandResultType that is obtained through the Generic argument
+            // (through the ICommand<TResult> { [AutoInmplementationClaim] TResult TResultType => default!; }) has the NRT info, except
+            // its own nullability.
+            //  - In better world, here, we'll use NonNulllable instead of Oblivious.
+            //  - In a perfect world, we'll simply use the use the types...
+            //
             handlerUnwrappedReturnType = typeSystem.FindByType( unwrappedReturnType );
             if( handlerUnwrappedReturnType == null ||
-                (handlerUnwrappedReturnType != _commandResultType && !handlerUnwrappedReturnType.IsSubTypeOf( _commandResultType )) )
+                ( handlerUnwrappedReturnType.ObliviousType != _commandResultType.ObliviousType
+                  && !handlerUnwrappedReturnType.ObliviousType.IsSubTypeOf( _commandResultType.ObliviousType )) )
             {
                 monitor.Warn( $"Handler method '{MethodName( method, parameters )}': expected return type is '{_commandResultType.Type:N}' but '{unwrappedReturnType:N}' is not compatible. This handler is skipped." );
                 return true;
