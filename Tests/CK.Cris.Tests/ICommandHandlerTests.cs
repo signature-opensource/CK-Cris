@@ -129,7 +129,11 @@ public class ICommandHandlerTests
                                               typeof( CmdHandlerFailingUnified ),
                                               typeof( CmdHandlerWithMore ),
                                               typeof( CmdHandlerWithAnother ),
-                                              typeof( CmdHandlerAlternate ) );
+                                              typeof( CmdHandlerAlternate ),
+                                              typeof( IUnifiedResult ),
+                                              typeof( IMoreResult ),
+                                              typeof( IAnotherResult ),
+                                              typeof( IResult ) );
         await configuration.GetFailedAutomaticServicesAsync(
             "Service 'CK.Cris.Tests.ICommandHandlerTests.CmdHandlerFailingUnified' must implement a command handler method for closed command CK.Cris.Tests.IWithPocoResultCommand of the closing type CK.Cris.Tests.IWithTheResultUnifiedCommand." );
     }
