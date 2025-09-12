@@ -232,21 +232,21 @@ internal sealed partial class CrisTypeRegistry : ICrisDirectoryServiceEngine
                     resultType = reduced[0].GenericArguments[0].Type;
                     kind = CrisPocoKind.CommandWithResult;
                 }
-                else
-                {
-                    Throw.DebugAssert( reduced.Count == 0 );
-                    var unregistered = command.AllAbstractTypes.Where( a => a.ImplementationLess && a.GenericTypeDefinition == commandWithResultType )
-                                                               .SelectMany( a => a.GenericArguments.Select( g => g.Type.NonNullable ) )
-                                                               .Distinct();
-                    if( unregistered.Any() )
-                    {
-                        monitor.Error( $"""
-                                        Command '{command}' has at least one unregistered type:
-                                        {unregistered.Select( t => t.ToString() ).Concatenate()}.
-                                        """ );
-                        success = false;
-                    }
-                }
+                //else
+                //{
+                //    Throw.DebugAssert( reduced.Count == 0 );
+                //    var unregistered = command.AllAbstractTypes.Where( a => a.ImplementationLess && a.GenericTypeDefinition == commandWithResultType )
+                //                                               .SelectMany( a => a.GenericArguments.Select( g => g.Type.NonNullable ) )
+                //                                               .Distinct();
+                //    if( unregistered.Any() )
+                //    {
+                //        monitor.Error( $"""
+                //                        Command '{command}' has at least one unregistered type:
+                //                        {unregistered.Select( t => t.ToString() ).Concatenate()}.
+                //                        """ );
+                //        success = false;
+                //    }
+                //}
             }
             var handlerServices = command.SecondaryTypes.Select( s => s.Type ).Append( command.Type )
                                                         .Select( i => typeof( ICommandHandler<> ).MakeGenericType( i ) )
