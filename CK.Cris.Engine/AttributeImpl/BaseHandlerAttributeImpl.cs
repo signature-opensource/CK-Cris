@@ -33,7 +33,11 @@ abstract class BaseHandlerAttributeImpl : ICSCodeGenerator
     public CSCodeGenerationResult Implement( IActivityMonitor monitor, ICSCodeGenerationContext c )
     {
         var crisTypeRegistry = c.CurrentRun.ServiceContainer.GetService<CrisTypeRegistry>();
-        if( crisTypeRegistry == null ) return CSCodeGenerationResult.Retry;
+        // No CrisTypeRegistry is perfectly valid when we are in MultiBinPath and we are on the Unified.
+        if( crisTypeRegistry == null )
+            return c.CurrentRun.ConfigurationGroup.IsUnifiedPure
+                    ? CSCodeGenerationResult.Success
+                    : CSCodeGenerationResult.Retry;
 
         if( !_method.IsPublic )
         {

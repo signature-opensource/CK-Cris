@@ -26,7 +26,11 @@ sealed class AmbientServiceValueAttributeImpl : ICSCodeGenerator
     {
         // Wait for CrisTypeRegistry to be available.
         var crisTypeRegistry = c.CurrentRun.ServiceContainer.GetService<CrisTypeRegistry>();
-        if( crisTypeRegistry == null ) return CSCodeGenerationResult.Retry;
+        // No CrisTypeRegistry is perfectly valid when we are in MultiBinPath and we are on the Unified.
+        if( crisTypeRegistry == null )
+            return c.CurrentRun.ConfigurationGroup.IsUnifiedPure
+                    ? CSCodeGenerationResult.Success
+                    : CSCodeGenerationResult.Retry;
 
         if( crisTypeRegistry.CrisPocoType == null )
         {
