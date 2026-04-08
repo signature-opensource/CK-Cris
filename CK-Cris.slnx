@@ -1,0 +1,26 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="appveyor.yml" />
+    <File Path="Cris.docx" />
+    <File Path="Directory.Build.props" />
+    <File Path="NuGet.config" />
+  </Folder>
+  <Folder Name="/Solution Items/Documentation/">
+    <File Path="Documentation/Abstractions.png" />
+    <File Path="Documentation/AuthenticatedCommands.png" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/CK.Cris.BackgroundExecutor.Tests/CK.Cris.BackgroundExecutor.Tests.csproj" />
+    <Project Path="Tests/CK.Cris.Executor.Tests/CK.Cris.Executor.Tests.csproj" />
+    <Project Path="Tests/CK.Cris.Tests/CK.Cris.Tests.csproj" />
+  </Folder>
+  <Project Path="CK.Cris.Auth/CK.Cris.Auth.csproj" />
+  <Project Path="CK.Cris.BackgroundExecutor/CK.Cris.BackgroundExecutor.csproj" />
+  <Project Path="CK.Cris.DelayedCommand/CK.Cris.DelayedCommand.csproj" />
+  <Project Path="CK.Cris.Engine/CK.Cris.Engine.csproj" />
+  <Project Path="CK.Cris.Executor.Engine/CK.Cris.Executor.Engine.csproj" />
+  <Project Path="CK.Cris.Executor/CK.Cris.Executor.csproj" />
+  <Project Path="CK.Cris.HttpSender/CK.Cris.HttpSender.csproj" />
+</Solution>

@@ -1,8 +1,0 @@
-<RepositoryInfo>
-  <SimpleGitVersion StartingVersion="0.33.0-alpha">
-    <Branches>
-      <Branch Name="develop" CIVersionMode="LastReleaseBased" VersionName="develop" />
-      <Branch Name="explo/ts-update" CIVersionMode="ZeroTimed" VersionName="explo" />
-    </Branches>
-  </SimpleGitVersion>
-</RepositoryInfo>
