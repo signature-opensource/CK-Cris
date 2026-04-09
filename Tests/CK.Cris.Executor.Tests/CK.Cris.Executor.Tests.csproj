@@ -4,11 +4,11 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Auth.Abstractions" Version="11.0.3--0005-develop" />
-    <PackageReference Include="CK.Testing.StObjEngine" Version="32.1.2--0005-develop" />
-    <PackageReference Include="CK.Testing.Nunit" Version="14.1.2--0001-develop" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-    <PackageReference Include="NUnit3TestAdapter" Version="5.1.0" />
+    <PackageReference Include="CK.Auth.Abstractions" Version="12.0.0--ci.11" />
+    <PackageReference Include="CK.Testing.StObjEngine" Version="33.0.0--ci.13" />
+    <PackageReference Include="CK.Testing.Nunit" Version="15.0.0--ci.6" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Include="NUnit3TestAdapter" Version="6.1.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
