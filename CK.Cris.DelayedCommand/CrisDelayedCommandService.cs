@@ -149,7 +149,7 @@ public class CrisDelayedCommandService : ISingletonAutoService
     /// <param name="services">
     /// The configured services used by the command execution.
     /// This is null if and only if the scoped services could not be created because ambient services
-    /// failed to be restored (a [RestoreAmblientService] methods threw an exception).
+    /// failed to be restored (a [RestoreAmbientService] methods threw an exception).
     /// </param>
     /// <returns>The awaitable.</returns>
     protected Task OnExecutedCommandAsync( IActivityMonitor monitor, IExecutedCommand command, IServiceProvider? services )
@@ -159,7 +159,7 @@ public class CrisDelayedCommandService : ISingletonAutoService
             monitor.Warn( ActivityMonitor.Tags.ToBeInvestigated, $"Restore ambient service failed. No IDelayedCommandExecutedEvent is raised." );
             return Task.CompletedTask;
         }
-        // The entry can be retrived directly if needed:
+        // The entry can be retrieved directly if needed:
         // var entry = (DelayedCommandEntry)command.DeferredExecutionContext!;
         return _rawCrisExecutor.SafeDispatchEventAsync( services, _pocoDirectory.Create<IDelayedCommandExecutedEvent>( d => d.Initialize( command ) ) );
     }
