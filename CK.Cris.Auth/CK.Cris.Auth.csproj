@@ -4,7 +4,7 @@
     <RootNamespace>CK.Auth</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Auth.Abstractions" Version="13.0.0" />
+    <PackageReference Include="CK.Auth.Abstractions" Version="14.0.0-mike.0.ci.4" />
     <PackageReference Include="CK.IO.Auth" Version="2.0.0-juliet.0.ci.10" />
   </ItemGroup>
 </Project>

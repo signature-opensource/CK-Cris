@@ -4,7 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CK.Cris" Version="2.0.0-juliet.0.ci.10" />
-    <PackageReference Include="CK.CodeGen" Version="16.0.0" />
+    <PackageReference Include="CK.CodeGen" Version="17.0.0-mike.0.ci.4" />
     <PackageReference Include="CK.StObj.Runtime" Version="35.0.0-juliet.0.ci.6" />
   </ItemGroup>
 </Project>
