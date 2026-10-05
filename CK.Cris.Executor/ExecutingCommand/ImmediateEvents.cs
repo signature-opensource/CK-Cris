@@ -30,18 +30,7 @@ public sealed class ImmediateEvents : IReadOnlyCollection<IEvent>
 
     internal Task AddAndRaiseAsync( IActivityMonitor monitor, IEvent v )
     {
-        var n = new Node( v );
-        if( _first == null )
-        {
-            _first = n;
-            _last = n;
-        }
-        else
-        {
-            Throw.DebugAssert( _last != null );
-            _last.Next = n;
-        }
-        ++_count;
+        Add( v );
         return _immediate.RaiseAsync( monitor, v );
     }
 
@@ -62,6 +51,7 @@ public sealed class ImmediateEvents : IReadOnlyCollection<IEvent>
         {
             Throw.DebugAssert( _last != null );
             _last.Next = n;
+            _last = n;
         }
         ++_count;
     }
@@ -85,11 +75,13 @@ public sealed class ImmediateEvents : IReadOnlyCollection<IEvent>
     /// </summary>
     public struct Enumerator : IEnumerator<IEvent>
     {
+        readonly ImmediateEvents _source;
         Node? _current;
+        bool _started;
 
         internal Enumerator( ImmediateEvents s )
         {
-            _current = s._first;
+            _source = s;
         }
 
         /// <inheritdoc/>
@@ -112,7 +104,11 @@ public sealed class ImmediateEvents : IReadOnlyCollection<IEvent>
         /// <inheritdoc />
         public bool MoveNext()
         {
-            _current = _current?.Next;
+            // The first node is read by the first call, not when the enumerator is created:
+            // an enumerator obtained on an empty collection sees the events added later.
+            // Once ended, _current stays null.
+            _current = _started ? _current?.Next : _source._first;
+            _started = true;
             return _current != null;
         }
 
