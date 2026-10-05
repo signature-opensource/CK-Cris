@@ -71,7 +71,7 @@ public sealed class VariableCachedServices
         {
             return "monitor";
         }
-        serviceType = _engineMap.ToLeaf( serviceType )?.ClassType ?? serviceType;
+        serviceType = ToResolvedType( _engineMap, serviceType );
         if( !_cached.TryGetValue( serviceType, out var name ) )
         {
             if( _cached.Count == 0 ) _variablesPart.GeneratedByComment( "Cached services variables" );
@@ -83,6 +83,43 @@ public sealed class VariableCachedServices
             _lastPartVarCount++;
         }
         return name;
+    }
+
+    /// <summary>
+    /// Gets the type to resolve from the service provider: types that resolve to the same type share
+    /// the same cached variable.
+    /// <para>
+    /// This is normally the leaf class. But a <see cref="AutoServiceKind.IsContainerConfiguredService"/> is registered
+    /// by each DIContainerDefinition, that may not register the class (only interfaces): in this case, this is
+    /// the most specialized auto service interface of the <paramref name="serviceType"/> (when it exists).
+    /// </para>
+    /// </summary>
+    /// <param name="engineMap">The engine map.</param>
+    /// <param name="serviceType">The required service type.</param>
+    /// <returns>The type to resolve.</returns>
+    static Type ToResolvedType( IStObjMap engineMap, Type serviceType )
+    {
+        var leaf = engineMap.ToLeaf( serviceType );
+        if( leaf == null ) return serviceType;
+        if( leaf is not IStObjServiceClassDescriptor d
+            || (d.AutoServiceKind & AutoServiceKind.IsContainerConfiguredService) == 0 )
+        {
+            return leaf.ClassType;
+        }
+        // A class is explicitly required: it is up to the container definition to register it.
+        if( !serviceType.IsInterface ) return serviceType;
+        var best = serviceType;
+        foreach( var t in leaf.UniqueMappings )
+        {
+            if( t.IsInterface && best.IsAssignableFrom( t ) ) best = t;
+        }
+        // The best one must specialize all the other candidates. If it is not the case,
+        // there are more than one most specialized interfaces: don't take any risk.
+        foreach( var t in leaf.UniqueMappings )
+        {
+            if( t.IsInterface && serviceType.IsAssignableFrom( t ) && !t.IsAssignableFrom( best ) ) return serviceType;
+        }
+        return best;
     }
 
     /// <summary>

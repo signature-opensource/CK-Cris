@@ -121,6 +121,8 @@ public class CrisExecutionContextTests
         await using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
             [
                 typeof( CrisExecutionContext ),
+                typeof( RawCrisExecutor ),
+                typeof( DarkSideCrisEventHub ),
                 typeof( IStupidCommand ), typeof( IStupidCommandResult ),
                 typeof( IRoutedImmediateEvent ),
                 typeof( IRoutedEvent ),
@@ -154,6 +156,8 @@ public class CrisExecutionContextTests
         await using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
         [
             typeof( CrisExecutionContext ),
+            typeof( RawCrisExecutor ),
+            typeof( DarkSideCrisEventHub ),
             typeof( IStupidCommand ), typeof( IStupidCommandResult ),
             typeof( IRoutedImmediateEvent ),
             typeof( IRoutedEvent ),
@@ -212,6 +216,8 @@ public class CrisExecutionContextTests
         await using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
             [
                 typeof( CrisExecutionContext ),
+                typeof( RawCrisExecutor ),
+                typeof( DarkSideCrisEventHub ),
                 typeof( IStupidCommand ),
                 typeof( IStupidCommandMore ), typeof( IStupidCommandResultMore ),
                 typeof( StupidCommandMoreHandler )

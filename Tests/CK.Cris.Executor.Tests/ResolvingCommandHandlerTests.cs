@@ -93,6 +93,8 @@ public class ResolvingCommandHandlerTests
         await using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
         [
             typeof( CrisExecutionContext ),
+            typeof( RawCrisExecutor ),
+            typeof( DarkSideCrisEventHub ),
             typeof( UserMessageCollector ),
             typeof( CurrentCultureInfo ),
             typeof( NormalizedCultureInfo ),
@@ -133,7 +135,7 @@ public class ResolvingCommandHandlerTests
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add(
-            typeof( CrisExecutionContext ),
+            typeof( RawCrisExecutor ),
             typeof( UserMessageCollector ),
             typeof( CurrentCultureInfo ),
             typeof( NormalizedCultureInfo ),
@@ -183,6 +185,8 @@ public class ResolvingCommandHandlerTests
         await using var auto = await TestHelper.CreateAutomaticServicesWithMonitorAsync(
         [
             typeof( CrisExecutionContext ),
+            typeof( RawCrisExecutor ),
+            typeof( DarkSideCrisEventHub ),
             typeof( UserMessageCollector ),
             typeof( CurrentCultureInfo ),
             typeof( NormalizedCultureInfo ),

@@ -78,7 +78,6 @@ public class SimpleTests
                                               typeof( StdAuthenticationTypeSystem ),
                                               typeof( IDelayCommand ),
                                               typeof( StupidHandlers ),
-                                              typeof( CrisExecutionContext ),
                                               typeof( RegularScopedService ) );
         _auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         _auto.Services.GetRequiredService<CrisExecutionHost>().ParallelRunnerCount = 1;

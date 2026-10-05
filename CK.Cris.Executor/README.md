@@ -74,8 +74,15 @@ using( var scope = auto.Services.CreateScope() )
 }
 ```
 
-From [`CrisExecutionContextTests`](../Tests/CK.Cris.Executor.Tests/CrisExecutionContextTests.cs). Two
+From [`CrisExecutionContextTests`](../Tests/CK.Cris.Executor.Tests/CrisExecutionContextTests.cs). Three
 things in there are easy to miss on a first reading of the API.
+
+`CrisExecutionContext` is resolvable only because the test **registers it**, with its two constructor
+dependencies `RawCrisExecutor` and `DarkSideCrisEventHub`. Nothing registers it on your behalf: its
+`ICrisEventContext` base is a `[ScopedContainerConfiguredService]`, so each container that offers it
+decides to. A `DIContainerDefinition` maps the `ICrisCommandContext` and `ICrisEventContext` interfaces
+to its job's context; a container that resolves the class itself, like this test or an ASP.NET endpoint,
+registers the class.
 
 A command is **never constructed** - `PocoDirectory.Create<T>( configure )` makes it, because the
 concrete class is generated and the interface is all you ever name. And the whole thing happens inside

@@ -137,7 +137,7 @@ public sealed partial class CrisJob : IDeferredCommandExecutionContext
     /// This delegate is called from the command execution context: the activity monitor is the <see cref="RunnerMonitor"/>
     /// and the service provider is the configured scoped services.
     /// The service provider is null if and only if the scoped services could not be created because ambient services
-    /// failed to be restored (a [RestoreAmblientService] methods threw an exception).
+    /// failed to be restored (a [RestoreAmbientService] methods threw an exception).
     /// </para>
     /// <para>
     /// Note that when this is called, the <see cref="IExecutedCommand.DeferredExecutionContext"/> is either the <see cref="ExecutingCommand"/>

@@ -11,10 +11,11 @@ namespace CK.Cris;
 /// <summary>
 /// Execution context for Cris command end events.
 /// <para>
-/// This is a scoped service. 
+/// This is a scoped service but a <see cref="ScopedContainerConfiguredServiceAttribute">[ScopedContainerConfiguredService]</see>
+/// one through the base <see cref="ICrisEventContext"/> interface: it is up to each <see cref="DIContainerDefinition{TScopeData}.ConfigureContainerServices(Microsoft.Extensions.DependencyInjection.IServiceCollection, Func{IServiceProvider, TScopeData}, Microsoft.Extensions.DependencyInjection.IServiceProviderIsService)"/>
+/// to provide it.
 /// </para>
 /// </summary>
-[AlsoRegisterType<RawCrisExecutor, DarkSideCrisEventHub>]
 public class CrisExecutionContext : ICrisCommandContext
 {
     readonly IServiceProvider _serviceProvider;
