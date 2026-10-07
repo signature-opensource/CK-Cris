@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CK.Testing.StObjEngine" Version="35.0.0" />
+    <PackageReference Include="CK.Testing.Nunit" Version="17.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageReference Include="NUnit3TestAdapter" Version="6.3.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Both stacks are referenced on purpose: the legacy one through an alias. -->
+    <ProjectReference Include="..\..\CK.Cris.Auth\CK.Cris.Auth.csproj" Aliases="Legacy" />
+    <ProjectReference Include="..\..\CK.Cris.Authentication\CK.Cris.Authentication.csproj" />
+    <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="%24StObjGen\" />
+  </ItemGroup>
+</Project>

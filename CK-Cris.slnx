@@ -12,11 +12,14 @@
     <File Path="Documentation/AuthenticatedCommands.png" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="Tests/CK.Cris.Authentication.Conflict.Tests/CK.Cris.Authentication.Conflict.Tests.csproj" />
+    <Project Path="Tests/CK.Cris.Authentication.Tests/CK.Cris.Authentication.Tests.csproj" />
     <Project Path="Tests/CK.Cris.BackgroundExecutor.Tests/CK.Cris.BackgroundExecutor.Tests.csproj" />
     <Project Path="Tests/CK.Cris.Executor.Tests/CK.Cris.Executor.Tests.csproj" />
     <Project Path="Tests/CK.Cris.Tests/CK.Cris.Tests.csproj" />
   </Folder>
   <Project Path="CK.Cris.Auth/CK.Cris.Auth.csproj" />
+  <Project Path="CK.Cris.Authentication/CK.Cris.Authentication.csproj" />
   <Project Path="CK.Cris.BackgroundExecutor/CK.Cris.BackgroundExecutor.csproj" />
   <Project Path="CK.Cris.DelayedCommand/CK.Cris.DelayedCommand.csproj" />
   <Project Path="CK.Cris.Engine/CK.Cris.Engine.csproj" />
