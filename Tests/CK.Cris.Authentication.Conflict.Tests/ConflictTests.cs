@@ -27,9 +27,9 @@ public class ConflictTests
             => ValueTask.FromResult<global::CK.Auth.IUserInfo>( new global::CK.Auth.StdUserInfo( 0, null ) );
     }
 
-    public sealed class UserInfoProvider : IUserInfoProvider
+    public sealed class ActorInfoProvider : IActorInfoProvider
     {
-        public ValueTask<UserInfo?> GetUserInfoAsync( IActivityMonitor monitor, int userId ) => ValueTask.FromResult<UserInfo?>( null );
+        public ValueTask<ActorInfo?> GetActorInfoAsync( IActivityMonitor monitor, int actorId ) => ValueTask.FromResult<ActorInfo?>( null );
     }
 
     static async Task ShouldFailWithConflictAsync( params Type[] types )
@@ -53,7 +53,7 @@ public class ConflictTests
         await ShouldFailWithConflictAsync( typeof( global::CK.Auth.CrisAuthenticationService ),
                                            typeof( AuthenticationInfo ),
                                            typeof( AuthenticationInfoDefaultProvider ),
-                                           typeof( UserInfoProvider ) );
+                                           typeof( ActorInfoProvider ) );
     }
 
     [Test]
@@ -75,6 +75,6 @@ public class ConflictTests
                                            typeof( global::CK.Auth.CrisAuthenticationService ),
                                            typeof( AuthenticationInfo ),
                                            typeof( AuthenticationInfoDefaultProvider ),
-                                           typeof( UserInfoProvider ) );
+                                           typeof( ActorInfoProvider ) );
     }
 }

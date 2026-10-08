@@ -14,16 +14,16 @@ the same parts would mean two answers to "who is the caller".
 
 | Part | Check |
 |------|-------|
-| `IAuthUnsafePart` | `ActorId` is the `UnsafeUser.UserId` |
-| `IAuthNormalPart` | ... and the `UnsafeUser.Level` is `Normal` or `Critical` |
-| `IAuthCriticalPart` | ... and the `UnsafeUser.Level` is `Critical` |
+| `IAuthUnsafePart` | `ActorId` is the `UnsafeActor.ActorId` |
+| `IAuthNormalPart` | ... and the `UnsafeActor.Level` is `Normal` or `Critical` |
+| `IAuthCriticalPart` | ... and the `UnsafeActor.Level` is `Critical` |
 | `IAuthDeviceIdPart` | `DeviceId` is the `AuthenticationInfo.DeviceId` |
-| `IAuthImpersonationPart` | `ActualActorId` is the `UnsafeActualUser.UserId` |
+| `IAuthImpersonationPart` | `ActualActorId` is the `UnsafeActualActor.ActorId` |
 
-The level is read on the user, not on the session: an administrator that impersonates a weak actor sends
+The level is read on the actor, not on the session: an administrator that impersonates a weak actor sends
 `Unsafe` commands only.
 
-The `IAuthAmbientValues` are the `UnsafeUser`, the `UnsafeActualUser` and the `DeviceId`: an `Unsafe` session
+The `IAuthAmbientValues` are the `UnsafeActor`, the `UnsafeActualActor` and the `DeviceId`: an `Unsafe` session
 (a weak actor, an expired session) receives its real identifiers and can send the `IAuthUnsafePart` commands.
 (The legacy service sent the `User.UserId`, the anonymous at `Unsafe` level, that its own validator then refused.)
 
@@ -32,8 +32,8 @@ The `IAuthAmbientValues` are the `UnsafeUser`, the `UnsafeActualUser` and the `D
 A command validated when it entered the System carries trustable identifiers. `RestoreAsync` rebuilds the
 `AuthenticationInfo` from them:
 
-- the users are read by the `IUserInfoProvider` (their current state, not the one of the submission);
-- a user that cannot be found refuses the command: it is never executed as the anonymous;
+- the actors are read by the `IActorInfoProvider` (their current state, not the one of the submission);
+- an actor that cannot be found refuses the command: it is never executed as the anonymous;
 - the level is the one required by the parts, and the dates cover the execution
   (`AuthenticationInfo.CreateRestored` and `RestoredValidity`);
 - impersonation (`ActualActorId`) and device identifier are restored.
@@ -71,12 +71,12 @@ Four types take part in a login. Each one is **not** the others:
 
 | Type | Package | Role | Does NOT |
 |---|---|---|---|
-| `ILoginProvider` | CK.AuthenticationInfo | Checks the credentials of its schemes against the user store and returns a `UserLoginResult` | create a session, issue a token, call the validators |
+| `ILoginProvider` | CK.AuthenticationInfo | Checks the credentials of its schemes against the user store and returns an `ActorLoginResult` | create a session, issue a token, call the validators |
 | `IAuthenticationSessionOpener` | CK.Cris.Authentication, implemented by the authentication center | Turns a login command into a session: `ILoginProvider`, `ILoginValidator`s, account creation or binding, session store, signed token, endpoint proof, `ISessionResult` | check credentials itself, know any scheme |
 | `IAuthenticationSessionEndpoint` | CK.Cris.Authentication, implemented by each endpoint | Carries the session proof (cookies over HTTP, the channel over AppIdentity) | decide anything: it only transports |
 | The session store | the authentication center | Persists the sessions | appear in any contract |
 
 ## Requires
 
-- CK.AuthenticationInfo, for `AuthenticationInfo`, `UserInfo` and `IUserInfoProvider` (an implementation must be available).
+- CK.AuthenticationInfo, for `AuthenticationInfo`, `ActorInfo` and `IActorInfoProvider` (an implementation must be available).
 - CK.IO.Authentication (and CK.IO.Auth), for the parts, `IAuthAmbientValues`, the session commands and `ISessionResult`.

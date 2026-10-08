@@ -16,9 +16,9 @@ namespace CK.Cris.Authentication.Tests;
 [TestFixture]
 public class CrisAuthenticationServiceTests
 {
-    static readonly UserInfo _albert = new UserInfo( 3712, "Albert", AuthLevel.Critical );
-    static readonly UserInfo _robert = new UserInfo( 12, "Robert", AuthLevel.Critical );
-    static readonly UserInfo _operator = new UserInfo( 42, "Operator", AuthLevel.Unsafe, [new UserSchemeInfo( UserInfo.WeakScheme, new DateTime( 2000, 1, 1, 0, 0, 0, DateTimeKind.Utc ) )] );
+    static readonly ActorInfo _albert = new ActorInfo( 3712, "Albert", AuthLevel.Critical );
+    static readonly ActorInfo _robert = new ActorInfo( 12, "Robert", AuthLevel.Critical );
+    static readonly ActorInfo _operator = new ActorInfo( 42, "Operator", AuthLevel.Unsafe, [new SchemeInfo( ActorInfo.WeakScheme, new DateTime( 2000, 1, 1, 0, 0, 0, DateTimeKind.Utc ) )] );
 
     // The endpoint authentication used by the scoped AuthenticationInfo.
     static AuthenticationInfo _current = AuthenticationInfo.None;
@@ -26,11 +26,11 @@ public class CrisAuthenticationServiceTests
     [AllowNull]
     AutomaticServices _auto;
 
-    public sealed class FakeUserInfoProvider : IUserInfoProvider
+    public sealed class FakeActorInfoProvider : IActorInfoProvider
     {
-        public ValueTask<UserInfo?> GetUserInfoAsync( IActivityMonitor monitor, int userId )
+        public ValueTask<ActorInfo?> GetActorInfoAsync( IActivityMonitor monitor, int actorId )
         {
-            return ValueTask.FromResult( userId switch { 3712 => _albert, 12 => _robert, 42 => _operator, _ => (UserInfo?)null } );
+            return ValueTask.FromResult( actorId switch { 3712 => _albert, 12 => _robert, 42 => _operator, _ => (ActorInfo?)null } );
         }
     }
 
@@ -62,7 +62,7 @@ public class CrisAuthenticationServiceTests
         public string Handle( IImpersonatedUnsafeCommand cmd, AuthenticationInfo info ) => Describe( info );
 
         static string Describe( AuthenticationInfo info )
-            => $"{info.UnsafeUser.UserId}/{info.UnsafeUser.Level}|{info.UnsafeActualUser.UserId}/{info.UnsafeActualUser.Level}|{info.DeviceId}";
+            => $"{info.UnsafeActor.ActorId}/{info.UnsafeActor.Level}|{info.UnsafeActualActor.ActorId}/{info.UnsafeActualActor.Level}|{info.DeviceId}";
     }
 
     [OneTimeSetUp]
@@ -72,7 +72,7 @@ public class CrisAuthenticationServiceTests
         configuration.FirstBinPath.Types.Add( typeof( CrisAuthenticationService ),
                                               typeof( AuthenticationInfo ),
                                               typeof( AuthenticationInfoDefaultProvider ),
-                                              typeof( FakeUserInfoProvider ),
+                                              typeof( FakeActorInfoProvider ),
                                               typeof( IAuthAmbientValues ),
                                               typeof( IAmbientValuesCollectCommand ),
                                               typeof( AmbientValuesService ),
@@ -112,7 +112,7 @@ public class CrisAuthenticationServiceTests
     public async Task ambient_values_are_the_unsafe_identifiers_so_that_a_weak_actor_can_send_Unsafe_commands_Async()
     {
         var session = AuthenticationInfo.Create( _operator, Tomorrow, null, "D", DateTime.UtcNow );
-        session.User.ShouldBeSameAs( UserInfo.Anonymous, "The weak actor is Unsafe." );
+        session.Actor.ShouldBeSameAs( ActorInfo.Anonymous, "The weak actor is Unsafe." );
         await using var scope = CreateScope( session );
         var services = scope.ServiceProvider;
         var executor = services.GetRequiredService<RawCrisExecutor>();

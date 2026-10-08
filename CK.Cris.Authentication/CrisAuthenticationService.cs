@@ -14,8 +14,8 @@ namespace CK.Auth;
 /// both packages cannot be installed together.
 /// </para>
 /// <para>
-/// The levels are the ones of the users (<see cref="UserInfo.Level"/>). The ambient values and the validations use
-/// the <see cref="AuthenticationInfo.UnsafeUser"/> and <see cref="AuthenticationInfo.UnsafeActualUser"/> so that a
+/// The levels are the ones of the actors (<see cref="ActorInfo.Level"/>). The ambient values and the validations use
+/// the <see cref="AuthenticationInfo.UnsafeActor"/> and <see cref="AuthenticationInfo.UnsafeActualActor"/> so that a
 /// session at <see cref="AuthLevel.Unsafe"/> level (a weak actor for instance) can send <see cref="IAuthUnsafePart"/> commands.
 /// </para>
 /// </summary>
@@ -25,16 +25,16 @@ namespace CK.Auth;
 /// </remarks>
 public class CrisAuthenticationService : ISingletonAutoService
 {
-    readonly IUserInfoProvider _userInfoProvider;
+    readonly IActorInfoProvider _actorInfoProvider;
 
     /// <summary>
     /// Initializes a new <see cref="CrisAuthenticationService"/>.
     /// </summary>
-    /// <param name="userInfoProvider">The user info provider used to restore the authentication.</param>
-    public CrisAuthenticationService( IUserInfoProvider userInfoProvider )
+    /// <param name="actorInfoProvider">The actor info provider used to restore the authentication.</param>
+    public CrisAuthenticationService( IActorInfoProvider actorInfoProvider )
     {
-        Throw.CheckNotNullArgument( userInfoProvider );
-        _userInfoProvider = userInfoProvider;
+        Throw.CheckNotNullArgument( actorInfoProvider );
+        _actorInfoProvider = actorInfoProvider;
     }
 
     /// <summary>
@@ -46,13 +46,13 @@ public class CrisAuthenticationService : ISingletonAutoService
     [CommandPostHandler]
     public virtual void GetAuthenticationValues( IAmbientValuesCollectCommand cmd, AuthenticationInfo authInfo, IAuthAmbientValues values )
     {
-        values.ActorId = authInfo.UnsafeUser.UserId;
-        values.ActualActorId = authInfo.UnsafeActualUser.UserId;
+        values.ActorId = authInfo.UnsafeActor.ActorId;
+        values.ActualActorId = authInfo.UnsafeActualActor.ActorId;
         values.DeviceId = authInfo.DeviceId;
     }
 
     /// <summary>
-    /// Checks the <see cref="IAuthUnsafePart.ActorId"/> against the current <see cref="AuthenticationInfo.UnsafeUser"/>
+    /// Checks the <see cref="IAuthUnsafePart.ActorId"/> against the current <see cref="AuthenticationInfo.UnsafeActor"/>
     /// and its level when the part is a <see cref="IAuthNormalPart"/> or a <see cref="IAuthCriticalPart"/>.
     /// </summary>
     /// <param name="c">The message collector.</param>
@@ -65,20 +65,20 @@ public class CrisAuthenticationService : ISingletonAutoService
         {
             c.Error( "Invalid property: ActorId cannot be null." );
         }
-        else if( crisPoco.ActorId.Value != info.UnsafeUser.UserId )
+        else if( crisPoco.ActorId.Value != info.UnsafeActor.ActorId )
         {
             c.Error( "Invalid actor identifier: the provided identifier doesn't match the current authentication." );
         }
         else if( crisPoco is IAuthCriticalPart )
         {
-            if( info.UnsafeUser.Level != AuthLevel.Critical )
+            if( info.UnsafeActor.Level != AuthLevel.Critical )
             {
                 c.Error( "Invalid authentication level: Critical authentication level required." );
             }
         }
         else if( crisPoco is IAuthNormalPart )
         {
-            if( info.UnsafeUser.Level < AuthLevel.Normal )
+            if( info.UnsafeActor.Level < AuthLevel.Normal )
             {
                 c.Error( "Invalid authentication level: Normal authentication level required." );
             }
@@ -105,7 +105,7 @@ public class CrisAuthenticationService : ISingletonAutoService
     }
 
     /// <summary>
-    /// Checks the <see cref="IAuthImpersonationPart.ActualActorId"/> against the current <see cref="AuthenticationInfo.UnsafeActualUser"/>.
+    /// Checks the <see cref="IAuthImpersonationPart.ActualActorId"/> against the current <see cref="AuthenticationInfo.UnsafeActualActor"/>.
     /// </summary>
     /// <param name="c">The message collector.</param>
     /// <param name="cmd">The command or event to validate.</param>
@@ -117,7 +117,7 @@ public class CrisAuthenticationService : ISingletonAutoService
         {
             c.Error( "Invalid property: ActualActorId cannot be null." );
         }
-        else if( cmd.ActualActorId.Value != info.UnsafeActualUser.UserId )
+        else if( cmd.ActualActorId.Value != info.UnsafeActualActor.ActorId )
         {
             c.Error( "Invalid actual actor identifier: the provided identifier doesn't match the current authentication." );
         }
@@ -127,9 +127,9 @@ public class CrisAuthenticationService : ISingletonAutoService
     /// Restores the <see cref="AuthenticationInfo"/> from a command or event that has been validated when it entered
     /// the System: its identifiers are trustable.
     /// <para>
-    /// The users are read by the <see cref="IUserInfoProvider"/> (their current state is used) and the level is the one
-    /// required by the parts (see <see cref="AuthenticationInfo.CreateRestored(UserInfo, UserInfo, AuthLevel, string?, DateTime)"/>).
-    /// When a user cannot be found, the restoration fails: the command is never executed as the anonymous.
+    /// The actors are read by the <see cref="IActorInfoProvider"/> (their current state is used) and the level is the one
+    /// required by the parts (see <see cref="AuthenticationInfo.CreateRestored(ActorInfo, ActorInfo, AuthLevel, string?, DateTime)"/>).
+    /// When an actor cannot be found, the restoration fails: the command is never executed as the anonymous.
     /// </para>
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
@@ -152,32 +152,32 @@ public class CrisAuthenticationService : ISingletonAutoService
         if( actualActorId == 0 )
         {
             Throw.CheckState( "Only the anonymous can be impersonated by the anonymous.", actorId == 0 );
-            info = AuthenticationInfo.CreateRestored( UserInfo.Anonymous, UserInfo.Anonymous, AuthLevel.None, deviceId, DateTime.UtcNow );
+            info = AuthenticationInfo.CreateRestored( ActorInfo.Anonymous, ActorInfo.Anonymous, AuthLevel.None, deviceId, DateTime.UtcNow );
         }
         else
         {
-            var actualUser = await ReadUserAsync( monitor, actualActorId ).ConfigureAwait( false );
-            var user = actorId == actualActorId
-                        ? actualUser
+            var actualActor = await ReadActorAsync( monitor, actualActorId ).ConfigureAwait( false );
+            var actor = actorId == actualActorId
+                        ? actualActor
                         : actorId == 0
-                            ? UserInfo.Anonymous
-                            : await ReadUserAsync( monitor, actorId ).ConfigureAwait( false );
+                            ? ActorInfo.Anonymous
+                            : await ReadActorAsync( monitor, actorId ).ConfigureAwait( false );
             var level = crisPoco is IAuthCriticalPart
                             ? AuthLevel.Critical
                             : crisPoco is IAuthNormalPart
                                 ? AuthLevel.Normal
                                 : AuthLevel.Unsafe;
-            info = AuthenticationInfo.CreateRestored( actualUser, user, level, deviceId, DateTime.UtcNow );
+            info = AuthenticationInfo.CreateRestored( actualActor, actor, level, deviceId, DateTime.UtcNow );
         }
         hub.Override( info );
     }
 
-    async ValueTask<UserInfo> ReadUserAsync( IActivityMonitor monitor, int userId )
+    async ValueTask<ActorInfo> ReadActorAsync( IActivityMonitor monitor, int actorId )
     {
-        var u = await _userInfoProvider.GetUserInfoAsync( monitor, userId ).ConfigureAwait( false );
+        var u = await _actorInfoProvider.GetActorInfoAsync( monitor, actorId ).ConfigureAwait( false );
         if( u == null )
         {
-            Throw.InvalidOperationException( $"Unable to restore the authentication: user #{userId} cannot be found or used." );
+            Throw.InvalidOperationException( $"Unable to restore the authentication: actor #{actorId} cannot be found or used." );
         }
         return u;
     }

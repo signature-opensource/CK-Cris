@@ -23,9 +23,9 @@ namespace CK.Cris.Authentication.Tests;
 [TestFixture]
 public class SessionCommandsTests
 {
-    public sealed class NoUser : IUserInfoProvider
+    public sealed class NoActor : IActorInfoProvider
     {
-        public ValueTask<UserInfo?> GetUserInfoAsync( IActivityMonitor monitor, int userId ) => ValueTask.FromResult<UserInfo?>( null );
+        public ValueTask<ActorInfo?> GetActorInfoAsync( IActivityMonitor monitor, int actorId ) => ValueTask.FromResult<ActorInfo?>( null );
     }
 
     public sealed class FakeAuthenticationCenter : ISingletonAutoService
@@ -57,8 +57,8 @@ public class SessionCommandsTests
             where T : ICommand<ISessionResult>, ICommandAuthenticationSession
         {
             var weak = (IWeakLoginCommand)payload;
-            var user = new UserInfo( 42, weak.WeakActorName, AuthLevel.Unsafe, [new UserSchemeInfo( scheme, DateTime.UtcNow )] );
-            var info = AuthenticationInfo.Create( user, DateTime.UtcNow.AddHours( 1 ), null, "D", DateTime.UtcNow );
+            var actor = new ActorInfo( 42, weak.WeakActorName, AuthLevel.Unsafe, [new SchemeInfo( scheme, DateTime.UtcNow )] );
+            var info = AuthenticationInfo.Create( actor, DateTime.UtcNow.AddHours( 1 ), null, "D", DateTime.UtcNow );
             return ValueTask.FromResult( command.CreateResult( r =>
             {
                 r.Info.InitializeFrom( info );
@@ -96,7 +96,7 @@ public class SessionCommandsTests
         configuration.FirstBinPath.Types.Add( typeof( CrisAuthenticationService ),
                                               typeof( AuthenticationInfo ),
                                               typeof( AuthenticationInfoDefaultProvider ),
-                                              typeof( NoUser ),
+                                              typeof( NoActor ),
                                               typeof( RawCrisExecutor ),
                                               typeof( RawCrisReceiver ),
                                               typeof( CrisDirectory ),
@@ -112,14 +112,14 @@ public class SessionCommandsTests
                                               typeof( IGetLoginSchemesQCommand ),
                                               typeof( ISessionResult ),
                                               typeof( IAuthenticationInfoPoco ),
-                                              typeof( IUserInfoPoco ),
+                                              typeof( IActorInfoPoco ),
                                               typeof( FakeAuthenticationCenter ),
                                               typeof( IAuthenticationSessionOpener ),
                                               typeof( FakeSessionOpener ),
                                               typeof( FakeWeakProvider ),
                                               typeof( FakeWeakZoneProvider ),
                                               typeof( IAuthenticationSessionEndpoint ) );
-        var albert = new UserInfo( 3712, "Albert", AuthLevel.Critical, [new UserSchemeInfo( "Basic", new DateTime( 2000, 1, 1, 0, 0, 0, DateTimeKind.Utc ) )] );
+        var albert = new ActorInfo( 3712, "Albert", AuthLevel.Critical, [new SchemeInfo( "Basic", new DateTime( 2000, 1, 1, 0, 0, 0, DateTimeKind.Utc ) )] );
         var session = AuthenticationInfo.Create( albert, DateTime.UtcNow.AddDays( 1 ), null, "D", DateTime.UtcNow );
         using( TestHelper.Monitor.CollectTexts( out var texts ) )
         {
@@ -141,10 +141,10 @@ public class SessionCommandsTests
 
             var r = (ISessionResult)(await executor.RawExecuteAsync( services, login )).Result!;
             r.Token.ShouldBe( "the-token" );
-            r.Info.UnsafeUser.UserId.ShouldBe( 3712 );
-            r.Info.UnsafeUser.UserName.ShouldBe( "Albert" );
-            r.Info.UnsafeUser.Level.ShouldBe( AuthLevel.Normal );
-            r.Info.UnsafeUser.Schemes.ShouldHaveSingleItem().Scheme.ShouldBe( "Basic" );
+            r.Info.UnsafeActor.ActorId.ShouldBe( 3712 );
+            r.Info.UnsafeActor.ActorName.ShouldBe( "Albert" );
+            r.Info.UnsafeActor.Level.ShouldBe( AuthLevel.Normal );
+            r.Info.UnsafeActor.Schemes.ShouldHaveSingleItem().Scheme.ShouldBe( "Basic" );
             r.Info.DeviceId.ShouldBe( "D" );
 
             var start = poco.Create<IStartLoginCommand>( c => { c.Scheme = "Oidc.Azure"; c.InlineMode = true; c.UserData.Add( "InvitationToken", "T" ); } );
@@ -159,15 +159,15 @@ public class SessionCommandsTests
             // The provider handler of the whole (extended) command delegates to the session opener.
             var w = (ISessionResult)(await executor.RawExecuteAsync( services, weak )).Result!;
             w.Token.ShouldBe( "opened" );
-            w.Info.UnsafeUser.UserName.ShouldBe( "Operator" );
-            w.Info.UnsafeUser.Level.ShouldBe( AuthLevel.Unsafe );
-            w.Info.UnsafeUser.Schemes.ShouldHaveSingleItem().Scheme.ShouldBe( "Weak" );
+            w.Info.UnsafeActor.ActorName.ShouldBe( "Operator" );
+            w.Info.UnsafeActor.Level.ShouldBe( AuthLevel.Unsafe );
+            w.Info.UnsafeActor.Schemes.ShouldHaveSingleItem().Scheme.ShouldBe( "Weak" );
             poco.Create<IGetLoginSchemesQCommand>().ShouldNotBeAssignableTo<ICommandEndpointOnly>();
             ((IList<string>)(await executor.RawExecuteAsync( services, poco.Create<IGetLoginSchemesQCommand>() )).Result!).ShouldBe( ["Basic", "Weak"] );
 
             // Impersonation requires the Critical level: this Normal session is refused.
             var receiver = services.GetRequiredService<RawCrisReceiver>();
-            var impersonate = poco.Create<IImpersonateCommand>( c => { c.ActorId = 3712; c.TargetUserId = 12; } );
+            var impersonate = poco.Create<IImpersonateCommand>( c => { c.ActorId = 3712; c.TargetActorId = 12; } );
             var v = await receiver.IncomingValidateAsync( TestHelper.Monitor, services, impersonate );
             v.Success.ShouldBeFalse();
             v.ValidationMessages.Select( m => m.Text ).ShouldContain( "Invalid authentication level: Critical authentication level required." );
