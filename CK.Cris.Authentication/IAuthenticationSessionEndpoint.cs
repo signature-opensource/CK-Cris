@@ -54,4 +54,29 @@ public interface IAuthenticationSessionEndpoint : IAutoService
     /// Clears the session secrets of the caller (logout).
     /// </summary>
     void Clear();
+
+    /// <summary>
+    /// Gets the URL to which a remote provider (OpenID Connect, OAuth...) redirects the caller at the end of a remote
+    /// login: the callback of this endpoint, that builds the <c>CK.IO.Authentication.IRemoteLoginCallbackCommand</c>.
+    /// Null when this endpoint cannot receive remote logins (an AppIdentity channel for instance).
+    /// <para>
+    /// The authentication center accepts only the callback URLs configured for the remote scheme.
+    /// </para>
+    /// </summary>
+    string? RemoteLoginCallbackUrl { get; }
+
+    /// <summary>
+    /// Generates the correlation secret of a remote login that starts and returns its hash: the authentication center
+    /// keeps the hash with the pending login, the secret stays with the caller (a cookie for an HTTP endpoint), so that
+    /// only the caller that started the login can complete it (login CSRF).
+    /// Called only when <see cref="RemoteLoginCallbackUrl"/> is not null.
+    /// </summary>
+    /// <returns>The hash of the correlation secret.</returns>
+    string PrepareRemoteLogin();
+
+    /// <summary>
+    /// Gets the hash of the correlation secret presented by the caller when it completes a remote login.
+    /// Null when the caller presents none.
+    /// </summary>
+    string? PresentedRemoteLoginHash { get; }
 }

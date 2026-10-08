@@ -54,6 +54,12 @@ impersonation) carry nothing, the key is how the authentication center finds "th
 the endpoint and is not a secret. This lives here, not in the basic Cris packages: a System without user authentication
 never sees it.
 
+The endpoint also supports the **remote logins** (OpenID Connect, OAuth...) when it can: `RemoteLoginCallbackUrl` is its
+callback (null when it cannot receive one, like an AppIdentity channel); `PrepareRemoteLogin()` generates the
+correlation secret of a starting login and returns its hash (the authentication center keeps it with the pending login);
+`PresentedRemoteLoginHash` is the hash presented when the login completes: only the caller that started a login can
+complete it.
+
 ## Reading the tokens
 
 An endpoint that receives authenticated commands (the HTTP front) establishes their `AuthenticationInfo` with
