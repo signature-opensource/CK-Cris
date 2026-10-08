@@ -48,8 +48,11 @@ endpoint only.
 
 The endpoint generates the session secrets (the refresh secret and the binding secret) and keeps them: it exposes only
 their hashes ([`AuthenticationSessionProof`](AuthenticationSessionProof.cs)), the ones the caller presents and the ones
-it issues. The authentication center stores and signs hashes, never secrets. This lives here, not in the basic Cris
-packages: a System without user authentication never sees it.
+it issues. The authentication center stores and signs hashes, never secrets. The endpoint also keeps the **session key**
+that the authentication center gives to `Issue` and presents it back: the session commands (refresh, logout,
+impersonation) carry nothing, the key is how the authentication center finds "the current session". It is opaque for
+the endpoint and is not a secret. This lives here, not in the basic Cris packages: a System without user authentication
+never sees it.
 
 ## Opening a session
 
