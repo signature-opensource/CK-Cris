@@ -4,7 +4,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.IO.Authentication" Version="2.0.1-0.cris-auth.0.ci.4" />
+    <PackageReference Include="CK.IO.Authentication" Version="2.0.1-0.cris-auth.0.ci.5" />
     <PackageReference Include="CK.Testing.StObjEngine" Version="35.0.0" />
     <PackageReference Include="CK.Testing.Nunit" Version="17.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
