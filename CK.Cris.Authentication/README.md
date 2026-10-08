@@ -51,7 +51,32 @@ their hashes ([`AuthenticationSessionProof`](AuthenticationSessionProof.cs)), th
 it issues. The authentication center stores and signs hashes, never secrets. This lives here, not in the basic Cris
 packages: a System without user authentication never sees it.
 
+## Opening a session
+
+[`IAuthenticationSessionOpener`](IAuthenticationSessionOpener.cs) turns a login command into a session. It is
+implemented by the authentication center and called by the login command handlers. The rule is: **a package that
+implements an authentication provider handles its login commands**. Its handler only tells which scheme and payload to use:
+
+```csharp
+[CommandHandler]
+public ValueTask<ISessionResult> HandleAsync( IActivityMonitor monitor, IWeakLoginCommand cmd, IAuthenticationSessionOpener opener )
+    => opener.OpenSessionAsync( monitor, cmd, "Weak", cmd );
+```
+
+A Cris handler handles the **whole** command. When a package extends a login command (`IWeakZoneLoginCommand` adds the
+`ZoneId` to `IWeakLoginCommand`), the handler of the base command is ignored and the extending package must handle
+the extended command: the provider extension (the zone aware weak actors) comes with its handler.
+
+Four types take part in a login. Each one is **not** the others:
+
+| Type | Package | Role | Does NOT |
+|---|---|---|---|
+| `ILoginProvider` | CK.AuthenticationInfo | Checks the credentials of its schemes against the user store and returns a `UserLoginResult` | create a session, issue a token, call the validators |
+| `IAuthenticationSessionOpener` | CK.Cris.Authentication, implemented by the authentication center | Turns a login command into a session: `ILoginProvider`, `ILoginValidator`s, account creation or binding, session store, signed token, endpoint proof, `ISessionResult` | check credentials itself, know any scheme |
+| `IAuthenticationSessionEndpoint` | CK.Cris.Authentication, implemented by each endpoint | Carries the session proof (cookies over HTTP, the channel over AppIdentity) | decide anything: it only transports |
+| The session store | the authentication center | Persists the sessions | appear in any contract |
+
 ## Requires
 
 - CK.AuthenticationInfo, for `AuthenticationInfo`, `UserInfo` and `IUserInfoProvider` (an implementation must be available).
-- CK.IO.Auth, for the parts and `IAuthAmbientValues`.
+- CK.IO.Authentication (and CK.IO.Auth), for the parts, `IAuthAmbientValues`, the session commands and `ISessionResult`.
