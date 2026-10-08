@@ -22,6 +22,22 @@ public interface IAuthenticationSessionEndpoint : IAutoService
     AuthenticationSessionProof? PresentedProof { get; }
 
     /// <summary>
+    /// Gets the bearer token presented by the caller. Null when the caller presents none.
+    /// <para>
+    /// A relay sends it to a remote authentication center, that reads it again (it never trusts the front).
+    /// </para>
+    /// </summary>
+    string? PresentedToken { get; }
+
+    /// <summary>
+    /// Generates the secrets that the next <see cref="Issue"/> will use and returns their hashes. A relay calls it
+    /// before sending a session command to a remote authentication center: the hashes travel with the command, the
+    /// secrets stay here. When <see cref="Issue"/> is called after this, it uses these secrets (and returns these hashes).
+    /// </summary>
+    /// <returns>The hashes of the prepared secrets.</returns>
+    (string RefreshSecretHash, string BindingSecretHash) PrepareSecrets();
+
+    /// <summary>
     /// Generates new secrets for a new or a rotated session. The endpoint keeps them and sends them
     /// back to the caller at the end of the request (replacing any previous ones).
     /// </summary>

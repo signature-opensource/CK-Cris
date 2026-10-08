@@ -54,6 +54,16 @@ impersonation) carry nothing, the key is how the authentication center finds "th
 the endpoint and is not a secret. This lives here, not in the basic Cris packages: a System without user authentication
 never sees it.
 
+## Relaying to a remote authentication center
+
+When the authentication center of a local party is a remote one, the session commands are relayed to it by
+[`IAuthenticationSessionRelay`](IAuthenticationSessionRelay.cs). The endpoints that accept the session commands call it
+**before** the handlers: `TryRelay` returns null when the command must be executed here.
+
+The endpoint takes part in the relay: it presents the caller's bearer token (`PresentedToken`, read again by the
+remote authentication center) and it generates the next secrets in advance (`PrepareSecrets`): their hashes travel
+with the command, the secrets stay in the endpoint, and its `Issue` then uses them.
+
 ## Opening a session
 
 [`IAuthenticationSessionOpener`](IAuthenticationSessionOpener.cs) turns a login command into a session. It is
