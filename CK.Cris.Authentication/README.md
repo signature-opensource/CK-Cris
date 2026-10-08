@@ -54,6 +54,14 @@ impersonation) carry nothing, the key is how the authentication center finds "th
 the endpoint and is not a secret. This lives here, not in the basic Cris packages: a System without user authentication
 never sees it.
 
+## Reading the tokens
+
+An endpoint that receives authenticated commands (the HTTP front) establishes their `AuthenticationInfo` with
+[`IAuthenticationTokenReader`](IAuthenticationTokenReader.cs), implemented by the authentication center package. The
+token is verified locally, with the keys of the authentication center. It carries the hash of the binding secret of its
+session: the endpoint checks that the caller presents that secret (the binding cookie over HTTP), so that a stolen token
+cannot be used elsewhere.
+
 ## Relaying to a remote authentication center
 
 When the authentication center of a local party is a remote one, the session commands are relayed to it by
