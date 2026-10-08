@@ -10,10 +10,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using static CK.Testing.MonitorTestHelper;
-// The CK.IO.Auth package (until republished) brings the legacy CK.Auth.Abstractions types.
-using AuthLevel = CK.Core.AuthLevel;
-using IUserInfoProvider = CK.Core.IUserInfoProvider;
-using UserSchemeInfo = CK.Core.UserSchemeInfo;
 
 namespace CK.Cris.Authentication.Tests;
 

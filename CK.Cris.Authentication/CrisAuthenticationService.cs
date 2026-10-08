@@ -16,7 +16,7 @@ namespace CK.Auth;
 /// <para>
 /// The levels are the ones of the users (<see cref="UserInfo.Level"/>). The ambient values and the validations use
 /// the <see cref="AuthenticationInfo.UnsafeUser"/> and <see cref="AuthenticationInfo.UnsafeActualUser"/> so that a
-/// session at <see cref="CK.Core.AuthLevel.Unsafe"/> level (a weak actor for instance) can send <see cref="IAuthUnsafePart"/> commands.
+/// session at <see cref="AuthLevel.Unsafe"/> level (a weak actor for instance) can send <see cref="IAuthUnsafePart"/> commands.
 /// </para>
 /// </summary>
 /// <remarks>
@@ -25,13 +25,13 @@ namespace CK.Auth;
 /// </remarks>
 public class CrisAuthenticationService : ISingletonAutoService
 {
-    readonly CK.Core.IUserInfoProvider _userInfoProvider;
+    readonly IUserInfoProvider _userInfoProvider;
 
     /// <summary>
     /// Initializes a new <see cref="CrisAuthenticationService"/>.
     /// </summary>
     /// <param name="userInfoProvider">The user info provider used to restore the authentication.</param>
-    public CrisAuthenticationService( CK.Core.IUserInfoProvider userInfoProvider )
+    public CrisAuthenticationService( IUserInfoProvider userInfoProvider )
     {
         Throw.CheckNotNullArgument( userInfoProvider );
         _userInfoProvider = userInfoProvider;
@@ -71,14 +71,14 @@ public class CrisAuthenticationService : ISingletonAutoService
         }
         else if( crisPoco is IAuthCriticalPart )
         {
-            if( info.UnsafeUser.Level != CK.Core.AuthLevel.Critical )
+            if( info.UnsafeUser.Level != AuthLevel.Critical )
             {
                 c.Error( "Invalid authentication level: Critical authentication level required." );
             }
         }
         else if( crisPoco is IAuthNormalPart )
         {
-            if( info.UnsafeUser.Level < CK.Core.AuthLevel.Normal )
+            if( info.UnsafeUser.Level < AuthLevel.Normal )
             {
                 c.Error( "Invalid authentication level: Normal authentication level required." );
             }
@@ -127,8 +127,8 @@ public class CrisAuthenticationService : ISingletonAutoService
     /// Restores the <see cref="AuthenticationInfo"/> from a command or event that has been validated when it entered
     /// the System: its identifiers are trustable.
     /// <para>
-    /// The users are read by the <see cref="CK.Core.IUserInfoProvider"/> (their current state is used) and the level is the one
-    /// required by the parts (see <see cref="AuthenticationInfo.CreateRestored(UserInfo, UserInfo, CK.Core.AuthLevel, string?, DateTime)"/>).
+    /// The users are read by the <see cref="IUserInfoProvider"/> (their current state is used) and the level is the one
+    /// required by the parts (see <see cref="AuthenticationInfo.CreateRestored(UserInfo, UserInfo, AuthLevel, string?, DateTime)"/>).
     /// When a user cannot be found, the restoration fails: the command is never executed as the anonymous.
     /// </para>
     /// </summary>
@@ -152,7 +152,7 @@ public class CrisAuthenticationService : ISingletonAutoService
         if( actualActorId == 0 )
         {
             Throw.CheckState( "Only the anonymous can be impersonated by the anonymous.", actorId == 0 );
-            info = AuthenticationInfo.CreateRestored( UserInfo.Anonymous, UserInfo.Anonymous, CK.Core.AuthLevel.None, deviceId, DateTime.UtcNow );
+            info = AuthenticationInfo.CreateRestored( UserInfo.Anonymous, UserInfo.Anonymous, AuthLevel.None, deviceId, DateTime.UtcNow );
         }
         else
         {
@@ -163,10 +163,10 @@ public class CrisAuthenticationService : ISingletonAutoService
                             ? UserInfo.Anonymous
                             : await ReadUserAsync( monitor, actorId ).ConfigureAwait( false );
             var level = crisPoco is IAuthCriticalPart
-                            ? CK.Core.AuthLevel.Critical
+                            ? AuthLevel.Critical
                             : crisPoco is IAuthNormalPart
-                                ? CK.Core.AuthLevel.Normal
-                                : CK.Core.AuthLevel.Unsafe;
+                                ? AuthLevel.Normal
+                                : AuthLevel.Unsafe;
             info = AuthenticationInfo.CreateRestored( actualUser, user, level, deviceId, DateTime.UtcNow );
         }
         hub.Override( info );

@@ -1,6 +1,9 @@
 using CK.Auth;
 using CK.Core;
 using CK.IO.Authentication;
+using CK.IO.Authentication.Basic;
+using CK.IO.Authentication.Weak;
+using CK.IO.Authentication.WeakZone;
 using CK.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -10,10 +13,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using static CK.Testing.MonitorTestHelper;
-// The CK.IO.Auth package (until republished) brings the legacy CK.Auth.Abstractions types.
-using AuthLevel = CK.Core.AuthLevel;
-using IUserInfoProvider = CK.Core.IUserInfoProvider;
-using UserSchemeInfo = CK.Core.UserSchemeInfo;
 
 namespace CK.Cris.Authentication.Tests;
 
@@ -40,7 +39,7 @@ public class SessionCommandsTests
             } );
         }
 
-        [CommandHandler] public ISessionResult Handle( IPasswordLoginCommand c, AuthenticationInfo info ) => Result( c, info );
+        [CommandHandler] public ISessionResult Handle( IBasicLoginCommand c, AuthenticationInfo info ) => Result( c, info );
         [CommandHandler] public RedirectedUrl Handle( IStartLoginCommand c ) => new RedirectedUrl( "https://idp/" + c.Scheme, c.InlineMode );
         [CommandHandler] public ISessionResult Handle( IWeakLoginCommand c, AuthenticationInfo info ) => Result( c, info );
         [CommandHandler] public ISessionResult Handle( IRefreshSessionCommand c, AuthenticationInfo info ) => Result( c, info );
@@ -62,9 +61,10 @@ public class SessionCommandsTests
                                               typeof( RawCrisReceiver ),
                                               typeof( CrisDirectory ),
                                               typeof( ICrisResultError ),
-                                              typeof( IPasswordLoginCommand ),
+                                              typeof( IBasicLoginCommand ),
                                               typeof( IStartLoginCommand ),
                                               typeof( IWeakLoginCommand ),
+                                              typeof( IWeakZoneLoginCommand ),
                                               typeof( IRefreshSessionCommand ),
                                               typeof( ILogoutSessionCommand ),
                                               typeof( IImpersonateCommand ),
@@ -90,7 +90,7 @@ public class SessionCommandsTests
             var poco = services.GetRequiredService<PocoDirectory>();
             var executor = services.GetRequiredService<RawCrisExecutor>();
 
-            var login = poco.Create<IPasswordLoginCommand>( c => { c.UserName = "Albert"; c.Password = "secret-password"; } );
+            var login = poco.Create<IBasicLoginCommand>( c => { c.UserName = "Albert"; c.Password = "secret-password"; } );
             login.ShouldBeAssignableTo<ICommandEndpointOnly>();
             login.CrisPocoModel.HasSensitiveData.ShouldBeTrue();
 
@@ -106,7 +106,11 @@ public class SessionCommandsTests
             start.CrisPocoModel.ResultType.ShouldBe( typeof( RedirectedUrl ) );
             (await executor.RawExecuteAsync( services, start )).Result.ShouldBe( new RedirectedUrl( "https://idp/Oidc.Azure", true ) );
 
-            poco.Create<IWeakLoginCommand>().CrisPocoModel.HasSensitiveData.ShouldBeFalse();
+            var weak = poco.Create<IWeakLoginCommand>( c => c.WeakActorName = "Operator" );
+            weak.CrisPocoModel.HasSensitiveData.ShouldBeFalse();
+            // CK.IO.Authentication.WeakZone adds the ZoneId to the weak login.
+            weak.ShouldBeAssignableTo<IWeakZoneLoginCommand>().ZoneId = 42;
+            ((IWeakZoneLoginCommand)weak).ZoneId.ShouldBe( 42 );
             poco.Create<IGetLoginSchemesQCommand>().ShouldNotBeAssignableTo<ICommandEndpointOnly>();
             ((IList<string>)(await executor.RawExecuteAsync( services, poco.Create<IGetLoginSchemesQCommand>() )).Result!).ShouldBe( ["Basic", "Weak"] );
 
