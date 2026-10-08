@@ -38,6 +38,19 @@ A command validated when it entered the System carries trustable identifiers. `R
   (`AuthenticationInfo.CreateRestored` and `RestoredValidity`);
 - impersonation (`ActualActorId`) and device identifier are restored.
 
+## The session side of the endpoints
+
+[`IAuthenticationSessionEndpoint`](IAuthenticationSessionEndpoint.cs) is what the authentication center needs from the
+endpoint that received a session command (login, refresh, logout...). It is a `[ScopedContainerConfiguredService]`:
+each endpoint container implements it - the HTTP endpoint with its cookies, an AppIdentity endpoint with a session bound
+to the remote party - and the background container doesn't, since a session command is executed by its receiving
+endpoint only.
+
+The endpoint generates the session secrets (the refresh secret and the binding secret) and keeps them: it exposes only
+their hashes ([`AuthenticationSessionProof`](AuthenticationSessionProof.cs)), the ones the caller presents and the ones
+it issues. The authentication center stores and signs hashes, never secrets. This lives here, not in the basic Cris
+packages: a System without user authentication never sees it.
+
 ## Requires
 
 - CK.AuthenticationInfo, for `AuthenticationInfo`, `UserInfo` and `IUserInfoProvider` (an implementation must be available).

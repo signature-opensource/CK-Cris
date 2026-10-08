@@ -15,11 +15,13 @@ sealed class AmbientServiceValueAttributeImpl : ICSCodeGenerator
 {
     readonly Type _type;
     readonly PropertyInfo _prop;
+    readonly bool _isSafe;
 
     public AmbientServiceValueAttributeImpl( AmbientServiceValueAttribute attr, Type t, PropertyInfo p )
     {
         _type = t;
         _prop = p;
+        _isSafe = attr.IsSafe;
     }
 
     public CSCodeGenerationResult Implement( IActivityMonitor monitor, ICSCodeGenerationContext c )
@@ -67,7 +69,7 @@ sealed class AmbientServiceValueAttributeImpl : ICSCodeGenerator
             monitor.Error( $"[AmbientServiceValue] '{f.Type.CSharpName} {ownerType.CSharpName}.{f.Name}' must be nullable. Ambient values must always be nullable." );
             return CSCodeGenerationResult.Failed;
         }
-        return crisTypeRegistry.RegisterAmbientValueDefinitionField( monitor, owner, f )
+        return crisTypeRegistry.RegisterAmbientValueDefinitionField( monitor, owner, f, _isSafe )
                     ? CSCodeGenerationResult.Success
                     : CSCodeGenerationResult.Failed;
     }

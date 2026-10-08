@@ -87,6 +87,8 @@ public class CrisBackgroundExecutorService : ContainerCommandExecutor<CrisBackgr
         where T : class, IAbstractCommand
     {
         Throw.CheckNotNullArgument( issuerToken );
+        Throw.CheckArgument( "An ICommandEndpointOnly command can only be executed by its receiving endpoint, never in the background.",
+                             command is not ICommandEndpointOnly );
         var cmd = new ExecutingCommand<T>( command, issuerToken );
         var scopedData = new CrisBackgroundDIContainerDefinition.Data( ambientServiceHub );
         var job = new CrisJob( this, scopedData, command, issuerToken, cmd, deferredExecutionInfo, onExecutedCommand, incomingValidationCheck );

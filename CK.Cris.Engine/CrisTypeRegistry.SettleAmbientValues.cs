@@ -1,4 +1,6 @@
 using CK.Core;
+using CK.Cris;
+using System;
 using System.Linq;
 
 namespace CK.Setup.Cris;
@@ -18,8 +20,10 @@ internal sealed partial class CrisTypeRegistry
         }
     }
 
-    internal bool RegisterAmbientValueDefinitionField( IActivityMonitor monitor, IBaseCompositeType owner, IBasePocoField field )
+    internal bool RegisterAmbientValueDefinitionField( IActivityMonitor monitor, IBaseCompositeType owner, IBasePocoField field, bool isSafe )
     {
+        // A value is safe as soon as one of its definitions says so: it is checked.
+        if( isSafe ) _safeAmbientValueNames.Add( field.Name );
         // Updates the index by name and checks the property type accross definitions.
         if( !_ambientValues.TryGetValue( field.Name, out var already ) )
         {
@@ -55,6 +59,33 @@ internal sealed partial class CrisTypeRegistry
             }
         }
         return true;
+    }
+
+    /// <summary>
+    /// Warns when a safe ambient value (<see cref="AmbientServiceValueAttribute.IsSafe"/>) of a handled type
+    /// is checked by no [IncomingValidator]: since it is not checked, any caller can state it.
+    /// <para>
+    /// This should be an error: it is a warning until the packages that handle such commands in Systems
+    /// without validators are migrated.
+    /// </para>
+    /// </summary>
+    internal void CheckSafeAmbientValues( IActivityMonitor monitor, CrisType e )
+    {
+        if( !e.IsHandled ) return;
+        foreach( var f in e.AmbientValueFields )
+        {
+            if( !_safeAmbientValueNames.Contains( f.Name ) ) continue;
+            if( !e.IncomingValidators.Any( v => HasProperty( v.ThisPocoParameter.ParameterType, f.Name ) ) )
+            {
+                monitor.Warn( $"Safe ambient value '{f.Name}' of '{e.PocoName}' is checked by no [IncomingValidator]: any caller can state it. " +
+                              $"An [IncomingValidator] for this property must be available (an authentication validator for the authentication parts)." );
+            }
+        }
+
+        static bool HasProperty( Type t, string name )
+        {
+            return t.GetProperty( name ) != null || t.GetInterfaces().Any( i => i.GetProperty( name ) != null );
+        }
     }
 
     internal bool SettleAmbientValues( IActivityMonitor monitor )

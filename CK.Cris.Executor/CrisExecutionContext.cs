@@ -239,7 +239,15 @@ public class CrisExecutionContext : ICrisCommandContext
     Task DoEmitEventAsync( IEvent e )
     {
         ref var frame = ref StackPeek();
-        if( e is IEventSourceCommandPart c ) c.SourceCommand = frame.Command;
+        if( e is IEventSourceCommandPart c )
+        {
+            // A command with sensitive data must never be captured by its events.
+            if( frame.Command.CrisPocoModel.HasSensitiveData )
+            {
+                Throw.InvalidOperationException( $"Command '{frame.Command.CrisPocoModel.PocoName}' has sensitive data: it cannot emit the event '{e.CrisPocoModel.PocoName}' that captures its source command (IEventSourceCommandPart)." );
+            }
+            c.SourceCommand = frame.Command;
+        }
         if( e.CrisPocoModel.Kind == CrisPocoKind.RoutedImmediateEvent )
         {
             if( e.CrisPocoModel.IsHandled )

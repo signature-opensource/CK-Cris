@@ -100,10 +100,24 @@ public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextB
         {
             return CSCodeGenerationResult.Failed;
         }
+        bool success = true;
         foreach( var e in registry.CrisTypes )
         {
             bool isCommand = e.Kind is CrisPocoKind.Command or CrisPocoKind.CommandWithResult;
             e.CloseRegistration( monitor );
+            registry.CheckSafeAmbientValues( monitor, e );
+            // An endpoint only command is executed inline by its receiving endpoint: it cannot need a
+            // configured background context.
+            if( e.IsHandled
+                && typeof( ICommandEndpointOnly ).IsAssignableFrom( e.CrisPocoType.Type )
+                && e.AmbientServicesConfigurators.Count > 0 )
+            {
+                monitor.Error( $"Command '{e.PocoName}' is an ICommandEndpointOnly: it cannot have [ConfigureAmbientServices] handlers " +
+                               $"(found: {e.AmbientServicesConfigurators.Select( h => $"{h.Owner.ClassType:N}.{h.Method.Name}" ).Concatenate()})." );
+                success = false;
+            }
+            bool hasSensitiveData = e.CrisPocoType.Fields.Any( f => f.Property.DeclaredProperties
+                                                                     .Any( p => p.PropertyInfo.IsDefined( typeof( SensitiveAttribute ), true ) ) );
             var classScope = scope.Namespace.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoType.FamilyInfo.PocoFactoryClass );
             using( classScope.Region() )
             {
@@ -116,7 +130,8 @@ public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextB
                  .Append( "CK.Cris.ICrisPoco CK.Cris.ICrisPocoModel.Create() => (CK.Cris.ICrisPoco)Create();" ).NewLine()
                  .Append( "public bool IsHandled => " ).Append( e.IsHandled ).Append( ";" ).NewLine()
                  .Append( "public bool EndpointMustConfigureServices => " ).Append( e.AmbientServicesConfigurators.Count > 0 ).Append( ";" ).NewLine()
-                 .Append( "public bool BackgroundMustRestoreServices => " ).Append( e.AmbientServicesRestorers.Count > 0 ).Append( ";" ).NewLine();
+                 .Append( "public bool BackgroundMustRestoreServices => " ).Append( e.AmbientServicesRestorers.Count > 0 ).Append( ";" ).NewLine()
+                 .Append( "public bool HasSensitiveData => " ).Append( hasSensitiveData ).Append( ";" ).NewLine();
 
                 // ImmutableArray<string> AmbientValuePropertyNames
                 if( e.AmbientValueFields.Count > 0 )
@@ -184,6 +199,10 @@ public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextB
                 p.Append( "public CK.Cris.ICrisPocoModel CrisPocoModel => _factory;" ).NewLine();
             }
             scope.Append( p.FullName ).Append( "._factory," ).NewLine();
+        }
+        if( !success )
+        {
+            return CSCodeGenerationResult.Failed;
         }
         scope.Append( "};" ).NewLine()
              .Append( "return list;" )

@@ -179,6 +179,11 @@ public class CrisDelayedCommandService : ISingletonAutoService
             c.Messages.Error( "Invalid null Command property." );
             return ValueTask.CompletedTask;
         }
+        if( command.Command is ICommandEndpointOnly )
+        {
+            c.Messages.Error( $"Command '{command.Command.CrisPocoModel.PocoName}' is executed only by its receiving endpoint: it cannot be delayed." );
+            return ValueTask.CompletedTask;
+        }
         if( !command.AllowPastExecutionDate )
         {
             var now = GetUtcNow();

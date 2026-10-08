@@ -21,6 +21,7 @@ internal sealed partial class CrisTypeRegistry : ICrisDirectoryServiceEngine
     readonly IReadOnlyList<CrisType> _allTypes;
     readonly Dictionary<string, AmbientValueEntry> _ambientValues;
     readonly HashSet<IPrimaryPocoField> _allAmbientValueFields;
+    readonly HashSet<string> _safeAmbientValueNames;
 
     readonly IPocoTypeSystem _typeSystem;
     /// <summary>
@@ -75,6 +76,7 @@ internal sealed partial class CrisTypeRegistry : ICrisDirectoryServiceEngine
         _ambientValuesType = ambientValuesType;
         _ambientValues = new Dictionary<string, AmbientValueEntry>();
         _allAmbientValueFields = new HashSet<IPrimaryPocoField>();
+        _safeAmbientValueNames = new HashSet<string>();
     }
 
     public IAbstractPocoType? CrisPocoType => _crisPocoType;

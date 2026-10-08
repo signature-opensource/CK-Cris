@@ -12,6 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\CK.Cris.Auth\CK.Cris.Auth.csproj" />
     <ProjectReference Include="..\..\CK.Cris.BackgroundExecutor\CK.Cris.BackgroundExecutor.csproj" />
+    <ProjectReference Include="..\..\CK.Cris.DelayedCommand\CK.Cris.DelayedCommand.csproj" />
     <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
   </ItemGroup>
   <ItemGroup>
