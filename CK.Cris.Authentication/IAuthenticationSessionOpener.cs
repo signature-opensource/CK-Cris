@@ -1,6 +1,7 @@
 using CK.Core;
 using CK.Cris;
 using CK.IO.Authentication;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace CK.Auth;
@@ -36,11 +37,18 @@ public interface IAuthenticationSessionOpener : IScopedAutoService
     /// <param name="scheme">The scheme to use (see <see cref="LoginScheme"/>).</param>
     /// <param name="payload">The <see cref="ILoginProvider"/> payload for the scheme.</param>
     /// <param name="rememberMe">Whether the session must survive the end of the caller session.</param>
+    /// <param name="userData">
+    /// The user data of the login (the <see cref="LoginContext.UserData"/>). When null, they are the
+    /// <see cref="ICommandLoginUserData.UserData"/> of the command if it has this part (and empty otherwise). When not
+    /// null, they replace them: a remote login callback passes the data kept by the authentication center since the start
+    /// of the login. They are untrusted (they come from the client).
+    /// </param>
     /// <returns>The session result.</returns>
     ValueTask<ISessionResult> OpenSessionAsync<T>( IActivityMonitor monitor,
                                                    T command,
                                                    string scheme,
                                                    object payload,
-                                                   bool rememberMe = false )
+                                                   bool rememberMe = false,
+                                                   IReadOnlyDictionary<string, string?>? userData = null )
         where T : ICommand<ISessionResult>, ICommandAuthenticationSession;
 }

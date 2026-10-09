@@ -79,4 +79,16 @@ public interface IAuthenticationSessionEndpoint : IAutoService
     /// Null when the caller presents none.
     /// </summary>
     string? PresentedRemoteLoginHash { get; }
+
+    /// <summary>
+    /// Gets the origin (<c>scheme://host[:port]</c>) of the web page that sent the command, as checked by this endpoint
+    /// (an HTTP endpoint accepts same-origin requests only). Null when this endpoint doesn't serve web pages (an
+    /// AppIdentity channel for instance).
+    /// <para>
+    /// The browser signs the origin in the passkey (WebAuthn) responses: the authentication center accepts a passkey
+    /// ceremony only from an endpoint with an origin that it is configured to accept, and checks that the signed origin is
+    /// this one. This value only selects: the authentication center's configuration is the control.
+    /// </para>
+    /// </summary>
+    string? WebOrigin { get; }
 }

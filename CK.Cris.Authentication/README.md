@@ -60,6 +60,11 @@ correlation secret of a starting login and returns its hash (the authentication 
 `PresentedRemoteLoginHash` is the hash presented when the login completes: only the caller that started a login can
 complete it.
 
+`WebOrigin` is the origin of the web page that sent the command, as checked by the endpoint (null when the endpoint
+serves no web page, like an AppIdentity channel). The browser signs the origin in the passkey (WebAuthn) responses: the
+authentication center accepts a passkey ceremony only from an origin it is configured to accept, and checks that the
+signed origin is this one. The value only selects: the configuration of the authentication center is the control.
+
 ## Reading the tokens
 
 An endpoint that receives authenticated commands (the HTTP front) establishes their `AuthenticationInfo` with
@@ -89,6 +94,13 @@ implements an authentication provider handles its login commands**. Its handler 
 public ValueTask<ISessionResult> HandleAsync( IActivityMonitor monitor, IWeakLoginCommand cmd, IAuthenticationSessionOpener opener )
     => opener.OpenSessionAsync( monitor, cmd, "Weak", cmd );
 ```
+
+The login's user data (the `LoginContext.UserData` read by the validators and the account creation and binding
+services) come from the command's `ICommandLoginUserData` part. The optional `userData` parameter replaces them: a remote
+login callback passes the data kept by the authentication center since the start of the login, the client never carries
+them back. [`LoginUserDataValidator`](LoginUserDataValidator.cs) limits the part when a command enters the System: at most
+16 entries and 4096 characters (keys and values), since they come from anonymous clients and a remote login keeps them
+in memory until its callback.
 
 A Cris handler handles the **whole** command. When a package extends a login command (`IWeakZoneLoginCommand` adds the
 `ZoneId` to `IWeakLoginCommand`), the handler of the base command is ignored and the extending package must handle

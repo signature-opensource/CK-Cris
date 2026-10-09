@@ -2,6 +2,7 @@ using CK.Auth;
 using CK.Core;
 using CK.IO.Authentication;
 using CK.IO.Authentication.Basic;
+using CK.IO.Authentication.Passkey;
 using CK.IO.Authentication.Weak;
 using CK.IO.Authentication.WeakZone;
 using CK.Testing;
@@ -46,6 +47,10 @@ public class SessionCommandsTests
         [CommandHandler] public ISessionResult Handle( IImpersonateCommand c, AuthenticationInfo info ) => Result( c, info );
         [CommandHandler] public ISessionResult Handle( IClearImpersonationCommand c, AuthenticationInfo info ) => Result( c, info );
         [CommandHandler] public IList<string> Handle( IGetLoginSchemesQCommand c ) => ["Basic", "Weak"];
+        [CommandHandler] public string Handle( IStartPasskeyLoginCommand c ) => """{"challenge":"login"}""";
+        [CommandHandler] public ISessionResult Handle( IPasskeyLoginCommand c, AuthenticationInfo info ) => Result( c, info );
+        [CommandHandler] public string Handle( IStartPasskeyRegistrationCommand c ) => """{"challenge":"registration"}""";
+        [CommandHandler] public IPasskeyRegistrationResult Handle( IPasskeyRegistrationCommand c ) => c.CreateResult( r => r.Name = "My phone" );
     }
 
     /// <summary>
@@ -53,7 +58,12 @@ public class SessionCommandsTests
     /// </summary>
     public sealed class FakeSessionOpener : IAuthenticationSessionOpener
     {
-        public ValueTask<ISessionResult> OpenSessionAsync<T>( IActivityMonitor monitor, T command, string scheme, object payload, bool rememberMe = false )
+        public ValueTask<ISessionResult> OpenSessionAsync<T>( IActivityMonitor monitor,
+                                                              T command,
+                                                              string scheme,
+                                                              object payload,
+                                                              bool rememberMe = false,
+                                                              IReadOnlyDictionary<string, string?>? userData = null )
             where T : ICommand<ISessionResult>, ICommandAuthenticationSession
         {
             var weak = (IWeakLoginCommand)payload;
@@ -110,6 +120,12 @@ public class SessionCommandsTests
                                               typeof( IImpersonateCommand ),
                                               typeof( IClearImpersonationCommand ),
                                               typeof( IGetLoginSchemesQCommand ),
+                                              typeof( IStartPasskeyLoginCommand ),
+                                              typeof( IPasskeyLoginCommand ),
+                                              typeof( IStartPasskeyRegistrationCommand ),
+                                              typeof( IPasskeyRegistrationCommand ),
+                                              typeof( IPasskeyRegistrationResult ),
+                                              typeof( LoginUserDataValidator ),
                                               typeof( ISessionResult ),
                                               typeof( IAuthenticationInfoPoco ),
                                               typeof( IActorInfoPoco ),
@@ -171,6 +187,71 @@ public class SessionCommandsTests
             var v = await receiver.IncomingValidateAsync( TestHelper.Monitor, services, impersonate );
             v.Success.ShouldBeFalse();
             v.ValidationMessages.Select( m => m.Text ).ShouldContain( "Invalid authentication level: Critical authentication level required." );
+
+            // Every login command has the user data part.
+            login.ShouldBeAssignableTo<ICommandLoginUserData>();
+            start.ShouldBeAssignableTo<ICommandLoginUserData>();
+            weak.ShouldBeAssignableTo<ICommandLoginUserData>();
+            poco.Create<IPasskeyLoginCommand>().ShouldBeAssignableTo<ICommandLoginUserData>();
+            typeof( ICommandLoginUserData ).IsAssignableFrom( typeof( IRemoteLoginCallbackCommand ) )
+                .ShouldBeFalse( "The data stay on the authentication center between the start and the callback." );
+
+            // The passkey commands: session commands, nothing sensitive, the options as JSON strings.
+            var startPasskey = poco.Create<IStartPasskeyLoginCommand>();
+            startPasskey.ShouldBeAssignableTo<ICommandEndpointOnly>();
+            startPasskey.CrisPocoModel.ResultType.ShouldBe( typeof( string ) );
+            (await executor.RawExecuteAsync( services, startPasskey )).Result.ShouldBe( """{"challenge":"login"}""" );
+            var passkeyLogin = poco.Create<IPasskeyLoginCommand>( c => { c.Response = "{}"; c.RememberMe = true; } );
+            passkeyLogin.CrisPocoModel.HasSensitiveData.ShouldBeFalse();
+            ((ISessionResult)(await executor.RawExecuteAsync( services, passkeyLogin )).Result!).Token.ShouldBe( "the-token" );
+
+            // Adding a passkey requires the Critical level: this Normal session is refused.
+            var startRegistration = poco.Create<IStartPasskeyRegistrationCommand>( c => { c.ActorId = 3712; c.Name = "My phone"; } );
+            startRegistration.CrisPocoModel.ResultType.ShouldBe( typeof( string ) );
+            v = await receiver.IncomingValidateAsync( TestHelper.Monitor, services, startRegistration );
+            v.Success.ShouldBeFalse();
+            v.ValidationMessages.Select( m => m.Text ).ShouldContain( "Invalid authentication level: Critical authentication level required." );
+            var registration = poco.Create<IPasskeyRegistrationCommand>( c => { c.ActorId = 3712; c.Response = "{}"; } );
+            v = await receiver.IncomingValidateAsync( TestHelper.Monitor, services, registration );
+            v.Success.ShouldBeFalse();
+            var registered = (IPasskeyRegistrationResult)(await executor.RawExecuteAsync( services, registration )).Result!;
+            registered.Success.ShouldBeTrue();
+            registered.Name.ShouldBe( "My phone" );
         }
+    }
+
+    [Test]
+    public async Task the_login_user_data_are_limited_Async()
+    {
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( LoginUserDataValidator ),
+                                              typeof( RawCrisReceiver ),
+                                              typeof( CrisDirectory ),
+                                              typeof( ICrisResultError ),
+                                              typeof( IStartLoginCommand ),
+                                              typeof( IWeakLoginCommand ) );
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices( configureServices: services =>
+        {
+            services.AddScoped<IActivityMonitor>( s => TestHelper.Monitor );
+        } );
+        using var scope = auto.Services.CreateScope();
+        var services = scope.ServiceProvider;
+        var poco = services.GetRequiredService<PocoDirectory>();
+        var receiver = services.GetRequiredService<RawCrisReceiver>();
+
+        async Task<bool> IsValidAsync( ICommandLoginUserData c ) => (await receiver.IncomingValidateAsync( TestHelper.Monitor, services, c )).Success;
+
+        var start = poco.Create<IStartLoginCommand>( c => c.Scheme = "Oidc.Test" );
+        (await IsValidAsync( start )).ShouldBeTrue();
+        for( int i = 0; i < LoginUserDataValidator.MaxEntries; ++i ) start.UserData.Add( $"K{i}", "V" );
+        (await IsValidAsync( start )).ShouldBeTrue( "16 entries is the maximum." );
+        start.UserData.Add( "OneMore", "V" );
+        (await IsValidAsync( start )).ShouldBeFalse();
+
+        var weak = poco.Create<IWeakLoginCommand>( c => c.WeakActorName = "Operator" );
+        weak.UserData.Add( "Token", new string( 'x', LoginUserDataValidator.MaxLength - "Token".Length ) );
+        (await IsValidAsync( weak )).ShouldBeTrue( "4096 characters (keys and values) is the maximum." );
+        weak.UserData["Token"] += "x";
+        (await IsValidAsync( weak )).ShouldBeFalse();
     }
 }
