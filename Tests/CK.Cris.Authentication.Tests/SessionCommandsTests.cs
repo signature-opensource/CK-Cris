@@ -57,7 +57,7 @@ public class SessionCommandsTests
             where T : ICommand<ISessionResult>, ICommandAuthenticationSession
         {
             var weak = (IWeakLoginCommand)payload;
-            var actor = new ActorInfo( 42, weak.WeakActorName, AuthLevel.Unsafe, [new SchemeInfo( scheme, DateTime.UtcNow )] );
+            var actor = new ActorInfo( 42, weak.WeakActorName, CK.Core.AuthLevel.Unsafe, [new SchemeInfo( scheme, DateTime.UtcNow )] );
             var info = AuthenticationInfo.Create( actor, DateTime.UtcNow.AddHours( 1 ), null, "D", DateTime.UtcNow );
             return ValueTask.FromResult( command.CreateResult( r =>
             {
@@ -119,7 +119,7 @@ public class SessionCommandsTests
                                               typeof( FakeWeakProvider ),
                                               typeof( FakeWeakZoneProvider ),
                                               typeof( IAuthenticationSessionEndpoint ) );
-        var albert = new ActorInfo( 3712, "Albert", AuthLevel.Critical, [new SchemeInfo( "Basic", new DateTime( 2000, 1, 1, 0, 0, 0, DateTimeKind.Utc ) )] );
+        var albert = new ActorInfo( 3712, "Albert", CK.Core.AuthLevel.Critical, [new SchemeInfo( "Basic", new DateTime( 2000, 1, 1, 0, 0, 0, DateTimeKind.Utc ) )] );
         var session = AuthenticationInfo.Create( albert, DateTime.UtcNow.AddDays( 1 ), null, "D", DateTime.UtcNow );
         using( TestHelper.Monitor.CollectTexts( out var texts ) )
         {
@@ -143,7 +143,7 @@ public class SessionCommandsTests
             r.Token.ShouldBe( "the-token" );
             r.Info.UnsafeActor.ActorId.ShouldBe( 3712 );
             r.Info.UnsafeActor.ActorName.ShouldBe( "Albert" );
-            r.Info.UnsafeActor.Level.ShouldBe( AuthLevel.Normal );
+            r.Info.UnsafeActor.Level.ShouldBe( CK.Core.AuthLevel.Normal );
             r.Info.UnsafeActor.Schemes.ShouldHaveSingleItem().Scheme.ShouldBe( "Basic" );
             r.Info.DeviceId.ShouldBe( "D" );
 
@@ -160,7 +160,7 @@ public class SessionCommandsTests
             var w = (ISessionResult)(await executor.RawExecuteAsync( services, weak )).Result!;
             w.Token.ShouldBe( "opened" );
             w.Info.UnsafeActor.ActorName.ShouldBe( "Operator" );
-            w.Info.UnsafeActor.Level.ShouldBe( AuthLevel.Unsafe );
+            w.Info.UnsafeActor.Level.ShouldBe( CK.Core.AuthLevel.Unsafe );
             w.Info.UnsafeActor.Schemes.ShouldHaveSingleItem().Scheme.ShouldBe( "Weak" );
             poco.Create<IGetLoginSchemesQCommand>().ShouldNotBeAssignableTo<ICommandEndpointOnly>();
             ((IList<string>)(await executor.RawExecuteAsync( services, poco.Create<IGetLoginSchemesQCommand>() )).Result!).ShouldBe( ["Basic", "Weak"] );

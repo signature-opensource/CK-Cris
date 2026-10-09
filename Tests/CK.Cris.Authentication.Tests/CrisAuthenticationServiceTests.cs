@@ -16,9 +16,9 @@ namespace CK.Cris.Authentication.Tests;
 [TestFixture]
 public class CrisAuthenticationServiceTests
 {
-    static readonly ActorInfo _albert = new ActorInfo( 3712, "Albert", AuthLevel.Critical );
-    static readonly ActorInfo _robert = new ActorInfo( 12, "Robert", AuthLevel.Critical );
-    static readonly ActorInfo _operator = new ActorInfo( 42, "Operator", AuthLevel.Unsafe, [new SchemeInfo( ActorInfo.WeakScheme, new DateTime( 2000, 1, 1, 0, 0, 0, DateTimeKind.Utc ) )] );
+    static readonly ActorInfo _albert = new ActorInfo( 3712, "Albert", CK.Core.AuthLevel.Critical );
+    static readonly ActorInfo _robert = new ActorInfo( 12, "Robert", CK.Core.AuthLevel.Critical );
+    static readonly ActorInfo _operator = new ActorInfo( 42, "Operator", CK.Core.AuthLevel.Unsafe, [new SchemeInfo( ActorInfo.WeakScheme, new DateTime( 2000, 1, 1, 0, 0, 0, DateTimeKind.Utc ) )] );
 
     // The endpoint authentication used by the scoped AuthenticationInfo.
     static AuthenticationInfo _current = AuthenticationInfo.None;

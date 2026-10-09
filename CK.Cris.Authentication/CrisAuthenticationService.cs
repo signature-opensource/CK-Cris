@@ -71,14 +71,14 @@ public class CrisAuthenticationService : ISingletonAutoService
         }
         else if( crisPoco is IAuthCriticalPart )
         {
-            if( info.UnsafeActor.Level != AuthLevel.Critical )
+            if( info.UnsafeActor.Level != CK.Core.AuthLevel.Critical )
             {
                 c.Error( "Invalid authentication level: Critical authentication level required." );
             }
         }
         else if( crisPoco is IAuthNormalPart )
         {
-            if( info.UnsafeActor.Level < AuthLevel.Normal )
+            if( info.UnsafeActor.Level < CK.Core.AuthLevel.Normal )
             {
                 c.Error( "Invalid authentication level: Normal authentication level required." );
             }
@@ -152,7 +152,7 @@ public class CrisAuthenticationService : ISingletonAutoService
         if( actualActorId == 0 )
         {
             Throw.CheckState( "Only the anonymous can be impersonated by the anonymous.", actorId == 0 );
-            info = AuthenticationInfo.CreateRestored( ActorInfo.Anonymous, ActorInfo.Anonymous, AuthLevel.None, deviceId, DateTime.UtcNow );
+            info = AuthenticationInfo.CreateRestored( ActorInfo.Anonymous, ActorInfo.Anonymous, CK.Core.AuthLevel.None, deviceId, DateTime.UtcNow );
         }
         else
         {
@@ -163,10 +163,10 @@ public class CrisAuthenticationService : ISingletonAutoService
                             ? ActorInfo.Anonymous
                             : await ReadActorAsync( monitor, actorId ).ConfigureAwait( false );
             var level = crisPoco is IAuthCriticalPart
-                            ? AuthLevel.Critical
+                            ? CK.Core.AuthLevel.Critical
                             : crisPoco is IAuthNormalPart
-                                ? AuthLevel.Normal
-                                : AuthLevel.Unsafe;
+                                ? CK.Core.AuthLevel.Normal
+                                : CK.Core.AuthLevel.Unsafe;
             info = AuthenticationInfo.CreateRestored( actualActor, actor, level, deviceId, DateTime.UtcNow );
         }
         hub.Override( info );
