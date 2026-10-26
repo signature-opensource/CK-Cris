@@ -30,6 +30,17 @@ public interface IAuthenticationSessionEndpoint : IAutoService
     string? PresentedToken { get; }
 
     /// <summary>
+    /// Gets the hash of the binding secret presented by the caller, or null. Unlike the <see cref="PresentedProof"/>
+    /// (that needs the refresh secret, presented to the session commands only), it is available to every command:
+    /// a relay of the <see cref="ICommandAuthCenter"/> commands sends it with the <see cref="PresentedToken"/> so that the
+    /// remote authentication center checks the binding of the token itself.
+    /// <para>
+    /// Defaults to the binding secret hash of the <see cref="PresentedProof"/>.
+    /// </para>
+    /// </summary>
+    string? PresentedBindingSecretHash => PresentedProof?.BindingSecretHash;
+
+    /// <summary>
     /// Generates the secrets that the next <see cref="Issue"/> will use and returns their hashes. A relay calls it
     /// before sending a session command to a remote authentication center: the hashes travel with the command, the
     /// secrets stay here. When <see cref="Issue"/> is called after this, it uses these secrets (and returns these hashes).
