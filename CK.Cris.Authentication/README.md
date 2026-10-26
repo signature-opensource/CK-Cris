@@ -83,6 +83,12 @@ The endpoint takes part in the relay: it presents the caller's bearer token (`Pr
 remote authentication center) and it generates the next secrets in advance (`PrepareSecrets`): their hashes travel
 with the command, the secrets stay in the endpoint, and its `Issue` then uses them.
 
+The commands executed by the authentication center that are not session commands (`ICommandAuthCenter`: the actor's
+self-service on its own login methods, the login schemes) are relayed by
+[`IAuthCenterCommandRelay`](IAuthCenterCommandRelay.cs), called **after** the endpoint's incoming validation. It carries
+the caller's proof (its token and the hash of its binding secret), not only its actor identifier: the remote
+authentication center establishes the identity again, so a front can act only for the callers that use it.
+
 ## Opening a session
 
 [`IAuthenticationSessionOpener`](IAuthenticationSessionOpener.cs) turns a login command into a session. It is
