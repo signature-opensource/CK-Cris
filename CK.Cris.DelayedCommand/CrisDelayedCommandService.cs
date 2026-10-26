@@ -142,7 +142,8 @@ public class CrisDelayedCommandService : ISingletonAutoService
     }
 
     /// <summary>
-    /// Dispatches a <see cref="IDelayedCommandExecutedEvent"/> for the event.
+    /// Dispatches a <see cref="IDelayedCommandExecutedEvent"/> for the event, or calls <see cref="OnRestoreFailedAsync"/>
+    /// when the ambient services of the command could not be restored.
     /// </summary>
     /// <param name="monitor">The monitor (from the <see cref="CrisExecutionHost"/>'s runner.</param>
     /// <param name="command">The executed command (can be on error).</param>
@@ -154,14 +155,39 @@ public class CrisDelayedCommandService : ISingletonAutoService
     /// <returns>The awaitable.</returns>
     protected Task OnExecutedCommandAsync( IActivityMonitor monitor, IExecutedCommand command, IServiceProvider? services )
     {
+        var entry = (DelayedCommandEntry)command.DeferredExecutionContext!;
         if( services == null )
         {
-            monitor.Warn( ActivityMonitor.Tags.ToBeInvestigated, $"Restore ambient service failed. No IDelayedCommandExecutedEvent is raised." );
-            return Task.CompletedTask;
+            monitor.Error( $"Unable to restore the ambient services of the delayed command '{command.Command.CrisPocoModel.PocoName}': it has not been executed and no IDelayedCommandExecutedEvent is raised." );
+            return OnRestoreFailedAsync( monitor, entry, command );
         }
-        // The entry can be retrieved directly if needed:
-        // var entry = (DelayedCommandEntry)command.DeferredExecutionContext!;
-        return _rawCrisExecutor.SafeDispatchEventAsync( services, _pocoDirectory.Create<IDelayedCommandExecutedEvent>( d => d.Initialize( command ) ) );
+        return _rawCrisExecutor.SafeDispatchEventAsync( services, _pocoDirectory.Create<IDelayedCommandExecutedEvent>( d =>
+        {
+            d.Initialize( command );
+            d.SourceCommand = entry.DelayedCommand;
+        } ) );
+    }
+
+    /// <summary>
+    /// Extension point called when the ambient services of a delayed command could not be restored (a
+    /// [RestoreAmbientServices] method threw, typically because the actor of the command cannot be found
+    /// anymore): the command has not been executed and no <see cref="IDelayedCommandExecutedEvent"/> is raised,
+    /// since there is no ambient context to raise it in.
+    /// <para>
+    /// The <paramref name="command"/>'s <see cref="IExecutedCommand.Result"/> is the <see cref="ICrisResultError"/>.
+    /// A persistent implementation should use this to mark the stored command as failed.
+    /// </para>
+    /// <para>
+    /// Does nothing by default.
+    /// </para>
+    /// </summary>
+    /// <param name="monitor">The monitor (from the <see cref="CrisExecutionHost"/>'s runner).</param>
+    /// <param name="entry">The entry of the delayed command.</param>
+    /// <param name="command">The executed command on error.</param>
+    /// <returns>The awaitable.</returns>
+    protected virtual Task OnRestoreFailedAsync( IActivityMonitor monitor, DelayedCommandEntry entry, IExecutedCommand command )
+    {
+        return Task.CompletedTask;
     }
 
     /// <summary>
