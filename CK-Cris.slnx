@@ -7,10 +7,6 @@
     <File Path="Directory.Build.props" />
     <File Path="NuGet.config" />
   </Folder>
-  <Folder Name="/Solution Items/Documentation/">
-    <File Path="Documentation/Abstractions.png" />
-    <File Path="Documentation/AuthenticatedCommands.png" />
-  </Folder>
   <Folder Name="/Tests/">
     <Project Path="Tests/CK.Cris.Authentication.Conflict.Tests/CK.Cris.Authentication.Conflict.Tests.csproj" />
     <Project Path="Tests/CK.Cris.Authentication.Tests/CK.Cris.Authentication.Tests.csproj" />

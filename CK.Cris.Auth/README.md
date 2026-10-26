@@ -4,9 +4,13 @@ One service, one file. It is the implementation behind the authentication parts:
 against the current authentication, and rebuilds an authentication from them in a background context.
 
 > ℹ️ The parts themselves - `IAuthUnsafePart`, `IAuthNormalPart`, `IAuthCriticalPart`,
-> `IAuthDeviceIdPart`, `IAuthImpersonationPart` - are declared in `CK.IO.Auth`, in
-> [CK-Cris-Abstractions](https://github.com/signature-opensource/CK-Cris-Abstractions). This package
-> is what makes them mean something.
+> `IAuthDeviceIdPart`, `IAuthImpersonationPart` - are declared in
+> [CK.IO.Auth](https://github.com/signature-opensource/CK-Cris-Abstractions/blob/stable/CK.IO.Auth/README.md).
+> This package is what makes them mean something.
+
+> ℹ️ [CK.Cris.Authentication](../CK.Cris.Authentication/README.md) is the alternative that works with
+> CK.AuthenticationInfo instead of CK.Auth.Abstractions. Both define `CK.Auth.CrisAuthenticationService`:
+> an application uses one or the other.
 
 ## Declaring a part does nothing until this service is registered.
 
@@ -16,7 +20,9 @@ parts. Install it and a command declaring `ICommandAuthNormal` is enforced; omit
 command is a command with an unchecked `ActorId` property.
 
 That is the whole point of the split, and it is worth stating plainly: the guarantee is not in the
-declaration, it is here.
+declaration, it is here. And "here" is a plain service carrying handler methods, exactly like
+application code would: the Cris pipeline has no privileged participants, enforcing an authentication
+level is an `[IncomingValidator]` method someone wrote.
 
 ## The validation is one chain, and it compares against the unsafe user.
 
@@ -45,8 +51,6 @@ Three things follow from that shape.
 `IAuthenticationInfo.UnsafeUser.UserId` - the last authenticated user regardless of expiry - and the
 freshness question is then answered separately by the level test. Comparing against `User` would
 conflate the two, and would make an expired command fail with "wrong actor" instead of "wrong level".
-(The method's own summary says `User`; the code and the remark below it say `UnsafeUser`. The code is
-what runs.)
 
 **The two level tests are not symmetric.** `Critical` requires `Level != AuthLevel.Critical` to fail -
 an exact match. `Normal` requires `Level < AuthLevel.Normal` - at least. So a `Critical` authentication
@@ -68,21 +72,22 @@ specialized if needed"* - so an application can loosen or tighten a rule without
 *"Creates a `IAuthenticationInfo` from the different authentication parts that reflects them."* The
 command's `ActorId` and `DeviceId` become an authentication in a container that had none.
 
-`ActualActorId` does **not**, and that looks like a slip rather than a design. The impersonation
-branch tests `imp.ActualActorId.Value != user.UserId` and then re-fetches
-`crisPoco.ActorId.Value` - the same identifier it already resolved - so the actual user it builds is
-never the impersonated one. The value is read to take the branch and then dropped.
+The user is read by the `IUserInfoProvider`. A `null` `ActorId` (or a `null` `ActualActorId` on an
+`IAuthImpersonationPart` command) throws an `InvalidOperationException`. A command with `IAuthNormalPart`
+gets an authentication that expires 30 days from now, and `IAuthCriticalPart` makes it critical until
+then.
 
 Read together, the two directions explain why the values are on the command at all. At the endpoint
 they are *checked* against a trusted source and therefore cannot be forged; in the background they
-*are* the source, because there is no request to read one from. The command is the only thing that
-crossed - which is also why the `ActualActorId` slip matters: on that path there is nothing else to
-recover it from.
+*are* the source, because there is no request to read one from.
 
 ## The ambient values it publishes are marked temporary.
 
 `GetAuthenticationValues` is a `[CommandPostHandler]` on the ambient values collect command, filling
 `IAuthAmbientValues` - `ActorId`, `ActualActorId` and `DeviceId` - from the current authentication.
+`ActorId` is `User.UserId` and `ActualActorId` is `ActualUser.UserId`: an authentication whose level is
+`Unsafe` publishes the anonymous identifier (0), not the `UnsafeUser` one that the validation compares
+with.
 The class remark flags it as provisional: *"this is temporary: IAmbientValues initialization will soon
 be handled by Default Implementation Methods."* Treat the mechanism as stable and this particular
 method as scaffolding.

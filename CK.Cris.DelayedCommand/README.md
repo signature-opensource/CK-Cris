@@ -3,15 +3,17 @@
 An in-memory implementation of the delayed command contract: a priority queue, a timer, and a handoff
 to the background executor when the date arrives.
 
-> ℹ️ `IDelayedCommand` and `IDelayedCommandExecutedEvent` are declared in `CK.IO.DelayedCommand`, in
-> [CK-Cris-Abstractions](https://github.com/signature-opensource/CK-Cris-Abstractions). Read
+> ℹ️ `IDelayedCommand` and `IDelayedCommandExecutedEvent` are declared in
+> [CK.IO.DelayedCommand](https://github.com/signature-opensource/CK-Cris-Abstractions/blob/stable/CK.IO.DelayedCommand/README.md). Read
 > [CK.Cris.BackgroundExecutor](../CK.Cris.BackgroundExecutor/README.md) too: the delayed command is
 > submitted there when its turn comes.
 
 ## In memory, and honest about it.
 
 [`CrisDelayedCommandService`](CrisDelayedCommandService.cs) is *"Simple basic implementation of an
-in-memory only service"*. Nothing survives a restart. It is a working default, not a scheduler.
+in-memory only service"*. Nothing survives a restart. It is a working default, not a scheduler: a
+command whose `KeepOnlyInMemory` is false is stored all the same, with a warning that it cannot be
+persisted.
 
 Persistence is an override rather than a rewrite, and the summary names the three seams:
 `StoreAsync`, `OnCommandExecuting`, and if needed the `[CommandHandler]` itself,
@@ -50,24 +52,38 @@ The `IDelayedCommand` is validated by:
 public ValueTask ValidateCommandAsync( ICrisIncomingValidationContext c, IDelayedCommand command )
 ```
 
-It checks that `IDelayedCommand.Command` is valid and that `ExecutionDate` is in the future unless
-`AllowPastExecutionDate` is set. The parameter type is the reason to point at it: an
+It checks that `IDelayedCommand.Command` is not null, is not an `ICommandEndpointOnly` (such a
+command is executed only by its receiving endpoint), is valid, and that `ExecutionDate` is in the
+future unless `AllowPastExecutionDate` is set. The parameter type is the reason to point at it: an
 `ICrisIncomingValidationContext` rather than a `UserMessageCollector`, because the *inner* command has
 to be validated too, and `ValidateAsync( crisPoco )` is what does it. This is the composite-validation
 case the interface exists for.
 
 ## The completion event is emitted from the callback.
 
-`OnExecutedCommandAsync` dispatches an `IDelayedCommandExecutedEvent` carrying the executed command
-and its result. Since that event is `[RoutedEvent]`, it reaches any `[RoutedEventHandler]` in the
-process - which is how something learns the delayed command ran without holding a reference to
-anything here.
+When its date arrives, the inner command is submitted to the `CrisBackgroundExecutorService` with no
+ambient service hub (the `[RestoreAmbientServices]` methods rebuild one from the command) and with
+`incomingValidationCheck: true`, so the incoming validation runs again in the background container.
+
+`OnExecutedCommandAsync` dispatches an `IDelayedCommandExecutedEvent` initialized from the executed
+command (`IPocoCommandExecutedPart.Initialize`: the command, its validation messages, its result and
+its events); its `SourceCommand` is the `IDelayedCommand`. The dispatch goes through `SafeDispatchEventAsync`, so a
+failing event handler is logged and does not throw. Since that event is `[RoutedEvent]`, it reaches any
+`[RoutedEventHandler]` in the process - which is how something learns the delayed command ran without
+holding a reference to anything here.
+
+When the ambient services cannot be restored (a `[RestoreAmbientServices]` method threw, typically
+because the actor of the command cannot be found anymore), the command is not executed and there is no
+ambient context to raise the event in: no event is raised, an error is logged and the protected virtual
+`OnRestoreFailedAsync( monitor, entry, executedCommand )` is called, with the `ICrisResultError` as the
+executed command's result. It does nothing by default; a persistent implementation uses it to mark the
+stored command as failed.
 
 [`DelayedCommandEntry`](DelayedCommandEntry.cs) is the waiting entry, and it is also an
 `IDeferredCommandExecutionContext`: it carries the `IssuerToken` that correlates the submission with
 the eventual execution logs, a `MemorySequenceId`, and an `ExecutingCommand` task that
-completes when the inner command starts; it is set right after `Submit` returns, so what it
-really marks is the command being **queued** on the execution host, before any runner picks it up.
+completes right after `Submit` returns: it marks the command being **queued** on the execution host,
+before any runner picks it up.
 Awaiting it gives you the `IExecutingCommand`, whose own executed-command task is the one that
 completes at the end - two stages, because the entry may exist long before the execution does.
 

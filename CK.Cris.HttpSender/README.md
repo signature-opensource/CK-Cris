@@ -49,9 +49,6 @@ if( executed.Result is ICrisResultError error ) { /* error.Errors, error.LogKey 
 `GetRequiredFeature<T>()` throws instead, which is what you want when the configuration is supposed to
 guarantee it. Both come from `IParty`.
 
-This repository has no test or sample for this package, so unlike the snippets elsewhere in this batch
-that one is written from the API rather than lifted from a fixture.
-
 ## Three send methods, and they differ only in how they fail.
 
 ```csharp
@@ -73,8 +70,7 @@ sender. On `SendAsync`, which never throws, they are only log decoration.
 
 The one error message the sender produces itself is `"Internal error."`, deliberately
 non-translatable and deliberately vague: what actually happened is in the log, not in the user-facing
-message. A `"Protocol error."` message is declared beside it and never used - the only reference to
-`ProtocolErrorMessage` in the whole repository is its own declaration.
+message.
 
 ## The timeout is not the `HttpClient` timeout.
 

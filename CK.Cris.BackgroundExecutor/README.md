@@ -45,23 +45,22 @@ var r = await ec.Result;
 ```
 
 From [`ExecutingCommandTests`](../Tests/CK.Cris.BackgroundExecutor.Tests/ExecutingCommandTests.cs),
-whose name for that test says the point: *using the scoped CrisBackgroundExecutor is simple*. Note
+whose name for that test says the point: `using_scoped_CrisBackgroundExecutor_is_simple_Async`. Note
 what is absent - no hub is passed, because the scoped service already captured it. The sibling test
 does the same through `CrisBackgroundExecutorService` and has to write `Submit( monitor, cmd, null )`,
 the `null` being "no hub, let the command restore one".
 
-`WithResult<TResult>()` is not a cast: it returns an `IResultAdapter<TResult>` view. Its XML says it
-throws an `ArgumentException` when the command is not an `ICommand<TResult>` - **read the body
-instead**. The only guard is `ResultType == typeof( void )`, so it rejects a result-less `ICommand`
-and never compares `TResult` with the command's actual result type. Ask for the wrong `TResult` and
-you get an `InvalidCastException` later, out of the `Result` task;
+`WithResult<TResult>()` is not a cast: it returns an `IResultAdapter<TResult>` view. It throws an
+`ArgumentException` for a result-less `ICommand` (`ResultType == typeof( void )`); `TResult` itself is
+not compared with the command's result type at this point. Ask for the wrong `TResult` and you get an
+`InvalidCastException` later, out of the `Result` task;
 `ExecutingCommandTests.ExecutingCommand_handles_different_Result_type_Async` asserts exactly that.
 
 The adapter also changes the failure mode: its `Result` task completes with an exception when the
 command result is an `ICrisResultError`, so `await ec.Result` throws where awaiting the plain
-`ExecutedCommand` would have handed you the error object. With one exception to the exception -
-`OnRequestCompletion` tests `r is TResult` **before** `r is ICrisResultError`, so a `TResult` that an
-`ICrisResultError` is assignable to receives the error as a *success*.
+`ExecutedCommand` would have handed you the error object. The result is first tested against
+`TResult`, then against `ICrisResultError`: a `TResult` that an `ICrisResultError` is assignable to
+receives the error as a *success*.
 
 The returned `IExecutingCommand<T>` is the whole tracking surface: await its executed-command task for
 the result, or watch its live `ImmediateEvents` collection while it runs.

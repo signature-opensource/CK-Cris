@@ -1,13 +1,13 @@
 # CK.Cris.Authentication
 
 Checks and restores the [CK.IO.Auth](https://github.com/signature-opensource/CK-Cris-Abstractions/tree/stable/CK.IO.Auth)
-parts with the `AuthenticationInfo` ambient service of CK.AuthenticationInfo. It replaces
-[CK.Cris.Auth](../CK.Cris.Auth/README.md), that does the same with CK.Auth.Abstractions.
+parts with the `AuthenticationInfo` ambient service of CK.AuthenticationInfo. It is the CK.AuthenticationInfo
+counterpart of [CK.Cris.Auth](../CK.Cris.Auth/README.md) (CK.Auth.Abstractions): an application uses one or the other.
 
 ## One or the other, never both
 
-The [`CrisAuthenticationService`](CrisAuthenticationService.cs) has on purpose the same full name as the legacy one,
-`CK.Auth.CrisAuthenticationService`: an application that references both packages cannot be set up. Two validators for
+The [`CrisAuthenticationService`](CrisAuthenticationService.cs) has on purpose the same full name as the one of
+CK.Cris.Auth, `CK.Auth.CrisAuthenticationService`: an application that references both packages cannot be set up. Two validators for
 the same parts would mean two answers to "who is the caller".
 
 ## When the command enters the System
@@ -25,7 +25,6 @@ The level is read on the actor, not on the session: an administrator that impers
 
 The `IAuthAmbientValues` are the `UnsafeActor`, the `UnsafeActualActor` and the `DeviceId`: an `Unsafe` session
 (a weak actor, an expired session) receives its real identifiers and can send the `IAuthUnsafePart` commands.
-(The legacy service sent the `User.UserId`, the anonymous at `Unsafe` level, that its own validator then refused.)
 
 ## When the command is executed later or elsewhere
 

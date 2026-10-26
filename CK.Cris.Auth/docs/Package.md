@@ -1,10 +1,4 @@
-The service that gives the Cris authentication parts their meaning.
-
-It validates an incoming command against the current authentication - the actor identifier must match
-the last authenticated user, and a command demanding a normal or critical level must find one - and it
-does the reverse in a background context, rebuilding an authentication from the values the command
-carries. That symmetry is why the values are on the command: checked where a trusted source exists,
-authoritative where none does.
-
-Registering it is what turns a declared authentication part into an enforced one. Every method is
-virtual, so a rule can be tightened without touching the parts.
+Gives the Cris authentication parts of CK.IO.Auth (`IAuthUnsafePart`, `IAuthNormalPart`, `IAuthCriticalPart`, `IAuthDeviceIdPart`,
+`IAuthImpersonationPart`) their meaning with the CK.Auth.Abstractions `IAuthenticationInfo`. `CrisAuthenticationService` (`CK.Auth`)
+validates them when a command is received, restores the authentication from them in a background context and fills the `IAuthAmbientValues`;
+every method is virtual. CK.Cris.Authentication is its CK.AuthenticationInfo counterpart: an application uses one or the other.

@@ -5,8 +5,8 @@ event and handler method, checks that they fit together, and exposes the result 
 generators.
 
 > ℹ️ This assembly carries `[assembly: CK.Setup.IsEngine()]`. An application never references it - it
-> is resolved by name at setup time. A test project may and does: all three test projects of this
-> repository reference an engine by `ProjectReference`, which is how they get code generation at all.
+> is resolved by name at setup time. A test project may and does: every test project of this
+> repository references an engine by `ProjectReference`, which is how they get code generation at all.
 
 ## It is reached by name, not by reference.
 
@@ -66,15 +66,11 @@ exposes a flat `Handlers` array at runtime, this separates them by kind:
 
 ## `CloseRegistration` is the gate, and it runs after everything else.
 
-Five of those properties carry an XML comment saying they apply to **commands only**. Reading only the
-registration methods makes that look false - `AddMultiTargetHandler` tests `_kind` for a single branch
-(the routed event one) and adds the four others unconditionally; `AddPostHandler` and
-`AddCommandHandler` test it for none. Reading only the generators makes it look false too, since they
-branch on which handlers a type has.
-
-Both readings miss [`CrisType.CloseRegistration`](CrisType.cs), which runs between them - once per
-type, from `CrisDirectoryImpl`, immediately before emission - and **empties handler lists by kind**.
-That is where the real rule lives:
+The registration methods accept handlers without filtering much on the kind of type:
+`AddMultiTargetHandler` only drops (with a warning) a `[RoutedEventHandler]` on a type that is not a
+routed event.
+The rule by kind lives in [`CrisType.CloseRegistration`](CrisType.cs), which runs once per type, from
+`CrisDirectoryImpl`, immediately before emission, and **empties handler lists by kind**:
 
 | Handler | Command | Routed event | Caller-only event |
 |---------|---------|--------------|-------------------|
@@ -84,28 +80,20 @@ That is where the real rule lives:
 | `[CommandHandlingValidator]`, `[CommandPostHandler]` | kept if handled | erased | erased |
 | `[RoutedEventHandler]` | - | the handlers themselves | warns at registration |
 
-So the comment is accurate about the *value* of `IncomingValidators`, `HandlingValidators` and
-`PostHandlers` - they are empty on every event kind. It is genuinely **wrong** for
-`AmbientServicesConfigurators`, which is non-empty on a handled routed event. One comment out of five
-is false, not four.
+`IncomingValidators`, `HandlingValidators` and `PostHandlers` are therefore empty on every event kind,
+while `AmbientServicesConfigurators` and `AmbientServicesRestorers` are kept on a handled routed event.
 
 The validators-on-an-unhandled-command case is deliberate and the code says why:
 
 > Whether the command is handled or not is not the problem of the incoming validators: this enables
 > `RawCrisReceiver` to be used in a "relay" gateway.
 
-Two things follow that a reader should know before writing a handler method.
-
-**An `[IncomingValidator]` on an event is accepted at registration and then discarded.** The parameter
-resolution allows it - `ICrisPoco` is an accepted parameter shape - and `CloseRegistration` erases the
-list. Each erasure on an event sits behind `Throw.DebugAssert( _incomingValidators == null )`, so the
-outcome depends on how the engine assembly was built: a **DEBUG** engine throws during setup, a
-**Release** engine drops the method in silence.
-
-**Three places warn, not one.** Besides the routed-event handler's *"will never be called"*,
-`CloseRegistration` warns for an unhandled command and for an unhandled routed event, both in the same
-shape: *"Forgetting N validator, N ambient service configurators, N ambient service restorers and N
-post handlers."* That message is the one to grep for when a handler silently does nothing.
+**Three places warn, not one.** Besides the *"will never be called"* of a `[RoutedEventHandler]` on a
+type that is not a routed event, `CloseRegistration` warns for an unhandled command:
+*"Command '...' is not handled. Forgetting N validator, N ambient service configurators, N ambient
+service restorers and N post handlers."*, and for an unhandled routed event: *"Routed event '...' is
+not handled. Forgetting N ambient service configurators and N ambient service restorers."* The
+"Forgetting" messages are the ones to grep for when a handler silently does nothing.
 
 `IsHandled` combines the two shapes: a command needs its handler, an event needs at least one.
 
@@ -115,10 +103,10 @@ a [`MultiTargetHandlerList`](HandlerMethods/MultiTargetHandlerList.cs) - the lis
 types a kind of handler *can* reach, not how many this one does. The command handler is a single
 [`HandlerMethod`](HandlerMethods/HandlerMethod.cs) because a command has at most one.
 
-## The ambient value check is one-directional, and `IsSafe` is not checked at all.
+## The ambient value checks.
 
 [`AmbientServiceValueAttributeImpl`](AttributeImpl/AmbientServiceValueAttributeImpl.cs) checks the
-property is nullable and registers it, then
+property is nullable and registers it with its `IsSafe` flag, then
 [`CrisTypeRegistry.SettleAmbientValues`](CrisTypeRegistry.SettleAmbientValues.cs) pairs each one with
 its `IAmbientValues` twin. The two failure directions are deliberately unequal:
 
@@ -127,19 +115,21 @@ its `IAmbientValues` twin. The two failure directions are deliberately unequal:
   IAmbientValues` secondary Poco definition with the following properties?"*;
 - an `IAmbientValues` field with **no `[AmbientServiceValue]`** is only an **Info** - a value can
   legitimately be collected without any command carrying it;
-- a type mismatch between a pair is an error.
+- a type mismatch between a pair is an error. The comparison is made against the nullable form of the
+  `IAmbientValues` field, so the twin may be declared nullable or not.
 
-Read the first one literally: the guard is `_ambientValues.Count - _ambientValuesType.Fields.Count > 0`,
-a count and not a set difference. One missing twin *plus* one unused `IAmbientValues` field cancel
-out, and the missing twin degrades to the Info of the second bullet. And the type check compares
-`exist.PropertyType != f.Type.Nullable` - the field is made nullable before the comparison - so a twin
-declared nullable passes; only the error message suggests otherwise.
+A value is **safe** as soon as one of its `[AmbientServiceValue]` definitions has `IsSafe` set. For
+each handled command or event, `CrisTypeRegistry.CheckSafeAmbientValues` then **warns** when a safe
+ambient value is checked by no `[IncomingValidator]` (none of them takes a parameter that exposes the
+property): *"Safe ambient value '...' of '...' is checked by no [IncomingValidator]: any caller can state
+it."* It is a warning, not an error.
 
-What is *not* verified is the rest of the contract. `AmbientServiceValueAttribute.IsSafe` does not
-appear anywhere in this repository: nothing checks that a safe value has a validator and no
-configurator, nor that an unsafe one has a configurator, nor that a `[CommandPostHandler]` fills the
-twin. Those obligations are real - a missing post handler leaves the collected value at its default -
-but they are documented, not enforced.
+The rest of the contract is not verified: nothing checks that a safe value has no configurator, nor
+that an unsafe one has a configurator, nor that a `[CommandPostHandler]` fills the `IAmbientValues`
+twin (a missing post handler leaves the collected value at its default).
+
+An `ICommandEndpointOnly` command that is handled cannot have `[ConfigureAmbientServices]` methods:
+this is an error.
 
 ## What it produces, and what it does not.
 

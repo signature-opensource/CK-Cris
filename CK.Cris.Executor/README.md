@@ -4,8 +4,8 @@ The runtime side of Cris: two abstract singletons whose bodies are generated, an
 that runs a command and the commands it spawns, a background host with parallel runners, and the hub
 that exposes routed events.
 
-> ℹ️ Read `CK.Cris` first, in
-> [CK-Cris-Abstractions](https://github.com/signature-opensource/CK-Cris-Abstractions): commands,
+> ℹ️ Read [CK.Cris](https://github.com/signature-opensource/CK-Cris-Abstractions/blob/stable/CK.Cris/README.md)
+> first: commands,
 > events, parts and the seven handler attributes are declared there. This package executes what that
 > one declares.
 
