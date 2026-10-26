@@ -109,12 +109,11 @@ internal sealed partial class CrisTypeRegistry
                     monitor.Info( $"'IAmbientValues.{f.Name}' doesn't correspond to any discovered Cris command or event [AmbientServiceValue] properties." );
                 }
             }
-            int more = _ambientValues.Count - _ambientValuesType.Fields.Count;
-            if( more > 0 )
+            // IAmbientValues properties that correspond to no [AmbientServiceValue] are allowed (see above):
+            // the missing ones must be computed, not inferred from the counts.
+            var missing = _ambientValues.Where( a => !_ambientValuesType.Fields.Any( f => f.Name == a.Key ) ).ToList();
+            if( missing.Count > 0 )
             {
-                var missing = _ambientValues.Where( a => !_ambientValuesType.Fields.Any( f => f.Name == a.Key ) );
-                Throw.DebugAssert( missing.Count() == more );
-
                 monitor.Error( $"""
                                 Missing IAmbientValues properties for [AmbientServiceValue] properties.
                                 Are you missing a 'IXXXAmbientValues : IAmbientValues' secondary Poco definition with the following properties?

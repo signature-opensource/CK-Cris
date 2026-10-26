@@ -139,6 +139,30 @@ public class CollectAmbientValuesTests
             new[] { "'int Something { get; set; }'" } );
     }
 
+    /// <summary>
+    /// Ambient values that correspond to no [AmbientServiceValue] property: this is allowed.
+    /// </summary>
+    public interface IUnrelatedAmbientValues : IAmbientValues
+    {
+        string Unrelated { get; set; }
+    }
+
+    [Test]
+    public async Task an_unrelated_IAmbiantValues_property_does_not_hide_a_missing_one_Async()
+    {
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                              typeof( IAmbientValuesCollectCommand ),
+                                              typeof( AmbientValuesService ),
+                                              typeof( ISomePart ),
+                                              typeof( ISomeCommand ),
+                                              typeof( FakeHandlerButRequiredOtherwiseCommandIsSkipped ),
+                                              typeof( IUnrelatedAmbientValues ) );
+        await configuration.GetFailedAutomaticServicesAsync(
+            "Missing IAmbientValues properties for [AmbientServiceValue] properties.",
+            new[] { "'int Something { get; set; }'" } );
+    }
+
     public interface ICultureCommand : ICommandCurrentCulture
     {
     }
