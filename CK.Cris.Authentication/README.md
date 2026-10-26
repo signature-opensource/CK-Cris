@@ -75,9 +75,11 @@ cannot be used elsewhere.
 
 ## Relaying to a remote authentication center
 
-When the authentication center of a local party is a remote one, the session commands are relayed to it by
-[`IAuthenticationSessionRelay`](IAuthenticationSessionRelay.cs). The endpoints that accept the session commands call it
-**before** the handlers: `TryRelay` returns null when the command must be executed here.
+An application is either an authentication center or a front of a remote one: the role comes from the installed
+packages (the "Local" or the "Remote" package of the authentication center), never from a runtime check. A front
+relays the session commands with [`IAuthenticationSessionRelay`](IAuthenticationSessionRelay.cs): the endpoints that
+accept the session commands call it, when it exists, **before** the handlers, and the command is never executed here
+(the relay fails closed).
 
 The endpoint takes part in the relay: it presents the caller's bearer token (`PresentedToken`, read again by the
 remote authentication center) and it generates the next secrets in advance (`PrepareSecrets`): their hashes travel
