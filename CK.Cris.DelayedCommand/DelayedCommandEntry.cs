@@ -5,16 +5,23 @@ namespace CK.Cris;
 
 /// <summary>
 /// Captures a <see cref="IDelayedCommand"/> that is waiting for its execution.
+/// <para>
+/// The ambient services of the delayed command are restored from the command when it is executed; the entry keeps the
+/// <see cref="CapturedAmbientValues"/> of the storing context (plain values, never services) and completes the
+/// restored ones with them.
+/// </para>
 /// </summary>
-public sealed class DelayedCommandEntry : IDeferredCommandExecutionContext
+public sealed class DelayedCommandEntry : IDeferredCommandExecutionContext, IRestoredAmbientServicesCompleter
 {
     readonly int _seqId;
     readonly ActivityMonitor.Token _issuerToken;
     readonly IDelayedCommand _delayedCommand;
     readonly TaskCompletionSource<IExecutingCommand> _executing;
+    readonly CapturedAmbientValues? _capturedValues;
 
-    internal DelayedCommandEntry( int seqId, ActivityMonitor.Token issuerToken, IDelayedCommand delayedCommand )
+    internal DelayedCommandEntry( int seqId, ActivityMonitor.Token issuerToken, IDelayedCommand delayedCommand, CapturedAmbientValues? capturedValues )
     {
+        _capturedValues = capturedValues;
         _seqId = seqId;
         _issuerToken = issuerToken;
         _delayedCommand = delayedCommand;
@@ -37,6 +44,13 @@ public sealed class DelayedCommandEntry : IDeferredCommandExecutionContext
     /// Gets the delayed command.
     /// </summary>
     public IDelayedCommand DelayedCommand => _delayedCommand;
+
+    /// <summary>
+    /// Gets the ambient values captured when the command has been stored. Null when there is nothing to complete.
+    /// </summary>
+    public CapturedAmbientValues? CapturedValues => _capturedValues;
+
+    void IRestoredAmbientServicesCompleter.Complete( IActivityMonitor monitor, AmbientServiceHub hub ) => _capturedValues?.Complete( monitor, hub );
 
     /// <summary>
     /// Gets a task that will be completed when the <see cref="IDelayedCommand.Command"/> has been submitted

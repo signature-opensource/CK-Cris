@@ -24,7 +24,8 @@ public interface IAuthenticationSessionEndpoint : IAutoService
     /// <summary>
     /// Gets the bearer token presented by the caller. Null when the caller presents none.
     /// <para>
-    /// A relay sends it to a remote authentication center, that reads it again (it never trusts the front).
+    /// The remote implementations of the authentication center services send it to the remote authentication center,
+    /// that reads it again (it never trusts the front).
     /// </para>
     /// </summary>
     string? PresentedToken { get; }
@@ -32,8 +33,8 @@ public interface IAuthenticationSessionEndpoint : IAutoService
     /// <summary>
     /// Gets the hash of the binding secret presented by the caller, or null. Unlike the <see cref="PresentedProof"/>
     /// (that needs the refresh secret, presented to the session commands only), it is available to every command:
-    /// a relay of the <see cref="ICommandAuthCenter"/> commands sends it with the <see cref="PresentedToken"/> so that the
-    /// remote authentication center checks the binding of the token itself.
+    /// when the caller's proof travels with a command to a remote authentication center, it is sent with the
+    /// <see cref="PresentedToken"/> so that the remote authentication center checks the binding of the token itself.
     /// <para>
     /// Defaults to the binding secret hash of the <see cref="PresentedProof"/>.
     /// </para>
@@ -41,9 +42,9 @@ public interface IAuthenticationSessionEndpoint : IAutoService
     string? PresentedBindingSecretHash => PresentedProof?.BindingSecretHash;
 
     /// <summary>
-    /// Generates the secrets that the next <see cref="Issue"/> will use and returns their hashes. A relay calls it
-    /// before sending a session command to a remote authentication center: the hashes travel with the command, the
-    /// secrets stay here. When <see cref="Issue"/> is called after this, it uses these secrets (and returns these hashes).
+    /// Generates the secrets that the next <see cref="Issue"/> will use and returns their hashes. A remote
+    /// implementation of the authentication center services calls it before sending a state operation to the remote
+    /// authentication center: the hashes travel with the operation, the secrets stay here. When <see cref="Issue"/> is called after this, it uses these secrets (and returns these hashes).
     /// </summary>
     /// <returns>The hashes of the prepared secrets.</returns>
     (string RefreshSecretHash, string BindingSecretHash) PrepareSecrets();

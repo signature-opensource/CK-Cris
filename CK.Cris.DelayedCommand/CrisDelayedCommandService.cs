@@ -1,6 +1,7 @@
 using CK.Core;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,8 +10,8 @@ namespace CK.Cris;
 /// <summary>
 /// Simple basic implementation of an in-memory only service that handles <see cref="IDelayedCommand"/>.
 /// <para>
-/// This implementation is open to extension: by overriding <see cref="StoreAsync(IActivityMonitor, IDelayedCommand, ActivityMonitor.Token?)"/>
-/// <see cref="OnCommandExecuting(DelayedCommandEntry)"/> (and possibly the [CommandHandler] <see cref="HandleCommandAsync(IActivityMonitor, IDelayedCommand)"/>),
+/// This implementation is open to extension: by overriding <see cref="StoreAsync(IActivityMonitor, IDelayedCommand, ActivityMonitor.Token?, CapturedAmbientValues?)"/>
+/// <see cref="OnCommandExecuting(DelayedCommandEntry)"/> (and possibly the [CommandHandler] <see cref="HandleCommandAsync(IActivityMonitor, IDelayedCommand, AmbientServiceHub)"/>),
 /// a more complex implementation can handle persistence.
 /// </para>
 /// </summary>
@@ -21,6 +22,7 @@ public class CrisDelayedCommandService : ISingletonAutoService
     readonly CrisBackgroundExecutorService _backgroundExecutorService;
     readonly PocoDirectory _pocoDirectory;
     readonly RawCrisExecutor _rawCrisExecutor;
+    readonly IDeferredAmbientValuesCapture[] _captures;
     int _seqNum;
     DateTime _nextDate;
     const uint _maxTimer = uint.MaxValue - 1;
@@ -31,10 +33,13 @@ public class CrisDelayedCommandService : ISingletonAutoService
     /// <param name="backgroundExecutorService">The background executor service.</param>
     /// <param name="pocoDirectory">The Poco directory.</param>
     /// <param name="rawCrisExecutor">The Cris executor.</param>
+    /// <param name="captures">The ambient values to capture when a command is stored.</param>
     public CrisDelayedCommandService( CrisBackgroundExecutorService backgroundExecutorService,
                                       PocoDirectory pocoDirectory,
-                                      RawCrisExecutor rawCrisExecutor )
+                                      RawCrisExecutor rawCrisExecutor,
+                                      IEnumerable<IDeferredAmbientValuesCapture> captures )
     {
+        _captures = captures.ToArray();
         _memoryStore = new PriorityQueue<DelayedCommandEntry, DateTime>();
         _timer = new Timer( OnTimer );
         _nextDate = Util.UtcMaxValue;
@@ -53,15 +58,16 @@ public class CrisDelayedCommandService : ISingletonAutoService
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="command">The delayed command.</param>
     /// <param name="issuerToken">Optional already obtained correlation token.</param>
+    /// <param name="capturedValues">The ambient values captured from the storing context (see <see cref="IDeferredAmbientValuesCapture"/>).</param>
     /// <returns>A 1-based ever incremented sequence number that identifies the added command.</returns>
-    protected int MemoryStore( IActivityMonitor monitor, IDelayedCommand command, ActivityMonitor.Token? issuerToken = null )
+    protected int MemoryStore( IActivityMonitor monitor, IDelayedCommand command, ActivityMonitor.Token? issuerToken = null, CapturedAmbientValues? capturedValues = null )
     {
         Throw.CheckArgument( command.Command is not null );
         var innerCommand = command.Command;
         issuerToken ??= monitor.CreateToken( $"Delayed execution command: '{innerCommand.CrisPocoModel.PocoName}' at '{command.ExecutionDate}'." );
         lock( _memoryStore )
         {
-            var entry = new DelayedCommandEntry( ++_seqNum, issuerToken, command );
+            var entry = new DelayedCommandEntry( ++_seqNum, issuerToken, command, capturedValues );
             _memoryStore.Enqueue( entry, command.ExecutionDate );
             if( command.ExecutionDate < _nextDate )
             {
@@ -76,17 +82,18 @@ public class CrisDelayedCommandService : ISingletonAutoService
     }
 
     /// <summary>
-    /// Simple relay to <see cref="MemoryStore(IActivityMonitor, IDelayedCommand, ActivityMonitor.Token?)"/>.
+    /// Simple relay to <see cref="MemoryStore(IActivityMonitor, IDelayedCommand, ActivityMonitor.Token?, CapturedAmbientValues?)"/>.
     /// More complex specializations should override this.
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="command">The delayed command.</param>
     /// <param name="issuerToken">Optional already obtained correlation token.</param>
+    /// <param name="capturedValues">The ambient values captured from the storing context (see <see cref="IDeferredAmbientValuesCapture"/>).</param>
     /// <returns>The awaitable.</returns>
-    public virtual ValueTask StoreAsync( IActivityMonitor monitor, IDelayedCommand command, ActivityMonitor.Token? issuerToken = null )
+    public virtual ValueTask StoreAsync( IActivityMonitor monitor, IDelayedCommand command, ActivityMonitor.Token? issuerToken = null, CapturedAmbientValues? capturedValues = null )
     {
         Throw.CheckArgument( command.Command is not null );
-        MemoryStore( monitor, command, issuerToken );
+        MemoryStore( monitor, command, issuerToken, capturedValues );
         if( !command.KeepOnlyInMemory )
         {
             monitor.Warn( $"Unable to persist command '{command.CrisPocoModel.PocoName}' since this is an in-memory only store." );
@@ -222,16 +229,17 @@ public class CrisDelayedCommandService : ISingletonAutoService
     }
 
     /// <summary>
-    /// Simply calls <see cref="StoreAsync(IActivityMonitor, IDelayedCommand, ActivityMonitor.Token?)"/>.
+    /// Simply calls <see cref="StoreAsync(IActivityMonitor, IDelayedCommand, ActivityMonitor.Token?, CapturedAmbientValues?)"/>.
     /// Commands are always executed from the background context even if their <see cref="IDelayedCommand.ExecutionDate"/> is in the past.
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="command">The delayed command.</param>
+    /// <param name="ambientServices">The ambient services of the storing context: the <see cref="IDeferredAmbientValuesCapture"/> keep their values.</param>
     /// <returns>The awaitable.</returns>
     [CommandHandler]
-    public virtual ValueTask HandleCommandAsync( IActivityMonitor monitor, IDelayedCommand command )
+    public virtual ValueTask HandleCommandAsync( IActivityMonitor monitor, IDelayedCommand command, AmbientServiceHub ambientServices )
     {
-        return StoreAsync( monitor, command );
+        return StoreAsync( monitor, command, null, CapturedAmbientValues.Capture( _captures, ambientServices ) );
     }
 
 }

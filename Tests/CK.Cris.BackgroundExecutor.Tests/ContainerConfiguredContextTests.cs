@@ -42,4 +42,39 @@ public class ContainerConfiguredContextTests
         var executed = await executing.ExecutedCommand;
         executed.Result.ShouldBe( true );
     }
+
+    // A service that only an endpoint container could configure: the background container doesn't.
+    [ScopedContainerConfiguredService]
+    public interface IEndpointThing : IAutoService
+    {
+    }
+
+    public interface IEndpointBoundCommand : ICommand
+    {
+    }
+
+    public sealed class EndpointBoundHandler : IRealObject
+    {
+        [CommandHandler]
+        public void Handle( IEndpointBoundCommand command, IEndpointThing thing ) { }
+    }
+
+    [Test]
+    public async Task a_command_whose_handler_needs_an_endpoint_service_cannot_be_deferred_Async()
+    {
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( IContextCommand ),
+                                              typeof( ContextHandler ),
+                                              typeof( IEndpointThing ),
+                                              typeof( IEndpointBoundCommand ),
+                                              typeof( EndpointBoundHandler ),
+                                              typeof( CrisBackgroundExecutorService ) );
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+
+        var issues = auto.Services.GetRequiredService<CrisBackgroundExecutorService>()
+                                  .GetDeferralIssues( auto.Services.GetRequiredService<CrisDirectory>() );
+        issues.Count.ShouldBe( 1 );
+        issues[0].ShouldContain( "IEndpointBoundCommand" );
+        issues[0].ShouldContain( "IEndpointThing" );
+    }
 }

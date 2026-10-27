@@ -72,23 +72,24 @@ token is verified locally, with the keys of the authentication center. It carrie
 session: the endpoint checks that the caller presents that secret (the binding cookie over HTTP), so that a stolen token
 cannot be used elsewhere.
 
-## Relaying to a remote authentication center
+## A remote authentication center
 
 An application is either an authentication center or a front of a remote one: the role comes from the installed
-packages (the "Local" or the "Remote" package of the authentication center), never from a runtime check. A front
-relays the session commands with [`IAuthenticationSessionRelay`](IAuthenticationSessionRelay.cs): the endpoints that
-accept the session commands call it, when it exists, **before** the handlers, and the command is never executed here
-(the relay fails closed).
+packages (the "Local" or the "Remote" package of the authentication center), never from a runtime check. Nothing is
+relayed: a session command (`ICommandEndpointOnly`) is always executed by the endpoint that received it, on a front as
+on the authentication center. What differs is the implementation of the services its handlers call (like
+[`IAuthenticationSessionOpener`](IAuthenticationSessionOpener.cs)): the "Local" one works with the session store, the
+"Remote" one sends the state operations to the remote authentication center. Any other command without a local
+handler is dispatched (`ICrisRemoteDispatcher`): where a command runs is a deployment detail.
 
-The endpoint takes part in the relay: it presents the caller's bearer token (`PresentedToken`, read again by the
-remote authentication center) and it generates the next secrets in advance (`PrepareSecrets`): their hashes travel
-with the command, the secrets stay in the endpoint, and its `Issue` then uses them.
+The endpoint takes part in the remote operations: it presents the caller's bearer token (`PresentedToken`, read again
+by the remote authentication center) and it generates the next secrets in advance (`PrepareSecrets`): their hashes
+travel with the operation, the secrets stay in the endpoint, and its `Issue` then uses them.
 
-The commands executed by the authentication center that are not session commands (`ICommandAuthCenter`: the actor's
-self-service on its own login methods, the login schemes) are relayed by
-[`IAuthCenterCommandRelay`](IAuthCenterCommandRelay.cs), called **after** the endpoint's incoming validation. It carries
-the caller's proof (its token and the hash of its binding secret), not only its actor identifier: the remote
-authentication center establishes the identity again, so a front can act only for the callers that use it.
+The identity of a command that comes through another party carries that party
+(`AuthenticationInfo.CallerPartyId`, set at reception, its levels capped by the `ICallerPartyService`).
+[`CallerPartyAmbientValuesCapture`](CallerPartyAmbientValuesCapture.cs) keeps it with the deferred commands (the
+delayed commands): their restored authentication is completed with it.
 
 ## Opening a session
 

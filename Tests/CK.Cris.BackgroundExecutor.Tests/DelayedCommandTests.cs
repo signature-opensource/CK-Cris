@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using Shouldly;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using static CK.Testing.MonitorTestHelper;
 
@@ -20,6 +22,10 @@ public class DelayedCommandTests
     {
     }
 
+    public interface ICapturedCommand : ICommand<string>
+    {
+    }
+
     public sealed class Handlers : ISingletonAutoService
     {
         [CommandHandler]
@@ -32,6 +38,32 @@ public class DelayedCommandTests
         public void Restore( IFailingRestoreCommand c, AmbientServiceHub hub )
         {
             throw new InvalidOperationException( "Restore failure." );
+        }
+
+        public static TaskCompletionSource<string> CapturedCulture = new();
+
+        [CommandHandler]
+        public string Handle( ICapturedCommand c, ExtendedCultureInfo culture )
+        {
+            CapturedCulture.TrySetResult( culture.Name );
+            return culture.Name;
+        }
+
+        // The restoration knows nothing about the culture.
+        [RestoreAmbientServices]
+        public void Restore( ICapturedCommand c, AmbientServiceHub hub )
+        {
+        }
+    }
+
+    // Captures a plain value (a culture name) and completes the restored hub with it.
+    public sealed class CultureCapture : IDeferredAmbientValuesCapture
+    {
+        public object? Capture( AmbientServiceHub hub ) => "fr";
+
+        public void Complete( IActivityMonitor monitor, AmbientServiceHub hub, object captured )
+        {
+            hub.Override<ExtendedCultureInfo>( NormalizedCultureInfo.EnsureNormalizedCultureInfo( (string)captured ) );
         }
     }
 
@@ -49,8 +81,9 @@ public class DelayedCommandTests
 
         public TestDelayedCommandService( CrisBackgroundExecutorService backgroundExecutorService,
                                           PocoDirectory pocoDirectory,
-                                          RawCrisExecutor rawCrisExecutor )
-            : base( backgroundExecutorService, pocoDirectory, rawCrisExecutor )
+                                          RawCrisExecutor rawCrisExecutor,
+                                          IEnumerable<IDeferredAmbientValuesCapture> captures )
+            : base( backgroundExecutorService, pocoDirectory, rawCrisExecutor, captures )
         {
         }
 
@@ -65,9 +98,12 @@ public class DelayedCommandTests
     {
         ExecutedEventHandler.Executed = new( TaskCreationOptions.RunContinuationsAsynchronously );
         TestDelayedCommandService.RestoreFailed = new( TaskCreationOptions.RunContinuationsAsynchronously );
+        Handlers.CapturedCulture = new( TaskCreationOptions.RunContinuationsAsynchronously );
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( typeof( ISucceedingCommand ),
                                               typeof( IFailingRestoreCommand ),
+                                              typeof( ICapturedCommand ),
+                                              typeof( CultureCapture ),
                                               typeof( Handlers ),
                                               typeof( ExecutedEventHandler ),
                                               typeof( IDelayedCommand ),
@@ -115,5 +151,34 @@ public class DelayedCommandTests
         command.Command.ShouldBeSameAs( delayed.Command );
         command.Result.ShouldBeAssignableTo<ICrisResultError>();
         ExecutedEventHandler.Executed.Task.IsCompleted.ShouldBeFalse();
+    }
+
+    [Test]
+    public async Task the_captured_values_complete_the_restored_ambient_services_Async()
+    {
+        await using var auto = await CreateAsync();
+        var poco = auto.Services.GetRequiredService<PocoDirectory>();
+        var delayed = poco.Create<IDelayedCommand>( d =>
+        {
+            d.ExecutionDate = DateTime.UtcNow;
+            d.AllowPastExecutionDate = true;
+            d.Command = poco.Create<ICapturedCommand>();
+        } );
+        using var scope = auto.Services.CreateScope();
+        var captured = CapturedAmbientValues.Capture( auto.Services.GetServices<IDeferredAmbientValuesCapture>(),
+                                                      scope.ServiceProvider.GetRequiredService<AmbientServiceHub>() );
+        captured.ShouldNotBeNull();
+        await auto.Services.GetRequiredService<CrisDelayedCommandService>().StoreAsync( TestHelper.Monitor, delayed, null, captured );
+
+        (await Handlers.CapturedCulture.Task.WaitAsync( TimeSpan.FromSeconds( 5 ) )).ShouldBe( "fr" );
+    }
+
+    [Test]
+    public async Task these_commands_can_be_deferred_Async()
+    {
+        await using var auto = await CreateAsync();
+        auto.Services.GetRequiredService<CrisBackgroundExecutorService>()
+            .GetDeferralIssues( auto.Services.GetRequiredService<CrisDirectory>() )
+            .ShouldBeEmpty();
     }
 }

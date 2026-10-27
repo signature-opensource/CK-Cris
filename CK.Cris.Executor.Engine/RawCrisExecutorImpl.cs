@@ -31,8 +31,14 @@ public partial class RawCrisExecutorImpl : CSCodeGeneratorType
                 {
                     // Use Default Implementation Method when no command handler has been found.
                     // We need the CrisPocoModel.PocoName: this is why this specializes ICrisPoco.
+                    // A command that is not endpoint-only is dispatched when a ICrisRemoteDispatcher exists.
                     Task<RawCrisExecutor.RawResult> ExecCommandAsync( IServiceProvider s )
                     {
+                        if( this is not ICommandEndpointOnly
+                            && s.GetService( typeof( ICrisRemoteDispatcher ) ) is ICrisRemoteDispatcher d )
+                        {
+                            return d.DispatchAsync( s, (IAbstractCommand)this );
+                        }
                         var e = new CK.Cris.ICrisResultError_CK();
                         var c = (CurrentCultureInfo?)s.GetService( typeof( CurrentCultureInfo ) );
                         UserMessage msg = c != null

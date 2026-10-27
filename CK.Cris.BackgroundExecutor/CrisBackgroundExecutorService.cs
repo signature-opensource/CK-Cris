@@ -1,6 +1,7 @@
 using CK.Core;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
@@ -52,6 +53,10 @@ public class CrisBackgroundExecutorService : ContainerCommandExecutor<CrisBackgr
     {
         var (error, hub) = await ExecutionHost.RawCrisExecutor.RestoreAmbientServicesAsync( monitor, job.Command );
         if( error != null ) return (error, default);
+        if( hub != null && job.DeferredExecutionContext is IRestoredAmbientServicesCompleter completer )
+        {
+            completer.Complete( monitor, hub );
+        }
         scopedData.AmbientServiceHub = hub;
         return await base.PrepareJobAsync( monitor, job );
     }
@@ -133,4 +138,45 @@ public class CrisBackgroundExecutorService : ContainerCommandExecutor<CrisBackgr
         return Submit( command, ambientServiceHub, issuerToken, deferredExecutionInfo, onExecutedCommand, incomingValidationCheck );
     }
 
+    /// <summary>
+    /// Checks the goal of the Cris Command Pattern: once validated, a command must be executable in a deferred context.
+    /// The incoming validators, handling validators, handlers and post handlers of every command that is not a
+    /// <see cref="ICommandEndpointOnly"/> must depend only on services that this background container can provide
+    /// (never on endpoint services like the HTTP context or the calling remote party).
+    /// </summary>
+    /// <param name="directory">The Cris directory.</param>
+    /// <returns>One description per offending parameter. Empty when every command can be deferred.</returns>
+    public IReadOnlyList<string> GetDeferralIssues( CrisDirectory directory )
+    {
+        Throw.CheckNotNullArgument( directory );
+        List<string>? issues = null;
+        foreach( var m in directory.CrisPocoModels )
+        {
+            if( m.Kind is not (CrisPocoKind.Command or CrisPocoKind.CommandWithResult)
+                || typeof( ICommandEndpointOnly ).IsAssignableFrom( m.CommandType ) )
+            {
+                continue;
+            }
+            foreach( var h in m.Handlers )
+            {
+                if( h.Kind is CrisHandlerKind.ConfigureAmbientServices or CrisHandlerKind.RestoreAmbientServices or CrisHandlerKind.RoutedEventHandler )
+                {
+                    continue;
+                }
+                foreach( var p in h.Parameters )
+                {
+                    if( typeof( ICrisPoco ).IsAssignableFrom( p )
+                        || p == typeof( UserMessageCollector )
+                        || p == typeof( ICrisIncomingValidationContext )
+                        || DIContainer.IsService( p ) )
+                    {
+                        continue;
+                    }
+                    issues ??= new List<string>();
+                    issues.Add( $"Command '{m.PocoName}' cannot be deferred: {h.Kind} '{h.Type.ClassType.Name}.{h.MethodName}' ({h.FileName}:{h.LineNumber}) requires '{p.Name}' that the background cannot provide." );
+                }
+            }
+        }
+        return (IReadOnlyList<string>?)issues ?? Array.Empty<string>();
+    }
 }
