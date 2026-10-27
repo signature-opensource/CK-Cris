@@ -117,13 +117,7 @@ public sealed class ExecutingCommand<T> : ExecutingCommand, IExecutingCommand<T>
         Task<IExecutedCommand> IExecutingCommand.ExecutedCommand => _command.ExecutedCommand;
     }
 
-    /// <summary>
-    /// Gets the strongly typed command and its result.
-    /// This must be called only for <see cref="ICommand{TResult}"/> otherwise
-    /// an <see cref="ArgumentException"/> is thrown.
-    /// </summary>
-    /// <typeparam name="TResult">The result type.</typeparam>
-    /// <returns>A strongly typed command and its result.</returns>
+    /// <inheritdoc />
     public IExecutingCommand<T>.IResultAdapter<TResult> WithResult<TResult>()
     {
         if( base.Command.CrisPocoModel.ResultType == typeof( void ) )
