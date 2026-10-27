@@ -56,12 +56,17 @@ public sealed partial class CrisType
 
     /// <summary>
     /// Gets the ambient services configurator methods.
-    /// Only <see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/> can have configurators.
+    /// Only handled commands (<see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/>)
+    /// and handled routed events (<see cref="CrisPocoKind.RoutedImmediateEvent"/> and <see cref="CrisPocoKind.RoutedEvent"/>)
+    /// can have configurators.
     /// </summary>
     public MultiTargetHandlerList AmbientServicesConfigurators => _ambientServicesConfigurators!;
 
     /// <summary>
     /// Gets the ambient services restorer methods.
+    /// Only handled commands (<see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/>)
+    /// and handled routed events (<see cref="CrisPocoKind.RoutedImmediateEvent"/> and <see cref="CrisPocoKind.RoutedEvent"/>)
+    /// can have restorers.
     /// </summary>
     public MultiTargetHandlerList AmbientServicesRestorers => _ambientServicesRestorers!;
 
