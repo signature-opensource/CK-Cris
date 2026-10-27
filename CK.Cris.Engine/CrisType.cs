@@ -171,7 +171,9 @@ public sealed partial class CrisType
         }
         else if( _kind is CrisPocoKind.RoutedImmediateEvent or CrisPocoKind.RoutedEvent )
         {
-            Throw.DebugAssert( _incomingValidators == null );
+            // [IncomingValidator], [ConfigureAmbientServices] and [RestoreAmbientServices] accept any ICrisPoco:
+            // a method that targets a part shared by commands and events is registered on the events too.
+            // The ones that don't apply to an event are forgotten here.
             _incomingValidators = MultiTargetHandlerList._empty;
             Throw.DebugAssert( _handlingValidators == null );
             _handlingValidators = MultiTargetHandlerList._empty;
@@ -193,11 +195,9 @@ public sealed partial class CrisType
         else
         {
             Throw.DebugAssert( _kind is CrisPocoKind.CallerOnlyImmediateEvent or CrisPocoKind.CallerOnlyEvent );
-            Throw.DebugAssert( _incomingValidators == null );
+            // See above: these handlers may have been registered through a part shared with commands.
             _incomingValidators = MultiTargetHandlerList._empty;
-            Throw.DebugAssert( _ambientServicesConfigurators == null );
             _ambientServicesConfigurators = MultiTargetHandlerList._empty;
-            Throw.DebugAssert( _ambientServicesRestorers == null );
             _ambientServicesRestorers = MultiTargetHandlerList._empty;
             Throw.DebugAssert( _handlingValidators == null );
             _handlingValidators = MultiTargetHandlerList._empty;
