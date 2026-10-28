@@ -144,6 +144,35 @@ public class CrisExecutionContext : ICrisCommandContext
     }
 
     /// <summary>
+    /// Executes a root command inline with other ambient services: for an endpoint whose incoming validation configured
+    /// ambient services (see <see cref="RawCrisReceiver"/>). The command executes on the caller's asynchronous flow (nothing
+    /// is queued), in a new scope built from the <paramref name="hub"/> (see <see cref="ICrisAmbientScopeFactory"/>), with a
+    /// view of this context: its immediate events are the ones of this context, its final routed events are dispatched in the
+    /// new scope. This must not be called when <see cref="IsExecutingCommand"/> is true.
+    /// </summary>
+    /// <param name="hub">The ambient services to use.</param>
+    /// <param name="rootCommand">The command to execute.</param>
+    /// <param name="validationMessages">Optional pre-existing validation messages (typically incoming validation messages).</param>
+    /// <returns>The executed command.</returns>
+    public async Task<ExecutedCommand> ExecuteRootCommandInlineAsync( AmbientServiceHub hub,
+                                                                      IAbstractCommand rootCommand,
+                                                                      ImmutableArray<UserMessage> validationMessages = default )
+    {
+        Throw.CheckNotNullArgument( hub );
+        Throw.CheckNotNullArgument( rootCommand );
+        Throw.CheckState( !IsExecutingCommand );
+        var factory = (ICrisAmbientScopeFactory?)_serviceProvider.GetService( typeof( ICrisAmbientScopeFactory ) );
+        if( factory == null )
+        {
+            Throw.InvalidOperationException( $"No {nameof( ICrisAmbientScopeFactory )} is available: CK.Cris.BackgroundExecutor must be installed to execute a command with other ambient services." );
+        }
+        CrisExecutionContext? view = null;
+        await using var scope = factory.CreateScope( hub, _monitor, sp => view = CreateView( sp ) );
+        Throw.DebugAssert( view != null );
+        return await view.ExecuteRootCommandAsync( rootCommand, null, validationMessages ).ConfigureAwait( false );
+    }
+
+    /// <summary>
     /// Gets the scoped services of this context.
     /// </summary>
     internal IServiceProvider ServiceProvider => _serviceProvider;

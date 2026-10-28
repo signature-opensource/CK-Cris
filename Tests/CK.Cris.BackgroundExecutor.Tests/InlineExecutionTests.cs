@@ -145,4 +145,31 @@ public class InlineExecutionTests
         var executing = background.Submit( TestHelper.Monitor, pocos.Create<ICultureCommand>( c => c.CurrentCultureName = "fr" ), hub, incomingValidationCheck: true );
         (await executing.ExecutedCommand.WaitAsync( TimeSpan.FromSeconds( 5 ) )).Result.ShouldBe( "fr" );
     }
+
+    [Test]
+    public async Task an_endpoint_executes_a_root_command_inline_with_other_ambient_services_Async()
+    {
+        NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( ICultureCommand ),
+                                              typeof( Handlers ),
+                                              typeof( IOuterCommand ),
+                                              typeof( IInlineCommand ),
+                                              typeof( INestedCommand ),
+                                              typeof( IInlineDoneEvent ),
+                                              typeof( IInlineRoutedEvent ),
+                                              typeof( CrisBackgroundExecutorService ),
+                                              typeof( RawCrisReceiver ) );
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        // Like an HTTP endpoint: a scope with its own execution context, not a job.
+        using var scope = auto.Services.CreateScope();
+        var services = scope.ServiceProvider;
+        var context = new CrisExecutionContext( TestHelper.Monitor, services, services.GetRequiredService<DarkSideCrisEventHub>(), services.GetRequiredService<RawCrisExecutor>() );
+        var hub = services.GetRequiredService<AmbientServiceHub>().CleanClone();
+        hub.Override<ExtendedCultureInfo>( NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" ) );
+
+        var executed = await context.ExecuteRootCommandInlineAsync( hub, services.GetRequiredService<PocoDirectory>().Create<ICultureCommand>() );
+        executed.Result.ShouldBe( "fr" );
+        context.IsExecutingCommand.ShouldBeFalse();
+    }
 }
