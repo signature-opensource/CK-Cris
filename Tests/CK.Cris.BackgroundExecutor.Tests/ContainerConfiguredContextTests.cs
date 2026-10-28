@@ -3,6 +3,7 @@ using CK.Testing;
 using Shouldly;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Linq;
 using System.Threading.Tasks;
 using static CK.Testing.MonitorTestHelper;
 
@@ -76,5 +77,39 @@ public class ContainerConfiguredContextTests
         issues.Count.ShouldBe( 1 );
         issues[0].ShouldContain( "IEndpointBoundCommand" );
         issues[0].ShouldContain( "IEndpointThing" );
+    }
+
+    public interface IOptionalEndpointCommand : ICommand
+    {
+    }
+
+    public sealed class OptionalEndpointHandler : IRealObject
+    {
+        // Optional: null in the background.
+        [CommandHandler]
+        public void Handle( IOptionalEndpointCommand command, IEndpointThing? thing = null ) { }
+    }
+
+    [Test]
+    public async Task an_optional_endpoint_service_does_not_prevent_the_deferral_Async()
+    {
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( IEndpointThing ),
+                                              typeof( IOptionalEndpointCommand ),
+                                              typeof( OptionalEndpointHandler ),
+                                              typeof( CrisBackgroundExecutorService ) );
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+
+        var directory = auto.Services.GetRequiredService<CrisDirectory>();
+        auto.Services.GetRequiredService<CrisBackgroundExecutorService>().GetDeferralIssues( directory ).ShouldBeEmpty();
+        var handler = directory.CrisPocoModels.Single( m => m.CommandType == typeof( IOptionalEndpointCommand ) ).Handlers.Single();
+        handler.IsOptionalParameter( 0 ).ShouldBeFalse();
+        handler.IsOptionalParameter( 1 ).ShouldBeTrue();
+
+        // In the background, the optional service is null.
+        var poco = auto.Services.GetRequiredService<PocoDirectory>();
+        var executed = await auto.Services.GetRequiredService<CrisBackgroundExecutorService>()
+                                          .Submit( TestHelper.Monitor, poco.Create<IOptionalEndpointCommand>(), null ).ExecutedCommand;
+        executed.Result.ShouldNotBeAssignableTo<ICrisResultError>();
     }
 }

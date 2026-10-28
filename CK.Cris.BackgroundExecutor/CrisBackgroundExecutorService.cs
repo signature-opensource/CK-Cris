@@ -163,9 +163,12 @@ public class CrisBackgroundExecutorService : ContainerCommandExecutor<CrisBackgr
                 {
                     continue;
                 }
-                foreach( var p in h.Parameters )
+                for( int i = 0; i < h.Parameters.Count; i++ )
                 {
-                    if( typeof( ICrisPoco ).IsAssignableFrom( p )
+                    var p = h.Parameters[i];
+                    // An optional parameter is null when the background cannot provide it.
+                    if( h.IsOptionalParameter( i )
+                        || typeof( ICrisPoco ).IsAssignableFrom( p )
                         || p == typeof( UserMessageCollector )
                         || p == typeof( ICrisIncomingValidationContext )
                         || DIContainer.IsService( p ) )

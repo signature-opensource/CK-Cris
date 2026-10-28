@@ -63,8 +63,10 @@ public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextB
                                                                       Type[] parameters,
                                                                       CK.Cris.CrisHandlerKind kind,
                                                                       string fileName,
-                                                                      int lineNumber )
+                                                                      int lineNumber,
+                                                                      ulong optionalParameters )
                                         {
+                                            _optionalParameters = optionalParameters;
                                             Type = type;
                                             MethodName = methodName;
                                             Parameters = parameters;
@@ -80,6 +82,11 @@ public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextB
                                         public CK.Cris.CrisHandlerKind Kind { get; }
 
                                         public IReadOnlyList<Type> Parameters { get; }
+
+                                        // Bit i is set when the parameter i has a default value.
+                                        readonly ulong _optionalParameters;
+
+                                        public bool IsOptionalParameter( int index ) => index >= 0 && index < 64 && (_optionalParameters & (1UL << index)) != 0;
 
                                         public string FileName { get; }
 
@@ -183,7 +190,8 @@ public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextB
                          .AppendArray( handler.Parameters.Select( p => p.ParameterType ) ).Append( "," )
                          .Append( handler.Kind ).Append( "," )
                          .AppendSourceString( handler.FileName ).Append( "," )
-                         .Append( handler.LineNumber )
+                         .Append( handler.LineNumber ).Append( "," )
+                         .Append( OptionalParametersMask( handler ) ).Append( "UL" )
                          .Append( ")," ).NewLine();
                     }
                     classScope.Append( "} );" ).NewLine()
@@ -231,6 +239,18 @@ public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextB
         c.CurrentRun.ServiceContainer.Add<ICrisDirectoryServiceEngine>( registry );
 
         return CSCodeGenerationResult.Success;
+    }
+
+    // Bit i is set when the parameter i has a default value (an optional service, see VariableCachedServices). Computed
+    // here, at setup: the runtime handler model (ICrisPocoModel.IHandler.IsOptionalParameter) needs no reflection.
+    static ulong OptionalParametersMask( HandlerBase handler )
+    {
+        ulong mask = 0;
+        foreach( var p in handler.Parameters )
+        {
+            if( p.HasDefaultValue && p.Position < 64 ) mask |= 1UL << p.Position;
+        }
+        return mask;
     }
 
     // The most restrictive exposure declared by the interfaces of the family or by its parts (computed here, at setup:
