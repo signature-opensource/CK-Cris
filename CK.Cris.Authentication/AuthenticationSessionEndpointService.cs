@@ -87,9 +87,7 @@ public sealed class AuthenticationSessionEndpointService : IAuthenticationSessio
             c.RememberMe = rememberMe;
             if( userData != null )
             {
-                var d = new Dictionary<string, string>();
-                foreach( var (k, v) in userData ) if( v != null ) d[k] = v;
-                c.UserData = d;
+                foreach( var (k, v) in userData ) if( v != null ) c.UserData[k] = v;
             }
         } );
         return await ExecuteSessionOperationAsync( monitor, op ).ConfigureAwait( false )
