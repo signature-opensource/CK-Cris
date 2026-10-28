@@ -32,14 +32,21 @@ public partial class RawCrisExecutorImpl : CSCodeGeneratorType
                     // Use Default Implementation Method when no command handler has been found.
                     // We need the CrisPocoModel.PocoName: this is why this specializes ICrisPoco.
                     // A command that is neither endpoint-only nor [Private] is dispatched when a ICrisRemoteDispatcher exists.
+                    // A party command is routed by its target: when it is here, it has no handler (no singleton dispatch).
                     Task<RawCrisExecutor.RawResult> ExecCommandAsync( IServiceProvider s )
                     {
                         bool isPrivate = CrisPocoModel.Exposure == CrisExposure.Private;
-                        if( !isPrivate
-                            && this is not ICommandEndpointOnly
+                        if( this is not ICommandEndpointOnly
                             && s.GetService( typeof( ICrisRemoteDispatcher ) ) is ICrisRemoteDispatcher d )
                         {
-                            return d.DispatchAsync( s, (IAbstractCommand)this );
+                            if( this is ICommandTargetParty )
+                            {
+                                if( d.RoutePartyCommand( s, (IAbstractCommand)this ) is { } routed ) return routed;
+                            }
+                            else if( !isPrivate )
+                            {
+                                return d.DispatchAsync( s, (IAbstractCommand)this );
+                            }
                         }
                         var e = new CK.Cris.ICrisResultError_CK();
                         var c = (CurrentCultureInfo?)s.GetService( typeof( CurrentCultureInfo ) );
@@ -195,6 +202,23 @@ public partial class RawCrisExecutorImpl : CSCodeGeneratorType
         bool isVoidReturn = h.UnwrappedReturnType == null;
         bool isHandlerAsync = h.IsRefAsync || h.IsValAsync;
         bool isPostHandlerAsync = e.HasPostHandlerAsyncCall;
+
+        // A party command is routed before any local execution (and before its handling validation: it is validated
+        // where it executes). The call is emitted only for the party commands that are not endpoint-only.
+        if( typeof( ICommandTargetParty ).IsAssignableFrom( e.CrisPocoType.Type )
+            && !typeof( ICommandEndpointOnly ).IsAssignableFrom( e.CrisPocoType.Type ) )
+        {
+            // Same as the isOverallAsync computed below (the async modifier is set later).
+            bool willBeAsync = isHandlerAsync
+                               || isPostHandlerAsync
+                               || (e.HandlingValidators.Count > 0 && e.HandlingValidators.AsyncHandlerCount > 0);
+            f.GeneratedByComment( "Party command: routed by the ICrisRemoteDispatcher before any local execution." )
+             .Append( "if( s.GetService( typeof( CK.Cris.ICrisRemoteDispatcher ) ) is CK.Cris.ICrisRemoteDispatcher partyRouter" ).NewLine()
+             .Append( "    && partyRouter.RoutePartyCommand( s, this ) is { } routed )" )
+             .OpenBlock()
+             .Append( willBeAsync ? "return await routed;" : "return routed;" ).NewLine()
+             .CloseBlock();
+        }
 
         f.Append( "UserMessageCollector? v = null;" ).NewLine();
 
