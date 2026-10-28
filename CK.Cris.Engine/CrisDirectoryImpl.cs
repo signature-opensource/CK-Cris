@@ -118,6 +118,19 @@ public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextB
             }
             bool hasSensitiveData = e.CrisPocoType.Fields.Any( f => f.Property.DeclaredProperties
                                                                      .Any( p => p.PropertyInfo.IsDefined( typeof( SensitiveAttribute ), true ) ) );
+            var exposure = GetExposure( e );
+            if( exposure != CrisExposure.Public )
+            {
+                if( !isCommand )
+                {
+                    monitor.Error( $"'{e.PocoName}' is an event: [Internal] and [Private] apply to commands only." );
+                    success = false;
+                }
+                else if( exposure == CrisExposure.Private && !e.IsHandled )
+                {
+                    monitor.Warn( $"Command '{e.PocoName}' is [Private] and has no command handler: it cannot be executed in this application." );
+                }
+            }
             var classScope = scope.Namespace.FindOrCreateAutoImplementedClass( monitor, e.CrisPocoType.FamilyInfo.PocoFactoryClass );
             using( classScope.Region() )
             {
@@ -131,7 +144,8 @@ public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextB
                  .Append( "public bool IsHandled => " ).Append( e.IsHandled ).Append( ";" ).NewLine()
                  .Append( "public bool EndpointMustConfigureServices => " ).Append( e.AmbientServicesConfigurators.Count > 0 ).Append( ";" ).NewLine()
                  .Append( "public bool BackgroundMustRestoreServices => " ).Append( e.AmbientServicesRestorers.Count > 0 ).Append( ";" ).NewLine()
-                 .Append( "public bool HasSensitiveData => " ).Append( hasSensitiveData ).Append( ";" ).NewLine();
+                 .Append( "public bool HasSensitiveData => " ).Append( hasSensitiveData ).Append( ";" ).NewLine()
+                 .Append( "public CK.Cris.CrisExposure Exposure => CK.Cris.CrisExposure." ).Append( exposure.ToString() ).Append( ";" ).NewLine();
 
                 // ImmutableArray<string> AmbientValuePropertyNames
                 if( e.AmbientValueFields.Count > 0 )
@@ -212,6 +226,20 @@ public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextB
         c.CurrentRun.ServiceContainer.Add<ICrisDirectoryServiceEngine>( registry );
 
         return CSCodeGenerationResult.Success;
+    }
+
+    // The most restrictive exposure declared by the interfaces of the family or by its parts (computed here, at setup:
+    // the runtime never uses reflection for it).
+    static CrisExposure GetExposure( CrisType e )
+    {
+        var family = e.CrisPocoType.FamilyInfo;
+        var exposure = CrisExposure.Public;
+        foreach( var t in family.Interfaces.Select( i => i.PocoInterface ).Concat( family.OtherInterfaces ) )
+        {
+            if( t.IsDefined( typeof( PrivateAttribute ), false ) ) return CrisExposure.Private;
+            if( t.IsDefined( typeof( InternalAttribute ), false ) ) exposure = CrisExposure.Internal;
+        }
+        return exposure;
     }
 
     static bool CheckICommandHandlerMissingImplementations( IActivityMonitor monitor, CrisTypeRegistry registry )

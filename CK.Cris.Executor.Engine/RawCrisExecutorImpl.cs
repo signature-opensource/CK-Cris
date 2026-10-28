@@ -31,19 +31,24 @@ public partial class RawCrisExecutorImpl : CSCodeGeneratorType
                 {
                     // Use Default Implementation Method when no command handler has been found.
                     // We need the CrisPocoModel.PocoName: this is why this specializes ICrisPoco.
-                    // A command that is not endpoint-only is dispatched when a ICrisRemoteDispatcher exists.
+                    // A command that is neither endpoint-only nor [Private] is dispatched when a ICrisRemoteDispatcher exists.
                     Task<RawCrisExecutor.RawResult> ExecCommandAsync( IServiceProvider s )
                     {
-                        if( this is not ICommandEndpointOnly
+                        bool isPrivate = CrisPocoModel.Exposure == CrisExposure.Private;
+                        if( !isPrivate
+                            && this is not ICommandEndpointOnly
                             && s.GetService( typeof( ICrisRemoteDispatcher ) ) is ICrisRemoteDispatcher d )
                         {
                             return d.DispatchAsync( s, (IAbstractCommand)this );
                         }
                         var e = new CK.Cris.ICrisResultError_CK();
                         var c = (CurrentCultureInfo?)s.GetService( typeof( CurrentCultureInfo ) );
+                        var text = isPrivate
+                                    ? $"Command '{CrisPocoModel.PocoName}' is [Private] and has no command handler."
+                                    : $"Command '{CrisPocoModel.PocoName}' has no command handler.";
                         UserMessage msg = c != null
-                                            ? UserMessage.Error( c, $"Command '{CrisPocoModel.PocoName}' has no command handler.", "Cris.MissingCommandHandler" )
-                                            : UserMessage.Error( NormalizedCultureInfo.CodeDefault, $"Command '{CrisPocoModel.PocoName}' has no command handler.", "Cris.MissingCommandHandler" );
+                                            ? UserMessage.Error( c, text, "Cris.MissingCommandHandler" )
+                                            : UserMessage.Error( NormalizedCultureInfo.CodeDefault, text, "Cris.MissingCommandHandler" );
                         e.Errors.Add( msg );
                         ((IActivityLineEmitter?)s.GetService( typeof( IActivityMonitor ) ) ?? ActivityMonitor.StaticLogger)?.Error( msg.Message.CodeString.Text );
                         return Task.FromResult( new RawCrisExecutor.RawResult( e, null ) );
