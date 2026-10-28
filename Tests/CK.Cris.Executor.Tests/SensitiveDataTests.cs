@@ -1,4 +1,5 @@
 using CK.Core;
+using CK.Poco.Exc.Json;
 using CK.Testing;
 using Shouldly;
 using Microsoft.Extensions.DependencyInjection;
@@ -84,7 +85,11 @@ public class SensitiveDataTests
     [Test]
     public async Task a_sensitive_Poco_is_logged_redacted_and_is_not_modified_Async()
     {
-        await using var auto = await CreateAsync();
+        // The redacted copy needs the Poco JSON exchange (as in any Cris application that exchanges commands).
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( CommonPocoJsonSupport ),
+                                              typeof( ISecretCommand ), typeof( IWrapperCommand ), typeof( IPlainCommand ) );
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
         var poco = auto.Services.GetRequiredService<PocoDirectory>();
         var secret = poco.Create<ISecretCommand>( c => { c.Secret = "password"; c.Public = "visible"; } );
         var wrapper = poco.Create<IWrapperCommand>( c => c.Inner = secret );
@@ -105,5 +110,14 @@ public class SensitiveDataTests
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IBadSensitiveCommand ) );
         await configuration.GetFailedAutomaticServicesAsync( "must be a string." );
+    }
+
+    [Test]
+    public async Task without_the_Json_exchange_a_sensitive_Poco_is_not_logged_Async()
+    {
+        await using var auto = await CreateAsync();
+        var poco = auto.Services.GetRequiredService<PocoDirectory>();
+        var secret = poco.Create<ISecretCommand>( c => c.Secret = "password" );
+        secret.ToLogString().ShouldBe( $"{secret.CrisPocoModel.PocoName} (sensitive content not logged)" );
     }
 }
