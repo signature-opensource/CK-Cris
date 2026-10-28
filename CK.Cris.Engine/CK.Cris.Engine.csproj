@@ -6,5 +6,8 @@
     <PackageReference Include="CK.Cris" Version="3.0.0-0.cris-auth.0.ci.21" />
     <PackageReference Include="CK.CodeGen" Version="18.0.0-0.cris-auth.0.ci.6" />
     <PackageReference Include="CK.StObj.Runtime" Version="36.0.0-0.cris-auth.0.ci.6" />
+    <!-- TEMPORARY: the engine of the CK.Poco.Exc.Json that CK.Cris references for the clone of
+         SensitiveDataExtensions.ToLogString (to be removed with it, once Poco Clone() exists). -->
+    <PackageReference Include="CK.Poco.Exc.Json.Engine" Version="36.0.0-0.cris-auth.0.ci.6" />
   </ItemGroup>
 </Project>
