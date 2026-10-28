@@ -36,8 +36,16 @@ public class InlineExecutionTests
         string CultureName { get; set; }
     }
 
+    // Its culture is configured by the incoming validation (CrisCultureService [ConfigureAmbientServices]).
+    public interface ICultureCommand : ICommand<string>, ICurrentCulturePart
+    {
+    }
+
     public sealed class Handlers : ISingletonAutoService
     {
+        [CommandHandler]
+        public string Handle( ICultureCommand c, ExtendedCultureInfo culture ) => culture.Name;
+
         [CommandHandler]
         public async Task<string> HandleAsync( IOuterCommand c, ICrisCommandContext context, AmbientServiceHub hub, ExtendedCultureInfo culture, PocoDirectory pocos )
         {
@@ -88,5 +96,31 @@ public class InlineExecutionTests
         executed.Result.ShouldBe( "outer:en / inline:fr, nested:fr" );
         // The event emitted in the inline scope is one of the outer command.
         executed.Events.OfType<IInlineDoneEvent>().ShouldHaveSingleItem().CultureName.ShouldBe( "fr" );
+    }
+
+    [Test]
+    public async Task the_ambient_services_configured_by_the_incoming_validation_of_a_job_are_honored_Async()
+    {
+        NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( ICultureCommand ),
+                                              typeof( Handlers ),
+                                              typeof( IOuterCommand ),
+                                              typeof( IInlineCommand ),
+                                              typeof( INestedCommand ),
+                                              typeof( IInlineDoneEvent ),
+                                              typeof( CrisCultureService ),
+                                              typeof( CrisBackgroundExecutorService ),
+                                              typeof( RawCrisReceiver ) );
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        var pocos = auto.Services.GetRequiredService<PocoDirectory>();
+        var background = auto.Services.GetRequiredService<CrisBackgroundExecutorService>();
+        using var scope = auto.Services.CreateScope();
+        var hub = scope.ServiceProvider.GetRequiredService<AmbientServiceHub>().CleanClone();
+        hub.Override<ExtendedCultureInfo>( NormalizedCultureInfo.EnsureNormalizedCultureInfo( "en" ) );
+
+        // As a command received by a channel: validated as an incoming command by the job.
+        var executing = background.Submit( TestHelper.Monitor, pocos.Create<ICultureCommand>( c => c.CurrentCultureName = "fr" ), hub, incomingValidationCheck: true );
+        (await executing.ExecutedCommand.WaitAsync( TimeSpan.FromSeconds( 5 ) )).Result.ShouldBe( "fr" );
     }
 }

@@ -23,6 +23,7 @@ public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAu
     readonly DarkSideCrisEventHub _eventHub;
     readonly RawCrisReceiver _crisReceiver;
     readonly RawCrisExecutor _rawExecutor;
+    readonly ICrisAmbientScopeFactory? _scopeFactory;
 
     readonly PerfectEventSender<ICrisExecutionHost> _parallelRunnerCountChanged;
     // We use null as the close signal for runners and push int values to regulate the count of
@@ -46,7 +47,14 @@ public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAu
     /// <param name="eventHub">The cris event hub.</param>
     /// <param name="validator">The command validator.</param>
     /// <param name="executor">The command executor.</param>
-    public CrisExecutionHost( DarkSideCrisEventHub eventHub, RawCrisReceiver validator, RawCrisExecutor executor )
+    /// <param name="scopeFactory">
+    /// Optional factory of scopes with other ambient services (CK.Cris.BackgroundExecutor): when the incoming validation
+    /// of a job configures ambient services, the command executes inline in such a scope.
+    /// </param>
+    public CrisExecutionHost( DarkSideCrisEventHub eventHub,
+                              RawCrisReceiver validator,
+                              RawCrisExecutor executor,
+                              ICrisAmbientScopeFactory? scopeFactory = null )
     {
         Throw.CheckNotNullArgument( eventHub );
         Throw.CheckNotNullArgument( validator );
@@ -55,6 +63,7 @@ public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAu
         _eventHub = eventHub;
         _crisReceiver = validator;
         _rawExecutor = executor;
+        _scopeFactory = scopeFactory;
         _channel = Channel.CreateUnbounded<object?>();
         _parallelRunnerCountChanged = new PerfectEventSender<ICrisExecutionHost>();
         _plannedRunnerCount = 1;
@@ -94,6 +103,29 @@ public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAu
 
     void Push( object job ) => _channel.Writer.TryWrite( job );
 
+    // When the incoming validation configured ambient services, the root command executes inline in a scope built
+    // from them (with a view of the root context: the job's immediate events forwarding is kept). Without scope
+    // factory, they cannot be honored: the command executes with the job's ambient services and this is logged.
+    async Task<ExecutedCommand> ExecuteRootAsync( IActivityMonitor monitor,
+                                                  CrisJob job,
+                                                  CrisJob.JobExecutionContext rootContext,
+                                                  ImmutableArray<UserMessage> validationMessages,
+                                                  AmbientServiceHub? configuredHub )
+    {
+        if( configuredHub != null )
+        {
+            if( _scopeFactory != null )
+            {
+                CrisExecutionContext? view = null;
+                await using var inline = _scopeFactory.CreateScope( configuredHub, monitor, sp => view = rootContext.CreateView( sp ) );
+                Throw.DebugAssert( view != null );
+                return await view.ExecuteRootCommandAsync( job.Command, job.DeferredExecutionContext, validationMessages );
+            }
+            monitor.Warn( $"The incoming validation of '{job.Command.CrisPocoModel.PocoName}' configured ambient services but no {nameof( ICrisAmbientScopeFactory )} is available (CK.Cris.BackgroundExecutor): they are ignored." );
+        }
+        return await rootContext.ExecuteRootCommandAsync( job.Command, job.DeferredExecutionContext, validationMessages );
+    }
+
     ValueTask ExecuteTypedJobAsync( IActivityMonitor monitor, object o )
     {
         if( o is CrisJob job ) return HandleCommandAsync( monitor, job );
@@ -129,6 +161,8 @@ public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAu
             var rootContext = new CrisJob.JobExecutionContext( job, monitor, scoped.ServiceProvider, _eventHub, _rawExecutor );
             // This ExecutionContext is now available in the DI container. Work can start.
             job._executionContext = rootContext;
+            // The ambient services configured by the incoming validation ([ConfigureAmbientServices]), if any.
+            AmbientServiceHub? configuredHub = null;
             if( job._incomingValidationCheck )
             {
                 var validation = await _crisReceiver.IncomingValidateAsync( monitor, scoped.ServiceProvider, job.Command, gLog );
@@ -143,9 +177,10 @@ public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAu
                     return;
                 }
                 validationMessages = validation.ValidationMessages;
+                configuredHub = validation.AmbientServiceHub;
             }
             // Executing the command (handling validators, handler and post handlers).
-            executed = await rootContext.ExecuteRootCommandAsync( job.Command, job.DeferredExecutionContext, validationMessages );
+            executed = await ExecuteRootAsync( monitor, job, rootContext, validationMessages, configuredHub );
             await job.SetFinalResultAsync( monitor, executed, scoped.ServiceProvider );
         }
         catch( Exception ex )
