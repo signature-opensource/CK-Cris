@@ -318,7 +318,7 @@ public partial class RawCrisExecutorImpl : CSCodeGeneratorType
                         }
                         else
                         {
-                            w.Append( cachedServices.GetServiceVariableName( p.ParameterType ) );
+                            w.Append( cachedServices.GetServiceVariableName( p ) );
                         }
                     }
                     w.Append( " );" ).NewLine();
@@ -376,7 +376,7 @@ public partial class RawCrisExecutorImpl : CSCodeGeneratorType
             }
             else
             {
-                w.Append( cachedServices.GetServiceVariableName( p.ParameterType ) );
+                w.Append( cachedServices.GetServiceVariableName( p ) );
             }
         }
         w.Append( " )" );

@@ -3,6 +3,7 @@ using CK.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace CK.Setup.Cris;
 
@@ -18,6 +19,7 @@ public sealed class VariableCachedServices
     readonly string _serviceProviderName;
     readonly bool _hasMonitor;
     readonly Dictionary<Type, string> _cached;
+    Dictionary<Type, string>? _optionalCached;
     readonly IFunctionScope _function;
     ICodeWriter _variablesPart;
     int _lastPartVarCount;
@@ -74,12 +76,42 @@ public sealed class VariableCachedServices
         serviceType = ToResolvedType( _engineMap, serviceType );
         if( !_cached.TryGetValue( serviceType, out var name ) )
         {
-            if( _cached.Count == 0 ) _variablesPart.GeneratedByComment( "Cached services variables" );
+            if( _cached.Count == 0 && (_optionalCached == null || _optionalCached.Count == 0) ) _variablesPart.GeneratedByComment( "Cached services variables" );
             name = $"cs{_cached.Count}";
             _variablesPart.Append( "var " ).Append( name )
                           .Append( " = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<" )
                           .AppendGlobalTypeName( serviceType ).Append( ">( " ).Append( _serviceProviderName ).Append( " );" ).NewLine();
             _cached[serviceType] = name;
+            _lastPartVarCount++;
+        }
+        return name;
+    }
+
+    /// <summary>
+    /// Gets the reusable local variable name to use for a parameter of a handler method: a parameter with a default
+    /// value (for instance <c>IRemoteParty? caller = null</c>) is optional and resolved with <c>GetService</c> (null
+    /// when the service is not available), otherwise it is required (see <see cref="GetServiceVariableName(Type)"/>).
+    /// </summary>
+    /// <param name="p">The parameter.</param>
+    /// <returns>The local variable name.</returns>
+    public string GetServiceVariableName( ParameterInfo p )
+    {
+        if( !p.HasDefaultValue ) return GetServiceVariableName( p.ParameterType );
+        var serviceType = p.ParameterType;
+        if( _hasMonitor && serviceType.IsAssignableFrom( typeof( IActivityMonitor ) ) )
+        {
+            return "monitor";
+        }
+        serviceType = ToResolvedType( _engineMap, serviceType );
+        _optionalCached ??= new Dictionary<Type, string>();
+        if( !_optionalCached.TryGetValue( serviceType, out var name ) )
+        {
+            if( _cached.Count == 0 && _optionalCached.Count == 0 ) _variablesPart.GeneratedByComment( "Cached services variables" );
+            name = $"ocs{_optionalCached.Count}";
+            _variablesPart.Append( "var " ).Append( name )
+                          .Append( " = (" ).AppendGlobalTypeName( serviceType ).Append( "?)" ).Append( _serviceProviderName )
+                          .Append( ".GetService( typeof( " ).AppendGlobalTypeName( serviceType ).Append( " ) );" ).NewLine();
+            _optionalCached[serviceType] = name;
             _lastPartVarCount++;
         }
         return name;

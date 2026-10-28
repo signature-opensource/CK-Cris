@@ -89,7 +89,7 @@ public class RawCrisReceiverImpl : CSCodeGeneratorType
                 }
                 else
                 {
-                    f.Append( cachedServices.GetServiceVariableName( p.ParameterType ) );
+                    f.Append( cachedServices.GetServiceVariableName( p ) );
                 }
             }
             f.Append( " );" ).NewLine();
