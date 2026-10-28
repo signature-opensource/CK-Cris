@@ -98,4 +98,27 @@ public class PartyCommandRoutingTests
             .ShouldBeAssignableTo<ICrisResultError>().Errors.Single().ResName.ShouldBe( "Cris.MissingCommandHandler" );
         FakeRouter.DispatchCount.ShouldBe( 0 );
     }
+
+    [Test]
+    public async Task a_received_party_command_requires_its_target_Async()
+    {
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( RawCrisReceiver ),
+                                              typeof( RawCrisExecutor ),
+                                              typeof( IHandledPartyCommand ),
+                                              typeof( Handler ),
+                                              typeof( CommandTargetPartyValidator ) );
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        using var scope = auto.Services.CreateScope();
+        var services = scope.ServiceProvider;
+        var receiver = services.GetRequiredService<RawCrisReceiver>();
+        var poco = services.GetRequiredService<PocoDirectory>();
+
+        var noTarget = await receiver.IncomingValidateAsync( TestHelper.Monitor, services, poco.Create<IHandledPartyCommand>() );
+        noTarget.Success.ShouldBeFalse();
+        noTarget.ValidationMessages.Single().ResName.ShouldBe( "Cris.MissingTargetParty" );
+
+        (await receiver.IncomingValidateAsync( TestHelper.Monitor, services, poco.Create<IHandledPartyCommand>( c => c.TargetPartyFullName = "D/$P" ) ))
+            .Success.ShouldBeTrue();
+    }
 }
