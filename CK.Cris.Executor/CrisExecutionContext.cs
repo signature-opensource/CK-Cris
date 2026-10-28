@@ -42,6 +42,71 @@ public class CrisExecutionContext : ICrisCommandContext
         _stack = new List<StackFrame>();
     }
 
+    // A view of the parent bound to other services: everything else is shared (the command stack, so that the events
+    // land in the parent's frames, the monitor, the hub, the executor and, through the overrides, the immediate events
+    // forwarding of the parent).
+    CrisExecutionContext( CrisExecutionContext parent, IServiceProvider serviceProvider )
+    {
+        _serviceProvider = serviceProvider;
+        _eventHub = parent._eventHub;
+        _rawExecutor = parent._rawExecutor;
+        _monitor = parent._monitor;
+        _stack = parent._stack;
+    }
+
+    [ExcludedCKType]
+    sealed class View : CrisExecutionContext
+    {
+        readonly CrisExecutionContext _parent;
+
+        public View( CrisExecutionContext parent, IServiceProvider serviceProvider )
+            : base( parent, serviceProvider )
+        {
+            _parent = parent;
+        }
+
+        protected override Task RaiseImmediateEventAsync( IActivityMonitor monitor, IEvent routedImmediateEvent )
+            => _parent.RaiseImmediateEventAsync( monitor, routedImmediateEvent );
+
+        protected override Task RaiseCallerOnlyImmediateEventAsync( IActivityMonitor monitor, IEvent callerImmediateEvent )
+            => _parent.RaiseCallerOnlyImmediateEventAsync( monitor, callerImmediateEvent );
+    }
+
+    /// <summary>
+    /// Creates a view of this context bound to other services (a scope with other ambient services): it shares the
+    /// command stack (the events land in the frames of this context), the monitor and the immediate events forwarding.
+    /// </summary>
+    /// <param name="serviceProvider">The scoped services of the view.</param>
+    /// <returns>The view.</returns>
+    internal CrisExecutionContext CreateView( IServiceProvider serviceProvider ) => new View( this, serviceProvider );
+
+    /// <summary>
+    /// Executes a command inline with other ambient services: on the caller's asynchronous flow, in a new scope whose
+    /// ambient services are the ones of the <paramref name="hub"/> (see <see cref="ICrisAmbientScopeFactory"/>). Nothing
+    /// is queued, so this never waits for a runner.
+    /// <para>
+    /// This is a nested execution, like the one of <see cref="RawCrisExecutor.RawExecuteAsync(IServiceProvider, IAbstractCommand)"/>:
+    /// the events emitted in the new scope land in the current frame of this context, the commands executed by the
+    /// handlers run in the new scope. The scoped services of the caller are not shared (the new scope has its own).
+    /// No incoming validation is done (this is in-process); the handling validators run with the new ambient services.
+    /// </para>
+    /// </summary>
+    /// <param name="hub">The ambient services to use.</param>
+    /// <param name="command">The command to execute.</param>
+    /// <returns>The raw result.</returns>
+    public async Task<RawCrisExecutor.RawResult> RawExecuteInlineAsync( AmbientServiceHub hub, IAbstractCommand command )
+    {
+        Throw.CheckNotNullArgument( hub );
+        Throw.CheckNotNullArgument( command );
+        var factory = (ICrisAmbientScopeFactory?)_serviceProvider.GetService( typeof( ICrisAmbientScopeFactory ) );
+        if( factory == null )
+        {
+            Throw.InvalidOperationException( $"No {nameof( ICrisAmbientScopeFactory )} is available: CK.Cris.BackgroundExecutor must be installed to execute a command with other ambient services." );
+        }
+        await using var scope = factory.CreateScope( hub, _monitor, CreateView );
+        return await _rawExecutor.RawExecuteAsync( scope.ServiceProvider, command ).ConfigureAwait( false );
+    }
+
     /// <summary>
     /// Gets whether this context is currently executing a command.
     /// </summary>

@@ -16,13 +16,21 @@ public abstract class CrisBackgroundDIContainerDefinition : DIContainerDefinitio
     /// </summary>
     public sealed class Data : BackendScopedData
     {
+        // Set for a job of the background executor.
         [AllowNull]
         internal CrisJob _job;
+        // Set for an inline execution (see CrisBackgroundScopeFactory): no job.
+        internal IActivityMonitor? _inlineMonitor;
+        internal CrisExecutionContext? _inlineContext;
 
         internal Data( AmbientServiceHub? ambientServiceHub )
             : base( ambientServiceHub )
         {
         }
+
+        internal IActivityMonitor Monitor => _inlineMonitor ?? _job.RunnerMonitor!;
+
+        internal ICrisCommandContext ExecutionContext => (ICrisCommandContext?)_inlineContext ?? _job.ExecutionContext!;
     }
 
     /// <summary>
@@ -35,9 +43,9 @@ public abstract class CrisBackgroundDIContainerDefinition : DIContainerDefinitio
                                                      Func<IServiceProvider, Data> scopeData,
                                                      IServiceProviderIsService globalServiceExists )
     {
-        services.AddScoped( sp => scopeData( sp )._job.RunnerMonitor! );
-        services.AddScoped( sp => scopeData( sp )._job.RunnerMonitor!.ParallelLogger );
-        services.AddScoped( sp => scopeData( sp )._job.ExecutionContext! );
-        services.AddScoped<ICrisEventContext>( sp => scopeData( sp )._job.ExecutionContext! );
+        services.AddScoped( sp => scopeData( sp ).Monitor );
+        services.AddScoped( sp => scopeData( sp ).Monitor.ParallelLogger );
+        services.AddScoped( sp => scopeData( sp ).ExecutionContext );
+        services.AddScoped<ICrisEventContext>( sp => scopeData( sp ).ExecutionContext );
     }
 }
