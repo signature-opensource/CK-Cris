@@ -100,6 +100,11 @@ public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextB
         {
             return CSCodeGenerationResult.Failed;
         }
+        var sensitive = CrisSensitiveData.Create( monitor, registry.CrisTypes );
+        if( sensitive == null )
+        {
+            return CSCodeGenerationResult.Failed;
+        }
         bool success = true;
         foreach( var e in registry.CrisTypes )
         {
@@ -116,8 +121,7 @@ public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextB
                                $"(found: {e.AmbientServicesConfigurators.Select( h => $"{h.Owner.ClassType:N}.{h.Method.Name}" ).Concatenate()})." );
                 success = false;
             }
-            bool hasSensitiveData = e.CrisPocoType.Fields.Any( f => f.Property.DeclaredProperties
-                                                                     .Any( p => p.PropertyInfo.IsDefined( typeof( SensitiveAttribute ), true ) ) );
+            bool hasSensitiveData = sensitive.HasSensitiveData( e );
             var exposure = GetExposure( e );
             if( exposure != CrisExposure.Public )
             {
@@ -146,6 +150,7 @@ public partial class CrisDirectoryImpl : CSCodeGeneratorType, IAttributeContextB
                  .Append( "public bool BackgroundMustRestoreServices => " ).Append( e.AmbientServicesRestorers.Count > 0 ).Append( ";" ).NewLine()
                  .Append( "public bool HasSensitiveData => " ).Append( hasSensitiveData ).Append( ";" ).NewLine()
                  .Append( "public CK.Cris.CrisExposure Exposure => CK.Cris.CrisExposure." ).Append( exposure.ToString() ).Append( ";" ).NewLine();
+                sensitive.GenerateTransformSensitiveStrings( e, classScope );
 
                 // ImmutableArray<string> AmbientValuePropertyNames
                 if( e.AmbientValueFields.Count > 0 )
