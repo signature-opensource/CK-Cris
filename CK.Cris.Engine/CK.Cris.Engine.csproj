@@ -3,7 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Cris" Version="3.0.0-0.cris-auth.0.ci.20" />
+    <PackageReference Include="CK.Cris" Version="3.0.0-0.cris-auth.0.ci.21" />
     <PackageReference Include="CK.CodeGen" Version="18.0.0-0.cris-auth.0.ci.6" />
     <PackageReference Include="CK.StObj.Runtime" Version="36.0.0-0.cris-auth.0.ci.6" />
   </ItemGroup>
