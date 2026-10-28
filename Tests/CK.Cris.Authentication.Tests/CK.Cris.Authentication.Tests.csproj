@@ -4,10 +4,10 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.IO.Authentication" Version="3.0.0-0.cris-auth.0.ci.18" />
-    <PackageReference Include="CK.IO.Authentication.Basic" Version="3.0.0-0.cris-auth.0.ci.18" />
-    <PackageReference Include="CK.IO.Authentication.Passkey" Version="3.0.0-0.cris-auth.0.ci.18" />
-    <PackageReference Include="CK.IO.Authentication.WeakZone" Version="3.0.0-0.cris-auth.0.ci.18" />
+    <PackageReference Include="CK.IO.Authentication" Version="3.0.0-0.cris-auth.0.ci.19" />
+    <PackageReference Include="CK.IO.Authentication.Basic" Version="3.0.0-0.cris-auth.0.ci.19" />
+    <PackageReference Include="CK.IO.Authentication.Passkey" Version="3.0.0-0.cris-auth.0.ci.19" />
+    <PackageReference Include="CK.IO.Authentication.WeakZone" Version="3.0.0-0.cris-auth.0.ci.19" />
     <PackageReference Include="CK.Testing.StObjEngine" Version="36.0.0-0.cris-auth.0.ci.6" />
     <PackageReference Include="CK.Testing.Nunit" Version="18.0.0-0.cris-auth.0.ci.3" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
