@@ -15,6 +15,9 @@
     <Project Path="Tests/CK.Cris.Tests/CK.Cris.Tests.csproj" />
   </Folder>
   <Project Path="CK.Cris.Auth/CK.Cris.Auth.csproj" />
+  <Project Path="CK.Cris.Authentication.Basic/CK.Cris.Authentication.Basic.csproj" />
+  <Project Path="CK.Cris.Authentication.Passkey/CK.Cris.Authentication.Passkey.csproj" />
+  <Project Path="CK.Cris.Authentication.Weak/CK.Cris.Authentication.Weak.csproj" />
   <Project Path="CK.Cris.Authentication/CK.Cris.Authentication.csproj" />
   <Project Path="CK.Cris.BackgroundExecutor/CK.Cris.BackgroundExecutor.csproj" />
   <Project Path="CK.Cris.DelayedCommand/CK.Cris.DelayedCommand.csproj" />

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>CK.Auth</RootNamespace>
+    <Description>The endpoint handlers of the passkey (WebAuthn) commands: they run the passkey operations of the authentication center. Installable on any party (no database, no WebAuthn library).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CK.IO.Authentication.Passkey" Version="3.0.0-0.cris-auth.0.ci.17" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CK.Cris.Authentication\CK.Cris.Authentication.csproj" />
+  </ItemGroup>
+</Project>

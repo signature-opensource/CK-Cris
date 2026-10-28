@@ -15,6 +15,9 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\CK.Cris.Authentication\CK.Cris.Authentication.csproj" />
+    <ProjectReference Include="..\..\CK.Cris.Authentication.Basic\CK.Cris.Authentication.Basic.csproj" />
+    <ProjectReference Include="..\..\CK.Cris.Authentication.Weak\CK.Cris.Authentication.Weak.csproj" />
+    <ProjectReference Include="..\..\CK.Cris.Authentication.Passkey\CK.Cris.Authentication.Passkey.csproj" />
     <ProjectReference Include="..\..\CK.Cris.BackgroundExecutor\CK.Cris.BackgroundExecutor.csproj" />
     <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
   </ItemGroup>

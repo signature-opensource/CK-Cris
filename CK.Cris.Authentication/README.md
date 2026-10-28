@@ -66,25 +66,33 @@ signed origin is this one. The value only selects: the configuration of the auth
 
 ## Reading the tokens
 
-An endpoint that receives authenticated commands (the HTTP front) establishes their `AuthenticationInfo` with
+An endpoint that receives authenticated commands (the HTTP endpoint of front applications) establishes their `AuthenticationInfo` with
 [`IAuthenticationTokenReader`](IAuthenticationTokenReader.cs), implemented by the authentication center package. The
 token is verified locally, with the keys of the authentication center. It carries the hash of the binding secret of its
 session: the endpoint checks that the caller presents that secret (the binding cookie over HTTP), so that a stolen token
 cannot be used elsewhere.
 
-## A remote authentication center
+## The session commands are executed by their endpoint
 
-An application is either an authentication center or a front of a remote one: the role comes from the installed
-packages (the "Local" or the "Remote" package of the authentication center), never from a runtime check. Nothing is
-relayed: a session command (`ICommandEndpointOnly`) is always executed by the endpoint that received it, on a front as
-on the authentication center. What differs is the implementation of the services its handlers call (like
-[`IAuthenticationSessionOpener`](IAuthenticationSessionOpener.cs)): the "Local" one works with the session store, the
-"Remote" one sends the state operations to the remote authentication center. Any other command without a local
-handler is dispatched (`ICrisRemoteDispatcher`): where a command runs is a deployment detail.
+Nothing is relayed: a session command (`ICommandEndpointOnly`) is always executed by the endpoint that received it, on
+the authentication center as on any other party. Its handler calls the
+[`AuthenticationSessionEndpointService`](AuthenticationSessionEndpointService.cs) (scoped), which executes an **internal
+operation** (an `[Internal]` command of CK.IO.Authentication) and applies its result to the endpoint:
 
-The endpoint takes part in the remote operations: it presents the caller's bearer token (`PresentedToken`, read again
-by the remote authentication center) and it generates the next secrets in advance (`PrepareSecrets`): their hashes
-travel with the operation, the secrets stay in the endpoint, and its `Issue` then uses them.
+1. it reads the endpoint ([`IAuthenticationSessionEndpoint`](IAuthenticationSessionEndpoint.cs)): the presented proof,
+   the secrets prepared in advance (`PrepareSecrets`: only their hashes travel), the remote login callback and
+   correlation, the web origin;
+2. it executes the operation: **handled locally by the authentication center, dispatched to it from any other party**
+   (`ICrisRemoteDispatcher`): where it runs is a deployment detail, there is no "local" or "remote" implementation;
+3. it applies the `ISessionOperationResult`: the endpoint issues the prepared secrets (checked against the hashes the
+   authentication center stored) or clears its secrets.
+
+[`AuthenticationSessionHandlers`](AuthenticationSessionHandlers.cs) handles the session commands shared by all the
+schemes (refresh, logout, impersonation, the remote login start and callback); the login commands of the schemes are
+handled by CK.Cris.Authentication.Basic, .Weak and .Passkey. None of them needs a database: they can be installed on any
+party. An operation that fails without deciding anything (the authentication center is unreachable) ends the session
+command with an error ("nothing decided"), never with a failed `ISessionResult` (a decision of the authentication
+center). The logout clears the endpoint's secrets whatever happens.
 
 The identity of a command that comes through another party carries that party
 (`AuthenticationInfo.CallerPartyId`, set at reception, its levels capped by the `ICallerPartyService`).
@@ -93,14 +101,15 @@ delayed commands): their restored authentication is completed with it.
 
 ## Opening a session
 
-[`IAuthenticationSessionOpener`](IAuthenticationSessionOpener.cs) turns a login command into a session. It is
-implemented by the authentication center and called by the login command handlers. The rule is: **a package that
-implements an authentication provider handles its login commands**. Its handler only tells which scheme and payload to use:
+[`IAuthenticationSessionOpener`](IAuthenticationSessionOpener.cs) turns a login command into a session. Its single
+implementation is the `AuthenticationSessionEndpointService`: it executes the `IOpenSessionOperationCommand` (the login
+command is its payload, the provider's payload). The login handlers live in the per-scheme endpoint packages, never in
+the database packages (a party that receives logins may have no database); a handler only tells which scheme to use:
 
 ```csharp
-[CommandHandler]
+[CommandHandler( AllowUnclosedCommand = true )]
 public ValueTask<ISessionResult> HandleAsync( IActivityMonitor monitor, IWeakLoginCommand cmd, IAuthenticationSessionOpener opener )
-    => opener.OpenSessionAsync( monitor, cmd, "Weak", cmd );
+    => opener.OpenSessionAsync( monitor, cmd, ActorInfo.WeakScheme, cmd );
 ```
 
 The login's user data (the `LoginContext.UserData` read by the validators and the account creation and binding
@@ -111,15 +120,15 @@ them back. [`LoginUserDataValidator`](LoginUserDataValidator.cs) limits the part
 in memory until its callback.
 
 A Cris handler handles the **whole** command. When a package extends a login command (`IWeakZoneLoginCommand` adds the
-`ZoneId` to `IWeakLoginCommand`), the handler of the base command is ignored and the extending package must handle
-the extended command: the provider extension (the zone aware weak actors) comes with its handler.
+`ZoneId` to `IWeakLoginCommand`), the handler of the base command handles it only if it says so
+(`AllowUnclosedCommand = true`): the Weak handler does, the payload carries the zone to the zone aware provider.
 
 Four types take part in a login. Each one is **not** the others:
 
 | Type | Package | Role | Does NOT |
 |---|---|---|---|
 | `ILoginProvider` | CK.AuthenticationInfo | Checks the credentials of its schemes against the user store and returns an `ActorLoginResult` | create a session, issue a token, call the validators |
-| `IAuthenticationSessionOpener` | CK.Cris.Authentication, implemented by the authentication center | Turns a login command into a session: `ILoginProvider`, `ILoginValidator`s, account creation or binding, session store, signed token, endpoint proof, `ISessionResult` | check credentials itself, know any scheme |
+| `IAuthenticationSessionOpener` | CK.Cris.Authentication (the endpoint service) | Executes the open session operation; the authentication center's handler of the operation runs `ILoginProvider`, `ILoginValidator`s, account creation or binding, session store, signed token | check credentials itself, know any scheme |
 | `IAuthenticationSessionEndpoint` | CK.Cris.Authentication, implemented by each endpoint | Carries the session proof (cookies over HTTP, the channel over AppIdentity) | decide anything: it only transports |
 | The session store | the authentication center | Persists the sessions | appear in any contract |
 
