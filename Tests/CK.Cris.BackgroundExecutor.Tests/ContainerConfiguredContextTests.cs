@@ -102,7 +102,7 @@ public class ContainerConfiguredContextTests
 
         var directory = auto.Services.GetRequiredService<CrisDirectory>();
         auto.Services.GetRequiredService<CrisBackgroundExecutorService>().GetDeferralIssues( directory ).ShouldBeEmpty();
-        var handler = directory.CrisPocoModels.Single( m => m.CommandType == typeof( IOptionalEndpointCommand ) ).Handlers.Single();
+        var handler = auto.Services.GetRequiredService<PocoDirectory>().Create<IOptionalEndpointCommand>().CrisPocoModel.Handlers.Single();
         handler.IsOptionalParameter( 0 ).ShouldBeFalse();
         handler.IsOptionalParameter( 1 ).ShouldBeTrue();
 
