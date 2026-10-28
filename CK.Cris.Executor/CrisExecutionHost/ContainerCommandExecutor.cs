@@ -37,6 +37,25 @@ public abstract class ContainerCommandExecutor
     internal protected abstract ValueTask<(ICrisResultError?, AsyncServiceScope)> PrepareJobAsync( IActivityMonitor monitor, CrisJob job );
 
     /// <summary>
+    /// Configures the ambient services of a job from its reception context (for instance the identity derived from the
+    /// party that sent the command). Called with the job's scope, before the incoming validation: when a hub is returned,
+    /// the incoming validation and the execution run inline in a scope built from it.
+    /// <para>
+    /// Returning an error refuses the command (it is not validated nor executed). By default, nothing is configured.
+    /// </para>
+    /// </summary>
+    /// <param name="monitor">The monitor to use.</param>
+    /// <param name="job">The job.</param>
+    /// <param name="services">The job's scoped services.</param>
+    /// <returns>An error that refuses the command, or the ambient services to use (null to keep the job's ones).</returns>
+    internal protected virtual ValueTask<(ICrisResultError? Error, AmbientServiceHub? Hub)> ConfigureReceptionAsync( IActivityMonitor monitor,
+                                                                                                                     CrisJob job,
+                                                                                                                     System.IServiceProvider services )
+    {
+        return ValueTask.FromResult<(ICrisResultError?, AmbientServiceHub?)>( (null, null) );
+    }
+
+    /// <summary>
     /// Extension point called when a command emits an immediate event (routed or caller only events).
     /// Note that all local impacts have been already handled: the <see cref="CrisEventHub"/> has already raised the event
     /// and if <see cref="CrisJob.ExecutingCommand"/> is not null, the <see cref="IExecutingCommand.ImmediateEvents"/> have been updated.

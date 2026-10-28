@@ -108,7 +108,7 @@ public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAu
     // factory, they cannot be honored: the command executes with the job's ambient services and this is logged.
     async Task<ExecutedCommand> ExecuteRootAsync( IActivityMonitor monitor,
                                                   CrisJob job,
-                                                  CrisJob.JobExecutionContext rootContext,
+                                                  CrisExecutionContext rootContext,
                                                   ImmutableArray<UserMessage> validationMessages,
                                                   AmbientServiceHub? configuredHub )
     {
@@ -161,26 +161,56 @@ public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAu
             var rootContext = new CrisJob.JobExecutionContext( job, monitor, scoped.ServiceProvider, _eventHub, _rawExecutor );
             // This ExecutionContext is now available in the DI container. Work can start.
             job._executionContext = rootContext;
-            // The ambient services configured by the incoming validation ([ConfigureAmbientServices]), if any.
-            AmbientServiceHub? configuredHub = null;
-            if( job._incomingValidationCheck )
+            // The ambient services of the reception (for instance the identity derived from the sending party), before
+            // the incoming validation: the validation and the execution then run in a scope built from them.
+            (error, var receptionHub) = await job._executor.ConfigureReceptionAsync( monitor, job, scoped.ServiceProvider );
+            if( error != null )
             {
-                var validation = await _crisReceiver.IncomingValidateAsync( monitor, scoped.ServiceProvider, job.Command, gLog );
-                if( !validation.Success )
-                {
-                    error = _errorResultFactory.Create();
-                    error.Errors.AddRange( validation.ErrorMessages );
-                    error.LogKey = validation.LogKey;
-                    error.IsValidationError = true;
-                    executed = job.CreateExecutedCommand( error, validation.ValidationMessages, ImmutableArray<IEvent>.Empty );
-                    await job.SetFinalResultAsync( monitor, executed, scoped.ServiceProvider );
-                    return;
-                }
-                validationMessages = validation.ValidationMessages;
-                configuredHub = validation.AmbientServiceHub;
+                executed = job.CreateExecutedCommand( error, validationMessages, ImmutableArray<IEvent>.Empty );
+                await job.SetFinalResultAsync( monitor, executed, scoped.ServiceProvider );
+                return;
             }
-            // Executing the command (handling validators, handler and post handlers).
-            executed = await ExecuteRootAsync( monitor, job, rootContext, validationMessages, configuredHub );
+            CrisExecutionContext context = rootContext;
+            AsyncServiceScope reception = default;
+            if( receptionHub != null )
+            {
+                if( _scopeFactory == null )
+                {
+                    // Failing closed: the command must not execute without the ambient services of its reception.
+                    Throw.InvalidOperationException( $"The reception of '{job.Command.CrisPocoModel.PocoName}' configured ambient services but no {nameof( ICrisAmbientScopeFactory )} is available (CK.Cris.BackgroundExecutor)." );
+                }
+                CrisExecutionContext? view = null;
+                reception = _scopeFactory.CreateScope( receptionHub, monitor, sp => view = rootContext.CreateView( sp ) );
+                Throw.DebugAssert( view != null );
+                context = view;
+            }
+            try
+            {
+                // The ambient services configured by the incoming validation ([ConfigureAmbientServices]), if any.
+                AmbientServiceHub? configuredHub = null;
+                if( job._incomingValidationCheck )
+                {
+                    var validation = await _crisReceiver.IncomingValidateAsync( monitor, context.ServiceProvider, job.Command, gLog );
+                    if( !validation.Success )
+                    {
+                        error = _errorResultFactory.Create();
+                        error.Errors.AddRange( validation.ErrorMessages );
+                        error.LogKey = validation.LogKey;
+                        error.IsValidationError = true;
+                        executed = job.CreateExecutedCommand( error, validation.ValidationMessages, ImmutableArray<IEvent>.Empty );
+                        await job.SetFinalResultAsync( monitor, executed, scoped.ServiceProvider );
+                        return;
+                    }
+                    validationMessages = validation.ValidationMessages;
+                    configuredHub = validation.AmbientServiceHub;
+                }
+                // Executing the command (handling validators, handler and post handlers).
+                executed = await ExecuteRootAsync( monitor, job, context, validationMessages, configuredHub );
+            }
+            finally
+            {
+                if( receptionHub != null ) await reception.DisposeAsync();
+            }
             await job.SetFinalResultAsync( monitor, executed, scoped.ServiceProvider );
         }
         catch( Exception ex )

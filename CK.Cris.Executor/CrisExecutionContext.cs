@@ -144,6 +144,11 @@ public class CrisExecutionContext : ICrisCommandContext
     }
 
     /// <summary>
+    /// Gets the scoped services of this context.
+    /// </summary>
+    internal IServiceProvider ServiceProvider => _serviceProvider;
+
+    /// <summary>
     /// Gets whether this context is currently executing a command.
     /// </summary>
     public bool IsExecutingCommand => _stack.Count > 0;

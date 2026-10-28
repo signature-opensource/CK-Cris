@@ -139,6 +139,44 @@ public class CrisAuthenticationService : ISingletonAutoService
     [RestoreAmbientServices]
     public virtual async ValueTask RestoreAsync( IActivityMonitor monitor, IAuthUnsafePart crisPoco, AmbientServiceHub hub )
     {
+        var (actualActor, actor) = await ReadActorsAsync( monitor, crisPoco ).ConfigureAwait( false );
+        var level = actualActor.ActorId == 0 ? CK.Core.AuthLevel.None : GetRequiredLevel( crisPoco );
+        hub.Override( AuthenticationInfo.CreateRestored( actualActor, actor, level, GetDeviceId( crisPoco ), DateTime.UtcNow ) );
+    }
+
+    /// <summary>
+    /// Gets the level required by the authentication parts of a command or event: <see cref="CK.Core.AuthLevel.Critical"/>
+    /// for a <see cref="IAuthCriticalPart"/>, <see cref="CK.Core.AuthLevel.Normal"/> for a <see cref="IAuthNormalPart"/>,
+    /// <see cref="CK.Core.AuthLevel.Unsafe"/> otherwise.
+    /// </summary>
+    /// <param name="crisPoco">The command or event.</param>
+    /// <returns>The required level.</returns>
+    public static CK.Core.AuthLevel GetRequiredLevel( IAuthUnsafePart crisPoco )
+    {
+        return crisPoco is IAuthCriticalPart
+                ? CK.Core.AuthLevel.Critical
+                : crisPoco is IAuthNormalPart
+                    ? CK.Core.AuthLevel.Normal
+                    : CK.Core.AuthLevel.Unsafe;
+    }
+
+    /// <summary>
+    /// Gets the <see cref="IAuthDeviceIdPart.DeviceId"/> of a command or event, null if it has no such part.
+    /// </summary>
+    /// <param name="crisPoco">The command or event.</param>
+    /// <returns>The device identifier.</returns>
+    public static string? GetDeviceId( IAuthUnsafePart crisPoco ) => crisPoco is IAuthDeviceIdPart d ? d.DeviceId : null;
+
+    /// <summary>
+    /// Reads the actors identified by a command or event (<see cref="IAuthUnsafePart.ActorId"/> and, for an impersonation,
+    /// <see cref="IAuthImpersonationPart.ActualActorId"/>) with the <see cref="IActorInfoProvider"/>: their current state
+    /// is used. When an actor cannot be found, this throws: an identity is never replaced by the anonymous.
+    /// </summary>
+    /// <param name="monitor">The monitor to use.</param>
+    /// <param name="crisPoco">The command or event.</param>
+    /// <returns>The actual actor and the actor (both anonymous when the actual actor identifier is 0).</returns>
+    public async ValueTask<(ActorInfo ActualActor, ActorInfo Actor)> ReadActorsAsync( IActivityMonitor monitor, IAuthUnsafePart crisPoco )
+    {
         Throw.CheckState( "ActorId must not be null.", crisPoco.ActorId is not null );
         int actorId = crisPoco.ActorId.Value;
         int actualActorId = actorId;
@@ -147,29 +185,18 @@ public class CrisAuthenticationService : ISingletonAutoService
             Throw.CheckState( "ActualActorId must not be null.", imp.ActualActorId is not null );
             actualActorId = imp.ActualActorId.Value;
         }
-        var deviceId = crisPoco is IAuthDeviceIdPart d ? d.DeviceId : null;
-        AuthenticationInfo info;
         if( actualActorId == 0 )
         {
             Throw.CheckState( "Only the anonymous can be impersonated by the anonymous.", actorId == 0 );
-            info = AuthenticationInfo.CreateRestored( ActorInfo.Anonymous, ActorInfo.Anonymous, CK.Core.AuthLevel.None, deviceId, DateTime.UtcNow );
+            return (ActorInfo.Anonymous, ActorInfo.Anonymous);
         }
-        else
-        {
-            var actualActor = await ReadActorAsync( monitor, actualActorId ).ConfigureAwait( false );
-            var actor = actorId == actualActorId
-                        ? actualActor
-                        : actorId == 0
-                            ? ActorInfo.Anonymous
-                            : await ReadActorAsync( monitor, actorId ).ConfigureAwait( false );
-            var level = crisPoco is IAuthCriticalPart
-                            ? CK.Core.AuthLevel.Critical
-                            : crisPoco is IAuthNormalPart
-                                ? CK.Core.AuthLevel.Normal
-                                : CK.Core.AuthLevel.Unsafe;
-            info = AuthenticationInfo.CreateRestored( actualActor, actor, level, deviceId, DateTime.UtcNow );
-        }
-        hub.Override( info );
+        var actualActor = await ReadActorAsync( monitor, actualActorId ).ConfigureAwait( false );
+        var actor = actorId == actualActorId
+                    ? actualActor
+                    : actorId == 0
+                        ? ActorInfo.Anonymous
+                        : await ReadActorAsync( monitor, actorId ).ConfigureAwait( false );
+        return (actualActor, actor);
     }
 
     async ValueTask<ActorInfo> ReadActorAsync( IActivityMonitor monitor, int actorId )
