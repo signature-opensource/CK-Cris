@@ -42,25 +42,25 @@ public class CrisExecutionContext : ICrisCommandContext
         _stack = new List<StackFrame>();
     }
 
-    // A view of the parent bound to other services: everything else is shared (the command stack, so that the events
-    // land in the parent's frames, the monitor, the hub, the executor and, through the overrides, the immediate events
-    // forwarding of the parent).
-    CrisExecutionContext( CrisExecutionContext parent, IServiceProvider serviceProvider )
+    // A child of the parent bound to other services: it shares the monitor, the hub, the executor and, through the
+    // overrides, the immediate events forwarding of the parent. A view also shares the command stack (the events land
+    // in the parent's frames); an independent child has its own.
+    CrisExecutionContext( CrisExecutionContext parent, IServiceProvider serviceProvider, bool shareStack )
     {
         _serviceProvider = serviceProvider;
         _eventHub = parent._eventHub;
         _rawExecutor = parent._rawExecutor;
         _monitor = parent._monitor;
-        _stack = parent._stack;
+        _stack = shareStack ? parent._stack : new List<StackFrame>();
     }
 
     [ExcludedCKType]
-    sealed class View : CrisExecutionContext
+    sealed class Child : CrisExecutionContext
     {
         readonly CrisExecutionContext _parent;
 
-        public View( CrisExecutionContext parent, IServiceProvider serviceProvider )
-            : base( parent, serviceProvider )
+        public Child( CrisExecutionContext parent, IServiceProvider serviceProvider, bool shareStack )
+            : base( parent, serviceProvider, shareStack )
         {
             _parent = parent;
         }
@@ -78,17 +78,23 @@ public class CrisExecutionContext : ICrisCommandContext
     /// </summary>
     /// <param name="serviceProvider">The scoped services of the view.</param>
     /// <returns>The view.</returns>
-    internal CrisExecutionContext CreateView( IServiceProvider serviceProvider ) => new View( this, serviceProvider );
+    internal CrisExecutionContext CreateView( IServiceProvider serviceProvider ) => new Child( this, serviceProvider, shareStack: true );
 
     /// <summary>
     /// Executes a command inline with other ambient services: on the caller's asynchronous flow, in a new scope whose
     /// ambient services are the ones of the <paramref name="hub"/> (see <see cref="ICrisAmbientScopeFactory"/>). Nothing
     /// is queued, so this never waits for a runner.
     /// <para>
-    /// This is a nested execution, like the one of <see cref="RawCrisExecutor.RawExecuteAsync(IServiceProvider, IAbstractCommand)"/>:
-    /// the events emitted in the new scope land in the current frame of this context, the commands executed by the
-    /// handlers run in the new scope. The scoped services of the caller are not shared (the new scope has its own).
-    /// No incoming validation is done (this is in-process); the handling validators run with the new ambient services.
+    /// This is an independent execution, like the one of a remote party (a tenant switch is a call to another party):
+    /// <list type="bullet">
+    ///   <item>its routed events are dispatched in the new scope when the command completes (not at the end of the
+    ///   caller's root command, and the caller's later failure doesn't undo them);</item>
+    ///   <item>its caller-only events are returned to the caller: they land in the current frame of this context;</item>
+    ///   <item>its immediate events are forwarded as the ones of this context;</item>
+    ///   <item>the commands executed by its handlers run in the new scope.</item>
+    /// </list>
+    /// The scoped services of the caller are not shared (the new scope has its own). No incoming validation is done
+    /// (this is in-process); the handling validators run with the new ambient services.
     /// </para>
     /// </summary>
     /// <param name="hub">The ambient services to use.</param>
@@ -103,8 +109,38 @@ public class CrisExecutionContext : ICrisCommandContext
         {
             Throw.InvalidOperationException( $"No {nameof( ICrisAmbientScopeFactory )} is available: CK.Cris.BackgroundExecutor must be installed to execute a command with other ambient services." );
         }
-        await using var scope = factory.CreateScope( hub, _monitor, CreateView );
-        return await _rawExecutor.RawExecuteAsync( scope.ServiceProvider, command ).ConfigureAwait( false );
+        CrisExecutionContext? inline = null;
+        await using var scope = factory.CreateScope( hub, _monitor, sp => inline = new Child( this, sp, shareStack: false ) );
+        Throw.DebugAssert( inline != null );
+        var (raw, callerOnlyEvents) = await inline.ExecuteIndependentAsync( command ).ConfigureAwait( false );
+        if( callerOnlyEvents != null )
+        {
+            if( IsExecutingCommand ) PropagateEvents( callerOnlyEvents );
+            else _monitor.Warn( $"{callerOnlyEvents.Count} caller-only events of '{command.CrisPocoModel.PocoName}' are lost: the caller is not executing a command." );
+        }
+        return raw;
+    }
+
+    // Executes a command as a root (own stack): its final routed events are dispatched here, its caller-only events
+    // are returned.
+    async Task<(RawCrisExecutor.RawResult Raw, List<IEvent>? CallerOnlyEvents)> ExecuteIndependentAsync( IAbstractCommand command )
+    {
+        Throw.DebugAssert( !IsExecutingCommand );
+        StackPush( command );
+        try
+        {
+            var raw = await _rawExecutor.RawExecuteAsync( _serviceProvider, command ).ConfigureAwait( false );
+            if( raw.Result is ICrisResultError ) return (raw, null);
+            var finalEvents = StackPeek().Events;
+            if( finalEvents == null ) return (raw, null);
+            await DispatchFinalEventsAsync( finalEvents ).ConfigureAwait( false );
+            var callerOnly = finalEvents.Where( e => e.CrisPocoModel.Kind == CrisPocoKind.CallerOnlyEvent ).ToList();
+            return (raw, callerOnly.Count > 0 ? callerOnly : null);
+        }
+        finally
+        {
+            _stack.Clear();
+        }
     }
 
     /// <summary>
@@ -179,22 +215,7 @@ public class CrisExecutionContext : ICrisCommandContext
             var finalEvents = StackPeek().Events;
             if( finalEvents != null )
             {
-                // Use index here: new final events can appear because routed event handlers
-                // may execute commands that raise subsequent events.
-                for( int i = 0; i < finalEvents.Count; i++ )
-                {
-                    IEvent? e = finalEvents[i];
-                    Throw.DebugAssert( "No immediate event here.", e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent || e.CrisPocoModel.Kind == CrisPocoKind.CallerOnlyEvent );
-                    Throw.DebugAssert( "If it is handled then it is a routed event.", !e.CrisPocoModel.IsHandled || e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent );
-                    if( e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent )
-                    {
-                        await _eventHub.AllSender.SafeRaiseAsync( _monitor, e );
-                        if( e.CrisPocoModel.IsHandled )
-                        {
-                            await _rawExecutor.SafeDispatchEventAsync( _serviceProvider, e );
-                        }
-                    }
-                }
+                await DispatchFinalEventsAsync( finalEvents );
             }
             return rootCommand.CrisPocoModel.CreateExecutedCommand( rootCommand,
                                                                     raw.Result,
@@ -229,6 +250,27 @@ public class CrisExecutionContext : ICrisCommandContext
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="routedImmediateEvent">The immediate event emitted by the current execution.</param>
     /// <returns>The awaitable.</returns>
+    // Dispatches the final routed events of a root command, in this context's scope.
+    async Task DispatchFinalEventsAsync( List<IEvent> finalEvents )
+    {
+        // Use index here: new final events can appear because routed event handlers
+        // may execute commands that raise subsequent events.
+        for( int i = 0; i < finalEvents.Count; i++ )
+        {
+            IEvent? e = finalEvents[i];
+            Throw.DebugAssert( "No immediate event here.", e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent || e.CrisPocoModel.Kind == CrisPocoKind.CallerOnlyEvent );
+            Throw.DebugAssert( "If it is handled then it is a routed event.", !e.CrisPocoModel.IsHandled || e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent );
+            if( e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent )
+            {
+                await _eventHub.AllSender.SafeRaiseAsync( _monitor, e );
+                if( e.CrisPocoModel.IsHandled )
+                {
+                    await _rawExecutor.SafeDispatchEventAsync( _serviceProvider, e );
+                }
+            }
+        }
+    }
+
     protected virtual Task RaiseImmediateEventAsync( IActivityMonitor monitor, IEvent routedImmediateEvent )
     {
         Throw.DebugAssert( routedImmediateEvent.CrisPocoModel.Kind == CrisPocoKind.RoutedImmediateEvent );

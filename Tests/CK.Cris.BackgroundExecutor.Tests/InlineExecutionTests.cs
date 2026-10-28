@@ -31,9 +31,16 @@ public class InlineExecutionTests
     {
     }
 
+    // A caller-only event: returned to the caller.
     public interface IInlineDoneEvent : IEvent
     {
         string CultureName { get; set; }
+    }
+
+    // A routed event: dispatched where the command executed, in the inline scope.
+    [RoutedEvent]
+    public interface IInlineRoutedEvent : IEvent
+    {
     }
 
     // Its culture is configured by the incoming validation (CrisCultureService [ConfigureAmbientServices]).
@@ -52,6 +59,8 @@ public class InlineExecutionTests
             var other = hub.CleanClone();
             other.Override<ExtendedCultureInfo>( NormalizedCultureInfo.EnsureNormalizedCultureInfo( c.CultureName ) );
             var r = await ((CrisExecutionContext)context).RawExecuteInlineAsync( other, pocos.Create<IInlineCommand>() );
+            // The inline execution is independent: its routed event is already dispatched, in its scope.
+            Handlers.RoutedEventCulture.ShouldBe( "fr" );
             // The outer scope is unchanged.
             return $"outer:{culture.Name} / {r.Result}";
         }
@@ -60,6 +69,9 @@ public class InlineExecutionTests
         public async Task<string> HandleAsync( IInlineCommand c, ICrisCommandContext context, ExtendedCultureInfo culture )
         {
             await context.EmitEventAsync<IInlineDoneEvent>( e => e.CultureName = culture.Name );
+            await context.EmitEventAsync<IInlineRoutedEvent>( e => { } );
+            // Dispatched when the inline command completes, not now.
+            Handlers.RoutedEventCulture.ShouldBeNull();
             // A command executed by the inline handler runs in the inline scope.
             var nested = (string?)await context.ExecuteCommandAsync<INestedCommand>( _ => { } );
             return $"inline:{culture.Name}, {nested}";
@@ -67,6 +79,11 @@ public class InlineExecutionTests
 
         [CommandHandler]
         public string Handle( INestedCommand c, ExtendedCultureInfo culture ) => $"nested:{culture.Name}";
+
+        public static string? RoutedEventCulture;
+
+        [RoutedEventHandler]
+        public void On( IInlineRoutedEvent e, ExtendedCultureInfo culture ) => RoutedEventCulture = culture.Name;
     }
 
     [Test]
@@ -77,10 +94,12 @@ public class InlineExecutionTests
                                               typeof( IInlineCommand ),
                                               typeof( INestedCommand ),
                                               typeof( IInlineDoneEvent ),
+                                              typeof( IInlineRoutedEvent ),
                                               typeof( Handlers ),
                                               typeof( CrisBackgroundExecutorService ),
                                               typeof( RawCrisReceiver ) );
         await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        Handlers.RoutedEventCulture = null;
         var host = auto.Services.GetRequiredService<CrisExecutionHost>();
         host.ParallelRunnerCount.ShouldBe( 1 );
 
@@ -94,8 +113,10 @@ public class InlineExecutionTests
         var executed = await executing.ExecutedCommand.WaitAsync( TimeSpan.FromSeconds( 5 ) );
 
         executed.Result.ShouldBe( "outer:en / inline:fr, nested:fr" );
-        // The event emitted in the inline scope is one of the outer command.
+        // The caller-only event of the inline command is returned to the caller: it is one of the outer command.
         executed.Events.OfType<IInlineDoneEvent>().ShouldHaveSingleItem().CultureName.ShouldBe( "fr" );
+        // Its routed event is not: it has been dispatched where the inline command executed.
+        executed.Events.OfType<IInlineRoutedEvent>().ShouldBeEmpty();
     }
 
     [Test]
@@ -109,6 +130,7 @@ public class InlineExecutionTests
                                               typeof( IInlineCommand ),
                                               typeof( INestedCommand ),
                                               typeof( IInlineDoneEvent ),
+                                              typeof( IInlineRoutedEvent ),
                                               typeof( CrisCultureService ),
                                               typeof( CrisBackgroundExecutorService ),
                                               typeof( RawCrisReceiver ) );
