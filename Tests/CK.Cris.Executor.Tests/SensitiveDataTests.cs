@@ -113,11 +113,14 @@ public class SensitiveDataTests
     }
 
     [Test]
-    public async Task without_the_Json_exchange_a_sensitive_Poco_is_not_logged_Async()
+    public async Task without_the_Json_exchange_a_sensitive_Poco_is_still_redacted_Async()
     {
+        // The redacted copy is a Poco Clone(): it doesn't need the Json exchange (the logged string is then the
+        // ToString() of the copy).
         await using var auto = await CreateAsync();
         var poco = auto.Services.GetRequiredService<PocoDirectory>();
         var secret = poco.Create<ISecretCommand>( c => c.Secret = "password" );
-        secret.ToLogString().ShouldBe( $"{secret.CrisPocoModel.PocoName} (sensitive content not logged)" );
+        secret.ToLogString().ShouldNotContain( "password" );
+        secret.Secret.ShouldBe( "password" );
     }
 }
