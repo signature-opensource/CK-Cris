@@ -5,6 +5,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CK.Auth.Abstractions" Version="15.0.0-0.cris-auth.0.ci.8" />
-    <PackageReference Include="CK.IO.Auth" Version="3.0.0-0.cris-auth.0.ci.30" />
+    <PackageReference Include="CK.IO.Auth" Version="3.0.0-0.cris-auth.0.ci.31" />
   </ItemGroup>
 </Project>
