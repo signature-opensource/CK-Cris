@@ -25,4 +25,5 @@
   <Project Path="CK.Cris.Executor.Engine/CK.Cris.Executor.Engine.csproj" />
   <Project Path="CK.Cris.Executor/CK.Cris.Executor.csproj" />
   <Project Path="CK.Cris.HttpSender/CK.Cris.HttpSender.csproj" />
+  <Project Path="CK.Testing.Cris.Authentication/CK.Testing.Cris.Authentication.csproj" />
 </Solution>

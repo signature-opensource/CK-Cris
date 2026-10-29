@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Description>Test helpers of the authentication: a fake authentication center (its actors, its tokens and the operations of the session commands) for the tests that run below a real one.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CK.IO.Authentication.Basic" Version="3.0.0-0.cris-auth.0.ci.32" />
+    <PackageReference Include="CK.IO.Authentication.Weak" Version="3.0.0-0.cris-auth.0.ci.32" />
+    <PackageReference Include="CK.IO.Authentication.Passkey" Version="3.0.0-0.cris-auth.0.ci.32" />
+    <PackageReference Include="CK.Testing.StObjEngine" Version="36.0.0-0.cris-auth.0.ci.10" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CK.Cris.Authentication\CK.Cris.Authentication.csproj" />
+  </ItemGroup>
+</Project>

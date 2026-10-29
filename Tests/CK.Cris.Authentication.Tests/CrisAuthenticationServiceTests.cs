@@ -17,7 +17,7 @@ namespace CK.Cris.Authentication.Tests;
 public class CrisAuthenticationServiceTests
 {
     static readonly ActorInfo _albert = new ActorInfo( 3712, "Albert", CK.Core.AuthLevel.Critical );
-    static readonly ActorInfo _robert = new ActorInfo( 12, "Robert", CK.Core.AuthLevel.Critical );
+    static readonly ActorInfo _robert = new ActorInfo( 3713, "Robert", CK.Core.AuthLevel.Critical );
     static readonly ActorInfo _operator = new ActorInfo( 42, "Operator", CK.Core.AuthLevel.Unsafe, [new SchemeInfo( ActorInfo.WeakScheme, new DateTime( 2000, 1, 1, 0, 0, 0, DateTimeKind.Utc ) )] );
 
     // The endpoint authentication used by the scoped AuthenticationInfo.
@@ -25,14 +25,6 @@ public class CrisAuthenticationServiceTests
 
     [AllowNull]
     AutomaticServices _auto;
-
-    public sealed class FakeActorInfoProvider : IActorInfoProvider
-    {
-        public ValueTask<ActorInfo?> GetActorInfoAsync( IActivityMonitor monitor, int actorId )
-        {
-            return ValueTask.FromResult( actorId switch { 3712 => _albert, 12 => _robert, 42 => _operator, _ => (ActorInfo?)null } );
-        }
-    }
 
     public interface IUnsafeCommand : ICommand<string>, ICommandAuthUnsafe { }
 
@@ -72,7 +64,7 @@ public class CrisAuthenticationServiceTests
         configuration.FirstBinPath.Types.Add( typeof( CrisAuthenticationService ),
                                               typeof( AuthenticationInfo ),
                                               typeof( AuthenticationInfoDefaultProvider ),
-                                              typeof( FakeActorInfoProvider ),
+                                              typeof( FakeActorDatabase ),
                                               typeof( IAuthAmbientValues ),
                                               typeof( IAmbientValuesCollectCommand ),
                                               typeof( AmbientValuesService ),
@@ -146,7 +138,7 @@ public class CrisAuthenticationServiceTests
         var normal = AuthenticationInfo.Create( _albert, Tomorrow, null, null, DateTime.UtcNow );
         (await ValidateAsync( normal, p => p.Create<ICriticalCommand>( c => c.ActorId = 3712 ), resNames: true ))
             .ShouldBe( ["Authentication.CriticalLevelRequired"] );
-        (await ValidateAsync( normal, p => p.Create<INormalCommand>( c => c.ActorId = 12 ), resNames: true ))
+        (await ValidateAsync( normal, p => p.Create<INormalCommand>( c => c.ActorId = 3713 ), resNames: true ))
             .ShouldBe( ["Authentication.ActorMismatch"] );
     }
 
@@ -164,7 +156,7 @@ public class CrisAuthenticationServiceTests
         (await ValidateAsync( normal, p => p.Create<INormalCommand>( c => c.ActorId = 3712 ) )).ShouldBeEmpty();
         (await ValidateAsync( normal, p => p.Create<ICriticalCommand>( c => c.ActorId = 3712 ) ))
             .ShouldBe( ["Invalid authentication level: Critical authentication level required."] );
-        (await ValidateAsync( normal, p => p.Create<INormalCommand>( c => c.ActorId = 12 ) ))
+        (await ValidateAsync( normal, p => p.Create<INormalCommand>( c => c.ActorId = 3713 ) ))
             .ShouldBe( ["Invalid actor identifier: the provided identifier doesn't match the current authentication."] );
         (await ValidateAsync( normal, p => p.Create<INormalCommand>() ))
             .ShouldBe( ["Invalid property: ActorId cannot be null."] );
@@ -187,7 +179,7 @@ public class CrisAuthenticationServiceTests
         (await ValidateAsync( s, p => p.Create<IImpersonatedCommand>( c => { c.ActorId = 42; c.ActualActorId = 3712; c.DeviceId = "D"; } ) ))
             .ShouldBe( ["Invalid authentication level: Normal authentication level required."] );
         (await ValidateAsync( s, p => p.Create<IImpersonatedUnsafeCommand>( c => { c.ActorId = 42; c.ActualActorId = 3712; } ) )).ShouldBeEmpty();
-        (await ValidateAsync( s, p => p.Create<IImpersonatedUnsafeCommand>( c => { c.ActorId = 42; c.ActualActorId = 12; } ) ))
+        (await ValidateAsync( s, p => p.Create<IImpersonatedUnsafeCommand>( c => { c.ActorId = 42; c.ActualActorId = 3713; } ) ))
             .ShouldBe( ["Invalid actual actor identifier: the provided identifier doesn't match the current authentication."] );
     }
 
@@ -214,8 +206,8 @@ public class CrisAuthenticationServiceTests
             .ShouldBe( "42/Unsafe|42/Unsafe|" );
         (await ExecuteRestoredAsync( p => p.Create<IUnsafeCommand>( c => c.ActorId = 0 ) ))
             .ShouldBe( "0/None|0/None|" );
-        (await ExecuteRestoredAsync( p => p.Create<IImpersonatedCommand>( c => { c.ActorId = 12; c.ActualActorId = 3712; c.DeviceId = "D"; } ) ))
-            .ShouldBe( "12/Normal|3712/Normal|D" );
+        (await ExecuteRestoredAsync( p => p.Create<IImpersonatedCommand>( c => { c.ActorId = 3713; c.ActualActorId = 3712; c.DeviceId = "D"; } ) ))
+            .ShouldBe( "3713/Normal|3712/Normal|D" );
         (await ExecuteRestoredAsync( p => p.Create<IImpersonatedUnsafeCommand>( c => { c.ActorId = 42; c.ActualActorId = 3712; } ) ))
             .ShouldBe( "42/Unsafe|3712/Unsafe|" );
     }
@@ -224,6 +216,6 @@ public class CrisAuthenticationServiceTests
     public async Task restoration_refuses_unknown_users_Async()
     {
         (await ExecuteRestoredAsync( p => p.Create<INormalCommand>( c => c.ActorId = 999 ) )).ShouldStartWith( "Error: " );
-        (await ExecuteRestoredAsync( p => p.Create<IImpersonatedUnsafeCommand>( c => { c.ActorId = 12; c.ActualActorId = 999; } ) )).ShouldStartWith( "Error: " );
+        (await ExecuteRestoredAsync( p => p.Create<IImpersonatedUnsafeCommand>( c => { c.ActorId = 3713; c.ActualActorId = 999; } ) )).ShouldStartWith( "Error: " );
     }
 }

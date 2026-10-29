@@ -20,16 +20,11 @@ namespace CK.Cris.Authentication.Tests;
 /// <summary>
 /// First engine check of the CK.IO.Authentication types (they cannot be tested in CK-Cris-Abstractions) and of the
 /// endpoint side of the session commands: the real handlers (CK.Cris.Authentication, .Basic, .Weak, .Passkey) execute
-/// the internal operations, handled here (single host) by a fake authentication center.
+/// the internal operations, handled here (single host) by the fake authentication center of CK.Testing.Cris.Authentication.
 /// </summary>
 [TestFixture]
 public class SessionCommandsTests
 {
-    public sealed class NoActor : IActorInfoProvider
-    {
-        public ValueTask<ActorInfo?> GetActorInfoAsync( IActivityMonitor monitor, int actorId ) => ValueTask.FromResult<ActorInfo?>( null );
-    }
-
     /// <summary>
     /// The endpoint: it prepares numbered secrets and records what it is asked to issue or clear.
     /// </summary>
@@ -69,111 +64,12 @@ public class SessionCommandsTests
         public string? WebOrigin { get; set; } = "https://app";
     }
 
-    /// <summary>
-    /// The authentication center side: the handlers of the internal operations. It tells what it received.
-    /// </summary>
-    public sealed class FakeAuthenticationCenter : ISingletonAutoService
-    {
-        public static IOpenSessionOperationCommand? LastOpen;
-        public static IRefreshSessionOperationCommand? LastRefresh;
-        public static IImpersonateOperationCommand? LastImpersonate;
-        public static IStartRemoteLoginOperationCommand? LastStartRemote;
-        public static ICompleteRemoteLoginOperationCommand? LastCompleteRemote;
-        public static IStartPasskeyRegistrationOperationCommand? LastStartRegistration;
-        public static IFinishPasskeyRegistrationOperationCommand? LastFinishRegistration;
-
-        static ISessionOperationResult Session( PocoDirectory pocos, AuthenticationInfo info, string token, bool rememberMe = false )
-        {
-            return pocos.Create<ISessionOperationResult>( r =>
-            {
-                r.Result = pocos.Create<ISessionResult>( s =>
-                {
-                    s.Info.InitializeFrom( info );
-                    s.Token = token;
-                    s.RememberMe = rememberMe;
-                } );
-                r.IssuedSessionKey = "session-key";
-                r.RememberMe = rememberMe;
-                r.RefreshExpires = DateTime.UtcNow.AddDays( 1 );
-            } );
-        }
-
-        [CommandHandler]
-        public ISessionOperationResult Handle( IOpenSessionOperationCommand op, AuthenticationInfo info, PocoDirectory pocos )
-        {
-            LastOpen = op;
-            if( op.Payload is IWeakLoginCommand weak )
-            {
-                var actor = new ActorInfo( 42, weak.WeakActorName, CK.Core.AuthLevel.Unsafe, [new SchemeInfo( op.Scheme, DateTime.UtcNow )] );
-                return Session( pocos, AuthenticationInfo.Create( actor, DateTime.UtcNow.AddHours( 1 ), null, "D", DateTime.UtcNow ), "opened", op.RememberMe );
-            }
-            return Session( pocos, info, "the-token", op.RememberMe );
-        }
-
-        [CommandHandler]
-        public ISessionOperationResult Handle( IRefreshSessionOperationCommand op, AuthenticationInfo info, PocoDirectory pocos )
-        {
-            LastRefresh = op;
-            return Session( pocos, info, "refreshed" );
-        }
-
-        [CommandHandler]
-        public ISessionOperationResult Handle( ILogoutSessionOperationCommand op, PocoDirectory pocos ) => pocos.Create<ISessionOperationResult>( r => r.Cleared = true );
-
-        [CommandHandler]
-        public ISessionOperationResult Handle( IImpersonateOperationCommand op, AuthenticationInfo info, PocoDirectory pocos )
-        {
-            LastImpersonate = op;
-            return Session( pocos, info, "impersonated" );
-        }
-
-        [CommandHandler]
-        public ISessionOperationResult Handle( IClearImpersonationOperationCommand op, AuthenticationInfo info, PocoDirectory pocos ) => Session( pocos, info, "cleared" );
-
-        [CommandHandler]
-        public RedirectedUrl Handle( IStartRemoteLoginOperationCommand op )
-        {
-            LastStartRemote = op;
-            return new RedirectedUrl( "https://idp/" + op.Login!.Scheme, op.Login.InlineMode );
-        }
-
-        [CommandHandler]
-        public ISessionOperationResult Handle( ICompleteRemoteLoginOperationCommand op, AuthenticationInfo info, PocoDirectory pocos )
-        {
-            LastCompleteRemote = op;
-            return Session( pocos, info, "remote" );
-        }
-
-        [CommandHandler]
-        public IList<ILoginSchemeInfo> Handle( IGetLoginSchemesQCommand c, PocoDirectory pocos )
-            => [pocos.Create<ILoginSchemeInfo>( s => { s.Name = "Basic"; s.CriticalLifetime = TimeSpan.FromMinutes( 5 ); } ),
-                pocos.Create<ILoginSchemeInfo>( s => s.Name = "Weak" )];
-        [CommandHandler] public string Handle( IStartPasskeyLoginOperationCommand op ) => """{"challenge":"login"}""";
-
-        [CommandHandler]
-        public ISessionOperationResult Handle( IFinishPasskeyLoginOperationCommand op, AuthenticationInfo info, PocoDirectory pocos ) => Session( pocos, info, "the-token", op.Login!.RememberMe );
-
-        [CommandHandler]
-        public string Handle( IStartPasskeyRegistrationOperationCommand op )
-        {
-            LastStartRegistration = op;
-            return """{"challenge":"registration"}""";
-        }
-
-        [CommandHandler]
-        public IPasskeyRegistrationResult Handle( IFinishPasskeyRegistrationOperationCommand op, PocoDirectory pocos )
-        {
-            LastFinishRegistration = op;
-            return pocos.Create<IPasskeyRegistrationResult>( r => r.Name = "My phone" );
-        }
-    }
-
     static readonly Type[] _sessionTypes =
     [
         typeof( CrisAuthenticationService ),
         typeof( AuthenticationInfo ),
         typeof( AuthenticationInfoDefaultProvider ),
-        typeof( NoActor ),
+        typeof( FakeActorDatabase ),
         typeof( RawCrisExecutor ),
         typeof( RawCrisReceiver ),
         typeof( CrisDirectory ),
@@ -227,7 +123,8 @@ public class SessionCommandsTests
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( _sessionTypes );
-        if( withAuthenticationCenter ) configuration.FirstBinPath.Types.Add( typeof( FakeAuthenticationCenter ) );
+        // The authentication center side: the handlers of the internal operations (CK.Testing.Cris.Authentication).
+        if( withAuthenticationCenter ) configuration.FirstBinPath.AddFakeAuthCenter();
         var session = AuthenticationInfo.Create( _albert, DateTime.UtcNow.AddDays( 1 ), null, "D", DateTime.UtcNow );
         return (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices( configureServices: services =>
         {
@@ -250,6 +147,7 @@ public class SessionCommandsTests
             var services = scope.ServiceProvider;
             var poco = services.GetRequiredService<PocoDirectory>();
             var executor = services.GetRequiredService<RawCrisExecutor>();
+            var center = services.GetRequiredService<FakeAuthCenterOperations>();
 
             // The operations are [Internal]: front applications cannot send them.
             poco.Create<IOpenSessionOperationCommand>().CrisPocoModel.Exposure.ShouldBe( CrisExposure.Internal );
@@ -258,70 +156,84 @@ public class SessionCommandsTests
 
             // Basic login: the login command is the payload of the open session operation (nested as data: the engine
             // accepts an endpoint-only command as a property), the endpoint issues the secrets it prepared.
-            var login = poco.Create<IBasicLoginCommand>( c => { c.UserName = "Albert"; c.Password = "secret-password"; c.RememberMe = true; } );
+            var login = poco.Create<IBasicLoginCommand>( c => { c.UserName = "Albert"; c.Password = FakeActorDatabase.BasicPassword; c.RememberMe = true; } );
             login.ShouldBeAssignableTo<ICommandEndpointOnly>();
             login.CrisPocoModel.HasSensitiveData.ShouldBeTrue();
             var r = (ISessionResult)(await executor.RawExecuteAsync( services, login )).Result!;
-            r.Token.ShouldBe( "the-token" );
+            r.Success.ShouldBeTrue();
+            var token = r.Token.ShouldNotBeNull();
             r.RememberMe.ShouldBeTrue();
             r.Info.UnsafeActor.ActorId.ShouldBe( 3712 );
             r.Info.UnsafeActor.Level.ShouldBe( CK.Core.AuthLevel.Normal );
-            r.Info.DeviceId.ShouldBe( "D" );
-            FakeAuthenticationCenter.LastOpen!.Scheme.ShouldBe( "Basic" );
-            FakeAuthenticationCenter.LastOpen.Payload.ShouldBeSameAs( login );
-            FakeAuthenticationCenter.LastOpen.RememberMe.ShouldBeTrue();
-            FakeAuthenticationCenter.LastOpen.NextRefreshSecretHash.ShouldBe( "r1" );
-            FakeAuthenticationCenter.LastOpen.NextBindingSecretHash.ShouldBe( "b1" );
-            endpoint.IssuedSessionKey.ShouldBe( "session-key" );
+            r.Info.DeviceId.ShouldBe( center.DeviceId );
+            center.LastOpen!.Scheme.ShouldBe( "Basic" );
+            center.LastOpen.Payload.ShouldBeSameAs( login );
+            center.LastOpen.RememberMe.ShouldBeTrue();
+            center.LastOpen.NextRefreshSecretHash.ShouldBe( "r1" );
+            center.LastOpen.NextBindingSecretHash.ShouldBe( "b1" );
+            var sessionKey = endpoint.IssuedSessionKey.ShouldNotBeNull();
 
             // Refresh: the presented session travels with the operation, the new prepared secrets are issued.
             r = (ISessionResult)(await executor.RawExecuteAsync( services, poco.Create<IRefreshSessionCommand>() )).Result!;
-            r.Token.ShouldBe( "refreshed" );
-            FakeAuthenticationCenter.LastRefresh!.PresentedSessionKey.ShouldBe( "session-key" );
-            FakeAuthenticationCenter.LastRefresh.PresentedRefreshSecretHash.ShouldBe( "r1" );
-            FakeAuthenticationCenter.LastRefresh.NextRefreshSecretHash.ShouldBe( "r2" );
+            r.Token.ShouldNotBeNull().ShouldNotBe( token );
+            center.LastRefresh!.PresentedSessionKey.ShouldBe( sessionKey );
+            center.LastRefresh.PresentedRefreshSecretHash.ShouldBe( "r1" );
+            center.LastRefresh.NextRefreshSecretHash.ShouldBe( "r2" );
             endpoint.PresentedProof!.RefreshSecretHash.ShouldBe( "r2" );
+            sessionKey = endpoint.IssuedSessionKey.ShouldNotBeNull();
 
             // Impersonation: a Critical operation that carries the current actor.
-            r = (ISessionResult)(await executor.RawExecuteAsync( services, poco.Create<IImpersonateCommand>( c => { c.ActorId = 3712; c.TargetActorId = 12; } ) )).Result!;
-            r.Token.ShouldBe( "impersonated" );
-            FakeAuthenticationCenter.LastImpersonate!.ActorId.ShouldBe( 3712 );
-            FakeAuthenticationCenter.LastImpersonate.TargetActorId.ShouldBe( 12 );
-            FakeAuthenticationCenter.LastImpersonate.PresentedSessionKey.ShouldBe( "session-key" );
-            ((ISessionResult)(await executor.RawExecuteAsync( services, poco.Create<IClearImpersonationCommand>() )).Result!).Token.ShouldBe( "cleared" );
+            r = (ISessionResult)(await executor.RawExecuteAsync( services, poco.Create<IImpersonateCommand>( c => { c.ActorId = 3712; c.TargetActorId = 3713; } ) )).Result!;
+            r.Info.UnsafeActor.ActorName.ShouldBe( "Robert" );
+            r.Info.UnsafeActualActor.ActorName.ShouldBe( "Albert" );
+            center.LastImpersonate!.ActorId.ShouldBe( 3712 );
+            center.LastImpersonate.TargetActorId.ShouldBe( 3713 );
+            center.LastImpersonate.PresentedSessionKey.ShouldBe( sessionKey );
+            r = (ISessionResult)(await executor.RawExecuteAsync( services, poco.Create<IClearImpersonationCommand>() )).Result!;
+            r.Info.UnsafeActor.ActorName.ShouldBe( "Albert" );
 
             // Remote login: the endpoint's callback, correlation and origin travel with the start; the presented
             // correlation with the completion.
             var start = poco.Create<IStartLoginCommand>( c => { c.Scheme = "Oidc.Azure"; c.InlineMode = true; c.UserData.Add( "InvitationToken", "T" ); } );
             start.CrisPocoModel.ResultType.ShouldBe( typeof( RedirectedUrl ) );
-            (await executor.RawExecuteAsync( services, start )).Result.ShouldBe( new RedirectedUrl( "https://idp/Oidc.Azure", true ) );
-            FakeAuthenticationCenter.LastStartRemote!.Login.ShouldBeSameAs( start );
-            FakeAuthenticationCenter.LastStartRemote.CallbackUrl.ShouldBe( "https://app/.cris/auth/callback" );
-            FakeAuthenticationCenter.LastStartRemote.CorrelationHash.ShouldBe( "correlation-hash" );
-            FakeAuthenticationCenter.LastStartRemote.WebOrigin.ShouldBe( "https://app" );
-            var callback = poco.Create<IRemoteLoginCallbackCommand>( c => { c.State = "S"; c.Code = "C"; } );
-            ((ISessionResult)(await executor.RawExecuteAsync( services, callback )).Result!).Token.ShouldBe( "remote" );
-            FakeAuthenticationCenter.LastCompleteRemote!.Callback.ShouldBeSameAs( callback );
-            FakeAuthenticationCenter.LastCompleteRemote.PresentedCorrelationHash.ShouldBe( "presented-correlation" );
+            var redirect = (RedirectedUrl)(await executor.RawExecuteAsync( services, start )).Result!;
+            redirect.IsInline.ShouldBeTrue();
+            redirect.Url.ShouldStartWith( "https://idp.example.com/authorize?state=" );
+            center.LastStartRemote!.Login.ShouldBeSameAs( start );
+            center.LastStartRemote.CallbackUrl.ShouldBe( "https://app/.cris/auth/callback" );
+            center.LastStartRemote.CorrelationHash.ShouldBe( "correlation-hash" );
+            center.LastStartRemote.WebOrigin.ShouldBe( "https://app" );
+            var state = redirect.Url.Substring( redirect.Url.LastIndexOf( '=' ) + 1 );
+            // The presented correlation is not the one of the start: refused.
+            var callback = poco.Create<IRemoteLoginCallbackCommand>( c => { c.State = state; c.Code = FakeAuthCenterOperations.RemoteLoginCode; } );
+            ((ISessionResult)(await executor.RawExecuteAsync( services, callback )).Result!).Success.ShouldBeFalse();
+            center.LastCompleteRemote!.Callback.ShouldBeSameAs( callback );
+            center.LastCompleteRemote.PresentedCorrelationHash.ShouldBe( "presented-correlation" );
+            // From the browser that started it: accepted.
+            redirect = (RedirectedUrl)(await executor.RawExecuteAsync( services, start )).Result!;
+            state = redirect.Url.Substring( redirect.Url.LastIndexOf( '=' ) + 1 );
+            endpoint.PresentedRemoteLoginHash = "correlation-hash";
+            callback = poco.Create<IRemoteLoginCallbackCommand>( c => { c.State = state; c.Code = FakeAuthCenterOperations.RemoteLoginCode; } );
+            ((ISessionResult)(await executor.RawExecuteAsync( services, callback )).Result!).Success.ShouldBeTrue();
 
             // Weak login: the Weak handler (AllowUnclosedCommand) handles the command extended by CK.IO.Authentication.WeakZone.
             var weak = poco.Create<IWeakLoginCommand>( c => c.WeakActorName = "Operator" );
             weak.CrisPocoModel.HasSensitiveData.ShouldBeFalse();
             weak.ShouldBeAssignableTo<IWeakZoneLoginCommand>().ZoneId = 42;
             var w = (ISessionResult)(await executor.RawExecuteAsync( services, weak )).Result!;
-            w.Token.ShouldBe( "opened" );
+            w.Token.ShouldNotBeNull();
             w.Info.UnsafeActor.ActorName.ShouldBe( "Operator" );
             w.Info.UnsafeActor.Level.ShouldBe( CK.Core.AuthLevel.Unsafe );
             w.Info.UnsafeActor.Schemes.ShouldHaveSingleItem().Scheme.ShouldBe( "Weak" );
-            FakeAuthenticationCenter.LastOpen.Payload.ShouldBeAssignableTo<IWeakZoneLoginCommand>().ZoneId.ShouldBe( 42 );
+            center.LastOpen.Payload.ShouldBeAssignableTo<IWeakZoneLoginCommand>().ZoneId.ShouldBe( 42 );
 
             poco.Create<IGetLoginSchemesQCommand>().ShouldNotBeAssignableTo<ICommandEndpointOnly>();
             var schemes = (IList<ILoginSchemeInfo>)(await executor.RawExecuteAsync( services, poco.Create<IGetLoginSchemesQCommand>() )).Result!;
-            schemes.Select( s => (s.Name, s.CriticalLifetime) ).ShouldBe( [("Basic", TimeSpan.FromMinutes( 5 )), ("Weak", TimeSpan.Zero)] );
+            schemes.Select( s => (s.Name, s.CriticalLifetime) ).ShouldBe( [("Basic", TimeSpan.FromMinutes( 5 )), ("Weak", TimeSpan.Zero), ("Passkey", TimeSpan.FromMinutes( 5 ))] );
 
             // Impersonation requires the Critical level: this Normal session is refused at the entry.
             var receiver = services.GetRequiredService<RawCrisReceiver>();
-            var impersonate = poco.Create<IImpersonateCommand>( c => { c.ActorId = 3712; c.TargetActorId = 12; } );
+            var impersonate = poco.Create<IImpersonateCommand>( c => { c.ActorId = 3712; c.TargetActorId = 3713; } );
             var v = await receiver.IncomingValidateAsync( TestHelper.Monitor, services, impersonate );
             v.Success.ShouldBeFalse();
             v.ValidationMessages.Select( m => m.Text ).ShouldContain( "Invalid authentication level: Critical authentication level required." );
@@ -339,10 +251,13 @@ public class SessionCommandsTests
             var startPasskey = poco.Create<IStartPasskeyLoginCommand>();
             startPasskey.ShouldBeAssignableTo<ICommandEndpointOnly>();
             startPasskey.CrisPocoModel.ResultType.ShouldBe( typeof( string ) );
-            (await executor.RawExecuteAsync( services, startPasskey )).Result.ShouldBe( """{"challenge":"login"}""" );
+            ((string)(await executor.RawExecuteAsync( services, startPasskey )).Result!).ShouldContain( "login-challenge" );
             var passkeyLogin = poco.Create<IPasskeyLoginCommand>( c => { c.Response = "{}"; c.RememberMe = true; } );
             passkeyLogin.CrisPocoModel.HasSensitiveData.ShouldBeFalse();
-            ((ISessionResult)(await executor.RawExecuteAsync( services, passkeyLogin )).Result!).Token.ShouldBe( "the-token" );
+            ((ISessionResult)(await executor.RawExecuteAsync( services, passkeyLogin )).Result!).Success.ShouldBeFalse( "Not signed." );
+            passkeyLogin.Response = """{"signed":"login-challenge"}""";
+            r = (ISessionResult)(await executor.RawExecuteAsync( services, passkeyLogin )).Result!;
+            r.Info.UnsafeActor.Level.ShouldBe( CK.Core.AuthLevel.Critical );
 
             // Adding a passkey requires the Critical level: this Normal session is refused at the entry.
             var startRegistration = poco.Create<IStartPasskeyRegistrationCommand>( c => { c.ActorId = 3712; c.Name = "My phone"; } );
@@ -351,17 +266,17 @@ public class SessionCommandsTests
             v.Success.ShouldBeFalse();
             v.ValidationMessages.Select( m => m.Text ).ShouldContain( "Invalid authentication level: Critical authentication level required." );
             v.ValidationMessages.Select( m => m.ResName ).ShouldContain( "Authentication.CriticalLevelRequired" );
-            (await executor.RawExecuteAsync( services, startRegistration )).Result.ShouldBe( """{"challenge":"registration"}""" );
-            FakeAuthenticationCenter.LastStartRegistration!.Start.ShouldBeSameAs( startRegistration );
-            FakeAuthenticationCenter.LastStartRegistration.ActorId.ShouldBe( 3712 );
-            FakeAuthenticationCenter.LastStartRegistration.WebOrigin.ShouldBe( "https://app" );
+            ((string)(await executor.RawExecuteAsync( services, startRegistration )).Result!).ShouldContain( "registration-challenge" );
+            center.LastStartRegistration!.Start.ShouldBeSameAs( startRegistration );
+            center.LastStartRegistration.ActorId.ShouldBe( 3712 );
+            center.LastStartRegistration.WebOrigin.ShouldBe( "https://app" );
             var registration = poco.Create<IPasskeyRegistrationCommand>( c => { c.ActorId = 3712; c.Response = "{}"; } );
             v = await receiver.IncomingValidateAsync( TestHelper.Monitor, services, registration );
             v.Success.ShouldBeFalse();
             var registered = (IPasskeyRegistrationResult)(await executor.RawExecuteAsync( services, registration )).Result!;
             registered.Success.ShouldBeTrue();
-            registered.Name.ShouldBe( "My phone" );
-            FakeAuthenticationCenter.LastFinishRegistration!.Registration.ShouldBeSameAs( registration );
+            registered.Name.ShouldBe( "Test passkey" );
+            center.LastFinishRegistration!.Registration.ShouldBeSameAs( registration );
 
             // A passkey ceremony needs an endpoint that serves web pages.
             endpoint.WebOrigin = null;
