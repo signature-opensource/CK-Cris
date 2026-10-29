@@ -75,8 +75,9 @@ public sealed partial class CrisHttpSender : ICrisHttpSender
         _httpClient.Timeout = Timeout.InfiniteTimeSpan;
         _remote = remote;
         _endpointUrl = endpointUrl;
-        // ".cris/auth" next to ".cris/net".
-        _authEndpointUrl = new Uri( endpointUrl, "auth" );
+        // ".cris/auth" next to ".cris/net". This route answers in the format of the front applications: the full user
+        // messages are required (the Json import reads only them).
+        _authEndpointUrl = new Uri( endpointUrl, "auth?FullUserMessages" );
         _pocoDirectory = pocoDirectory;
         _resultFactory = resultFactory;
     }

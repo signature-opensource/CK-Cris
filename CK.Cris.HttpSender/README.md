@@ -31,7 +31,9 @@ setup of that feature:
 
 The reason for the second is that the endpoint is derived, not configured: the sender always posts to
 `<Address>/.cris/net`, and the session commands (the `ICommandAuthenticationSession` part of CK.IO.Authentication:
-logins, refresh, logout...) to `<Address>/.cris/auth`. A remote whose address already carries a path would silently
+logins, refresh, logout...) to `<Address>/.cris/auth?FullUserMessages` (this route answers in the format of the front
+applications: the query asks for the full user messages, the only ones the Json import reads). A remote whose address
+already carries a path would silently
 produce a different endpoint, so it is refused instead.
 
 Retry is opt-**out** (`optOut: true`), timeout is not: omit `"Retry"` and you get the default retry
