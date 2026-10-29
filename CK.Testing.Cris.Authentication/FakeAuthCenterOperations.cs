@@ -19,7 +19,7 @@ namespace CK.Testing;
 /// <list type="bullet">
 ///     <item>"Basic": <see cref="FakeActorDatabase.BasicLogin(string, string)"/>, Normal level (see <see cref="BasicCriticalLifetime"/>).
 ///     The <see cref="CriticalOneSecondPassword"/> gives a Critical level that ends one second later.</item>
-///     <item>"Weak": <see cref="FakeActorDatabase.WeakLogin(string)"/>.</item>
+///     <item>"Weak": <see cref="FakeActorDatabase.WeakLogin(string)"/> (any actor, passwordless).</item>
 ///     <item>"Passkey": the ceremonies use the challenges <c>"login-challenge"</c> and <c>"registration-challenge"</c>; a
 ///     login response that contains <c>"signed":"login-challenge"</c> opens a Critical session for the <see cref="PasskeyActorId"/>.</item>
 ///     <item>Remote logins: the provider's URL is <c>https://idp.example.com/authorize?state=...</c> (with <c>prompt=login&amp;</c>

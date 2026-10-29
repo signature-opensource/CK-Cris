@@ -9,7 +9,7 @@ using System;
 namespace CK.Testing;
 
 /// <summary>
-/// Registers the fake authentication center.
+/// Registers the fake authentication center, or the fake login providers of a real one.
 /// </summary>
 public static class FakeAuthCenterTestingExtensions
 {
@@ -49,6 +49,34 @@ public static class FakeAuthCenterTestingExtensions
         typeof( IStartPasskeyRegistrationOperationCommand ),
         typeof( IFinishPasskeyRegistrationOperationCommand )
     ];
+
+    /// <summary>
+    /// The login providers of a real authentication center, on the <see cref="FakeActorDatabase"/>:
+    /// <see cref="FakeBasicLoginProvider"/>, <see cref="FakeWeakLoginProvider"/> and <see cref="FakeOidcLoginProvider"/>.
+    /// The passkey provider (<see cref="FakePasskeyLoginProvider"/> and its <see cref="InMemoryPasskeyStore"/>) is added
+    /// with the passkey scheme family.
+    /// </summary>
+    public static readonly Type[] FakeLoginProviderTypes =
+    [
+        typeof( FakeActorDatabase ),
+        typeof( FakeBasicLoginProvider ),
+        typeof( FakeWeakLoginProvider ),
+        typeof( FakeOidcLoginProvider )
+    ];
+
+    /// <summary>
+    /// Adds the <see cref="FakeLoginProviderTypes"/> to the BinPath: the actors and the login providers of a real
+    /// authentication center (CK.AppIdentity.Cris.AuthCenter.Local) that the test runs without a database.
+    /// </summary>
+    /// <param name="binPath">This BinPath configuration.</param>
+    /// <param name="withPasskeys">True to also add the <see cref="FakePasskeyLoginProvider"/> and its <see cref="InMemoryPasskeyStore"/>.</param>
+    /// <returns>This BinPath configuration.</returns>
+    public static BinPathConfiguration AddFakeLoginProviders( this BinPathConfiguration binPath, bool withPasskeys = false )
+    {
+        binPath.Types.Add( FakeLoginProviderTypes );
+        if( withPasskeys ) binPath.Types.Add( typeof( InMemoryPasskeyStore ), typeof( FakePasskeyLoginProvider ) );
+        return binPath;
+    }
 
     /// <summary>
     /// Adds the <see cref="FakeAuthCenterTypes"/> to the BinPath: the fake authentication center that handles the

@@ -92,15 +92,12 @@ public class FakeActorDatabase : IActorInfoProvider
     }
 
     /// <summary>
-    /// The "Weak" login: the actor must be a weak actor (<see cref="ActorInfo.IsWeak"/>).
+    /// The "Weak" login: a passwordless login of any actor that is not disabled (the weak actor "Operator", or any other
+    /// one: a test convenience to open the session of an actor).
     /// </summary>
-    /// <param name="weakActorName">The weak actor name.</param>
+    /// <param name="weakActorName">The actor name.</param>
     /// <returns>The actor or null.</returns>
-    public virtual ActorInfo? WeakLogin( string weakActorName )
-    {
-        var a = Find( weakActorName );
-        return a != null && a.IsWeak ? a : null;
-    }
+    public virtual ActorInfo? WeakLogin( string weakActorName ) => Find( weakActorName );
 
     /// <inheritdoc />
     public virtual ValueTask<ActorInfo?> GetActorInfoAsync( IActivityMonitor monitor, int actorId ) => ValueTask.FromResult( Find( actorId ) );
