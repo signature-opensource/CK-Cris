@@ -1,4 +1,3 @@
-using CK.Auth;
 using CK.Core;
 using CK.Cris.AmbientValues;
 using CK.Testing;
@@ -27,15 +26,15 @@ public class CollectAmbientValuesTests
     }
 
     /// <summary>
-    /// Mimics the CK.Auth.Cris.CrisAuthenticationService (only the ambient values part, not the validation methods).
+    /// Mimics the CK.Auth.CrisAuthenticationService of CK.Cris.Authentication (only the ambient values part, not the validation methods).
     /// </summary>
     public class AuthService : IAutoService
     {
         [CommandPostHandler]
-        public void GetValues( IAmbientValuesCollectCommand cmd, IAuthenticationInfo info, IAuthAmbientValues values )
+        public void GetValues( IAmbientValuesCollectCommand cmd, AuthenticationInfo info, IAuthAmbientValues values )
         {
-            values.ActorId = info.User.UserId;
-            values.ActualActorId = info.ActualUser.UserId;
+            values.ActorId = info.UnsafeActor.ActorId;
+            values.ActualActorId = info.UnsafeActualActor.ActorId;
             values.DeviceId = info.DeviceId;
         }
     }
@@ -56,10 +55,10 @@ public class CollectAmbientValuesTests
     public class SecurityService : IAutoService
     {
         [CommandPostHandler]
-        public async Task GetValuesAsync( IAmbientValuesCollectCommand cmd, IActivityMonitor monitor, IAuthenticationInfo info, ISecurityAmbientValues values )
+        public async Task GetValuesAsync( IAmbientValuesCollectCommand cmd, IActivityMonitor monitor, AuthenticationInfo info, ISecurityAmbientValues values )
         {
             await Task.Delay( 25 );
-            monitor.Info( $"User {info.User.UserName} roles have been read from the database." );
+            monitor.Info( $"User {info.UnsafeActor.ActorName} roles have been read from the database." );
             values.Roles = new[] { "Administrator", "Tester", "Approver" };
         }
     }
@@ -72,18 +71,18 @@ public class CollectAmbientValuesTests
                                               typeof( IAmbientValuesCollectCommand ),
                                               typeof( AmbientValuesService ),
                                               typeof( AuthService ),
-                                              typeof( IAuthenticationInfo ),
-                                              typeof( StdAuthenticationTypeSystem ),
+                                              typeof( AuthenticationInfo ),
+                                              typeof( AuthenticationInfoDefaultProvider ),
                                               typeof( IAuthAmbientValues ),
                                               typeof( SecurityService ),
                                               typeof( ISecurityAmbientValues ) );
 
-        var authTypeSystem = new StdAuthenticationTypeSystem();
-        var authInfo = authTypeSystem.AuthenticationInfo.Create( authTypeSystem.UserInfo.Create( 3712, "John" ), DateTime.UtcNow.AddDays( 1 ) );
+        var utcNow = DateTime.UtcNow;
+        var authInfo = AuthenticationInfo.Create( new ActorInfo( 3712, "John", AuthLevel.Normal ), utcNow.AddDays( 1 ), null, "the-device", utcNow );
 
         await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices( configureServices: services =>
         {
-            services.AddScoped<IAuthenticationInfo>( s => authInfo );
+            services.AddScoped( s => authInfo );
             services.AddScoped<IActivityMonitor>( s => TestHelper.Monitor );
         } );
 

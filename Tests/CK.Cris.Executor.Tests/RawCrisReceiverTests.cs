@@ -1,4 +1,3 @@
-using CK.Auth;
 using CK.Core;
 using CK.Testing;
 using Shouldly;
@@ -158,9 +157,9 @@ public class RawCrisReceiverTests
     public class AuthenticationValidator : IAutoService
     {
         [IncomingValidator]
-        public void ValidateCommand( UserMessageCollector c, ICommandAuthenticatedPart cmd, IAuthenticationInfo info )
+        public void ValidateCommand( UserMessageCollector c, ICommandAuthenticatedPart cmd, AuthenticationInfo info )
         {
-            if( cmd.ActorId != info.User.UserId ) c.Error( "Security error." );
+            if( cmd.ActorId != info.UnsafeActor.ActorId ) c.Error( "Security error." );
         }
     }
 
@@ -193,8 +192,8 @@ public class RawCrisReceiverTests
             typeof( SimplestValidatorEverScoped ),
             typeof( AsyncValidator ) );
 
-        var authTypeSystem = new StdAuthenticationTypeSystem();
-        var authInfo = authTypeSystem.AuthenticationInfo.Create( authTypeSystem.UserInfo.Create( 3712, "John" ), DateTime.UtcNow.AddDays( 1 ) );
+        var utcNow = DateTime.UtcNow;
+        var authInfo = AuthenticationInfo.Create( new ActorInfo( 3712, "John", AuthLevel.Normal ), utcNow.AddDays( 1 ), null, "the-device", utcNow );
 
         await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices( configureServices: services =>
         {

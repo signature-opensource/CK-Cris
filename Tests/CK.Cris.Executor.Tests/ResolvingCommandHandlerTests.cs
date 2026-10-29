@@ -1,4 +1,3 @@
-using CK.Auth;
 using CK.Core;
 using CK.Cris.Executor.Tests;
 using CK.Testing;
