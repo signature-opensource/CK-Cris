@@ -18,8 +18,10 @@ public interface ICrisHttpSender
     IRemoteParty Remote { get; }
 
     /// <summary>
-    /// Gets or sets whether <see cref="CK.Auth.IBasicLoginCommand"/>, <see cref="CK.Auth.IRefreshAuthenticationCommand"/>
-    /// and <see cref="CK.Auth.ILogoutCommand"/> automatically update the <see cref="AuthorizationToken"/>.
+    /// Gets or sets whether the session commands (<see cref="CK.IO.Authentication.ICommandAuthenticationSession"/>) automatically
+    /// update the <see cref="AuthorizationToken"/>: the token of a successful <see cref="CK.IO.Authentication.ISessionResult"/>
+    /// (a login, a refresh) is set, a <see cref="CK.IO.Authentication.ILogoutSessionCommand"/> or a failed
+    /// <see cref="CK.IO.Authentication.IRefreshSessionCommand"/> clears it.
     /// <para>
     /// Defaults to false.
     /// </para>

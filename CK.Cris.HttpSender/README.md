@@ -30,8 +30,9 @@ setup of that feature:
 - it must have **no path and no query** - `uri.PathAndQuery != "/"` is rejected.
 
 The reason for the second is that the endpoint is derived, not configured: the sender always posts to
-`<Address>/.cris/net`. A remote whose address already carries a path would silently produce a
-different endpoint, so it is refused instead.
+`<Address>/.cris/net`, and the session commands (the `ICommandAuthenticationSession` part of CK.IO.Authentication:
+logins, refresh, logout...) to `<Address>/.cris/auth`. A remote whose address already carries a path would silently
+produce a different endpoint, so it is refused instead.
 
 Retry is opt-**out** (`optOut: true`), timeout is not: omit `"Retry"` and you get the default retry
 strategy, omit `"Timeout"` and you get 100 seconds. Setting `"Retry": false` is how you turn retrying
@@ -106,9 +107,14 @@ public bool SkipAutomaticAuthorizationToken { get; set; }   // defaults to false
 public string? AuthorizationToken { get; set; }
 ```
 
-By default the sender watches for `IBasicLoginCommand`, `IRefreshAuthenticationCommand` and
-`ILogoutCommand` going through it and updates the bearer token from their results. Log in once and
-subsequent commands are authenticated with no further work.
+By default the sender watches the session commands going through it and updates the bearer token from their
+results: the token of a successful `ISessionResult` (a login of any scheme, a refresh) is set, an
+`ILogoutSessionCommand` or a failed `IRefreshSessionCommand` (the server has cleared the session) clears it. Log in
+once and subsequent commands are authenticated with no further work.
+
+A bearer token is accepted by the server only with the binding secret of its session: it is a cookie that the server
+sets with the session (with the refresh secret, for `/.cris/auth`). The sender's `HttpClientHandler` keeps the cookies
+of the remote, so this is transparent; a token set by hand without its session's cookies is anonymous.
 
 Setting the token by hand is supported, and the property doc says what to do first: set
 `SkipAutomaticAuthorizationToken` to true, or the next login result overwrites it.
@@ -124,6 +130,6 @@ there only when the attempt produced a response; an attempt that threw logs the 
 ## Requires.
 
 - `CK.AppIdentity`, for `IRemoteParty`, `ApplicationIdentityFeatureDriver` and the feature lifetime.
-- `CK.IO.Auth.Basic`, for the three authentication commands the sender recognizes.
+- `CK.IO.Authentication`, for the session commands and results the sender recognizes.
 - `CK.Poco.Exc.Json`, for reading and writing the commands and results on the wire.
 - `Polly.Core`, for the retry pipeline.

@@ -1,6 +1,6 @@
 using CK.AppIdentity;
-using CK.Auth;
 using CK.Core;
+using CK.IO.Authentication;
 using CK.Poco.Exc.Json;
 using Polly;
 using System;
@@ -14,7 +14,8 @@ using System.Threading.Tasks;
 namespace CK.Cris.HttpSender;
 
 /// <summary>
-/// Supports sending Cris commands to "<see cref="IRemoteParty.Address"/>/.cris/net" endpoint.
+/// Supports sending Cris commands to "<see cref="IRemoteParty.Address"/>/.cris/net" endpoint, and the session commands
+/// (<see cref="ICommandAuthenticationSession"/>) to the "<see cref="IRemoteParty.Address"/>/.cris/auth" endpoint.
 /// The remote address must be a "http://" or "https://" address without any path or query part.
 /// <para>
 /// This sender is anonymous and can send any command that are in the "AllExchangeable" type set of the
@@ -27,6 +28,7 @@ public sealed partial class CrisHttpSender : ICrisHttpSender
     readonly TokenAndTimeoutHandler _topHandler;
     readonly IRemoteParty _remote;
     readonly Uri _endpointUrl;
+    readonly Uri _authEndpointUrl;
     readonly PocoDirectory _pocoDirectory;
     readonly IPocoFactory<ICrisCallResult> _resultFactory;
     readonly TimeSpan _configuredTimeout;
@@ -73,6 +75,8 @@ public sealed partial class CrisHttpSender : ICrisHttpSender
         _httpClient.Timeout = Timeout.InfiniteTimeSpan;
         _remote = remote;
         _endpointUrl = endpointUrl;
+        // ".cris/auth" next to ".cris/net".
+        _authEndpointUrl = new Uri( endpointUrl, "auth" );
         _pocoDirectory = pocoDirectory;
         _resultFactory = resultFactory;
     }
@@ -151,7 +155,7 @@ public sealed partial class CrisHttpSender : ICrisHttpSender
             using var payload = Util.RecyclableStreamManager.GetStream();
             _pocoDirectory.WriteJson( (IBufferWriter<byte>)payload, command, withType: true, PocoJsonExportOptions.Default );
             monitor.Info( CrisDirectory.CrisTag, $"Sending {(payloadString = Encoding.UTF8.GetString( payload.GetReadOnlySequence() ))} to '{_remote.FullName}'.", lineNumber, fileName );
-            using var request = new HttpRequestMessage( HttpMethod.Post, _endpointUrl );
+            using var request = new HttpRequestMessage( HttpMethod.Post, command is ICommandAuthenticationSession ? _authEndpointUrl : _endpointUrl );
 
             payload.Position = 0;
             request.Content = new StreamContent( payload );
@@ -197,25 +201,28 @@ public sealed partial class CrisHttpSender : ICrisHttpSender
         }
     }
 
+    // The session commands maintain the token: a session result with a token (a login, a refresh) sets it, the logout
+    // and a failed refresh (the server has cleared the session) clear it. The session cookies (the binding secret that
+    // a bearer token requires, the refresh secret) are kept by the HttpClientHandler.
     void HandleAutomaticAuthorizationToken( IActivityMonitor monitor, object command, object? result )
     {
-        if( result is IAuthenticationResult authResult )
-        {
-            if( authResult.Success && command is IBasicLoginCommand or IRefreshAuthenticationCommand )
-            {
-                _topHandler.Token = authResult.Token;
-                monitor.Info( $"Updating the AuthorizationToken. User '{authResult.Info.ActualUser.UserName} ({authResult.Info.ActualUser.UserId})'." );
-            }
-            else
-            {
-                monitor.Warn( $"A IAuthenticationResult has been received but not from a IBasicLoginCommand nor IRefreshAuthenticationCommand. " +
-                              $"Skipping AuthorizationToken update." );
-            }
-        }
-        else if( command is ILogoutCommand )
+        if( command is ILogoutSessionCommand )
         {
             _topHandler.Token = null;
-            monitor.Info( $"Logout command succeeded: clearing AuthorizationToken." );
+            monitor.Info( $"Logout command: clearing AuthorizationToken." );
+        }
+        else if( result is ISessionResult session )
+        {
+            if( session.Success && session.Token != null )
+            {
+                _topHandler.Token = session.Token;
+                monitor.Info( $"Updating the AuthorizationToken. Actor '{session.Info.UnsafeActualActor.ActorName} ({session.Info.UnsafeActualActor.ActorId})'." );
+            }
+            else if( command is IRefreshSessionCommand )
+            {
+                _topHandler.Token = null;
+                monitor.Info( $"Refresh failed: clearing AuthorizationToken." );
+            }
         }
     }
 
