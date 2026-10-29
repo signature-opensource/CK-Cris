@@ -188,6 +188,7 @@ public class SessionCommandsTests
         typeof( IClearImpersonationCommand ),
         typeof( IRemoteLoginCallbackCommand ),
         typeof( IGetLoginSchemesQCommand ),
+        typeof( ILoginSchemeInfo ),
         typeof( IStartPasskeyLoginCommand ),
         typeof( IPasskeyLoginCommand ),
         typeof( IStartPasskeyRegistrationCommand ),
