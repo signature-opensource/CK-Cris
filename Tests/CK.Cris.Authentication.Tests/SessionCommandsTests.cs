@@ -144,7 +144,10 @@ public class SessionCommandsTests
             return Session( pocos, info, "remote" );
         }
 
-        [CommandHandler] public IList<string> Handle( IGetLoginSchemesQCommand c ) => ["Basic", "Weak"];
+        [CommandHandler]
+        public IList<ILoginSchemeInfo> Handle( IGetLoginSchemesQCommand c, PocoDirectory pocos )
+            => [pocos.Create<ILoginSchemeInfo>( s => { s.Name = "Basic"; s.CriticalLifetime = TimeSpan.FromMinutes( 5 ); } ),
+                pocos.Create<ILoginSchemeInfo>( s => s.Name = "Weak" )];
         [CommandHandler] public string Handle( IStartPasskeyLoginOperationCommand op ) => """{"challenge":"login"}""";
 
         [CommandHandler]
@@ -312,7 +315,8 @@ public class SessionCommandsTests
             FakeAuthenticationCenter.LastOpen.Payload.ShouldBeAssignableTo<IWeakZoneLoginCommand>().ZoneId.ShouldBe( 42 );
 
             poco.Create<IGetLoginSchemesQCommand>().ShouldNotBeAssignableTo<ICommandEndpointOnly>();
-            ((IList<string>)(await executor.RawExecuteAsync( services, poco.Create<IGetLoginSchemesQCommand>() )).Result!).ShouldBe( ["Basic", "Weak"] );
+            var schemes = (IList<ILoginSchemeInfo>)(await executor.RawExecuteAsync( services, poco.Create<IGetLoginSchemesQCommand>() )).Result!;
+            schemes.Select( s => (s.Name, s.CriticalLifetime) ).ShouldBe( [("Basic", TimeSpan.FromMinutes( 5 )), ("Weak", TimeSpan.Zero)] );
 
             // Impersonation requires the Critical level: this Normal session is refused at the entry.
             var receiver = services.GetRequiredService<RawCrisReceiver>();
@@ -320,6 +324,7 @@ public class SessionCommandsTests
             var v = await receiver.IncomingValidateAsync( TestHelper.Monitor, services, impersonate );
             v.Success.ShouldBeFalse();
             v.ValidationMessages.Select( m => m.Text ).ShouldContain( "Invalid authentication level: Critical authentication level required." );
+            v.ValidationMessages.Select( m => m.ResName ).ShouldContain( "Authentication.CriticalLevelRequired" );
 
             // Every login command has the user data part.
             login.ShouldBeAssignableTo<ICommandLoginUserData>();
@@ -344,6 +349,7 @@ public class SessionCommandsTests
             v = await receiver.IncomingValidateAsync( TestHelper.Monitor, services, startRegistration );
             v.Success.ShouldBeFalse();
             v.ValidationMessages.Select( m => m.Text ).ShouldContain( "Invalid authentication level: Critical authentication level required." );
+            v.ValidationMessages.Select( m => m.ResName ).ShouldContain( "Authentication.CriticalLevelRequired" );
             (await executor.RawExecuteAsync( services, startRegistration )).Result.ShouldBe( """{"challenge":"registration"}""" );
             FakeAuthenticationCenter.LastStartRegistration!.Start.ShouldBeSameAs( startRegistration );
             FakeAuthenticationCenter.LastStartRegistration.ActorId.ShouldBe( 3712 );

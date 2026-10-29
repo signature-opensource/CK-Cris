@@ -128,13 +128,26 @@ public class CrisAuthenticationServiceTests
         v.Success.ShouldBeTrue();
     }
 
-    async Task<string[]> ValidateAsync( AuthenticationInfo session, Func<PocoDirectory, ICrisPoco> create )
+    async Task<string[]> ValidateAsync( AuthenticationInfo session, Func<PocoDirectory, ICrisPoco> create, bool resNames = false )
     {
         await using var scope = CreateScope( session );
         var services = scope.ServiceProvider;
         var cmd = create( services.GetRequiredService<PocoDirectory>() );
         var v = await services.GetRequiredService<RawCrisReceiver>().IncomingValidateAsync( TestHelper.Monitor, services, cmd );
-        return v.ValidationMessages.Where( m => m.Level == UserMessageLevel.Error ).Select( m => m.Text ).ToArray();
+        return v.ValidationMessages.Where( m => m.Level == UserMessageLevel.Error ).Select( m => resNames ? m.ResName : m.Text ).ToArray();
+    }
+
+    [Test]
+    public async Task the_level_and_actor_errors_have_a_resource_name_Async()
+    {
+        var weak = AuthenticationInfo.Create( _operator, Tomorrow, null, null, DateTime.UtcNow );
+        (await ValidateAsync( weak, p => p.Create<INormalCommand>( c => c.ActorId = 42 ), resNames: true ))
+            .ShouldBe( ["Authentication.NormalLevelRequired"] );
+        var normal = AuthenticationInfo.Create( _albert, Tomorrow, null, null, DateTime.UtcNow );
+        (await ValidateAsync( normal, p => p.Create<ICriticalCommand>( c => c.ActorId = 3712 ), resNames: true ))
+            .ShouldBe( ["Authentication.CriticalLevelRequired"] );
+        (await ValidateAsync( normal, p => p.Create<INormalCommand>( c => c.ActorId = 12 ), resNames: true ))
+            .ShouldBe( ["Authentication.ActorMismatch"] );
     }
 
     [Test]

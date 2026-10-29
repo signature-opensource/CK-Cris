@@ -12,13 +12,16 @@ the same parts would mean two answers to "who is the caller".
 
 ## When the command enters the System
 
-| Part | Check |
-|------|-------|
-| `IAuthUnsafePart` | `ActorId` is the `UnsafeActor.ActorId` |
-| `IAuthNormalPart` | ... and the `UnsafeActor.Level` is `Normal` or `Critical` |
-| `IAuthCriticalPart` | ... and the `UnsafeActor.Level` is `Critical` |
-| `IAuthDeviceIdPart` | `DeviceId` is the `AuthenticationInfo.DeviceId` |
-| `IAuthImpersonationPart` | `ActualActorId` is the `UnsafeActualActor.ActorId` |
+| Part | Check | Error's resource name |
+|------|-------|-----------------------|
+| `IAuthUnsafePart` | `ActorId` is the `UnsafeActor.ActorId` | `Authentication.ActorMismatch` |
+| `IAuthNormalPart` | ... and the `UnsafeActor.Level` is `Normal` or `Critical` | `Authentication.NormalLevelRequired` |
+| `IAuthCriticalPart` | ... and the `UnsafeActor.Level` is `Critical` | `Authentication.CriticalLevelRequired` |
+| `IAuthDeviceIdPart` | `DeviceId` is the `AuthenticationInfo.DeviceId` | |
+| `IAuthImpersonationPart` | `ActualActorId` is the `UnsafeActualActor.ActorId` | |
+
+A user interface recognizes these resource names: `Authentication.CriticalLevelRequired` means that a new login is
+required. CK.Cris.Auth uses the same names.
 
 The level is read on the actor, not on the session: an administrator that impersonates a weak actor sends
 `Unsafe` commands only.

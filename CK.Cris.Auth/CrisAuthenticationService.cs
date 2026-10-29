@@ -78,20 +78,20 @@ public class CrisAuthenticationService : ISingletonAutoService
         }
         else if( crisPoco.ActorId != info.UnsafeUser.UserId )
         {
-            c.Error( "Invalid actor identifier: the provided identifier doesn't match the current authentication." );
+            c.Error( "Invalid actor identifier: the provided identifier doesn't match the current authentication.", "Authentication.ActorMismatch" );
         }
         else if( crisPoco is IAuthCriticalPart )
         {
             if( info.Level != AuthLevel.Critical )
             {
-                c.Error( "Invalid authentication level: Critical authentication level required." );
+                c.Error( "Invalid authentication level: Critical authentication level required.", "Authentication.CriticalLevelRequired" );
             }
         }
         else if( crisPoco is IAuthNormalPart )
         {
             if( info.Level < AuthLevel.Normal )
             {
-                c.Error( "Invalid authentication level: Normal authentication level required." );
+                c.Error( "Invalid authentication level: Normal authentication level required.", "Authentication.NormalLevelRequired" );
             }
         }
     }

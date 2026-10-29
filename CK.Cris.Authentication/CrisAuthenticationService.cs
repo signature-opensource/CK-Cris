@@ -54,6 +54,10 @@ public class CrisAuthenticationService : ISingletonAutoService
     /// <summary>
     /// Checks the <see cref="IAuthUnsafePart.ActorId"/> against the current <see cref="AuthenticationInfo.UnsafeActor"/>
     /// and its level when the part is a <see cref="IAuthNormalPart"/> or a <see cref="IAuthCriticalPart"/>.
+    /// <para>
+    /// The errors have a resource name that a user interface can recognize: "Authentication.ActorMismatch",
+    /// "Authentication.CriticalLevelRequired" (a new login is required) and "Authentication.NormalLevelRequired".
+    /// </para>
     /// </summary>
     /// <param name="c">The message collector.</param>
     /// <param name="crisPoco">The command or event to validate.</param>
@@ -67,20 +71,20 @@ public class CrisAuthenticationService : ISingletonAutoService
         }
         else if( crisPoco.ActorId.Value != info.UnsafeActor.ActorId )
         {
-            c.Error( "Invalid actor identifier: the provided identifier doesn't match the current authentication." );
+            c.Error( "Invalid actor identifier: the provided identifier doesn't match the current authentication.", "Authentication.ActorMismatch" );
         }
         else if( crisPoco is IAuthCriticalPart )
         {
             if( info.UnsafeActor.Level != CK.Core.AuthLevel.Critical )
             {
-                c.Error( "Invalid authentication level: Critical authentication level required." );
+                c.Error( "Invalid authentication level: Critical authentication level required.", "Authentication.CriticalLevelRequired" );
             }
         }
         else if( crisPoco is IAuthNormalPart )
         {
             if( info.UnsafeActor.Level < CK.Core.AuthLevel.Normal )
             {
-                c.Error( "Invalid authentication level: Normal authentication level required." );
+                c.Error( "Invalid authentication level: Normal authentication level required.", "Authentication.NormalLevelRequired" );
             }
         }
     }
