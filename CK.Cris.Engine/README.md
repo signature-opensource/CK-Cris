@@ -67,31 +67,31 @@ exposes a flat `Handlers` array at runtime, this separates them by kind:
 ## `CloseRegistration` is the gate, and it runs after everything else.
 
 The registration methods accept handlers without filtering much on the kind of type:
-`AddMultiTargetHandler` only drops (with a warning) a `[RoutedEventHandler]` on a type that is not a
-routed event.
+`AddMultiTargetHandler` only drops (with a warning) a `[LocalEventHandler]` on a type that is not a
+local event.
 The rule by kind lives in [`CrisType.CloseRegistration`](CrisType.cs), which runs once per type, from
 `CrisDirectoryImpl`, immediately before emission, and **empties handler lists by kind**:
 
-| Handler | Command | Routed event | Caller-only event |
+| Handler | Command | Local event | Caller-only event |
 |---------|---------|--------------|-------------------|
 | `[IncomingValidator]` | kept, **even when the command has no handler** | erased | erased |
 | `[ConfigureAmbientServices]` | kept if handled | **kept if the event has handlers** | erased |
 | `[RestoreAmbientServices]` | kept if handled | kept if the event has handlers | erased |
 | `[CommandHandlingValidator]`, `[CommandPostHandler]` | kept if handled | erased | erased |
-| `[RoutedEventHandler]` | - | the handlers themselves | warns at registration |
+| `[LocalEventHandler]` | - | the handlers themselves | warns at registration |
 
 `IncomingValidators`, `HandlingValidators` and `PostHandlers` are therefore empty on every event kind,
-while `AmbientServicesConfigurators` and `AmbientServicesRestorers` are kept on a handled routed event.
+while `AmbientServicesConfigurators` and `AmbientServicesRestorers` are kept on a handled local event.
 
 The validators-on-an-unhandled-command case is deliberate and the code says why:
 
 > Whether the command is handled or not is not the problem of the incoming validators: this enables
 > `RawCrisReceiver` to be used in a "relay" gateway.
 
-**Three places warn, not one.** Besides the *"will never be called"* of a `[RoutedEventHandler]` on a
-type that is not a routed event, `CloseRegistration` warns for an unhandled command:
+**Three places warn, not one.** Besides the *"will never be called"* of a `[LocalEventHandler]` on a
+type that is not a local event, `CloseRegistration` warns for an unhandled command:
 *"Command '...' is not handled. Forgetting N validator, N ambient service configurators, N ambient
-service restorers and N post handlers."*, and for an unhandled routed event: *"Routed event '...' is
+service restorers and N post handlers."*, and for an unhandled local event: *"Local event '...' is
 not handled. Forgetting N ambient service configurators and N ambient service restorers."* The
 "Forgetting" messages are the ones to grep for when a handler silently does nothing.
 

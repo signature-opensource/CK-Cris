@@ -2,7 +2,7 @@
 
 The runtime side of Cris: two abstract singletons whose bodies are generated, an execution context
 that runs a command and the commands it spawns, a background host with parallel runners, and the hub
-that exposes routed events.
+that exposes local events.
 
 > ℹ️ Read [CK.Cris](https://github.com/signature-opensource/CK-Cris-Abstractions/blob/stable/CK.Cris/README.md)
 > first: commands,
@@ -102,7 +102,7 @@ then.
 Failure has a boundary, and it is drawn between immediate and final events:
 
 - if handling an **immediate** event fails, the command fails;
-- if a **final routed** event throws once the command has succeeded, it is logged and does not
+- if a **final local** event throws once the command has succeeded, it is logged and does not
   surface - *"the command has been successfully executed, the consequences are not its concern"*.
 
 `RaiseImmediateEventAsync` and `RaiseCallerOnlyImmediateEventAsync` are the two `virtual` hooks for a
@@ -159,7 +159,7 @@ senders - so the ability to observe and the ability to raise are two different s
 
 On the caller side, [`IExecutingCommand`](ExecutingCommand/IExecutingCommand.cs) carries the command, a
 task completing with the `IExecutedCommand`, and a live `ImmediateEvents` collection updated during
-execution with an `Added` event. Only `RoutedImmediateEvent` and `CallerOnlyImmediateEvent` appear
+execution with an `Added` event. Only `LocalImmediateEvent` and `CallerOnlyImmediateEvent` appear
 there - a non-immediate event exists only once the command has completed, in
 `IExecutedCommand.Events`.
 

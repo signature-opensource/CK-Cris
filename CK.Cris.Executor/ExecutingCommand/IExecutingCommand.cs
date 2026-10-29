@@ -26,7 +26,7 @@ public interface IExecutingCommand : IDeferredCommandExecutionContext
     /// This is a thread safe collection that is updated during the execution: the <see cref="ImmediateEvents.Added"/> event
     /// can be used to observe new events.
     /// <para>
-    /// Only <see cref="CrisPocoKind.RoutedImmediateEvent"/> or <see cref="CrisPocoKind.CallerOnlyImmediateEvent"/> events appear
+    /// Only <see cref="CrisPocoKind.LocalImmediateEvent"/> or <see cref="CrisPocoKind.CallerOnlyImmediateEvent"/> events appear
     /// here (see <see cref="ICrisPoco.CrisPocoModel"/>.<see cref="ICrisPocoModel.Kind">Kind</see>).
     /// </para>
     /// </summary>

@@ -37,9 +37,9 @@ public class InlineExecutionTests
         string CultureName { get; set; }
     }
 
-    // A routed event: dispatched where the command executed, in the inline scope.
-    [RoutedEvent]
-    public interface IInlineRoutedEvent : IEvent
+    // A local event: dispatched where the command executed, in the inline scope.
+    [LocalEvent]
+    public interface IInlineLocalEvent : IEvent
     {
     }
 
@@ -59,8 +59,8 @@ public class InlineExecutionTests
             var other = hub.CleanClone();
             other.Override<ExtendedCultureInfo>( NormalizedCultureInfo.EnsureNormalizedCultureInfo( c.CultureName ) );
             var r = await ((CrisExecutionContext)context).RawExecuteInlineAsync( other, pocos.Create<IInlineCommand>() );
-            // The inline execution is independent: its routed event is already dispatched, in its scope.
-            Handlers.RoutedEventCulture.ShouldBe( "fr" );
+            // The inline execution is independent: its local event is already dispatched, in its scope.
+            Handlers.LocalEventCulture.ShouldBe( "fr" );
             // The outer scope is unchanged.
             return $"outer:{culture.Name} / {r.Result}";
         }
@@ -69,9 +69,9 @@ public class InlineExecutionTests
         public async Task<string> HandleAsync( IInlineCommand c, ICrisCommandContext context, ExtendedCultureInfo culture )
         {
             await context.EmitEventAsync<IInlineDoneEvent>( e => e.CultureName = culture.Name );
-            await context.EmitEventAsync<IInlineRoutedEvent>( e => { } );
+            await context.EmitEventAsync<IInlineLocalEvent>( e => { } );
             // Dispatched when the inline command completes, not now.
-            Handlers.RoutedEventCulture.ShouldBeNull();
+            Handlers.LocalEventCulture.ShouldBeNull();
             // A command executed by the inline handler runs in the inline scope.
             var nested = (string?)await context.ExecuteCommandAsync<INestedCommand>( _ => { } );
             return $"inline:{culture.Name}, {nested}";
@@ -80,10 +80,10 @@ public class InlineExecutionTests
         [CommandHandler]
         public string Handle( INestedCommand c, ExtendedCultureInfo culture ) => $"nested:{culture.Name}";
 
-        public static string? RoutedEventCulture;
+        public static string? LocalEventCulture;
 
-        [RoutedEventHandler]
-        public void On( IInlineRoutedEvent e, ExtendedCultureInfo culture ) => RoutedEventCulture = culture.Name;
+        [LocalEventHandler]
+        public void On( IInlineLocalEvent e, ExtendedCultureInfo culture ) => LocalEventCulture = culture.Name;
     }
 
     [Test]
@@ -94,12 +94,12 @@ public class InlineExecutionTests
                                               typeof( IInlineCommand ),
                                               typeof( INestedCommand ),
                                               typeof( IInlineDoneEvent ),
-                                              typeof( IInlineRoutedEvent ),
+                                              typeof( IInlineLocalEvent ),
                                               typeof( Handlers ),
                                               typeof( CrisBackgroundExecutorService ),
                                               typeof( RawCrisReceiver ) );
         await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
-        Handlers.RoutedEventCulture = null;
+        Handlers.LocalEventCulture = null;
         var host = auto.Services.GetRequiredService<CrisExecutionHost>();
         host.ParallelRunnerCount.ShouldBe( 1 );
 
@@ -115,8 +115,8 @@ public class InlineExecutionTests
         executed.Result.ShouldBe( "outer:en / inline:fr, nested:fr" );
         // The caller-only event of the inline command is returned to the caller: it is one of the outer command.
         executed.Events.OfType<IInlineDoneEvent>().ShouldHaveSingleItem().CultureName.ShouldBe( "fr" );
-        // Its routed event is not: it has been dispatched where the inline command executed.
-        executed.Events.OfType<IInlineRoutedEvent>().ShouldBeEmpty();
+        // Its local event is not: it has been dispatched where the inline command executed.
+        executed.Events.OfType<IInlineLocalEvent>().ShouldBeEmpty();
     }
 
     [Test]
@@ -130,7 +130,7 @@ public class InlineExecutionTests
                                               typeof( IInlineCommand ),
                                               typeof( INestedCommand ),
                                               typeof( IInlineDoneEvent ),
-                                              typeof( IInlineRoutedEvent ),
+                                              typeof( IInlineLocalEvent ),
                                               typeof( CrisCultureService ),
                                               typeof( CrisBackgroundExecutorService ),
                                               typeof( RawCrisReceiver ) );
@@ -157,7 +157,7 @@ public class InlineExecutionTests
                                               typeof( IInlineCommand ),
                                               typeof( INestedCommand ),
                                               typeof( IInlineDoneEvent ),
-                                              typeof( IInlineRoutedEvent ),
+                                              typeof( IInlineLocalEvent ),
                                               typeof( CrisBackgroundExecutorService ),
                                               typeof( RawCrisReceiver ) );
         await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();

@@ -59,20 +59,20 @@ public abstract class RawCrisExecutor : ISingletonAutoService
     public abstract Task<RawResult> RawExecuteAsync( IServiceProvider services, IAbstractCommand command );
 
     /// <summary>
-    /// Dispatches an event by calling the discovered routed event handlers.
+    /// Dispatches an event by calling the discovered local event handlers.
     /// Any exceptions are thrown (or more precisely are set on the returned <see cref="Task"/>).
     /// </summary>
     /// <param name="services">The service context from which any required dependencies must be resolved.</param>
-    /// <param name="e">The event to dispatch to its routed event handlers.</param>
+    /// <param name="e">The event to dispatch to its local event handlers.</param>
     /// <returns>The awaitable.</returns>
     public abstract Task DispatchEventAsync( IServiceProvider services, IEvent e );
 
     /// <summary>
-    /// Dispatches an event by calling the discovered routed event handlers.
+    /// Dispatches an event by calling the discovered local event handlers.
     /// Exceptions are caught and logged and false is returned.
     /// </summary>
     /// <param name="services">The service context from which any required dependencies must be resolved.</param>
-    /// <param name="e">The event to dispatch to its routed event handlers.</param>
+    /// <param name="e">The event to dispatch to its local event handlers.</param>
     /// <returns>True on success, false if an exception has been caught and logged.</returns>
     public async Task<bool> SafeDispatchEventAsync( IServiceProvider services, IEvent e )
     {

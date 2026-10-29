@@ -5,11 +5,11 @@ using System.Reflection;
 
 namespace CK.Setup.Cris;
 
-sealed class RoutedEventHandlerAttributeImpl : BaseHandlerAttributeImpl
+sealed class LocalEventHandlerAttributeImpl : BaseHandlerAttributeImpl
 {
-    readonly RoutedEventHandlerAttribute _a;
+    readonly LocalEventHandlerAttribute _a;
 
-    public RoutedEventHandlerAttributeImpl( RoutedEventHandlerAttribute a, Type t, MethodInfo m )
+    public LocalEventHandlerAttributeImpl( LocalEventHandlerAttribute a, Type t, MethodInfo m )
         : base( t, m )
     {
         _a = a;
@@ -21,7 +21,7 @@ sealed class RoutedEventHandlerAttributeImpl : BaseHandlerAttributeImpl
                                                                    IStObjFinalClass impl,
                                                                    MethodInfo method )
     {
-        return crisTypeRegistry.RegisterMultiTargetHandler( monitor, MultiTargetHandlerKind.RoutedEventHandler, engineMap, impl!, method, _a.FileName, _a.LineNumber )
+        return crisTypeRegistry.RegisterMultiTargetHandler( monitor, MultiTargetHandlerKind.LocalEventHandler, engineMap, impl!, method, _a.FileName, _a.LineNumber )
                 ? CSCodeGenerationResult.Success
                 : CSCodeGenerationResult.Failed;
     }

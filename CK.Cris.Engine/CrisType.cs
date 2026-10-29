@@ -17,7 +17,7 @@ public sealed partial class CrisType
     readonly CrisPocoKind _kind;
     readonly int _crisPocoIndex;
 
-    IList<HandlerRoutedEventMethod>? _eventHandlers;
+    IList<HandlerLocalEventMethod>? _eventHandlers;
     MultiTargetHandlerList? _ambientServicesConfigurators;
     MultiTargetHandlerList? _ambientServicesRestorers;
 
@@ -43,8 +43,8 @@ public sealed partial class CrisType
 
     /// <summary>
     /// Gets whether this command or event is handled: a command must have a <see cref="CommandHandler"/> and
-    /// an event must have at least one <see cref="EventHandlers"/>. A <see cref="IEvent"/> that is not routed
-    /// (has no [RoutedEvent] attribute is never handled.
+    /// an event must have at least one <see cref="EventHandlers"/>. A <see cref="IEvent"/> that is not local
+    /// (has no [LocalEvent] attribute) is never handled.
     /// </summary>
     public bool IsHandled => _commandHandler != null || (_eventHandlers != null && _eventHandlers.Count > 0);
 
@@ -57,7 +57,7 @@ public sealed partial class CrisType
     /// <summary>
     /// Gets the ambient services configurator methods.
     /// Only handled commands (<see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/>)
-    /// and handled routed events (<see cref="CrisPocoKind.RoutedImmediateEvent"/> and <see cref="CrisPocoKind.RoutedEvent"/>)
+    /// and handled local events (<see cref="CrisPocoKind.LocalImmediateEvent"/> and <see cref="CrisPocoKind.LocalEvent"/>)
     /// can have configurators.
     /// </summary>
     public MultiTargetHandlerList AmbientServicesConfigurators => _ambientServicesConfigurators!;
@@ -65,7 +65,7 @@ public sealed partial class CrisType
     /// <summary>
     /// Gets the ambient services restorer methods.
     /// Only handled commands (<see cref="CrisPocoKind.Command"/> and <see cref="CrisPocoKind.CommandWithResult"/>)
-    /// and handled routed events (<see cref="CrisPocoKind.RoutedImmediateEvent"/> and <see cref="CrisPocoKind.RoutedEvent"/>)
+    /// and handled local events (<see cref="CrisPocoKind.LocalImmediateEvent"/> and <see cref="CrisPocoKind.LocalEvent"/>)
     /// can have restorers.
     /// </summary>
     public MultiTargetHandlerList AmbientServicesRestorers => _ambientServicesRestorers!;
@@ -84,9 +84,9 @@ public sealed partial class CrisType
 
     /// <summary>
     /// Gets the event handlers methods.
-    /// Only <see cref="CrisPocoKind.RoutedImmediateEvent"/> and <see cref="CrisPocoKind.RoutedEvent"/> can have event handlers.
+    /// Only <see cref="CrisPocoKind.LocalImmediateEvent"/> and <see cref="CrisPocoKind.LocalEvent"/> can have event handlers.
     /// </summary>
-    public IReadOnlyList<HandlerRoutedEventMethod> EventHandlers => (IReadOnlyList<HandlerRoutedEventMethod>)_eventHandlers!;
+    public IReadOnlyList<HandlerLocalEventMethod> EventHandlers => (IReadOnlyList<HandlerLocalEventMethod>)_eventHandlers!;
 
     /// <summary>
     /// Gets the fields of this Poco that are marked with <see cref="AmbientServiceValueAttribute"/>.
@@ -150,7 +150,7 @@ public sealed partial class CrisType
         if( _kind is CrisPocoKind.Command or CrisPocoKind.CommandWithResult )
         {
             Throw.DebugAssert( _eventHandlers == null );
-            _eventHandlers = Array.Empty<HandlerRoutedEventMethod>();
+            _eventHandlers = Array.Empty<HandlerLocalEventMethod>();
             //
             // Whether the command is handled or not is not the problem of the
             // incoming validators: this enables RawCrisReceiver to be used in
@@ -174,7 +174,7 @@ public sealed partial class CrisType
                 _postHandlers ??= Array.Empty<HandlerPostMethod>();
             }
         }
-        else if( _kind is CrisPocoKind.RoutedImmediateEvent or CrisPocoKind.RoutedEvent )
+        else if( _kind is CrisPocoKind.LocalImmediateEvent or CrisPocoKind.LocalEvent )
         {
             // [IncomingValidator], [ConfigureAmbientServices] and [RestoreAmbientServices] accept any ICrisPoco:
             // a method that targets a part shared by commands and events is registered on the events too.
@@ -186,10 +186,10 @@ public sealed partial class CrisType
             _postHandlers = Array.Empty<HandlerPostMethod>();
             if( _eventHandlers == null )
             {
-                monitor.Warn( $"Routed event '{_crisPocoType.ExternalOrCSharpName}' is not handled. Forgetting {_ambientServicesConfigurators?.Count ?? 0} ambient service configurators and {_ambientServicesRestorers?.Count ?? 0} ambient service restorers." );
+                monitor.Warn( $"Local event '{_crisPocoType.ExternalOrCSharpName}' is not handled. Forgetting {_ambientServicesConfigurators?.Count ?? 0} ambient service configurators and {_ambientServicesRestorers?.Count ?? 0} ambient service restorers." );
                 _ambientServicesConfigurators = MultiTargetHandlerList._empty;
                 _ambientServicesRestorers = MultiTargetHandlerList._empty;
-                _eventHandlers = Array.Empty<HandlerRoutedEventMethod>();
+                _eventHandlers = Array.Empty<HandlerLocalEventMethod>();
             }
             else
             {
@@ -209,7 +209,7 @@ public sealed partial class CrisType
             Throw.DebugAssert( _postHandlers == null );
             _postHandlers = Array.Empty<HandlerPostMethod>();
             Throw.DebugAssert( _eventHandlers == null );
-            _eventHandlers = Array.Empty<HandlerRoutedEventMethod>();
+            _eventHandlers = Array.Empty<HandlerLocalEventMethod>();
         }
     }
 
@@ -432,16 +432,16 @@ public sealed partial class CrisType
             case MultiTargetHandlerKind.CommandHandlingValidator: Add( CrisHandlerKind.CommandHandlingValidator, ref _handlingValidators ); break;
             case MultiTargetHandlerKind.ConfigureAmbientServices: Add( CrisHandlerKind.ConfigureAmbientServices, ref _ambientServicesConfigurators ); break;
             case MultiTargetHandlerKind.RestoreAmbientServices: Add( CrisHandlerKind.RestoreAmbientServices, ref _ambientServicesRestorers ); break;
-            case MultiTargetHandlerKind.RoutedEventHandler:
+            case MultiTargetHandlerKind.LocalEventHandler:
             {
-                if( _kind != CrisPocoKind.RoutedImmediateEvent && _kind != CrisPocoKind.RoutedEvent )
+                if( _kind != CrisPocoKind.LocalImmediateEvent && _kind != CrisPocoKind.LocalEvent )
                 {
-                    monitor.Warn( $"Method '{MethodName( method, parameters )}' will never be called: event '{PocoName}' is not decorated with [RoutedEvent] attribute (it can only be observed by the caller)." );
+                    monitor.Warn( $"Method '{MethodName( method, parameters )}' will never be called: event '{PocoName}' is not decorated with [LocalEvent] attribute (it can only be observed by the caller)." );
                 }
                 else
                 {
-                    _eventHandlers ??= new List<HandlerRoutedEventMethod>();
-                    _eventHandlers.Add( new HandlerRoutedEventMethod( this, owner, method, parameters, fileName, lineNumber, cmdOrPartParameter, isRefAsync, isValAsync ) );
+                    _eventHandlers ??= new List<HandlerLocalEventMethod>();
+                    _eventHandlers.Add( new HandlerLocalEventMethod( this, owner, method, parameters, fileName, lineNumber, cmdOrPartParameter, isRefAsync, isValAsync ) );
                 }
                 break;
             }

@@ -163,7 +163,7 @@ internal sealed partial class CrisTypeRegistry : ICrisDirectoryServiceEngine
             {
                 foreach( var evPart in crisEventTypePart.AllSpecializations )
                 {
-                    success &= CheckNoRoutedOrImmediateAttribute( monitor, evPart.Type );
+                    success &= CheckNoLocalOrImmediateAttribute( monitor, evPart.Type );
                 }
             }
             foreach( var ev in crisEventType.PrimaryPocoTypes )
@@ -280,30 +280,30 @@ internal sealed partial class CrisTypeRegistry : ICrisDirectoryServiceEngine
 
             static bool GetKindFromAttributesAndCheckOtherInterfaces( IActivityMonitor monitor, IPrimaryPocoType ev, out CrisPocoKind kind )
             {
-                bool isRouted = ev.Type.GetCustomAttribute<RoutedEventAttribute>() != null;
+                bool isLocal = ev.Type.GetCustomAttribute<LocalEventAttribute>() != null;
                 bool isImmediate = ev.Type.GetCustomAttribute<ImmediateEventAttribute>() != null;
-                kind = isRouted
-                        ? (isImmediate ? CrisPocoKind.RoutedImmediateEvent : CrisPocoKind.RoutedEvent)
+                kind = isLocal
+                        ? (isImmediate ? CrisPocoKind.LocalImmediateEvent : CrisPocoKind.LocalEvent)
                         : (isImmediate ? CrisPocoKind.CallerOnlyImmediateEvent : CrisPocoKind.CallerOnlyEvent);
                 bool success = true;
                 foreach( var i in ev.SecondaryTypes )
                 {
-                    success &= CheckNoRoutedOrImmediateAttribute( monitor, i.Type );
+                    success &= CheckNoLocalOrImmediateAttribute( monitor, i.Type );
                 }
                 return success;
             }
 
         }
 
-        static bool CheckNoRoutedOrImmediateAttribute( IActivityMonitor monitor, Type i )
+        static bool CheckNoLocalOrImmediateAttribute( IActivityMonitor monitor, Type i )
         {
             bool success = true;
             var attrs = i.GetCustomAttributesData();
             foreach( var a in attrs )
             {
-                if( a.AttributeType == typeof( RoutedEventAttribute ) )
+                if( a.AttributeType == typeof( LocalEventAttribute ) )
                 {
-                    monitor.Error( $"Interface '{i:C}' cannot be decorated with [RoutedEvent]. Only a primary IEvent interface can use this attribute." );
+                    monitor.Error( $"Interface '{i:C}' cannot be decorated with [LocalEvent]. Only a primary IEvent interface can use this attribute." );
                     success = false;
                 }
                 if( a.AttributeType == typeof( ImmediateEventAttribute ) )
@@ -462,7 +462,7 @@ internal sealed partial class CrisTypeRegistry : ICrisDirectoryServiceEngine
             MultiTargetHandlerKind.RestoreAmbientServices => ExpectedParamType.ICrisPoco,
             MultiTargetHandlerKind.IncomingValidator => ExpectedParamType.ICrisPoco,
             MultiTargetHandlerKind.CommandHandlingValidator => ExpectedParamType.IAbstractCommand,
-            _ => ExpectedParamType.IEvent // MultiTargetHandlerKind.RoutedEventHandler.
+            _ => ExpectedParamType.IEvent // MultiTargetHandlerKind.LocalEventHandler.
         };
 
         if( !GetCandidates( monitor,
@@ -501,7 +501,7 @@ internal sealed partial class CrisTypeRegistry : ICrisDirectoryServiceEngine
                 MultiTargetHandlerKind.RestoreAmbientServices => typeof( AmbientServiceHub ),
                 MultiTargetHandlerKind.IncomingValidator => typeof( UserMessageCollector ),
                 MultiTargetHandlerKind.CommandHandlingValidator => typeof( UserMessageCollector ),
-                _ => null // MultiTargetHandlerKind.RoutedEventHandler.
+                _ => null // MultiTargetHandlerKind.LocalEventHandler.
             };
             Type? expectedArgumentType2 = target is MultiTargetHandlerKind.IncomingValidator ? typeof( ICrisIncomingValidationContext ) : null;
 
@@ -518,7 +518,7 @@ internal sealed partial class CrisTypeRegistry : ICrisDirectoryServiceEngine
                     success = false;
                     continue;
                 }
-                if( target is not MultiTargetHandlerKind.RoutedEventHandler )
+                if( target is not MultiTargetHandlerKind.LocalEventHandler )
                 {
                     Throw.DebugAssert( target is MultiTargetHandlerKind.IncomingValidator
                                                 or MultiTargetHandlerKind.CommandHandlingValidator

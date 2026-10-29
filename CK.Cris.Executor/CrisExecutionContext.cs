@@ -65,8 +65,8 @@ public class CrisExecutionContext : ICrisCommandContext
             _parent = parent;
         }
 
-        protected override Task RaiseImmediateEventAsync( IActivityMonitor monitor, IEvent routedImmediateEvent )
-            => _parent.RaiseImmediateEventAsync( monitor, routedImmediateEvent );
+        protected override Task RaiseImmediateEventAsync( IActivityMonitor monitor, IEvent localImmediateEvent )
+            => _parent.RaiseImmediateEventAsync( monitor, localImmediateEvent );
 
         protected override Task RaiseCallerOnlyImmediateEventAsync( IActivityMonitor monitor, IEvent callerImmediateEvent )
             => _parent.RaiseCallerOnlyImmediateEventAsync( monitor, callerImmediateEvent );
@@ -87,7 +87,7 @@ public class CrisExecutionContext : ICrisCommandContext
     /// <para>
     /// This is an independent execution, like the one of a remote party (a tenant switch is a call to another party):
     /// <list type="bullet">
-    ///   <item>its routed events are dispatched in the new scope when the command completes (not at the end of the
+    ///   <item>its local events are dispatched in the new scope when the command completes (not at the end of the
     ///   caller's root command, and the caller's later failure doesn't undo them);</item>
     ///   <item>its caller-only events are returned to the caller: they land in the current frame of this context;</item>
     ///   <item>its immediate events are forwarded as the ones of this context;</item>
@@ -121,7 +121,7 @@ public class CrisExecutionContext : ICrisCommandContext
         return raw;
     }
 
-    // Executes a command as a root (own stack): its final routed events are dispatched here, its caller-only events
+    // Executes a command as a root (own stack): its final local events are dispatched here, its caller-only events
     // are returned.
     async Task<(RawCrisExecutor.RawResult Raw, List<IEvent>? CallerOnlyEvents)> ExecuteIndependentAsync( IAbstractCommand command )
     {
@@ -147,7 +147,7 @@ public class CrisExecutionContext : ICrisCommandContext
     /// Executes a root command inline with other ambient services: for an endpoint whose incoming validation configured
     /// ambient services (see <see cref="RawCrisReceiver"/>). The command executes on the caller's asynchronous flow (nothing
     /// is queued), in a new scope built from the <paramref name="hub"/> (see <see cref="ICrisAmbientScopeFactory"/>), with a
-    /// view of this context: its immediate events are the ones of this context, its final routed events are dispatched in the
+    /// view of this context: its immediate events are the ones of this context, its final local events are dispatched in the
     /// new scope. This must not be called when <see cref="IsExecutingCommand"/> is true.
     /// </summary>
     /// <param name="hub">The ambient services to use.</param>
@@ -192,7 +192,7 @@ public class CrisExecutionContext : ICrisCommandContext
     ///     Note that if immediate events handling fail, the command fails.
     ///     </item>
     ///     <item>
-    ///     If the command succeeds and an exception is raised while handling the final routed events, they are logged but don't surface here:
+    ///     If the command succeeds and an exception is raised while handling the final local events, they are logged but don't surface here:
     ///     the command has been successfully executed, the consequences are not its concern.
     ///     </item>
     /// </list>
@@ -215,7 +215,7 @@ public class CrisExecutionContext : ICrisCommandContext
     ///     Note that if immediate events handling fail, the command fails.
     ///     </item>
     ///     <item>
-    ///     If the command succeeds and an exception is raised while handling the final routed events, they are logged but don't surface here:
+    ///     If the command succeeds and an exception is raised while handling the final local events, they are logged but don't surface here:
     ///     the command has been successfully executed, the consequences are not its concern.
     ///     </item>
     /// </list>
@@ -282,19 +282,19 @@ public class CrisExecutionContext : ICrisCommandContext
     /// implementation.
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
-    /// <param name="routedImmediateEvent">The immediate event emitted by the current execution.</param>
+    /// <param name="localImmediateEvent">The immediate event emitted by the current execution.</param>
     /// <returns>The awaitable.</returns>
-    // Dispatches the final routed events of a root command, in this context's scope.
+    // Dispatches the final local events of a root command, in this context's scope.
     async Task DispatchFinalEventsAsync( List<IEvent> finalEvents )
     {
-        // Use index here: new final events can appear because routed event handlers
+        // Use index here: new final events can appear because local event handlers
         // may execute commands that raise subsequent events.
         for( int i = 0; i < finalEvents.Count; i++ )
         {
             IEvent? e = finalEvents[i];
-            Throw.DebugAssert( "No immediate event here.", e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent || e.CrisPocoModel.Kind == CrisPocoKind.CallerOnlyEvent );
-            Throw.DebugAssert( "If it is handled then it is a routed event.", !e.CrisPocoModel.IsHandled || e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent );
-            if( e.CrisPocoModel.Kind == CrisPocoKind.RoutedEvent )
+            Throw.DebugAssert( "No immediate event here.", e.CrisPocoModel.Kind == CrisPocoKind.LocalEvent || e.CrisPocoModel.Kind == CrisPocoKind.CallerOnlyEvent );
+            Throw.DebugAssert( "If it is handled then it is a local event.", !e.CrisPocoModel.IsHandled || e.CrisPocoModel.Kind == CrisPocoKind.LocalEvent );
+            if( e.CrisPocoModel.Kind == CrisPocoKind.LocalEvent )
             {
                 await _eventHub.AllSender.SafeRaiseAsync( _monitor, e );
                 if( e.CrisPocoModel.IsHandled )
@@ -305,10 +305,10 @@ public class CrisExecutionContext : ICrisCommandContext
         }
     }
 
-    protected virtual Task RaiseImmediateEventAsync( IActivityMonitor monitor, IEvent routedImmediateEvent )
+    protected virtual Task RaiseImmediateEventAsync( IActivityMonitor monitor, IEvent localImmediateEvent )
     {
-        Throw.DebugAssert( routedImmediateEvent.CrisPocoModel.Kind == CrisPocoKind.RoutedImmediateEvent );
-        return _eventHub.ImmediateSender.RaiseAsync( _monitor, routedImmediateEvent );
+        Throw.DebugAssert( localImmediateEvent.CrisPocoModel.Kind == CrisPocoKind.LocalImmediateEvent );
+        return _eventHub.ImmediateSender.RaiseAsync( _monitor, localImmediateEvent );
     }
 
     /// <summary>
@@ -389,11 +389,11 @@ public class CrisExecutionContext : ICrisCommandContext
             }
             c.SourceCommand = frame.Command;
         }
-        if( e.CrisPocoModel.Kind == CrisPocoKind.RoutedImmediateEvent )
+        if( e.CrisPocoModel.Kind == CrisPocoKind.LocalImmediateEvent )
         {
             if( e.CrisPocoModel.IsHandled )
             {
-                return HandleRoutedImmediateEventAsync( e );
+                return HandleLocalImmediateEventAsync( e );
             }
             return RaiseImmediateEventAsync( _monitor, e );
         }
@@ -406,7 +406,7 @@ public class CrisExecutionContext : ICrisCommandContext
         return Task.CompletedTask;
     }
 
-    async Task HandleRoutedImmediateEventAsync( IEvent e )
+    async Task HandleLocalImmediateEventAsync( IEvent e )
     {
         await _rawExecutor.DispatchEventAsync( _serviceProvider, e );
         await RaiseImmediateEventAsync( _monitor, e );

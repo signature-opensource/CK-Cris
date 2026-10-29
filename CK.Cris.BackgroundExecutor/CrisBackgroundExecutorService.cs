@@ -159,7 +159,7 @@ public class CrisBackgroundExecutorService : ContainerCommandExecutor<CrisBackgr
             }
             foreach( var h in m.Handlers )
             {
-                if( h.Kind is CrisHandlerKind.ConfigureAmbientServices or CrisHandlerKind.RestoreAmbientServices or CrisHandlerKind.RoutedEventHandler )
+                if( h.Kind is CrisHandlerKind.ConfigureAmbientServices or CrisHandlerKind.RestoreAmbientServices or CrisHandlerKind.LocalEventHandler )
                 {
                     continue;
                 }

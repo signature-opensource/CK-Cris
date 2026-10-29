@@ -5,21 +5,21 @@ using System.Reflection;
 namespace CK.Setup.Cris;
 
 /// <summary>
-/// Captures a routed event handler method information.
+/// Captures a local event handler method information.
 /// </summary>
-public sealed class HandlerRoutedEventMethod : HandlerBase
+public sealed class HandlerLocalEventMethod : HandlerBase
 {
     /// <summary>
-    /// Always <see cref="CrisHandlerKind.RoutedEventHandler"/>.
+    /// Always <see cref="CrisHandlerKind.LocalEventHandler"/>.
     /// </summary>
-    public override CrisHandlerKind Kind => CrisHandlerKind.RoutedEventHandler;
+    public override CrisHandlerKind Kind => CrisHandlerKind.LocalEventHandler;
 
     /// <summary>
     /// The parameter that is the event or event part.
     /// </summary>
     public readonly ParameterInfo EventOrPartParameter;
 
-    internal HandlerRoutedEventMethod( CrisType crisType,
+    internal HandlerLocalEventMethod( CrisType crisType,
                                        IStObjFinalClass owner,
                                        MethodInfo method,
                                        ParameterInfo[] parameters,

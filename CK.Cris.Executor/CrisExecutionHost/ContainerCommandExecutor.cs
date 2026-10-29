@@ -56,7 +56,7 @@ public abstract class ContainerCommandExecutor
     }
 
     /// <summary>
-    /// Extension point called when a command emits an immediate event (routed or caller only events).
+    /// Extension point called when a command emits an immediate event (local or caller only events).
     /// Note that all local impacts have been already handled: the <see cref="CrisEventHub"/> has already raised the event
     /// and if <see cref="CrisJob.ExecutingCommand"/> is not null, the <see cref="IExecutingCommand.ImmediateEvents"/> have been updated.
     /// <para>

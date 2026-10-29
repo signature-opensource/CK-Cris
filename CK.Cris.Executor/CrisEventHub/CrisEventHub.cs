@@ -4,7 +4,7 @@ using CK.PerfectEvent;
 namespace CK.Cris;
 
 /// <summary>
-/// Exposes the routed events to anyone.
+/// Exposes the local events to anyone.
 /// </summary>
 public sealed class CrisEventHub : ISingletonAutoService
 {
@@ -27,7 +27,7 @@ public sealed class CrisEventHub : ISingletonAutoService
     public PerfectEvent<IEvent> Immediate => _immediate.PerfectEvent;
 
     /// <summary>
-    /// Raised on immediate events an routed events (see <see cref="RoutedEventAttribute"/>).
+    /// Raised on immediate events an local events (see <see cref="LocalEventAttribute"/>).
     /// </summary>
     public PerfectEvent<IEvent> All => _all.PerfectEvent;
 }

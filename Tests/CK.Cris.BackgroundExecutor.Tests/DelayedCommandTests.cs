@@ -71,7 +71,7 @@ public class DelayedCommandTests
     {
         public static TaskCompletionSource<IDelayedCommandExecutedEvent> Executed = new();
 
-        [RoutedEventHandler]
+        [LocalEventHandler]
         public void On( IDelayedCommandExecutedEvent e ) => Executed.TrySetResult( e );
     }
 

@@ -2,7 +2,7 @@ namespace CK.Setup.Cris;
 
 enum MultiTargetHandlerKind
 {
-    RoutedEventHandler,
+    LocalEventHandler,
     IncomingValidator,
     ConfigureAmbientServices,
     CommandHandlingValidator,

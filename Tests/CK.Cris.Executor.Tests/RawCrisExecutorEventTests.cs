@@ -11,7 +11,7 @@ namespace CK.Cris.Executor.Tests;
 [TestFixture]
 public class RawCrisExecutorEventTests
 {
-    [RoutedEvent]
+    [LocalEvent]
     public interface ITestEvent : IEvent
     {
         public static int CallCount;
@@ -19,7 +19,7 @@ public class RawCrisExecutorEventTests
 
     public class EventSyncHandler : IAutoService
     {
-        [RoutedEventHandler]
+        [LocalEventHandler]
         public void HandleEvent( ITestEvent e )
         {
             ++ITestEvent.CallCount;
@@ -28,7 +28,7 @@ public class RawCrisExecutorEventTests
 
     public class EventAsyncHandler : IAutoService
     {
-        [RoutedEventHandler]
+        [LocalEventHandler]
         public Task HandleEventAsync( ITestEvent e )
         {
             ++ITestEvent.CallCount;
@@ -38,7 +38,7 @@ public class RawCrisExecutorEventTests
 
     public class EventValueTaskAsyncHandler : IAutoService
     {
-        [RoutedEventHandler]
+        [LocalEventHandler]
         public ValueTask HandleEventAsync( ITestEvent e )
         {
             ++ITestEvent.CallCount;

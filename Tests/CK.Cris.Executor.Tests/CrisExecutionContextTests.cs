@@ -12,14 +12,14 @@ namespace CK.Cris.Executor.Tests;
 [TestFixture]
 public class CrisExecutionContextTests
 {
-    [RoutedEvent]
-    public interface IRoutedEvent : IEvent
+    [LocalEvent]
+    public interface ILocalEvent : IEvent
     {
         public static int CallCount;
     }
 
-    [RoutedEvent, ImmediateEvent]
-    public interface IRoutedImmediateEvent : IEvent
+    [LocalEvent, ImmediateEvent]
+    public interface ILocalImmediateEvent : IEvent
     {
         public static int CallCount;
     }
@@ -61,35 +61,35 @@ public class CrisExecutionContextTests
                 var c = ++IStupidCommand.CallCount;
                 if( c < 5 )
                 {
-                    await ctx.EmitEventAsync<IRoutedImmediateEvent>( e => { } );
-                    await ctx.EmitEventAsync<IRoutedEvent>( e => { } );
+                    await ctx.EmitEventAsync<ILocalImmediateEvent>( e => { } );
+                    await ctx.EmitEventAsync<ILocalEvent>( e => { } );
                 }
                 return e.CreateResult( r => r.Value = c );
             }
         }
 
-        [RoutedEventHandler]
-        public async Task OnIRoutedImmediateEventCallStupidCommandAsync( ICrisEventContext ctx, IRoutedImmediateEvent e )
+        [LocalEventHandler]
+        public async Task OnILocalImmediateEventCallStupidCommandAsync( ICrisEventContext ctx, ILocalImmediateEvent e )
         {
-            ++IRoutedImmediateEvent.CallCount;
-            using( ctx.Monitor.OpenTrace( $"IRoutedImmediateEvent => StupidCommand" ) )
+            ++ILocalImmediateEvent.CallCount;
+            using( ctx.Monitor.OpenTrace( $"ILocalImmediateEvent => StupidCommand" ) )
             {
                 var r = (IStupidCommandResult)(await ctx.ExecuteCommandAsync<IStupidCommand>( c => c.Message = "Triggered by an event." ))!;
                 ctx.Monitor.CloseGroup( $"StupidCommand result = {r.Value}" );
             }
         }
 
-        [RoutedEventHandler]
-        public void OnIRoutedImmediateEventTraceCallCounts( IActivityMonitor monitor, IRoutedImmediateEvent e )
+        [LocalEventHandler]
+        public void OnILocalImmediateEventTraceCallCounts( IActivityMonitor monitor, ILocalImmediateEvent e )
         {
-            monitor.Trace( $"Calls count: IStupidCommand: {IStupidCommand.CallCount}, IRoutedImmediateEvent: {IRoutedImmediateEvent.CallCount}, IRoutedEvent: {IRoutedEvent.CallCount}." );
+            monitor.Trace( $"Calls count: IStupidCommand: {IStupidCommand.CallCount}, ILocalImmediateEvent: {ILocalImmediateEvent.CallCount}, ILocalEvent: {ILocalEvent.CallCount}." );
         }
 
-        [RoutedEventHandler]
-        public async Task OnIRoutedEventAsync( ICrisEventContext ctx, IRoutedEvent e )
+        [LocalEventHandler]
+        public async Task OnILocalEventAsync( ICrisEventContext ctx, ILocalEvent e )
         {
-            ++IRoutedEvent.CallCount;
-            ctx.Monitor.Trace( $"IRoutedEvent called. Executing IFinalCommand." );
+            ++ILocalEvent.CallCount;
+            ctx.Monitor.Trace( $"ILocalEvent called. Executing IFinalCommand." );
             await ctx.ExecuteCommandAsync<IFinalCommand>( c => { } );
         }
     }
@@ -108,8 +108,8 @@ public class CrisExecutionContextTests
     [SetUp]
     public void ResetCounters()
     {
-        IRoutedEvent.CallCount = 0;
-        IRoutedImmediateEvent.CallCount = 0;
+        ILocalEvent.CallCount = 0;
+        ILocalImmediateEvent.CallCount = 0;
         ICallerOnlyImmediateEvent.CallCount = 0;
         IStupidCommand.CallCount = 0;
         IFinalCommand.CallCount = 0;
@@ -124,8 +124,8 @@ public class CrisExecutionContextTests
                 typeof( RawCrisExecutor ),
                 typeof( DarkSideCrisEventHub ),
                 typeof( IStupidCommand ), typeof( IStupidCommandResult ),
-                typeof( IRoutedImmediateEvent ),
-                typeof( IRoutedEvent ),
+                typeof( ILocalImmediateEvent ),
+                typeof( ILocalEvent ),
                 typeof( Handlers ),
                 typeof( IFinalCommand ),
                 typeof( ICallerOnlyFinalEvent ),
@@ -145,7 +145,7 @@ public class CrisExecutionContextTests
             IFinalCommand.CallCount.ShouldBe( 4 );
 
             executed.Events.Count().ShouldBe( 4 + 4 );
-            executed.Events.Take( 4 ).ShouldAll( e => e.ShouldBeAssignableTo<IRoutedEvent>() );
+            executed.Events.Take( 4 ).ShouldAll( e => e.ShouldBeAssignableTo<ILocalEvent>() );
             executed.Events.Skip( 4 ).ShouldAll( e => e.ShouldBeAssignableTo<ICallerOnlyFinalEvent>() );
         }
     }
@@ -159,8 +159,8 @@ public class CrisExecutionContextTests
             typeof( RawCrisExecutor ),
             typeof( DarkSideCrisEventHub ),
             typeof( IStupidCommand ), typeof( IStupidCommandResult ),
-            typeof( IRoutedImmediateEvent ),
-            typeof( IRoutedEvent ),
+            typeof( ILocalImmediateEvent ),
+            typeof( ILocalEvent ),
             typeof( Handlers ),
             typeof( IFinalCommand ),
             typeof( ICallerOnlyFinalEvent ),
@@ -182,14 +182,14 @@ public class CrisExecutionContextTests
             var executed = await executor.ExecuteRootCommandAsync( command );
 
             executed.Events.Count().ShouldBe( 4 + 4 );
-            executed.Events.Take( 4 ).ShouldAll( e => e.ShouldBeAssignableTo<IRoutedEvent>() );
+            executed.Events.Take( 4 ).ShouldAll( e => e.ShouldBeAssignableTo<ILocalEvent>() );
             executed.Events.Skip( 4 ).ShouldAll( e => e.ShouldBeAssignableTo<ICallerOnlyFinalEvent>() );
 
             immediateEventCollector.Count.ShouldBe( 4 );
-            immediateEventCollector.ShouldAll( e => e.ShouldBeAssignableTo<IRoutedImmediateEvent>() );
+            immediateEventCollector.ShouldAll( e => e.ShouldBeAssignableTo<ILocalImmediateEvent>() );
 
             allEventCollector.Take( immediateEventCollector.Count ).ShouldBe( immediateEventCollector );
-            allEventCollector.Skip( 4 ).ShouldAll( e => e.ShouldBeAssignableTo<IRoutedEvent>() );
+            allEventCollector.Skip( 4 ).ShouldAll( e => e.ShouldBeAssignableTo<ILocalEvent>() );
         }
     }
 

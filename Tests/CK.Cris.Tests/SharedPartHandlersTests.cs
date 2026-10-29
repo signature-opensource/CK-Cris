@@ -23,8 +23,8 @@ public class SharedPartHandlersTests
     {
     }
 
-    [RoutedEvent]
-    public interface ISharedRoutedEvent : IEvent, ISharedPart
+    [LocalEvent]
+    public interface ISharedLocalEvent : IEvent, ISharedPart
     {
     }
 
@@ -46,8 +46,8 @@ public class SharedPartHandlersTests
         [CommandHandler]
         public void Handle( ISharedCommand c ) { }
 
-        [RoutedEventHandler]
-        public void On( ISharedRoutedEvent e ) { }
+        [LocalEventHandler]
+        public void On( ISharedLocalEvent e ) { }
     }
 
     /// <summary>
@@ -62,7 +62,7 @@ public class SharedPartHandlersTests
         configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ),
                                               typeof( ISharedPart ),
                                               typeof( ISharedCommand ),
-                                              typeof( ISharedRoutedEvent ),
+                                              typeof( ISharedLocalEvent ),
                                               typeof( ISharedCallerOnlyEvent ),
                                               typeof( SharedPartService ) );
         await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
@@ -76,10 +76,10 @@ public class SharedPartHandlersTests
         command.EndpointMustConfigureServices.ShouldBeTrue();
         command.BackgroundMustRestoreServices.ShouldBeTrue();
 
-        var routed = Model<ISharedRoutedEvent>();
-        routed.Handlers.Select( h => h.Kind ).ShouldBe( [CrisHandlerKind.RoutedEventHandler] );
-        routed.EndpointMustConfigureServices.ShouldBeTrue();
-        routed.BackgroundMustRestoreServices.ShouldBeTrue();
+        var local = Model<ISharedLocalEvent>();
+        local.Handlers.Select( h => h.Kind ).ShouldBe( [CrisHandlerKind.LocalEventHandler] );
+        local.EndpointMustConfigureServices.ShouldBeTrue();
+        local.BackgroundMustRestoreServices.ShouldBeTrue();
 
         var callerOnly = Model<ISharedCallerOnlyEvent>();
         callerOnly.Handlers.ShouldBeEmpty();

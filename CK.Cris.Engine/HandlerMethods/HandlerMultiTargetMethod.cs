@@ -8,7 +8,7 @@ namespace CK.Setup.Cris;
 /// <summary>
 /// Applies to <see cref="CrisHandlerKind.IncomingValidator"/>, <see cref="CrisHandlerKind.CommandHandlingValidator"/>,
 /// <see cref="CrisHandlerKind.ConfigureAmbientServices"/> and <see cref="CrisHandlerKind.RestoreAmbientServices"/>
-/// (<see cref="CrisHandlerKind.RoutedEventHandler"/> use the <see cref="HandlerRoutedEventMethod"/>).
+/// (<see cref="CrisHandlerKind.LocalEventHandler"/> use the <see cref="HandlerLocalEventMethod"/>).
 /// <para>
 /// This is a void (async or not) method with a parameter that is the command, event or part and 1 or 2 specific arguments:
 /// <list type="bullet">

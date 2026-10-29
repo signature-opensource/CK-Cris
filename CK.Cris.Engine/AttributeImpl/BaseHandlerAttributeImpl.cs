@@ -7,7 +7,7 @@ namespace CK.Setup.Cris;
 
 /// <summary>
 /// Base class for CommandHandlingValidatorAttributeImpl, CommandHandlerAttributeImpl, CommandPostHandlerAttributeImpl
-/// and RoutedEventHandlerAttributeImpl.
+/// and LocalEventHandlerAttributeImpl.
 /// </summary>
 abstract class BaseHandlerAttributeImpl : ICSCodeGenerator
 {

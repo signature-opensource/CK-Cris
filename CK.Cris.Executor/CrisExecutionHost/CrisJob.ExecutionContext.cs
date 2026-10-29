@@ -21,10 +21,10 @@ public sealed partial class CrisJob
             _job = job;
         }
 
-        protected override async Task RaiseImmediateEventAsync( IActivityMonitor monitor, IEvent routedImmediateEvent )
+        protected override async Task RaiseImmediateEventAsync( IActivityMonitor monitor, IEvent localImmediateEvent )
         {
-            await base.RaiseImmediateEventAsync( monitor, routedImmediateEvent );
-            await _job._executor.RaiseImmediateEventAsync( monitor, _job, routedImmediateEvent );
+            await base.RaiseImmediateEventAsync( monitor, localImmediateEvent );
+            await _job._executor.RaiseImmediateEventAsync( monitor, _job, localImmediateEvent );
         }
 
         protected override Task RaiseCallerOnlyImmediateEventAsync( IActivityMonitor monitor, IEvent callerImmediateEvent )

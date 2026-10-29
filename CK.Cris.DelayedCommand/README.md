@@ -68,8 +68,8 @@ ambient service hub (the `[RestoreAmbientServices]` methods rebuild one from the
 `OnExecutedCommandAsync` dispatches an `IDelayedCommandExecutedEvent` initialized from the executed
 command (`IPocoCommandExecutedPart.Initialize`: the command, its validation messages, its result and
 its events); its `SourceCommand` is the `IDelayedCommand`. The dispatch goes through `SafeDispatchEventAsync`, so a
-failing event handler is logged and does not throw. Since that event is `[RoutedEvent]`, it reaches any
-`[RoutedEventHandler]` in the process - which is how something learns the delayed command ran without
+failing event handler is logged and does not throw. Since that event is `[LocalEvent]`, it reaches any
+`[LocalEventHandler]` in the process - which is how something learns the delayed command ran without
 holding a reference to anything here.
 
 When the ambient services cannot be restored (a `[RestoreAmbientServices]` method threw, typically
