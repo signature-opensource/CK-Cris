@@ -159,6 +159,8 @@ public sealed partial class CrisHttpSender : ICrisHttpSender
 
             payload.Position = 0;
             request.Content = new StreamContent( payload );
+            // Required by "/.cris/auth" (like "/.cris", it refuses a non JSON POST).
+            request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue( "application/json" );
             var ctx = ResilienceContextPool.Shared.Get( false, cancellationToken );
             try
             {
