@@ -21,7 +21,12 @@ namespace CK.Auth;
 /// as an <see cref="MCException"/>: the session command then ends with an error result ("nothing decided"), never with a
 /// failed <see cref="ISessionResult"/> (that is a decision of the authentication center).
 /// </para>
+/// <para>
+/// It depends on the <see cref="IAuthenticationSessionEndpoint"/> that only some containers provide: it is a container
+/// configured service too.
+/// </para>
 /// </summary>
+[ScopedContainerConfiguredService]
 public sealed class AuthenticationSessionEndpointService : IAuthenticationSessionOpener
 {
     readonly IAuthenticationSessionEndpoint _endpoint;
