@@ -57,4 +57,5 @@ The tests get the instance (a singleton) from their services: `services.GetRequi
 | `FakeBasicLoginProvider` | "Basic": the `IBasicLoginCommand` against the database (records `LastPassword`). |
 | `FakeWeakLoginProvider` | "Weak": any actor of the database, passwordless. |
 | `FakeOidcLoginProvider` | "Oidc": its payload is a `FakeOidcPayload`; the identities bound to an actor are its `Bindings` ("albert-sub" and "robert-sub" in the "Test" scheme). Records `LastPayload`. |
+| `FakeAutoBindingAccountService` | The `IAutoBindingAccountService`: an "Oidc" identity nobody is registered with is bound to the logged in user (Critical, not impersonated) in the `FakeOidcLoginProvider.Bindings`; the rules of CK.DB.Auth's `SqlAutoBindingAccountService`. |
 | `FakePasskeyLoginProvider`, `InMemoryPasskeyStore` | "Passkey" (with `withPasskeys`): the credentials in memory. |

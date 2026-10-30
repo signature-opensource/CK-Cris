@@ -142,6 +142,50 @@ public class FakeOidcLoginProvider : ILoginProvider
 }
 
 /// <summary>
+/// The automatic account binding of a real authentication center (the rules of CK.DB.Auth's SqlAutoBindingAccountService):
+/// the identity of an "Oidc" login for which nobody is registered is bound to the logged in user (Critical level, not
+/// impersonated) in the <see cref="FakeOidcLoginProvider.Bindings"/>. The other schemes are never bound.
+/// </summary>
+public class FakeAutoBindingAccountService : IAutoBindingAccountService
+{
+    readonly FakeOidcLoginProvider _oidc;
+    readonly FakeActorDatabase _actors;
+
+    /// <summary>
+    /// Initializes a new binding service.
+    /// </summary>
+    /// <param name="oidc">The "Oidc" provider.</param>
+    /// <param name="actors">The actors.</param>
+    public FakeAutoBindingAccountService( FakeOidcLoginProvider oidc, FakeActorDatabase actors )
+    {
+        _oidc = oidc;
+        _actors = actors;
+    }
+
+    /// <inheritdoc />
+    public virtual ValueTask<ActorLoginResult?> BindAccountAsync( IActivityMonitor monitor, LoginContext context )
+    {
+        var auth = context.InitialAuthentication;
+        if( auth.IsImpersonated )
+        {
+            return ValueTask.FromResult( context.SetError( "User.AccountBinding.Impersonated", "Account binding is not possible while impersonating." ) );
+        }
+        if( auth.UnsafeActor.Level != AuthLevel.Critical )
+        {
+            return ValueTask.FromResult( context.SetError( "User.AccountBinding.CriticalLevelRequired", "User must be logged in Critical level." ) );
+        }
+        if( context.Payload is not FakeOidcPayload p )
+        {
+            return ValueTask.FromResult( context.SetError( "User.AccountBinding.NotSupported", $"The '{context.Scheme}' scheme cannot be bound by a login." ) );
+        }
+        var a = _actors.Find( auth.UnsafeActor.ActorId );
+        if( a == null ) return ValueTask.FromResult<ActorLoginResult?>( ActorLoginResult.Failure( 1, "Unknown actor." ) );
+        _oidc.Bindings[(p.SchemeSuffix, p.Sub)] = a.ActorId;
+        return ValueTask.FromResult<ActorLoginResult?>( ActorLoginResult.Success( a ) );
+    }
+}
+
+/// <summary>
 /// The passkey storage, in memory.
 /// </summary>
 public class InMemoryPasskeyStore : IPasskeyStore

@@ -52,7 +52,8 @@ public static class FakeAuthCenterTestingExtensions
 
     /// <summary>
     /// The login providers of a real authentication center, on the <see cref="FakeActorDatabase"/>:
-    /// <see cref="FakeBasicLoginProvider"/>, <see cref="FakeWeakLoginProvider"/> and <see cref="FakeOidcLoginProvider"/>.
+    /// <see cref="FakeBasicLoginProvider"/>, <see cref="FakeWeakLoginProvider"/>, <see cref="FakeOidcLoginProvider"/> and its
+    /// <see cref="FakeAutoBindingAccountService"/>.
     /// The passkey provider (<see cref="FakePasskeyLoginProvider"/> and its <see cref="InMemoryPasskeyStore"/>) is added
     /// with the passkey scheme family.
     /// </summary>
@@ -61,7 +62,8 @@ public static class FakeAuthCenterTestingExtensions
         typeof( FakeActorDatabase ),
         typeof( FakeBasicLoginProvider ),
         typeof( FakeWeakLoginProvider ),
-        typeof( FakeOidcLoginProvider )
+        typeof( FakeOidcLoginProvider ),
+        typeof( FakeAutoBindingAccountService )
     ];
 
     /// <summary>
