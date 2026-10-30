@@ -24,7 +24,9 @@ namespace CK.Testing;
 ///     login response that contains <c>"signed":"login-challenge"</c> opens a Critical session for the <see cref="PasskeyActorId"/>.</item>
 ///     <item>Remote logins: the provider's URL is <c>https://idp.example.com/authorize?state=...</c> (with <c>prompt=login&amp;</c>
 ///     for a Critical login); the callback is accepted with the code <see cref="RemoteLoginCode"/> from the browser that
-///     started it, for the <see cref="RemoteLoginActorId"/>.</item>
+///     started it, for the <see cref="RemoteLoginActorId"/>. A binding (<see cref="IStartLoginCommand.BindToCurrentActor"/>)
+///     starts from a Critical session that is not impersonated, completes while this session is alive and issues no
+///     session: the bound identities are recorded (<see cref="Bindings"/>).</item>
 /// </list>
 /// The last operations are recorded (<see cref="LastOpen"/>...) for the tests of the protocol.
 /// </summary>
@@ -44,9 +46,12 @@ public class FakeAuthCenterOperations : ISingletonAutoService
     readonly PocoDirectory _pocos;
     readonly ConcurrentDictionary<string, AuthenticationTokenData> _tokens = new();
     readonly ConcurrentDictionary<string, Session> _sessions = new();
-    readonly ConcurrentDictionary<string, string> _remoteLogins = new();
+    readonly ConcurrentDictionary<string, RemoteLogin> _remoteLogins = new();
 
-    sealed record Session( int ActualActorId, int ActorId, bool RememberMe );
+    sealed record Session( int ActualActorId, int ActorId, bool RememberMe, DateTime CriticalExpires );
+
+    // A pending remote login: the correlation of the browser that started it and, for a binding, the session of the actor.
+    sealed record RemoteLogin( string CorrelationHash, string? BindingSessionKey );
 
     /// <summary>
     /// Initializes a new fake authentication center.
@@ -91,6 +96,12 @@ public class FakeAuthCenterOperations : ISingletonAutoService
     /// Gets or sets the actor of a remote login. Defaults to Albert (3712).
     /// </summary>
     public int RemoteLoginActorId { get; set; } = 3712;
+
+    /// <summary>
+    /// Gets the identities bound by a remote login (<see cref="IStartLoginCommand.BindToCurrentActor"/>): the scheme
+    /// and the actor.
+    /// </summary>
+    public ConcurrentQueue<(string Scheme, int ActorId)> Bindings { get; } = new();
 
     /// <summary>
     /// Gets the last <see cref="IOpenSessionOperationCommand"/>.
@@ -155,7 +166,7 @@ public class FakeAuthCenterOperations : ISingletonAutoService
         var token = "token-" + Guid.NewGuid().ToString( "N" );
         _tokens[token] = new AuthenticationTokenData( info, op.NextBindingSecretHash );
         var key = $"{actualActor.ActorId}.{actor.ActorId}.{Guid.NewGuid():N}";
-        _sessions[key] = new Session( actualActor.ActorId, actor.ActorId, rememberMe );
+        _sessions[key] = new Session( actualActor.ActorId, actor.ActorId, rememberMe, info.CriticalExpires ?? DateTime.MinValue );
         return _pocos.Create<ISessionOperationResult>( r =>
         {
             r.IssuedSessionKey = key;
@@ -279,8 +290,22 @@ public class FakeAuthCenterOperations : ISingletonAutoService
     public virtual RedirectedUrl Handle( IStartRemoteLoginOperationCommand op )
     {
         LastStartRemote = op;
+        string? bindingSessionKey = null;
+        if( op.Login!.BindToCurrentActor )
+        {
+            // The proof of the actor: a Critical session, not impersonated.
+            if( op.PresentedSessionKey == null
+                || !_sessions.TryGetValue( op.PresentedSessionKey, out var session )
+                || session.CriticalExpires <= DateTime.UtcNow
+                || session.ActualActorId != session.ActorId )
+            {
+                throw new MCException( MCString.CreateNonTranslatable( NormalizedCultureInfo.CodeDefault,
+                                                                       "A binding requires a recent login (Critical level), not impersonated." ) );
+            }
+            bindingSessionKey = op.PresentedSessionKey;
+        }
         var state = Guid.NewGuid().ToString( "N" );
-        _remoteLogins[state] = op.CorrelationHash;
+        _remoteLogins[state] = new RemoteLogin( op.CorrelationHash, bindingSessionKey );
         // A Critical login asks the provider to authenticate the user again (the state stays the last parameter).
         return new RedirectedUrl( "https://idp.example.com/authorize?" + (op.Login!.Critical ? "prompt=login&" : "") + "state=" + state, op.Login.InlineMode );
     }
@@ -291,11 +316,21 @@ public class FakeAuthCenterOperations : ISingletonAutoService
         LastCompleteRemote = op;
         var callback = op.Callback;
         if( callback == null
-            || !_remoteLogins.TryRemove( callback.State, out var hash )
-            || hash != op.PresentedCorrelationHash
+            || !_remoteLogins.TryRemove( callback.State, out var pending )
+            || pending.CorrelationHash != op.PresentedCorrelationHash
             || callback.Code != RemoteLoginCode )
         {
             return Refuse( "Refused.", "Test.Refused" );
+        }
+        if( pending.BindingSessionKey != null )
+        {
+            // A binding: the session of the actor must still be alive; no session is issued.
+            if( !_sessions.TryGetValue( pending.BindingSessionKey, out var session ) )
+            {
+                return Refuse( "The session that started the binding has ended.", "Test.Refused" );
+            }
+            Bindings.Enqueue( (LastStartRemote?.Login?.Scheme ?? "", session.ActorId) );
+            return _pocos.Create<ISessionOperationResult>( r => r.Result = _pocos.Create<ISessionResult>( s => s.Success = true ) );
         }
         var a = _actors.Find( RemoteLoginActorId );
         return a != null ? Issue( op, a, a, rememberMe: true, TimeSpan.Zero ) : Refuse( "Unknown actor.", "Test.UnknownActor" );

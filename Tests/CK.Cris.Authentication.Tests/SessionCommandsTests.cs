@@ -215,6 +215,14 @@ public class SessionCommandsTests
             endpoint.PresentedRemoteLoginHash = "correlation-hash";
             callback = poco.Create<IRemoteLoginCallbackCommand>( c => { c.State = state; c.Code = FakeAuthCenterOperations.RemoteLoginCode; } );
             ((ISessionResult)(await executor.RawExecuteAsync( services, callback )).Result!).Success.ShouldBeTrue();
+            // A binding to the current actor: the presented session (the proof of the actor) travels with the start; the
+            // fake authentication center requires it at the Critical level (this remote login session is Normal).
+            sessionKey = endpoint.IssuedSessionKey.ShouldNotBeNull();
+            var bind = poco.Create<IStartLoginCommand>( c => { c.Scheme = "Oidc.Azure"; c.BindToCurrentActor = true; } );
+            (await executor.RawExecuteAsync( services, bind )).Result
+                .ShouldBeAssignableTo<ICrisResultError>().Errors.ShouldContain( e => e.Text.Contains( "Critical level" ) );
+            center.LastStartRemote.Login.ShouldBeSameAs( bind );
+            center.LastStartRemote.PresentedSessionKey.ShouldBe( sessionKey );
 
             // Weak login: the Weak handler (AllowUnclosedCommand) handles the command extended by CK.IO.Authentication.WeakZone.
             var weak = poco.Create<IWeakLoginCommand>( c => c.WeakActorName = "Operator" );
