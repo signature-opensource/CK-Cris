@@ -5,7 +5,7 @@
     <Description>The endpoint handler of the "Basic" login (user name and password): it opens the session through the authentication center. Installable on any party (no database).</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.IO.Authentication.Basic" Version="3.0.0-0.cris-auth.0.ci.33" />
+    <PackageReference Include="CK.IO.Authentication.Basic" Version="3.0.0-0.cris-auth.0.ci.35" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris.Authentication\CK.Cris.Authentication.csproj" />
