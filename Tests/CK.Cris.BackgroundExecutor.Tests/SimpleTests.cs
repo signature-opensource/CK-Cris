@@ -1,4 +1,3 @@
-using CK.Auth;
 using CK.Core;
 using CK.Testing;
 using Shouldly;
@@ -75,7 +74,6 @@ public class SimpleTests
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( typeof( CrisBackgroundExecutorService ),
-                                              typeof( StdAuthenticationTypeSystem ),
                                               typeof( IDelayCommand ),
                                               typeof( StupidHandlers ),
                                               typeof( RegularScopedService ) );

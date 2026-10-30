@@ -8,7 +8,6 @@
     <File Path="NuGet.config" />
   </Folder>
   <Folder Name="/Tests/">
-    <Project Path="Tests/CK.Cris.Authentication.Conflict.Tests/CK.Cris.Authentication.Conflict.Tests.csproj" />
     <Project Path="Tests/CK.Cris.Authentication.Tests/CK.Cris.Authentication.Tests.csproj" />
     <Project Path="Tests/CK.Cris.BackgroundExecutor.Tests/CK.Cris.BackgroundExecutor.Tests.csproj" />
     <Project Path="Tests/CK.Cris.Executor.Tests/CK.Cris.Executor.Tests.csproj" />

@@ -1,14 +1,13 @@
 # CK.Cris.Authentication
 
 Checks and restores the [CK.IO.Auth](https://github.com/signature-opensource/CK-Cris-Abstractions/tree/stable/CK.IO.Auth)
-parts with the `AuthenticationInfo` ambient service of CK.AuthenticationInfo. It is the CK.AuthenticationInfo
-counterpart of [CK.Cris.Auth](../CK.Cris.Auth/README.md) (CK.Auth.Abstractions): an application uses one or the other.
+parts with the `AuthenticationInfo` ambient service of CK.AuthenticationInfo.
 
-## One or the other, never both
+## A single validator of the parts
 
-The [`CrisAuthenticationService`](CrisAuthenticationService.cs) has on purpose the same full name as the one of
-CK.Cris.Auth, `CK.Auth.CrisAuthenticationService`: an application that references both packages cannot be set up. Two validators for
-the same parts would mean two answers to "who is the caller".
+The [`CrisAuthenticationService`](CrisAuthenticationService.cs) has on purpose the same full name as the one of the
+deprecated CK.Cris.Auth, `CK.Auth.CrisAuthenticationService`: an application that still references a former version of
+CK.Cris.Auth cannot be set up. Two validators for the same parts would mean two answers to "who is the caller".
 
 ## When the command enters the System
 
@@ -21,7 +20,7 @@ the same parts would mean two answers to "who is the caller".
 | `IAuthImpersonationPart` | `ActualActorId` is the `UnsafeActualActor.ActorId` | |
 
 A user interface recognizes these resource names: `Authentication.CriticalLevelRequired` means that a new login is
-required. CK.Cris.Auth uses the same names.
+required.
 
 The level is read on the actor, not on the session: an administrator that impersonates a weak actor sends
 `Unsafe` commands only.
