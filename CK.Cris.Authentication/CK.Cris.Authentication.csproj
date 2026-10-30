@@ -5,8 +5,8 @@
     <Description>Validates and restores the CK.IO.Auth parts of the Cris commands with the CK.AuthenticationInfo model. Replaces CK.Cris.Auth: both cannot be installed together.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.AuthenticationInfo" Version="15.0.0-0.cris-auth.0.ci.9" />
-    <PackageReference Include="CK.IO.Authentication" Version="3.0.0-0.cris-auth.0.ci.35" />
+    <PackageReference Include="CK.AuthenticationInfo" Version="15.0.0-0.cris-auth" />
+    <PackageReference Include="CK.IO.Authentication" Version="3.0.0-0.cris-auth" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris.Executor\CK.Cris.Executor.csproj" />

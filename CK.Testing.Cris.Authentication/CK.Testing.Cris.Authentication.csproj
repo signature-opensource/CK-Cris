@@ -4,11 +4,11 @@
     <Description>Test helpers of the authentication: a fake actor database, a fake authentication center (its tokens and the operations of the session commands) for the tests that run below a real one, and the fake login providers of a real one.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.AuthenticationInfo.Passkey" Version="15.0.0-0.cris-auth.0.ci.9" />
-    <PackageReference Include="CK.IO.Authentication.Basic" Version="3.0.0-0.cris-auth.0.ci.35" />
-    <PackageReference Include="CK.IO.Authentication.Weak" Version="3.0.0-0.cris-auth.0.ci.35" />
-    <PackageReference Include="CK.IO.Authentication.Passkey" Version="3.0.0-0.cris-auth.0.ci.35" />
-    <PackageReference Include="CK.Testing.StObjEngine" Version="36.0.0-0.cris-auth.0.ci.10" />
+    <PackageReference Include="CK.AuthenticationInfo.Passkey" Version="15.0.0-0.cris-auth" />
+    <PackageReference Include="CK.IO.Authentication.Basic" Version="3.0.0-0.cris-auth" />
+    <PackageReference Include="CK.IO.Authentication.Weak" Version="3.0.0-0.cris-auth" />
+    <PackageReference Include="CK.IO.Authentication.Passkey" Version="3.0.0-0.cris-auth" />
+    <PackageReference Include="CK.Testing.StObjEngine" Version="36.0.0-0.cris-auth" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris.Authentication\CK.Cris.Authentication.csproj" />
