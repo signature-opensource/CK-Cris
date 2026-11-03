@@ -14,7 +14,7 @@ and of the clients (CK.Cris.HttpSender, the Angular packages). The session comma
 authentication center, that handles their `[Internal]` operations, is a fake.
 
 A test that can run the real authentication center (a repository downstream of CK-AppIdentity-Transport) uses it
-instead: see CK.Testing.AppIdentity.Cris.AuthCenter.
+instead: see CK.Testing.AppIdentity.AuthCenter.
 
 ### The engine configuration
 
@@ -50,7 +50,7 @@ The tests get the instance (a singleton) from their services: `services.GetRequi
 
 `AddFakeLoginProviders( withPasskeys )` adds the `FakeActorDatabase` and the `ILoginProvider`s of
 [FakeLoginProviders.cs](FakeLoginProviders.cs), for a test that runs the real authentication center
-(CK.AppIdentity.Cris.AuthCenter.Local) without a database:
+(CK.AppIdentity.AuthCenter.Local) without a database:
 
 | Type | Scheme |
 |---|---|

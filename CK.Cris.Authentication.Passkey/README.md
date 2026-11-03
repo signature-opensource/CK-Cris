@@ -11,6 +11,6 @@ handles them where they are received and runs the passkey operations (`[Internal
 | `IStartPasskeyRegistrationCommand` | `IStartPasskeyRegistrationOperationCommand` (Critical, the current actor) |
 | `IPasskeyRegistrationCommand` | `IFinishPasskeyRegistrationOperationCommand` (Critical, the current actor) |
 
-Only the authentication center runs the WebAuthn protocol (CK.AppIdentity.Cris.AuthCenter.Passkey): this package has no
+Only the authentication center runs the WebAuthn protocol (CK.AppIdentity.AuthCenter.Passkey): this package has no
 database and no WebAuthn library. The endpoint must serve web pages: the origin it checked (`WebOrigin`) travels with the
 operations, the authentication center checks it against its configuration and against the origin signed by the browser.

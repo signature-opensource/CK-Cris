@@ -68,7 +68,7 @@ public static class FakeAuthCenterTestingExtensions
 
     /// <summary>
     /// Adds the <see cref="FakeLoginProviderTypes"/> to the BinPath: the actors and the login providers of a real
-    /// authentication center (CK.AppIdentity.Cris.AuthCenter.Local) that the test runs without a database.
+    /// authentication center (CK.AppIdentity.AuthCenter.Local) that the test runs without a database.
     /// </summary>
     /// <param name="binPath">This BinPath configuration.</param>
     /// <param name="withPasskeys">True to also add the <see cref="FakePasskeyLoginProvider"/> and its <see cref="InMemoryPasskeyStore"/>.</param>
