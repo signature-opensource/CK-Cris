@@ -3,9 +3,9 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.IO.Authentication" Version="3.0.0-0.cris-auth.1.ci.55" />
+    <PackageReference Include="CK.IO.Authentication" Version="3.0.0-0.cris-auth.1.ci.56" />
     <PackageReference Include="CK.AppIdentity" Version="3.0.0-0.cris-auth.1.ci.34" />
-    <PackageReference Include="CK.Poco.Exc.Json" Version="36.0.0-0.cris-auth.1.ci.33" />
+    <PackageReference Include="CK.Poco.Exc.Json" Version="36.0.0-0.cris-auth.1.ci.34" />
     <PackageReference Include="Polly.Core" Version="8.9.0" />
   </ItemGroup>
 </Project>
