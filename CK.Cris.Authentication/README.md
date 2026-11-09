@@ -97,7 +97,7 @@ command with an error ("nothing decided"), never with a failed `ISessionResult` 
 center). The logout clears the endpoint's secrets whatever happens.
 
 The identity of a command that comes through another party carries that party
-(`AuthenticationInfo.CallerPartyId`, set at reception, its levels capped by the `ICallerPartyService`).
+(`AuthenticationInfo.CallerPartyFullName`, set at reception, its levels capped by the `ICallerPartyService`).
 [`CallerPartyAmbientValuesCapture`](CallerPartyAmbientValuesCapture.cs) keeps it with the deferred commands (the
 delayed commands): their restored authentication is completed with it.
 
