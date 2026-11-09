@@ -31,6 +31,18 @@ public interface IAuthenticationSessionEndpoint : IAutoService
     string? PresentedToken { get; }
 
     /// <summary>
+    /// Gets the <see cref="PresentedToken"/> when this endpoint accepted it: read (its signature, its expiration, its
+    /// audience) and bound to the session (the caller presented its binding secret, see <see cref="PresentedBindingSecretHash"/>).
+    /// Null when the caller presents no token or when it has been refused.
+    /// <para>
+    /// This is the user's proof that may be relayed to another party with a command: a party never relays a token it
+    /// didn't verify, so that a proof that doesn't verify is evidence against the party that sent it.
+    /// </para>
+    /// Defaults to null.
+    /// </summary>
+    string? AcceptedToken => null;
+
+    /// <summary>
     /// Gets the hash of the binding secret presented by the caller, or null. Unlike the <see cref="PresentedProof"/>
     /// (that needs the refresh secret, presented to the session commands only), it is available to every command:
     /// when the caller's proof travels with a command to a remote authentication center, it is sent with the
