@@ -9,6 +9,10 @@ namespace CK.Auth;
 /// The key of the session, chosen by the authentication center (see <see cref="IAuthenticationSessionEndpoint.Issue"/>).
 /// It is opaque for the endpoint and is not a secret: the endpoint keeps it with the secrets and presents it back.
 /// </param>
-/// <param name="RefreshSecretHash">The base64url SHA-256 of the refresh secret.</param>
-/// <param name="BindingSecretHash">The base64url SHA-256 of the binding secret.</param>
-public sealed record AuthenticationSessionProof( string SessionKey, string RefreshSecretHash, string BindingSecretHash );
+/// <param name="RefreshSecretHash">The SHA-256 of the refresh secret.</param>
+/// <param name="BindingSecretHash">The SHA-256 of the binding secret.</param>
+/// <remarks>
+/// The hashes are arrays: two proofs are compared by their content (constant time against a presented proof), never with
+/// the record equality (that compares the array references).
+/// </remarks>
+public sealed record AuthenticationSessionProof( string SessionKey, byte[] RefreshSecretHash, byte[] BindingSecretHash );

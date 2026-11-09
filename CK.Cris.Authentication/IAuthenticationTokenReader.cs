@@ -27,7 +27,7 @@ public interface IAuthenticationTokenReader : IScopedAutoService
 /// </summary>
 /// <param name="Info">The authentication.</param>
 /// <param name="BindingSecretHash">
-/// The hash of the binding secret of the session that issued the token (base64url SHA-256, see <see cref="AuthenticationSessionProof"/>):
+/// The hash of the binding secret of the session that issued the token (SHA-256, see <see cref="AuthenticationSessionProof"/>):
 /// the endpoint checks that the caller presents this binding secret, so that a stolen token cannot be used elsewhere.
 /// </param>
-public sealed record AuthenticationTokenData( AuthenticationInfo Info, string BindingSecretHash );
+public sealed record AuthenticationTokenData( AuthenticationInfo Info, byte[] BindingSecretHash );

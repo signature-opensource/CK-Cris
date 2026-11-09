@@ -28,6 +28,9 @@ public class SessionCommandsTests
     /// <summary>
     /// The endpoint: it prepares numbered secrets and records what it is asked to issue or clear.
     /// </summary>
+    // The fake hashes: the bytes of a readable text.
+    static byte[] H( string text ) => System.Text.Encoding.UTF8.GetBytes( text );
+
     public sealed class FakeEndpoint : IAuthenticationSessionEndpoint
     {
         int _prepared;
@@ -37,17 +40,17 @@ public class SessionCommandsTests
         public string? IssuedSessionKey { get; private set; }
         public bool Cleared { get; private set; }
 
-        public (string RefreshSecretHash, string BindingSecretHash) PrepareSecrets()
+        public (byte[] RefreshSecretHash, byte[] BindingSecretHash) PrepareSecrets()
         {
             ++_prepared;
-            return ($"r{_prepared}", $"b{_prepared}");
+            return (H( $"r{_prepared}" ), H( $"b{_prepared}" ));
         }
 
         public AuthenticationSessionProof Issue( string sessionKey, bool rememberMe, DateTime refreshExpires )
         {
             IssuedSessionKey = sessionKey;
             Cleared = false;
-            PresentedProof = new AuthenticationSessionProof( sessionKey, $"r{_prepared}", $"b{_prepared}" );
+            PresentedProof = new AuthenticationSessionProof( sessionKey, H( $"r{_prepared}" ), H( $"b{_prepared}" ) );
             return PresentedProof;
         }
 
@@ -59,8 +62,8 @@ public class SessionCommandsTests
         }
 
         public string? RemoteLoginCallbackUrl { get; set; } = "https://app/.cris/auth/callback";
-        public string PrepareRemoteLogin() => "correlation-hash";
-        public string? PresentedRemoteLoginHash { get; set; } = "presented-correlation";
+        public byte[] PrepareRemoteLogin() => H( "correlation-hash" );
+        public byte[]? PresentedRemoteLoginHash { get; set; } = H( "presented-correlation" );
         public string? WebOrigin { get; set; } = "https://app";
     }
 
@@ -169,17 +172,17 @@ public class SessionCommandsTests
             center.LastOpen!.Scheme.ShouldBe( "Basic" );
             center.LastOpen.Payload.ShouldBeSameAs( login );
             center.LastOpen.RememberMe.ShouldBeTrue();
-            center.LastOpen.NextRefreshSecretHash.ShouldBe( "r1" );
-            center.LastOpen.NextBindingSecretHash.ShouldBe( "b1" );
+            center.LastOpen.NextRefreshSecretHash.ShouldBe( H( "r1" ) );
+            center.LastOpen.NextBindingSecretHash.ShouldBe( H( "b1" ) );
             var sessionKey = endpoint.IssuedSessionKey.ShouldNotBeNull();
 
             // Refresh: the presented session travels with the operation, the new prepared secrets are issued.
             r = (ISessionResult)(await executor.RawExecuteAsync( services, poco.Create<IRefreshSessionCommand>() )).Result!;
             r.Token.ShouldNotBeNull().ShouldNotBe( token );
             center.LastRefresh!.PresentedSessionKey.ShouldBe( sessionKey );
-            center.LastRefresh.PresentedRefreshSecretHash.ShouldBe( "r1" );
-            center.LastRefresh.NextRefreshSecretHash.ShouldBe( "r2" );
-            endpoint.PresentedProof!.RefreshSecretHash.ShouldBe( "r2" );
+            center.LastRefresh.PresentedRefreshSecretHash.ShouldBe( H( "r1" ) );
+            center.LastRefresh.NextRefreshSecretHash.ShouldBe( H( "r2" ) );
+            endpoint.PresentedProof!.RefreshSecretHash.ShouldBe( H( "r2" ) );
             sessionKey = endpoint.IssuedSessionKey.ShouldNotBeNull();
 
             // Impersonation: a Critical operation that carries the current actor.
@@ -201,18 +204,18 @@ public class SessionCommandsTests
             redirect.Url.ShouldStartWith( "https://idp.example.com/authorize?state=" );
             center.LastStartRemote!.Login.ShouldBeSameAs( start );
             center.LastStartRemote.CallbackUrl.ShouldBe( "https://app/.cris/auth/callback" );
-            center.LastStartRemote.CorrelationHash.ShouldBe( "correlation-hash" );
+            center.LastStartRemote.CorrelationHash.ShouldBe( H( "correlation-hash" ) );
             center.LastStartRemote.WebOrigin.ShouldBe( "https://app" );
             var state = redirect.Url.Substring( redirect.Url.LastIndexOf( '=' ) + 1 );
             // The presented correlation is not the one of the start: refused.
             var callback = poco.Create<IRemoteLoginCallbackCommand>( c => { c.State = state; c.Code = FakeAuthCenterOperations.RemoteLoginCode; } );
             ((ISessionResult)(await executor.RawExecuteAsync( services, callback )).Result!).Success.ShouldBeFalse();
             center.LastCompleteRemote!.Callback.ShouldBeSameAs( callback );
-            center.LastCompleteRemote.PresentedCorrelationHash.ShouldBe( "presented-correlation" );
+            center.LastCompleteRemote.PresentedCorrelationHash.ShouldBe( H( "presented-correlation" ) );
             // From the browser that started it: accepted.
             redirect = (RedirectedUrl)(await executor.RawExecuteAsync( services, start )).Result!;
             state = redirect.Url.Substring( redirect.Url.LastIndexOf( '=' ) + 1 );
-            endpoint.PresentedRemoteLoginHash = "correlation-hash";
+            endpoint.PresentedRemoteLoginHash = H( "correlation-hash" );
             callback = poco.Create<IRemoteLoginCallbackCommand>( c => { c.State = state; c.Code = FakeAuthCenterOperations.RemoteLoginCode; } );
             ((ISessionResult)(await executor.RawExecuteAsync( services, callback )).Result!).Success.ShouldBeTrue();
             // A binding to the current actor: the presented session (the proof of the actor) travels with the start; the
@@ -301,7 +304,7 @@ public class SessionCommandsTests
     public async Task an_operation_that_cannot_be_executed_decides_nothing_Async()
     {
         // No authentication center here and no dispatcher: the operations have no handler.
-        var endpoint = new FakeEndpoint { PresentedProof = new AuthenticationSessionProof( "session-key", "r0", "b0" ) };
+        var endpoint = new FakeEndpoint { PresentedProof = new AuthenticationSessionProof( "session-key", H( "r0" ), H( "b0" ) ) };
         await using var auto = await CreateAsync( endpoint, withAuthenticationCenter: false );
         using var scope = auto.Services.CreateScope();
         var services = scope.ServiceProvider;

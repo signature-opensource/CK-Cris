@@ -51,7 +51,7 @@ public class FakeAuthCenterOperations : ISingletonAutoService
     sealed record Session( int ActualActorId, int ActorId, bool RememberMe, DateTime CriticalExpires );
 
     // A pending remote login: the correlation of the browser that started it and, for a binding, the session of the actor.
-    sealed record RemoteLogin( string CorrelationHash, string? BindingSessionKey );
+    sealed record RemoteLogin( byte[] CorrelationHash, string? BindingSessionKey );
 
     /// <summary>
     /// Initializes a new fake authentication center.
@@ -317,7 +317,8 @@ public class FakeAuthCenterOperations : ISingletonAutoService
         var callback = op.Callback;
         if( callback == null
             || !_remoteLogins.TryRemove( callback.State, out var pending )
-            || pending.CorrelationHash != op.PresentedCorrelationHash
+            || op.PresentedCorrelationHash == null
+            || !pending.CorrelationHash.AsSpan().SequenceEqual( op.PresentedCorrelationHash )
             || callback.Code != RemoteLoginCode )
         {
             return Refuse( "Refused.", "Test.Refused" );

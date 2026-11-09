@@ -51,7 +51,7 @@ public interface IAuthenticationSessionEndpoint : IAutoService
     /// Defaults to the binding secret hash of the <see cref="PresentedProof"/>.
     /// </para>
     /// </summary>
-    string? PresentedBindingSecretHash => PresentedProof?.BindingSecretHash;
+    byte[]? PresentedBindingSecretHash => PresentedProof?.BindingSecretHash;
 
     /// <summary>
     /// Generates the secrets that the next <see cref="Issue"/> will use and returns their hashes. A remote
@@ -59,7 +59,7 @@ public interface IAuthenticationSessionEndpoint : IAutoService
     /// authentication center: the hashes travel with the operation, the secrets stay here. When <see cref="Issue"/> is called after this, it uses these secrets (and returns these hashes).
     /// </summary>
     /// <returns>The hashes of the prepared secrets.</returns>
-    (string RefreshSecretHash, string BindingSecretHash) PrepareSecrets();
+    (byte[] RefreshSecretHash, byte[] BindingSecretHash) PrepareSecrets();
 
     /// <summary>
     /// Generates new secrets for a new or a rotated session. The endpoint keeps them and sends them
@@ -96,13 +96,13 @@ public interface IAuthenticationSessionEndpoint : IAutoService
     /// Called only when <see cref="RemoteLoginCallbackUrl"/> is not null.
     /// </summary>
     /// <returns>The hash of the correlation secret.</returns>
-    string PrepareRemoteLogin();
+    byte[] PrepareRemoteLogin();
 
     /// <summary>
     /// Gets the hash of the correlation secret presented by the caller when it completes a remote login.
     /// Null when the caller presents none.
     /// </summary>
-    string? PresentedRemoteLoginHash { get; }
+    byte[]? PresentedRemoteLoginHash { get; }
 
     /// <summary>
     /// Gets the origin (<c>scheme://host[:port]</c>) of the web page that sent the command, as checked by this endpoint

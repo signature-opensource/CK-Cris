@@ -210,8 +210,8 @@ public sealed class AuthenticationSessionEndpointService : IAuthenticationSessio
         where TOp : class, ICommand<ISessionOperationResult>
     {
         Throw.CheckNotNullArgument( operation );
-        string? nextRefresh = null;
-        string? nextBinding = null;
+        byte[]? nextRefresh = null;
+        byte[]? nextBinding = null;
         if( operation is ICommandNextSessionSecrets next )
         {
             (nextRefresh, nextBinding) = _endpoint.PrepareSecrets();
@@ -223,7 +223,11 @@ public sealed class AuthenticationSessionEndpointService : IAuthenticationSessio
         if( r.IssuedSessionKey != null )
         {
             var issued = _endpoint.Issue( r.IssuedSessionKey, r.RememberMe, r.RefreshExpires );
-            if( issued.RefreshSecretHash != nextRefresh || issued.BindingSecretHash != nextBinding )
+            // Both are this endpoint's own values: a content comparison (no secret presented by a caller here).
+            if( nextRefresh == null
+                || nextBinding == null
+                || !issued.RefreshSecretHash.AsSpan().SequenceEqual( nextRefresh )
+                || !issued.BindingSecretHash.AsSpan().SequenceEqual( nextBinding ) )
             {
                 // The endpoint doesn't honor PrepareSecrets: its secrets are not the ones the authentication center stored.
                 _endpoint.Clear();
