@@ -51,6 +51,25 @@ public class CrisDelayedCommandService : ISingletonAutoService
     DateTime GetUtcNow() => DateTime.UtcNow;
 
     /// <summary>
+    /// Gets the maximal number of commands in the in-memory store. When it is reached, the incoming validation refuses
+    /// a new delayed command and <see cref="MemoryStore(IActivityMonitor, IDelayedCommand, ActivityMonitor.Token?, CapturedAmbientValues?)"/>
+    /// throws an <see cref="InvalidOperationException"/>.
+    /// <para>
+    /// Defaults to 10,000.
+    /// </para>
+    /// </summary>
+    protected virtual int MaxMemoryStoreCount => 10_000;
+
+    /// <summary>
+    /// Gets the maximal delay between now and the <see cref="IDelayedCommand.ExecutionDate"/> of an incoming delayed command:
+    /// the incoming validation refuses a later date.
+    /// <para>
+    /// Defaults to 30 days.
+    /// </para>
+    /// </summary>
+    protected virtual TimeSpan MaxIncomingDelay => TimeSpan.FromDays( 30 );
+
+    /// <summary>
     /// Core method that stores the command in the in-memory priority queue and manages the timer: the stored
     /// command will eventually be submitted to the <see cref="CrisBackgroundExecutorService"/> and <see cref="OnCommandExecuting(DelayedCommandEntry)"/>
     /// will be called.
@@ -60,13 +79,23 @@ public class CrisDelayedCommandService : ISingletonAutoService
     /// <param name="issuerToken">Optional already obtained correlation token.</param>
     /// <param name="capturedValues">The ambient values captured from the storing context (see <see cref="IDeferredAmbientValuesCapture"/>).</param>
     /// <returns>A 1-based ever incremented sequence number that identifies the added command.</returns>
+    /// <exception cref="ArgumentException">The <see cref="IDelayedCommand.Command"/> is null or is a <see cref="ICommandEndpointOnly"/>.</exception>
+    /// <exception cref="InvalidOperationException">The store already holds <see cref="MaxMemoryStoreCount"/> commands.</exception>
     protected int MemoryStore( IActivityMonitor monitor, IDelayedCommand command, ActivityMonitor.Token? issuerToken = null, CapturedAmbientValues? capturedValues = null )
     {
         Throw.CheckArgument( command.Command is not null );
         var innerCommand = command.Command;
+        // The incoming validator refuses it, but an in-process execution runs no incoming validator:
+        // fail here rather than in the timer callback.
+        Throw.CheckArgument( "An ICommandEndpointOnly command can only be executed by its receiving endpoint, it cannot be delayed.",
+                             innerCommand is not ICommandEndpointOnly );
         issuerToken ??= monitor.CreateToken( $"Delayed execution command: '{innerCommand.CrisPocoModel.PocoName}' at '{command.ExecutionDate}'." );
         lock( _memoryStore )
         {
+            if( _memoryStore.Count >= MaxMemoryStoreCount )
+            {
+                Throw.InvalidOperationException( $"The delayed command store is full ({MaxMemoryStoreCount} commands)." );
+            }
             var entry = new DelayedCommandEntry( ++_seqNum, issuerToken, command, capturedValues );
             _memoryStore.Enqueue( entry, command.ExecutionDate );
             if( command.ExecutionDate < _nextDate )
@@ -111,14 +140,32 @@ public class CrisDelayedCommandService : ISingletonAutoService
                 var delta = (long)(date - GetUtcNow()).TotalMilliseconds;
                 if( delta <= 0 )
                 {
-                    entry.SetExecuting( _backgroundExecutorService.Submit( entry.DelayedCommand.Command!,
-                                                                           ambientServiceHub: null,
-                                                                           entry.IssuerToken,
-                                                                           entry,
-                                                                           OnExecutedCommandAsync,
-                                                                           incomingValidationCheck: true ) );
                     _memoryStore.Dequeue();
-                    OnCommandExecuting( entry );
+                    // This runs on a timer thread: an exception here would end the process.
+                    // A failing entry is logged and its ExecutingCommand task is faulted.
+                    try
+                    {
+                        entry.SetExecuting( _backgroundExecutorService.Submit( entry.DelayedCommand.Command!,
+                                                                               ambientServiceHub: null,
+                                                                               entry.IssuerToken,
+                                                                               entry,
+                                                                               OnExecutedCommandAsync,
+                                                                               incomingValidationCheck: true ) );
+                    }
+                    catch( Exception ex )
+                    {
+                        ActivityMonitor.StaticLogger.Error( $"Unable to submit the delayed command '{entry.DelayedCommand.Command!.CrisPocoModel.PocoName}' (MemorySequenceId: {entry.MemorySequenceId}).", ex );
+                        entry.SetExecutingError( ex );
+                        continue;
+                    }
+                    try
+                    {
+                        OnCommandExecuting( entry );
+                    }
+                    catch( Exception ex )
+                    {
+                        ActivityMonitor.StaticLogger.Error( $"Error in OnCommandExecuting for the delayed command '{entry.DelayedCommand.Command!.CrisPocoModel.PocoName}' (MemorySequenceId: {entry.MemorySequenceId}).", ex );
+                    }
                 }
                 else
                 {
@@ -137,7 +184,7 @@ public class CrisDelayedCommandService : ISingletonAutoService
     /// Extension point called when command is submitted to the executor.
     /// <para>
     /// Caution: This is called from the timer thread while an internal lock is held on the memory store.
-    /// Whatever is implemented here must be fast.
+    /// Whatever is implemented here must be fast. An exception is logged and ignored.
     /// </para>
     /// <para>
     /// Does nothing by default.
@@ -198,8 +245,10 @@ public class CrisDelayedCommandService : ISingletonAutoService
     }
 
     /// <summary>
-    /// Checks <see cref="IDelayedCommand.Command"/> is valid and that if <see cref="IDelayedCommand.AllowPastExecutionDate"/> is false,
-    /// the <see cref="IDelayedCommand.ExecutionDate"/> is in the future.
+    /// Checks <see cref="IDelayedCommand.Command"/> is valid, is not more restricted than the delayed command itself
+    /// (its <see cref="ICrisPocoModel.Exposure"/>), that if <see cref="IDelayedCommand.AllowPastExecutionDate"/> is false,
+    /// the <see cref="IDelayedCommand.ExecutionDate"/> is in the future, that it is not later than <see cref="MaxIncomingDelay"/>
+    /// and that the store is not full (<see cref="MaxMemoryStoreCount"/>).
     /// </summary>
     /// <param name="c">The validation context.</param>
     /// <param name="command">The delayed command</param>
@@ -212,18 +261,32 @@ public class CrisDelayedCommandService : ISingletonAutoService
             c.Messages.Error( "Invalid null Command property." );
             return ValueTask.CompletedTask;
         }
+        var inner = command.Command.CrisPocoModel;
         if( command.Command is ICommandEndpointOnly )
         {
-            c.Messages.Error( $"Command '{command.Command.CrisPocoModel.PocoName}' is executed only by its receiving endpoint: it cannot be delayed." );
+            c.Messages.Error( $"Command '{inner.PocoName}' is executed only by its receiving endpoint: it cannot be delayed." );
             return ValueTask.CompletedTask;
         }
-        if( !command.AllowPastExecutionDate )
+        // The receivers check the exposure of the received (outer) command only: the inner command must not be
+        // more restricted than it, otherwise the delayed command would open an [Internal] or [Private] command
+        // to any sender of the delayed command (CrisExposure is ordered from Public to Private).
+        if( inner.Exposure > command.CrisPocoModel.Exposure )
         {
-            var now = GetUtcNow();
-            if( command.ExecutionDate < now )
-            {
-                c.Messages.Error( $"Delayed command for '{command.Command.CrisPocoModel.PocoName}' is in past: ExecutionDate is '{command.ExecutionDate}', UtcNow is '{now}'." );
-            }
+            c.Messages.Error( $"Command '{inner.PocoName}' is {inner.Exposure}: it cannot be delayed by a {command.CrisPocoModel.Exposure} '{command.CrisPocoModel.PocoName}'." );
+            return ValueTask.CompletedTask;
+        }
+        var now = GetUtcNow();
+        if( !command.AllowPastExecutionDate && command.ExecutionDate < now )
+        {
+            c.Messages.Error( $"Delayed command for '{inner.PocoName}' is in past: ExecutionDate is '{command.ExecutionDate}', UtcNow is '{now}'." );
+        }
+        if( command.ExecutionDate > now + MaxIncomingDelay )
+        {
+            c.Messages.Error( $"Delayed command for '{inner.PocoName}' is too far in the future: ExecutionDate is '{command.ExecutionDate}', the maximal delay is {MaxIncomingDelay}." );
+        }
+        if( _memoryStore.Count >= MaxMemoryStoreCount )
+        {
+            c.Messages.Error( $"The delayed command store is full ({MaxMemoryStoreCount} commands): '{inner.PocoName}' cannot be delayed." );
         }
         return c.ValidateAsync( command.Command );
     }

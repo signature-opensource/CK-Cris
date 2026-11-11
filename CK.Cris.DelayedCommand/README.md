@@ -54,7 +54,18 @@ public ValueTask ValidateCommandAsync( ICrisIncomingValidationContext c, IDelaye
 
 It checks that `IDelayedCommand.Command` is not null, is not an `ICommandEndpointOnly` (such a
 command is executed only by its receiving endpoint), is valid, and that `ExecutionDate` is in the
-future unless `AllowPastExecutionDate` is set. The parameter type is the reason to point at it: an
+future unless `AllowPastExecutionDate` is set. It also checks:
+
+- **The exposure.** The receivers check the exposure of the command they receive, the `IDelayedCommand`, not of the command
+  it carries. So the inner command must not be more restricted than the delayed command: the `IDelayedCommand` is public,
+  hence an `[Internal]` or `[Private]` command is refused, whoever the sender is. Delaying such a command is for the
+  process itself: an in-process execution runs no incoming validator.
+- **The bounds.** The `ExecutionDate` is at most `MaxIncomingDelay` (30 days) in the future, and the store holds at most
+  `MaxMemoryStoreCount` (10,000) commands. Both are protected virtual properties. A full store also makes `MemoryStore`
+  throw, whoever stores the command.
+
+`MemoryStore` refuses an `ICommandEndpointOnly` inner command too (an `ArgumentException`), since an in-process execution
+skips the validator. The parameter type is the reason to point at the validator: an
 `ICrisIncomingValidationContext` rather than a `UserMessageCollector`, because the *inner* command has
 to be validated too, and `ValidateAsync( crisPoco )` is what does it. This is the composite-validation
 case the interface exists for.
@@ -86,6 +97,9 @@ completes right after `Submit` returns: it marks the command being **queued** on
 before any runner picks it up.
 Awaiting it gives you the `IExecutingCommand`, whose own executed-command task is the one that
 completes at the end - two stages, because the entry may exist long before the execution does.
+
+The timer callback never throws: when the submission fails, the error is logged and the `ExecutingCommand` task is
+faulted; an exception of `OnCommandExecuting` is logged and ignored.
 
 ## Requires.
 

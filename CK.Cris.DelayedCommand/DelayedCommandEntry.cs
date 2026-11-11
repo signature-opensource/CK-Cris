@@ -1,4 +1,5 @@
 using CK.Core;
+using System;
 using System.Threading.Tasks;
 
 namespace CK.Cris;
@@ -56,8 +57,13 @@ public sealed class DelayedCommandEntry : IDeferredCommandExecutionContext, IRes
     /// Gets a task that will be completed when the <see cref="IDelayedCommand.Command"/> has been submitted
     /// to the background executor (the command is queued, its execution may not have started yet).
     /// <see cref="IExecutingCommand.ExecutedCommand"/> can then be used to await the command completion.
+    /// <para>
+    /// This task is faulted when the submission failed.
+    /// </para>
     /// </summary>
     public Task<IExecutingCommand> ExecutingCommand => _executing.Task;
 
     internal void SetExecuting( IExecutingCommand executingCommand ) => _executing.SetResult( executingCommand );
+
+    internal void SetExecutingError( Exception ex ) => _executing.SetException( ex );
 }
