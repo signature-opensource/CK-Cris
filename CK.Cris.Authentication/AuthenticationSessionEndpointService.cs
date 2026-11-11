@@ -95,8 +95,7 @@ public sealed class AuthenticationSessionEndpointService : IAuthenticationSessio
                 foreach( var (k, v) in userData ) if( v != null ) c.UserData[k] = v;
             }
         } );
-        return await ExecuteSessionOperationAsync( monitor, op ).ConfigureAwait( false )
-               ?? Throw.InvalidOperationException<ISessionResult>( "A login operation must have a result." );
+        return await ExecuteRequiredSessionOperationAsync( monitor, op, "A login operation" ).ConfigureAwait( false );
     }
 
     /// <summary>
@@ -106,8 +105,7 @@ public sealed class AuthenticationSessionEndpointService : IAuthenticationSessio
     /// <returns>The session result.</returns>
     public async ValueTask<ISessionResult> RefreshAsync( IActivityMonitor monitor )
     {
-        return await ExecuteSessionOperationAsync( monitor, _pocos.Create<IRefreshSessionOperationCommand>() ).ConfigureAwait( false )
-               ?? Throw.InvalidOperationException<ISessionResult>( "A refresh operation must have a result." );
+        return await ExecuteRequiredSessionOperationAsync( monitor, _pocos.Create<IRefreshSessionOperationCommand>(), "A refresh operation" ).ConfigureAwait( false );
     }
 
     /// <summary>
@@ -141,8 +139,7 @@ public sealed class AuthenticationSessionEndpointService : IAuthenticationSessio
             c.TargetActorId = command.TargetActorId;
             c.TargetActorName = command.TargetActorName;
         } );
-        return await ExecuteSessionOperationAsync( monitor, op ).ConfigureAwait( false )
-               ?? Throw.InvalidOperationException<ISessionResult>( "An impersonate operation must have a result." );
+        return await ExecuteRequiredSessionOperationAsync( monitor, op, "An impersonate operation" ).ConfigureAwait( false );
     }
 
     /// <summary>
@@ -152,8 +149,7 @@ public sealed class AuthenticationSessionEndpointService : IAuthenticationSessio
     /// <returns>The session result.</returns>
     public async ValueTask<ISessionResult> ClearImpersonationAsync( IActivityMonitor monitor )
     {
-        return await ExecuteSessionOperationAsync( monitor, _pocos.Create<IClearImpersonationOperationCommand>() ).ConfigureAwait( false )
-               ?? Throw.InvalidOperationException<ISessionResult>( "A clear impersonation operation must have a result." );
+        return await ExecuteRequiredSessionOperationAsync( monitor, _pocos.Create<IClearImpersonationOperationCommand>(), "A clear impersonation operation" ).ConfigureAwait( false );
     }
 
     /// <summary>
@@ -193,8 +189,14 @@ public sealed class AuthenticationSessionEndpointService : IAuthenticationSessio
             c.Callback = command;
             c.PresentedCorrelationHash = _endpoint.PresentedRemoteLoginHash;
         } );
-        return await ExecuteSessionOperationAsync( monitor, op ).ConfigureAwait( false )
-               ?? Throw.InvalidOperationException<ISessionResult>( "A remote login operation must have a result." );
+        return await ExecuteRequiredSessionOperationAsync( monitor, op, "A remote login operation" ).ConfigureAwait( false );
+    }
+
+    async ValueTask<ISessionResult> ExecuteRequiredSessionOperationAsync<TOp>( IActivityMonitor monitor, TOp operation, string operationName )
+        where TOp : class, ICommand<ISessionOperationResult>
+    {
+        return await ExecuteSessionOperationAsync( monitor, operation ).ConfigureAwait( false )
+               ?? Throw.InvalidOperationException<ISessionResult>( $"{operationName} must have a result." );
     }
 
     /// <summary>
