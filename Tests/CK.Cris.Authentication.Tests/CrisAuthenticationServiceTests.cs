@@ -218,4 +218,47 @@ public class CrisAuthenticationServiceTests
         (await ExecuteRestoredAsync( p => p.Create<INormalCommand>( c => c.ActorId = 999 ) )).ShouldStartWith( "Error: " );
         (await ExecuteRestoredAsync( p => p.Create<IImpersonatedUnsafeCommand>( c => { c.ActorId = 3713; c.ActualActorId = 999; } ) )).ShouldStartWith( "Error: " );
     }
+
+    // A deferred execution context that completes the restored ambient services with captured values (like a delayed command).
+    sealed class Deferred : IDeferredCommandExecutionContext, IRestoredAmbientServicesCompleter
+    {
+        readonly CapturedAmbientValues? _values;
+
+        public Deferred( ActivityMonitor.Token issuerToken, CapturedAmbientValues? values )
+        {
+            IssuerToken = issuerToken;
+            _values = values;
+        }
+
+        public ActivityMonitor.Token IssuerToken { get; }
+
+        public void Complete( IActivityMonitor monitor, AmbientServiceHub hub ) => _values?.Complete( monitor, hub );
+    }
+
+    [Test]
+    public async Task a_deferred_command_never_loses_its_impersonation_Async()
+    {
+        // Albert impersonates Robert.
+        var session = AuthenticationInfo.Create( _albert, Tomorrow, Tomorrow, "D", DateTime.UtcNow ).Impersonate( _robert, DateTime.UtcNow );
+        await using var scope = CreateScope( session );
+        var services = scope.ServiceProvider;
+        var captured = CapturedAmbientValues.Capture( [new ImpersonationAmbientValuesCapture()], services.GetRequiredService<AmbientServiceHub>() );
+        captured.ShouldNotBeNull();
+        var back = services.GetRequiredService<CrisBackgroundExecutorService>();
+        var poco = services.GetRequiredService<PocoDirectory>();
+
+        async Task<string> ExecuteDeferredAsync( IAbstractCommand command )
+        {
+            var executed = await back.Submit( TestHelper.Monitor, command, null, null, new Deferred( TestHelper.Monitor.CreateToken( "Deferred." ), captured ) ).ExecutedCommand;
+            return executed.Result is ICrisResultError e
+                    ? "Error: " + e.Errors.Select( m => m.Text ).Concatenate( " - " )
+                    : (string)executed.Result!;
+        }
+
+        // Without the impersonation part, Robert would act alone: the restoration fails.
+        (await ExecuteDeferredAsync( poco.Create<INormalCommand>( c => c.ActorId = 3713 ) )).ShouldStartWith( "Error: " );
+        // With it, the impersonation is restored.
+        (await ExecuteDeferredAsync( poco.Create<IImpersonatedCommand>( c => { c.ActorId = 3713; c.ActualActorId = 3712; c.DeviceId = "D"; } ) ))
+            .ShouldBe( "3713/Normal|3712/Normal|D" );
+    }
 }

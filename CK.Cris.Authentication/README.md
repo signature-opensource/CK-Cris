@@ -101,6 +101,12 @@ The identity of a command that comes through another party carries that party
 [`CallerPartyAmbientValuesCapture`](CallerPartyAmbientValuesCapture.cs) keeps it with the deferred commands (the
 delayed commands): their restored authentication is completed with it.
 
+The restoration rebuilds the actors from the command: a command without `IAuthImpersonationPart` carries the impersonated
+actor only. [`ImpersonationAmbientValuesCapture`](ImpersonationAmbientValuesCapture.cs) keeps the impersonation of a
+deferred command: when the restored authentication is the impersonated actor acting alone, the restoration fails and the
+command is not executed (it would run without its administrator). A command deferred while impersonating must have the
+`IAuthImpersonationPart`.
+
 ## Opening a session
 
 [`IAuthenticationSessionOpener`](IAuthenticationSessionOpener.cs) turns a login command into a session. Its single
