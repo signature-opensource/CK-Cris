@@ -89,7 +89,8 @@ public abstract class RawCrisExecutor : ISingletonAutoService
             {
                 using( monitor.OpenError( msg, ex ) )
                 {
-                    monitor.Trace( e.ToString() ?? string.Empty );
+                    // The redacted copy: an event may carry [Sensitive] values.
+                    monitor.Trace( e.ToLogString() );
                 }
             }
             else

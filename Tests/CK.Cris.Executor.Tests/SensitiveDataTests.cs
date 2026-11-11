@@ -104,6 +104,42 @@ public class SensitiveDataTests
         plain.ToLogString().ShouldBe( plain.ToString() );
     }
 
+    [LocalEvent]
+    public interface ISecretEvent : IEvent
+    {
+        [Sensitive]
+        string Secret { get; set; }
+    }
+
+    public sealed class ThrowingEventHandler : IAutoService
+    {
+        [LocalEventHandler]
+        public void On( ISecretEvent e ) => throw new System.InvalidOperationException( "Handler failure." );
+    }
+
+    [Test]
+    public async Task a_failed_safe_event_dispatch_logs_the_event_redacted_Async()
+    {
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ), typeof( CrisDirectory ), typeof( CommonPocoJsonSupport ), typeof( ISecretEvent ), typeof( ThrowingEventHandler ) );
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices( configureServices: services =>
+        {
+            services.AddScoped<IActivityMonitor, ActivityMonitor>();
+            services.AddScoped( sp => sp.GetRequiredService<IActivityMonitor>().ParallelLogger );
+        } );
+        using var scope = auto.Services.CreateScope();
+        var monitor = scope.ServiceProvider.GetRequiredService<IActivityMonitor>();
+        monitor.MinimalFilter = LogFilter.Trace;
+        var e = scope.ServiceProvider.GetRequiredService<PocoDirectory>().Create<ISecretEvent>( e => e.Secret = "password" );
+        using( monitor.CollectTexts( out var logs ) )
+        {
+            (await scope.ServiceProvider.GetRequiredService<RawCrisExecutor>().SafeDispatchEventAsync( scope.ServiceProvider, e )).ShouldBeFalse();
+            logs.ShouldContain( l => l.Contains( SensitiveDataExtensions.Redacted ) );
+            logs.ShouldNotContain( l => l.Contains( "password" ) );
+        }
+        e.Secret.ShouldBe( "password" );
+    }
+
     [Test]
     public async Task Sensitive_applies_to_strings_only_Async()
     {
