@@ -11,13 +11,16 @@ namespace CK.Setup.Cris;
 /// The [Sensitive] analysis of the Cris types, done at setup: the runtime never uses reflection for it.
 /// <list type="bullet">
 ///     <item>The own sensitive fields of a type: [Sensitive] string properties with a setter (anything else is an error).</item>
-///     <item>Its nested Cris fields: properties typed as a Cris Poco (concrete or abstract) that are traversed.</item>
+///     <item>
+///     Its nested Cris fields, that are traversed: properties typed as a Cris Poco (concrete or abstract), and lists, sets
+///     and arrays of Cris Pocos (like the <c>Events</c> of an executed command).
+///     </item>
 ///     <item>
 ///     Whether it may hold sensitive data: own sensitive fields, or a nested Cris field that may hold a type that may
 ///     (for an abstract type: any Cris type of the application that implements it). This is a fixed point.
 ///     </item>
 ///     <item>
-///     Any other field (a collection, a plain IPoco, a record, a union type) that may hold a [Sensitive] value is an error:
+///     Any other field (a dictionary, a collection of plain IPocos, a plain IPoco, a record, a union type) that may hold a [Sensitive] value is an error:
 ///     these values are not handled (they would be logged, and would cross a party boundary unprotected). A field typed
 ///     as <c>object</c> or as an abstract plain IPoco is not analyzed.
 ///     </item>
@@ -31,6 +34,8 @@ sealed class CrisSensitiveData
     {
         public readonly List<Field> Sensitive = new();
         public readonly List<(Field F, Type FieldType)> Nested = new();
+        // The lists, sets and arrays of Cris Pocos: their items are traversed (FieldType is the item type).
+        public readonly List<(Field F, Type FieldType)> NestedCollections = new();
         // The fields that are neither sensitive nor nested Cris Pocos: they must not hold sensitive values.
         public readonly List<IPocoField> Others = new();
         public bool HasSensitiveData;
@@ -78,6 +83,12 @@ sealed class CrisSensitiveData
                 {
                     info.Nested.Add( (new Field( f.Name, getter, null ), f.Type.Type) );
                 }
+                else if( f.Type.NonNullable is ICollectionPocoType coll
+                         && coll.Kind is PocoTypeKind.List or PocoTypeKind.HashSet or PocoTypeKind.Array
+                         && typeof( ICrisPoco ).IsAssignableFrom( coll.ItemTypes[0].Type ) )
+                {
+                    info.NestedCollections.Add( (new Field( f.Name, getter, null ), coll.ItemTypes[0].Type) );
+                }
                 else
                 {
                     info.Others.Add( f );
@@ -95,7 +106,7 @@ sealed class CrisSensitiveData
             foreach( var (e, info) in infos )
             {
                 if( info.HasSensitiveData ) continue;
-                if( info.Nested.Any( n => infos.Any( c => c.Value.HasSensitiveData
+                if( info.Nested.Concat( info.NestedCollections ).Any( n => infos.Any( c => c.Value.HasSensitiveData
                                                           && c.Key.CrisPocoType.FamilyInfo.Interfaces.Any( i => n.FieldType.IsAssignableFrom( i.PocoInterface ) ) ) ) )
                 {
                     info.HasSensitiveData = changed = true;
@@ -178,6 +189,15 @@ sealed class CrisSensitiveData
             var v = $"c{i++}";
             classScope.Append( "if( ((" ).AppendGlobalTypeName( f.Getter ).Append( ")poco)." ).Append( f.Name )
                       .Append( " is CK.Cris.ICrisPoco " ).Append( v )
+                      .Append( " && !" ).Append( v ).Append( ".CrisPocoModel.TransformSensitiveStrings( " ).Append( v ).Append( ", transformer ) ) return false;" ).NewLine();
+        }
+        foreach( var (f, _) in info.NestedCollections )
+        {
+            var v = $"c{i++}";
+            classScope.Append( "if( ((" ).AppendGlobalTypeName( f.Getter ).Append( ")poco)." ).Append( f.Name )
+                      .Append( " is System.Collections.IEnumerable " ).Append( v ).Append( "s )" ).NewLine()
+                      .Append( "foreach( var o in " ).Append( v ).Append( "s )" ).NewLine()
+                      .Append( "if( o is CK.Cris.ICrisPoco " ).Append( v )
                       .Append( " && !" ).Append( v ).Append( ".CrisPocoModel.TransformSensitiveStrings( " ).Append( v ).Append( ", transformer ) ) return false;" ).NewLine();
         }
         classScope.Append( "return true;" )
