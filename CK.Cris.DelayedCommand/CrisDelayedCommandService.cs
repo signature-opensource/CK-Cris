@@ -284,7 +284,9 @@ public class CrisDelayedCommandService : ISingletonAutoService
         {
             c.Messages.Error( $"Delayed command for '{inner.PocoName}' is too far in the future: ExecutionDate is '{command.ExecutionDate}', the maximal delay is {MaxIncomingDelay}." );
         }
-        if( _memoryStore.Count >= MaxMemoryStoreCount )
+        int count;
+        lock( _memoryStore ) count = _memoryStore.Count;
+        if( count >= MaxMemoryStoreCount )
         {
             c.Messages.Error( $"The delayed command store is full ({MaxMemoryStoreCount} commands): '{inner.PocoName}' cannot be delayed." );
         }
