@@ -65,6 +65,11 @@ internal sealed partial class CrisTypeRegistry
     /// Warns when a safe ambient value (<see cref="AmbientServiceValueAttribute.IsSafe"/>) of a handled type
     /// is checked by no [IncomingValidator]: since it is not checked, any caller can state it.
     /// <para>
+    /// A validator checks the value only when its parameter is the part that declares the property: a validator of a
+    /// command (or of a part) that merely inherits the property is unrelated (a name length check on a command that
+    /// happens to be authenticated doesn't check its ActorId).
+    /// </para>
+    /// <para>
     /// This should be an error: it is a warning until the packages that handle such commands in Systems
     /// without validators are migrated.
     /// </para>
@@ -75,16 +80,16 @@ internal sealed partial class CrisTypeRegistry
         foreach( var f in e.AmbientValueFields )
         {
             if( !_safeAmbientValueNames.Contains( f.Name ) ) continue;
-            if( !e.IncomingValidators.Any( v => HasProperty( v.ThisPocoParameter.ParameterType, f.Name ) ) )
+            if( !e.IncomingValidators.Any( v => DeclaresProperty( v.ThisPocoParameter.ParameterType, f.Name ) ) )
             {
                 monitor.Warn( $"Safe ambient value '{f.Name}' of '{e.PocoName}' is checked by no [IncomingValidator]: any caller can state it. " +
                               $"An [IncomingValidator] for this property must be available (an authentication validator for the authentication parts)." );
             }
         }
 
-        static bool HasProperty( Type t, string name )
+        static bool DeclaresProperty( Type t, string name )
         {
-            return t.GetProperty( name ) != null || t.GetInterfaces().Any( i => i.GetProperty( name ) != null );
+            return t.GetProperty( name, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.DeclaredOnly ) != null;
         }
     }
 

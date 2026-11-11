@@ -16,6 +16,11 @@ namespace CK.Setup.Cris;
 ///     Whether it may hold sensitive data: own sensitive fields, or a nested Cris field that may hold a type that may
 ///     (for an abstract type: any Cris type of the application that implements it). This is a fixed point.
 ///     </item>
+///     <item>
+///     Any other field (a collection, a plain IPoco, a record, a union type) that may hold a [Sensitive] value is an error:
+///     these values are not handled (they would be logged, and would cross a party boundary unprotected). A field typed
+///     as <c>object</c> or as an abstract plain IPoco is not analyzed.
+///     </item>
 /// </list>
 /// </summary>
 sealed class CrisSensitiveData
@@ -26,6 +31,8 @@ sealed class CrisSensitiveData
     {
         public readonly List<Field> Sensitive = new();
         public readonly List<(Field F, Type FieldType)> Nested = new();
+        // The fields that are neither sensitive nor nested Cris Pocos: they must not hold sensitive values.
+        public readonly List<IPocoField> Others = new();
         public bool HasSensitiveData;
     }
 
@@ -71,9 +78,9 @@ sealed class CrisSensitiveData
                 {
                     info.Nested.Add( (new Field( f.Name, getter, null ), f.Type.Type) );
                 }
-                else if( f.Type is ICollectionPocoType c && c.ItemTypes.Any( i => typeof( ICrisPoco ).IsAssignableFrom( i.Type ) ) )
+                else
                 {
-                    monitor.Warn( $"'{e.PocoName}.{f.Name}' is a collection of Cris Pocos: their [Sensitive] values are not handled (not redacted, not encrypted)." );
+                    info.Others.Add( f );
                 }
             }
             info.HasSensitiveData = info.Sensitive.Count > 0;
@@ -96,7 +103,46 @@ sealed class CrisSensitiveData
             }
         }
         while( changed );
-        return new CrisSensitiveData( infos );
+        // The sensitive values that cannot be reached are errors.
+        foreach( var (e, info) in infos )
+        {
+            foreach( var f in info.Others )
+            {
+                if( MayHoldUnhandledSensitive( infos, f.Type, new HashSet<IPocoType>() ) )
+                {
+                    monitor.Error( $"'{e.PocoName}.{f.Name}' may hold [Sensitive] values that are not handled (not redacted, not encrypted): " +
+                                   $"only the properties of a Cris Poco and of its nested Cris Pocos (a property typed as a Cris Poco) are handled." );
+                    success = false;
+                }
+            }
+        }
+        return success ? new CrisSensitiveData( infos ) : null;
+    }
+
+    static bool CrisTypeMayHold( Dictionary<CrisType, Info> infos, Type t )
+    {
+        return infos.Any( c => c.Value.HasSensitiveData
+                               && c.Key.CrisPocoType.FamilyInfo.Interfaces.Any( i => t.IsAssignableFrom( i.PocoInterface ) ) );
+    }
+
+    // A reachability: true if a reachable type declares a [Sensitive] member (each type is visited once).
+    static bool MayHoldUnhandledSensitive( Dictionary<CrisType, Info> infos, IPocoType t, HashSet<IPocoType> visited )
+    {
+        t = t.NonNullable;
+        if( typeof( ICrisPoco ).IsAssignableFrom( t.Type ) ) return CrisTypeMayHold( infos, t.Type );
+        if( !visited.Add( t ) ) return false;
+        return t switch
+        {
+            ICollectionPocoType c => c.ItemTypes.Any( i => MayHoldUnhandledSensitive( infos, i, visited ) ),
+            IPrimaryPocoType p => p.Fields.Any( f => f.Property.DeclaredProperties.Any( d => d.PropertyInfo.IsDefined( typeof( SensitiveAttribute ), true ) )
+                                                     || MayHoldUnhandledSensitive( infos, f.Type, visited ) ),
+            ISecondaryPocoType sec => MayHoldUnhandledSensitive( infos, sec.PrimaryPocoType, visited ),
+            IRecordPocoType r => r.Fields.Any( f => (f.Originator is System.Reflection.MemberInfo m && m.IsDefined( typeof( SensitiveAttribute ), true ))
+                                                    || MayHoldUnhandledSensitive( infos, f.Type, visited ) ),
+            // A union type: one of its types (object and the abstract IPoco are not analyzed).
+            IOneOfPocoType u when t.Kind == PocoTypeKind.UnionType => u.AllowedTypes.Any( a => MayHoldUnhandledSensitive( infos, a, visited ) ),
+            _ => false
+        };
     }
 
     /// <summary>

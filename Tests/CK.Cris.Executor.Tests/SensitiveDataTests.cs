@@ -140,6 +140,44 @@ public class SensitiveDataTests
         e.Secret.ShouldBe( "password" );
     }
 
+    public interface IApiCredential : IPoco
+    {
+        [Sensitive]
+        string Secret { get; set; }
+    }
+
+    public interface ICredentialCommand : ICommand
+    {
+        IApiCredential Credential { get; }
+    }
+
+    public interface ISecretListCommand : ICommand
+    {
+        IList<ISecretCommand> Secrets { get; }
+    }
+
+    public interface IPlainListCommand : ICommand
+    {
+        IList<IPlainCommand> Commands { get; }
+    }
+
+    [Test]
+    public async Task unhandled_Sensitive_values_are_errors_Async()
+    {
+        var c1 = TestHelper.CreateDefaultEngineConfiguration();
+        c1.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IApiCredential ), typeof( ICredentialCommand ) );
+        await c1.GetFailedAutomaticServicesAsync( "'CK.Cris.Executor.Tests.SensitiveDataTests.ICredentialCommand.Credential' may hold [Sensitive] values that are not handled" );
+
+        var c2 = TestHelper.CreateDefaultEngineConfiguration();
+        c2.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( ISecretCommand ), typeof( ISecretListCommand ) );
+        await c2.GetFailedAutomaticServicesAsync( "'CK.Cris.Executor.Tests.SensitiveDataTests.ISecretListCommand.Secrets' may hold [Sensitive] values that are not handled" );
+
+        // A collection of Cris Pocos without sensitive data is fine.
+        var c3 = TestHelper.CreateDefaultEngineConfiguration();
+        c3.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( IPlainCommand ), typeof( IPlainListCommand ) );
+        await using var auto = (await c3.RunSuccessfullyAsync()).CreateAutomaticServices();
+    }
+
     [Test]
     public async Task Sensitive_applies_to_strings_only_Async()
     {

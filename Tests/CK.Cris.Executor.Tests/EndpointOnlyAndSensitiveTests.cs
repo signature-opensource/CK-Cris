@@ -107,6 +107,25 @@ public class EndpointOnlyAndSensitiveTests
         public void Validate( UserMessageCollector c, ISafePart p ) { }
     }
 
+    // An unrelated validator: its parameter inherits the Thing property but doesn't declare it.
+    public sealed class UnrelatedValidator : IAutoService
+    {
+        [IncomingValidator]
+        public void Validate( UserMessageCollector c, ISafeCommand p ) { }
+    }
+
+    [Test]
+    public async Task a_validator_of_a_type_that_only_inherits_the_safe_ambient_value_does_not_check_it_Async()
+    {
+        var configuration = CreateSafeConfiguration( withValidator: false );
+        configuration.FirstBinPath.Types.Add( typeof( UnrelatedValidator ) );
+        using( TestHelper.Monitor.CollectTexts( out var texts ) )
+        {
+            await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+            texts.ShouldContain( t => t.Contains( "Safe ambient value 'Thing'" ) && t.Contains( "is checked by no [IncomingValidator]" ) );
+        }
+    }
+
     static CK.Setup.EngineConfiguration CreateSafeConfiguration( bool withValidator )
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
