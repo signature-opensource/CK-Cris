@@ -36,6 +36,7 @@ var poco = services.GetRequiredService<PocoDirectory>();
 var inner = poco.Create<IMyCommand>( c => c.WantedPower = 3712 );
 var delayed = poco.Create<IDelayedCommand>( c =>
 {
+    c.ActorId = actorId; // An IDelayedCommand requires a Normal authentication.
     c.Command = inner;
     c.ExecutionDate = DateTime.UtcNow.AddMinutes( 30 );
 } );
@@ -60,6 +61,8 @@ future unless `AllowPastExecutionDate` is set. It also checks:
   it carries. So the inner command must not be more restricted than the delayed command: the `IDelayedCommand` is public,
   hence an `[Internal]` or `[Private]` command is refused, whoever the sender is. Delaying such a command is for the
   process itself: an in-process execution runs no incoming validator.
+- **The caller.** `IDelayedCommand` is an `ICommandAuthNormal`: with `CK.Cris.Authentication` in the System, an anonymous
+  caller (or one below the `Normal` level) is refused before anything is stored, so it cannot fill the store.
 - **The bounds.** The `ExecutionDate` is at most `MaxIncomingDelay` (30 days) in the future, and the store holds at most
   `MaxMemoryStoreCount` (10,000) commands. Both are protected virtual properties. A full store also makes `MemoryStore`
   throw, whoever stores the command.
