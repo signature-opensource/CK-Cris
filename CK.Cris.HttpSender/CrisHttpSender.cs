@@ -7,7 +7,6 @@ using System;
 using System.Buffers;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -150,12 +149,13 @@ public sealed partial class CrisHttpSender : ICrisHttpSender
         where T : class, IAbstractCommand
     {
         byte[]? payloadResponse = null;
-        string? payloadString = null;
         try
         {
             using var payload = Util.RecyclableStreamManager.GetStream();
             _pocoDirectory.WriteJson( (IBufferWriter<byte>)payload, command, withType: true, PocoJsonExportOptions.Default );
-            monitor.Info( CrisDirectory.CrisTag, $"Sending {(payloadString = Encoding.UTF8.GetString( payload.GetReadOnlySequence() ))} to '{_remote.FullName}'.", lineNumber, fileName );
+            // The command is logged redacted: its [Sensitive] values (a login password) are never logged.
+            // The interpolated string is evaluated only when the line is emitted.
+            monitor.Info( CrisDirectory.CrisTag, $"Sending {command.ToLogString()} to '{_remote.FullName}'.", lineNumber, fileName );
             using var request = new HttpRequestMessage( HttpMethod.Post, command is ICommandAuthenticationSession ? _authEndpointUrl : _endpointUrl );
 
             payload.Position = 0;
@@ -194,11 +194,11 @@ public sealed partial class CrisHttpSender : ICrisHttpSender
         catch( Exception ex )
         {
             if( throwError ) throw;
-            payloadString ??= command.ToString();
+            // The response body is never logged: it may contain a session token.
             var errorPayloadResponse = payloadResponse != null
-                            ? $"{Environment.NewLine}Response:{Environment.NewLine}{Encoding.UTF8.GetString( payloadResponse )}"
+                            ? $" (response of {payloadResponse.Length} bytes not logged)"
                             : null;
-            monitor.Error( CrisDirectory.CrisTag, $"While sending: {payloadString}{errorPayloadResponse}", ex );
+            monitor.Error( CrisDirectory.CrisTag, $"While sending: {command.ToLogString()}{errorPayloadResponse}", ex );
             var internalError = _pocoDirectory.Create<ICrisResultError>( e => e.Errors.Add( InternalErrorMessage ) );
             return new ExecutedCommand<T>( command, internalError, deferredExecutionInfo: null, events: null );
         }

@@ -112,7 +112,7 @@ public sealed class CrisHttpSenderFeatureDriver : ApplicationIdentityFeatureDriv
                 return false;
             }
             HttpRetryStrategyOptions? retryStrategy = null;
-            if( config.ShouldApplyConfiguration( "Retry", optOut: true, out var retryConfig ) )
+            if( config.ShouldApplyConfiguration( "Retry", optOut: false, out var retryConfig ) )
             {
                 retryStrategy = CrisHttpSender.CreateRetryStrategy( monitor, retryConfig );
             }

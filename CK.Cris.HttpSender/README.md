@@ -36,9 +36,10 @@ applications: the query asks for the full user messages, the only ones the Json 
 already carries a path would silently
 produce a different endpoint, so it is refused instead.
 
-Retry is opt-**out** (`optOut: true`), timeout is not: omit `"Retry"` and you get the default retry
-strategy, omit `"Timeout"` and you get 100 seconds. Setting `"Retry": false` is how you turn retrying
-off.
+Retry is opt-**in**: omit `"Retry"` (or set it to `false`) and a failed request is not retried; `"Retry": true` gives the
+default retry strategy. A command is a POST that carries no idempotency key: a retried request whose first attempt
+reached the server (a connection reset before the response, a 5xx after the handler ran) executes the command twice. Turn
+it on only for a remote whose commands are idempotent. Omit `"Timeout"` and you get 100 seconds.
 
 Getting the sender is then a feature lookup on the remote party, and sending is one call:
 
@@ -65,6 +66,10 @@ all arrive as an `ICrisResultError` in `IExecutedCommand.Result`, and the caller
 `SendOrThrowAsync` does the same call and converts that error into an exception via
 `ICrisResultError.CreateException`. `SendAndGetResultOrThrowAsync` goes one step further and unwraps
 the result value.
+
+The sender logs the command it sends (an Info line) and, on error, the command again: the command is logged redacted
+(`ToLogString()`: its `[Sensitive]` values, like a login password, are `"[Redacted]"`), and the response body is never
+logged (it may hold a session token), only its length.
 
 The `[CallerLineNumber]` and `[CallerFilePath]` parameters on all three reach the log line the sender
 writes before sending. On the two throwing overloads they go further: they are passed to
