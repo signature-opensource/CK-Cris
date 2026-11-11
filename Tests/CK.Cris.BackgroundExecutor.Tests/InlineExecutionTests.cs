@@ -147,6 +147,35 @@ public class InlineExecutionTests
     }
 
     [Test]
+    public async Task the_default_coherency_check_does_not_change_the_ambient_services_Async()
+    {
+        NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( ICultureCommand ),
+                                              typeof( Handlers ),
+                                              typeof( IOuterCommand ),
+                                              typeof( IInlineCommand ),
+                                              typeof( INestedCommand ),
+                                              typeof( IInlineDoneEvent ),
+                                              typeof( IInlineLocalEvent ),
+                                              typeof( CrisCultureService ),
+                                              typeof( CrisBackgroundExecutorService ),
+                                              typeof( RawCrisReceiver ) );
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        var pocos = auto.Services.GetRequiredService<PocoDirectory>();
+        var background = auto.Services.GetRequiredService<CrisBackgroundExecutorService>();
+        using var scope = auto.Services.CreateScope();
+        var hub = scope.ServiceProvider.GetRequiredService<AmbientServiceHub>().CleanClone();
+        hub.Override<ExtendedCultureInfo>( NormalizedCultureInfo.EnsureNormalizedCultureInfo( "en" ) );
+
+        // The default incomingValidationCheck is the "#Dev" coherency check (the tests run in "#Dev"): the command
+        // executes with the submitted hub, as it does in production where the check is skipped.
+        CoreApplicationIdentity.IsDevelopmentOrUninitialized.ShouldBeTrue();
+        var executing = background.Submit( TestHelper.Monitor, pocos.Create<ICultureCommand>( c => c.CurrentCultureName = "fr" ), hub );
+        (await executing.ExecutedCommand.WaitAsync( TimeSpan.FromSeconds( 5 ) )).Result.ShouldBe( "en" );
+    }
+
+    [Test]
     public async Task an_endpoint_executes_a_root_command_inline_with_other_ambient_services_Async()
     {
         NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );

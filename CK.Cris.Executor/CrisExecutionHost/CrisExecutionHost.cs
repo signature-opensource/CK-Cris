@@ -142,6 +142,9 @@ public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAu
 
         ImmutableArray<UserMessage> validationMessages = ImmutableArray<UserMessage>.Empty;
         ExecutedCommand executed;
+        // Set before the final result is delivered: a failure while (or after) delivering it must not deliver
+        // a second, contradictory, one.
+        bool finalResultSet = false;
         try
         {
             (error, scoped) = await job._executor.PrepareJobAsync( monitor, job );
@@ -150,6 +153,7 @@ public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAu
                 // Here we should ensure that the AsyncServiceScope has a null ServiceProvider.
                 //  Throw.CheckState( "AsyncServiceScope has not been obtained.", scoped is default );
                 executed = job.CreateExecutedCommand( error, validationMessages, ImmutableArray<IEvent>.Empty );
+                finalResultSet = true;
                 await job.SetFinalResultAsync( monitor, executed, null );
                 return;
             }
@@ -167,6 +171,7 @@ public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAu
             if( error != null )
             {
                 executed = job.CreateExecutedCommand( error, validationMessages, ImmutableArray<IEvent>.Empty );
+                finalResultSet = true;
                 await job.SetFinalResultAsync( monitor, executed, scoped.ServiceProvider );
                 return;
             }
@@ -198,11 +203,18 @@ public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAu
                         error.LogKey = validation.LogKey;
                         error.IsValidationError = true;
                         executed = job.CreateExecutedCommand( error, validation.ValidationMessages, ImmutableArray<IEvent>.Empty );
+                        finalResultSet = true;
                         await job.SetFinalResultAsync( monitor, executed, scoped.ServiceProvider );
                         return;
                     }
                     validationMessages = validation.ValidationMessages;
                     configuredHub = validation.AmbientServiceHub;
+                    if( configuredHub != null && job._isCoherencyCheck )
+                    {
+                        // The coherency check is done in "#Dev" only: it must not change the execution.
+                        monitor.Info( $"The [ConfigureAmbientServices] of '{job.Command.CrisPocoModel.PocoName}' configured ambient services during the coherency check of its background execution: they are ignored (as in production). Set incomingValidationCheck to true to apply them." );
+                        configuredHub = null;
+                    }
                 }
                 // Executing the command (handling validators, handler and post handlers).
                 executed = await ExecuteRootAsync( monitor, job, context, validationMessages, configuredHub );
@@ -211,18 +223,26 @@ public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAu
             {
                 if( receptionHub != null ) await reception.DisposeAsync();
             }
+            finalResultSet = true;
             await job.SetFinalResultAsync( monitor, executed, scoped.ServiceProvider );
         }
         catch( Exception ex )
         {
-            // Ensures that the crisResult exists and sets its Result to a ICrisErrorResult.
-            IServiceProvider? serviceProvider = isScopedCreated ? scoped.ServiceProvider : null;
-            error = _errorResultFactory.Create();
-            PocoFactoryExtensions.OnUnhandledError( monitor, ex, job.Command, true, serviceProvider?.GetService<CurrentCultureInfo>(), error.Errors.Add );
-            error.LogKey = gLog.GetLogKeyString();
+            if( finalResultSet )
+            {
+                monitor.Error( CrisDirectory.CrisTag, $"While setting the final result of '{job.Command.CrisPocoModel.PocoName}'.", ex );
+            }
+            else
+            {
+                // Ensures that the crisResult exists and sets its Result to a ICrisErrorResult.
+                IServiceProvider? serviceProvider = isScopedCreated ? scoped.ServiceProvider : null;
+                error = _errorResultFactory.Create();
+                PocoFactoryExtensions.OnUnhandledError( monitor, ex, job.Command, true, serviceProvider?.GetService<CurrentCultureInfo>(), error.Errors.Add );
+                error.LogKey = gLog.GetLogKeyString();
 
-            executed = job.CreateExecutedCommand( error, validationMessages, ImmutableArray<IEvent>.Empty );
-            await job.SetFinalResultAsync( monitor, executed, serviceProvider );
+                executed = job.CreateExecutedCommand( error, validationMessages, ImmutableArray<IEvent>.Empty );
+                await job.SetFinalResultAsync( monitor, executed, serviceProvider );
+            }
         }
         finally
         {

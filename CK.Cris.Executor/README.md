@@ -137,7 +137,10 @@ command that already crossed it, and it defaults to
 is that the `[RestoreAmbientServices]` methods rebuilt a container the command would have accepted.
 Mind the direction: the check runs **in development and not in production**, so a faulty
 reconstruction fails your dev run and goes through in production. That is the intent - catch it at
-your desk - but it also means production never re-checks.
+your desk - but it also means production never re-checks. This default check only validates: the ambient services
+configured by the command's `[ConfigureAmbientServices]` methods are ignored (an Info is logged), so the command executes
+with the same ambient services in development and in production. An explicit `incomingValidationCheck: true` validates
+the command as a received one, and its configured ambient services are used.
 
 A job may also have no `IExecutingCommand` at all: *"An Executing command is on the caller side, it is
 one of the possible interface to the execution, not the execution itself."*

@@ -22,6 +22,9 @@ public sealed partial class CrisJob : IDeferredCommandExecutionContext
     readonly Func<IActivityMonitor, IExecutedCommand, IServiceProvider?, Task>? _onExecutedCommand;
     internal readonly ContainerCommandExecutor _executor;
     internal readonly bool _incomingValidationCheck;
+    // True when _incomingValidationCheck is the environment default (the coherency check): it doesn't configure
+    // the ambient services, so that "#Dev" and production execute the same way.
+    internal readonly bool _isCoherencyCheck;
     internal readonly ExecutingCommand? _executingCommand;
 
     internal IActivityMonitor? _runnerMonitor;
@@ -60,6 +63,7 @@ public sealed partial class CrisJob : IDeferredCommandExecutionContext
         _command = command;
         _issuerToken = issuerToken;
         _incomingValidationCheck = incomingValidationCheck ?? CoreApplicationIdentity.IsDevelopmentOrUninitialized;
+        _isCoherencyCheck = !incomingValidationCheck.HasValue;
         _executingCommand = executingCommand;
         _deferredExecutionContext = deferredExecutionInfo ?? executingCommand ?? (IDeferredCommandExecutionContext)this;
         _onExecutedCommand = onExecutedCommand;
@@ -112,6 +116,11 @@ public sealed partial class CrisJob : IDeferredCommandExecutionContext
     /// The trick here is that the default, in practice, is <c>true</c>: a command should always be executed
     /// in a context that is compliant with the DI container configuration and this is what the [RestoreAmbientService]
     /// methods must do. This coherency check is done in "#Dev" environment but not in production.
+    /// </para>
+    /// <para>
+    /// When explicitly set to true, the command is validated as a received command: the ambient services configured by its
+    /// [ConfigureAmbientServices] methods are used to execute it. The default coherency check only validates: the configured
+    /// ambient services are ignored (an Info is logged), so that the command executes the same way in "#Dev" and in production.
     /// </para>
     /// </summary>
     public bool IncomingValidationCheck => _incomingValidationCheck;
