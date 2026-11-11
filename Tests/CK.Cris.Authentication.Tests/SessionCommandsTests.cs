@@ -356,4 +356,37 @@ public class SessionCommandsTests
         weak.UserData["Token"] += "x";
         (await IsValidAsync( weak )).ShouldBeFalse();
     }
+
+    [Test]
+    public async Task the_basic_login_credentials_are_limited_Async()
+    {
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( CK.IO.Authentication.Basic.IncomingValidators ),
+                                              typeof( RawCrisReceiver ),
+                                              typeof( CrisDirectory ),
+                                              typeof( ICrisResultError ),
+                                              typeof( IBasicLoginCommand ) );
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices( configureServices: services =>
+        {
+            services.AddScoped<IActivityMonitor>( s => TestHelper.Monitor );
+        } );
+        using var scope = auto.Services.CreateScope();
+        var services = scope.ServiceProvider;
+        var poco = services.GetRequiredService<PocoDirectory>();
+        var receiver = services.GetRequiredService<RawCrisReceiver>();
+
+        async Task<bool> IsValidAsync( IBasicLoginCommand c ) => (await receiver.IncomingValidateAsync( TestHelper.Monitor, services, c )).Success;
+
+        var login = poco.Create<IBasicLoginCommand>( c =>
+        {
+            c.UserName = new string( 'u', CK.IO.Authentication.Basic.IncomingValidators.MaxUserNameLength );
+            c.Password = new string( 'p', CK.IO.Authentication.Basic.IncomingValidators.MaxPasswordLength );
+        } );
+        (await IsValidAsync( login )).ShouldBeTrue( "The maximal lengths." );
+        login.UserName += "u";
+        (await IsValidAsync( login )).ShouldBeFalse();
+        login.UserName = "Albert";
+        login.Password += "p";
+        (await IsValidAsync( login )).ShouldBeFalse();
+    }
 }
