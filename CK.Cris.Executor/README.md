@@ -60,7 +60,9 @@ it wraps the call, logs under an error group, and falls back to `ActivityMonitor
 the service provider has no monitor.
 
 A command with no handler is not a crash either. The generated code carries a default implementation
-that produces an error result with the message code `Cris.MissingCommandHandler`, naming the command.
+that sends it to an `ICrisRemoteDispatcher` when one is available (unless it is endpoint-only or `[Private]`), and
+otherwise produces an error result with the message code `Cris.MissingCommandHandler`, naming the command. A dispatcher
+that throws ends as an error result too.
 
 ## Running a command is three resolutions and a call.
 

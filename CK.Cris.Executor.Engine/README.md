@@ -53,15 +53,30 @@ is the CLR's.
 Both interfaces carry a **default implementation** for the empty case, and that is why a missing piece
 degrades rather than crashes:
 
-- no command handler - the default `ExecCommandAsync` builds an `ICrisResultError` with the message
-  code `Cris.MissingCommandHandler`, naming the command, translated when a `CurrentCultureInfo` is
-  resolvable and in the default culture otherwise;
+- no command handler - when an `ICrisRemoteDispatcher` is available, the default `ExecCommandAsync` sends the command
+  away: a party command (`ICommandTargetParty`) is routed by `RoutePartyCommand`, any other command that is neither an
+  `ICommandEndpointOnly` nor `[Private]` is dispatched by `DispatchAsync` to the remote party that handles it. Otherwise
+  (no dispatcher, an endpoint-only or `[Private]` command, a party command the dispatcher doesn't route), it builds an
+  `ICrisResultError` with the message code `Cris.MissingCommandHandler`, naming the command, translated when a
+  `CurrentCultureInfo` is resolvable and in the default culture otherwise. The dispatcher must never throw
+  (see [`ICrisRemoteDispatcher`](../CK.Cris.Executor/ICrisRemoteDispatcher.cs)): if it does, the exception becomes an
+  `ICrisResultError` all the same;
 - no incoming validator and no ambient service configurator - the default `IncomingValidateAsync`
   returns `ValueTask.CompletedTask`, and no method is generated for that command at all.
 
 The comment on the first one explains why the interface extends `ICrisPoco` rather than standing
 alone: *"We need the CrisPocoModel.PocoName: this is why this specializes ICrisPoco."* The error
 message has to name the command, and only the command knows its own name.
+
+A handled party command (`ICommandTargetParty`, not endpoint-only) is routed too, before anything local: the generated
+`ExecCommandAsync` first asks the dispatcher's `RoutePartyCommand` and returns its result when the command targets another
+party, **before** the handling validators (the command is validated where it executes). This routing is inside the
+generated `try` block (such a method is always async), so a dispatcher failure ends as an `ICrisResultError`.
+
+The generated `IncomingValidateAsync` calls the `[IncomingValidator]` methods, then the `[ConfigureAmbientServices]`
+methods only when no error has been collected. A validator that validates a nested command
+(`ICrisIncomingValidationContext.ValidateAsync`) runs the nested command's validators with the same messages, but its
+configurators work on a separate hub that is discarded: they never change the ambient services of the validated command.
 
 ## Async is decided per command, not per generator.
 

@@ -359,4 +359,79 @@ public class RawCrisReceiverTests
         await configuration.GetFailedAutomaticServicesAsync(
             "[IncomingValidator] method 'InvalidValidator.IncomingValidateCommand( IActivityMonitor monitor, ITestCommand cmd )' must take a 'UserMessageCollector' and/or a 'ICrisIncomingValidationContext' parameter to collect validation errors, warnings and informations." );
     }
+
+    public interface IConfiguredCommand : ICommand
+    {
+        string Name { get; set; }
+    }
+
+    public interface IOuterCommand : ICommand
+    {
+        IConfiguredCommand? Inner { get; set; }
+    }
+
+    public sealed class ConfiguredService : IAutoService
+    {
+        public static int ConfigureCount;
+
+        [CommandHandler]
+        public void Handle( IConfiguredCommand cmd ) { }
+
+        [CommandHandler]
+        public void Handle( IOuterCommand cmd ) { }
+
+        [IncomingValidator]
+        public void Validate( UserMessageCollector c, IConfiguredCommand cmd )
+        {
+            if( cmd.Name == "bad" ) c.Error( "Bad name." );
+        }
+
+        [ConfigureAmbientServices]
+        public void Configure( IConfiguredCommand cmd, AmbientServiceHub hub )
+        {
+            ++ConfigureCount;
+            hub.Override<ExtendedCultureInfo>( NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" ) );
+        }
+
+        [IncomingValidator]
+        public ValueTask ValidateAsync( ICrisIncomingValidationContext c, IOuterCommand cmd )
+        {
+            return cmd.Inner != null ? c.ValidateAsync( cmd.Inner ) : ValueTask.CompletedTask;
+        }
+    }
+
+    [Test]
+    public async Task configurators_run_only_on_a_valid_command_and_never_for_a_nested_one_Async()
+    {
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( RawCrisReceiver ), typeof( CrisDirectory ),
+                                              typeof( IConfiguredCommand ), typeof( IOuterCommand ),
+                                              typeof( ConfiguredService ) );
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        using var scope = auto.Services.CreateScope();
+        var services = scope.ServiceProvider;
+        var receiver = services.GetRequiredService<RawCrisReceiver>();
+        var poco = services.GetRequiredService<PocoDirectory>();
+        ConfiguredService.ConfigureCount = 0;
+
+        // An invalid command is not configured.
+        var bad = await receiver.IncomingValidateAsync( TestHelper.Monitor, services, poco.Create<IConfiguredCommand>( c => c.Name = "bad" ) );
+        bad.Success.ShouldBeFalse();
+        ConfiguredService.ConfigureCount.ShouldBe( 0 );
+
+        var ok = await receiver.IncomingValidateAsync( TestHelper.Monitor, services, poco.Create<IConfiguredCommand>( c => c.Name = "ok" ) );
+        ok.Success.ShouldBeTrue();
+        ok.AmbientServiceHub.ShouldNotBeNull();
+        ConfiguredService.ConfigureCount.ShouldBe( 1 );
+
+        // The nested command is validated, but its configurators don't change the hub of the outer command.
+        var outer = await receiver.IncomingValidateAsync( TestHelper.Monitor, services,
+                                                          poco.Create<IOuterCommand>( c => c.Inner = poco.Create<IConfiguredCommand>( i => i.Name = "ok" ) ) );
+        outer.Success.ShouldBeTrue();
+        outer.AmbientServiceHub.ShouldBeNull();
+
+        var outerBad = await receiver.IncomingValidateAsync( TestHelper.Monitor, services,
+                                                             poco.Create<IOuterCommand>( c => c.Inner = poco.Create<IConfiguredCommand>( i => i.Name = "bad" ) ) );
+        outerBad.Success.ShouldBeFalse();
+    }
 }

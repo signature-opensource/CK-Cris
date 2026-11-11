@@ -41,6 +41,8 @@ public abstract class RawCrisReceiver : ISingletonAutoService
         readonly IActivityMonitor _monitor;
         readonly IServiceProvider _services;
         AmbientServiceHub? _hub;
+        AmbientServiceHub? _nestedHub;
+        int _nestedDepth;
 
         internal ValidationContext( IActivityMonitor monitor, IServiceProvider services, UserMessageCollector messages )
         {
@@ -52,12 +54,28 @@ public abstract class RawCrisReceiver : ISingletonAutoService
         /// <inheritdoc />
         public UserMessageCollector Messages => _messages;
 
-        /// <inheritdoc />
-        public ValueTask ValidateAsync( ICrisPoco crisPoco )
+        /// <summary>
+        /// Validates a nested command or event (a composite validation): its [IncomingValidator] are called with this context
+        /// (they share the <see cref="Messages"/>), but its [ConfigureAmbientServices] methods configure a separate hub that
+        /// is discarded (see <see cref="EnsureHub"/>): they never change the ambient services of the validated command.
+        /// </summary>
+        /// <param name="crisPoco">The command or event to validate.</param>
+        /// <returns>The awaitable.</returns>
+        public async ValueTask ValidateAsync( ICrisPoco crisPoco )
         {
             Throw.CheckNotNullArgument( crisPoco );
-            return ((ICrisReceiverImpl)crisPoco).IncomingValidateAsync( this );
+            ++_nestedDepth;
+            try
+            {
+                await ((ICrisReceiverImpl)crisPoco).IncomingValidateAsync( this ).ConfigureAwait( false );
+            }
+            finally
+            {
+                --_nestedDepth;
+            }
         }
+
+        internal ValueTask ValidateRootAsync( ICrisPoco crisPoco ) => ((ICrisReceiverImpl)crisPoco).IncomingValidateAsync( this );
 
         /// <summary>
         /// Gets the monitor.
@@ -70,17 +88,20 @@ public abstract class RawCrisReceiver : ISingletonAutoService
         public IServiceProvider Services => _services;
 
         /// <summary>
-        /// Ensured that a hub exists.
+        /// Ensures that a hub exists. During a nested validation (<see cref="ValidateAsync(ICrisPoco)"/>), this is a separate
+        /// hub that is discarded.
         /// </summary>
         /// <returns>The hub.</returns>
-        public AmbientServiceHub EnsureHub() => _hub ??= _services.GetRequiredService<AmbientServiceHub>().CleanClone();
+        public AmbientServiceHub EnsureHub() => _nestedDepth > 0
+                                                ? _nestedHub ??= _services.GetRequiredService<AmbientServiceHub>().CleanClone()
+                                                : _hub ??= _services.GetRequiredService<AmbientServiceHub>().CleanClone();
 
         internal AmbientServiceHub? GetFinalHub() => _hub == null || !_hub.IsDirty ? null : _hub;
     }
 
     /// <summary>
     /// Validates a command or an event by calling all the discovered [IncomingValidator] validators and
-    /// on success, if any [ConfigureAmbientService] exist for the command or event, executes them to return
+    /// on success (no error message), if any [ConfigureAmbientService] exist for the command or event, executes them to return
     /// a non null <see cref="CrisValidationResult.AmbientServiceHub"/> that must be used to execute
     /// the command or dispatch the event.
     /// <para>
@@ -110,7 +131,7 @@ public abstract class RawCrisReceiver : ISingletonAutoService
             currentCulture = HandleCulture( monitor, services, crisPoco, currentCulture );
             var messages = new UserMessageCollector( currentCulture );
             var context = new ValidationContext( monitor, services, messages );
-            await context.ValidateAsync( crisPoco );
+            await context.ValidateRootAsync( crisPoco );
             if( messages.ErrorCount > 0 )
             {
                 string logKey = LogValidationError( monitor, crisPoco, messages, "incoming", logGroup );

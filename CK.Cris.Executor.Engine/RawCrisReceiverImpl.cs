@@ -43,6 +43,12 @@ public class RawCrisReceiverImpl : CSCodeGeneratorType
                 }
                 if( e.AmbientServicesConfigurators.Count > 0 )
                 {
+                    if( e.IncomingValidators.Count > 0 )
+                    {
+                        // The configurators run only on a valid command or event.
+                        f.Append( "if( c.Messages.ErrorCount > 0 ) " )
+                         .Append( needAsyncStateMachine ? "return;" : "return ValueTask.CompletedTask;" ).NewLine();
+                    }
                     cachedServices.StartNewCachedVariablesPart();
                     f.Append( "var hub = c.EnsureHub();" ).NewLine();
                     GenerateMultiTargetCalls( f, e.AmbientServicesConfigurators, cachedServices, "hub" );

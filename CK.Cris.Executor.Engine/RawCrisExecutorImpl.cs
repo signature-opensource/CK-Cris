@@ -39,13 +39,22 @@ public partial class RawCrisExecutorImpl : CSCodeGeneratorType
                         if( this is not ICommandEndpointOnly
                             && s.GetService( typeof( ICrisRemoteDispatcher ) ) is ICrisRemoteDispatcher d )
                         {
-                            if( this is ICommandTargetParty )
+                            // The dispatcher must not throw. If it does, this fails closed: the exception becomes
+                            // an ICrisResultError (RawExecuteAsync never throws).
+                            try
                             {
-                                if( d.RoutePartyCommand( s, (IAbstractCommand)this ) is { } routed ) return routed;
+                                if( this is ICommandTargetParty )
+                                {
+                                    if( d.RoutePartyCommand( s, (IAbstractCommand)this ) is { } routed ) return SafeDispatchAsync( routed, s, this );
+                                }
+                                else if( !isPrivate )
+                                {
+                                    return SafeDispatchAsync( d.DispatchAsync( s, (IAbstractCommand)this ), s, this );
+                                }
                             }
-                            else if( !isPrivate )
+                            catch( Exception ex )
                             {
-                                return d.DispatchAsync( s, (IAbstractCommand)this );
+                                return Task.FromResult( DispatchError( s, this, ex ) );
                             }
                         }
                         var e = new CK.Cris.ICrisResultError_CK();
@@ -59,6 +68,34 @@ public partial class RawCrisExecutorImpl : CSCodeGeneratorType
                         e.Errors.Add( msg );
                         ((IActivityLineEmitter?)s.GetService( typeof( IActivityMonitor ) ) ?? ActivityMonitor.StaticLogger)?.Error( msg.Message.CodeString.Text );
                         return Task.FromResult( new RawCrisExecutor.RawResult( e, null ) );
+                    }
+
+                    static async Task<RawCrisExecutor.RawResult> SafeDispatchAsync( Task<RawCrisExecutor.RawResult> dispatched, IServiceProvider s, ICrisPoco c )
+                    {
+                        try
+                        {
+                            return await dispatched.ConfigureAwait( false );
+                        }
+                        catch( Exception ex )
+                        {
+                            return DispatchError( s, c, ex );
+                        }
+                    }
+
+                    static RawCrisExecutor.RawResult DispatchError( IServiceProvider s, ICrisPoco c, Exception ex )
+                    {
+                        var e = new CK.Cris.ICrisResultError_CK();
+                        var monitor = (IActivityMonitor?)s.GetService( typeof( IActivityMonitor ) );
+                        if( monitor != null )
+                        {
+                            e.LogKey = PocoFactoryExtensions.OnUnhandledError( monitor, ex, c, true, (CurrentCultureInfo?)s.GetService( typeof( CurrentCultureInfo ) ), e.Errors.Add );
+                        }
+                        else
+                        {
+                            ActivityMonitor.StaticLogger.Error( $"While dispatching '{c.CrisPocoModel.PocoName}'. (No IActivityMonitor available.)", ex );
+                            e.Errors.Add( UserMessage.Error( NormalizedCultureInfo.CodeDefault, $"An unhandled error occurred while executing command '{c.CrisPocoModel.PocoName}'.", "Cris.UnhandledExecutionError" ) );
+                        }
+                        return new RawCrisExecutor.RawResult( e, null );
                     }
 
                     // Default Implementation Method: No event handlers => nothing to do.
@@ -205,28 +242,28 @@ public partial class RawCrisExecutorImpl : CSCodeGeneratorType
 
         // A party command is routed before any local execution (and before its handling validation: it is validated
         // where it executes). The call is emitted only for the party commands that are not endpoint-only.
-        if( typeof( ICommandTargetParty ).IsAssignableFrom( e.CrisPocoType.Type )
-            && !typeof( ICommandEndpointOnly ).IsAssignableFrom( e.CrisPocoType.Type ) )
-        {
-            // Same as the isOverallAsync computed below (the async modifier is set later).
-            bool willBeAsync = isHandlerAsync
-                               || isPostHandlerAsync
-                               || (e.HandlingValidators.Count > 0 && e.HandlingValidators.AsyncHandlerCount > 0);
-            f.GeneratedByComment( "Party command: routed by the ICrisRemoteDispatcher before any local execution." )
-             .Append( "if( s.GetService( typeof( CK.Cris.ICrisRemoteDispatcher ) ) is CK.Cris.ICrisRemoteDispatcher partyRouter" ).NewLine()
-             .Append( "    && partyRouter.RoutePartyCommand( s, this ) is { } routed )" )
-             .OpenBlock()
-             .Append( willBeAsync ? "return await routed;" : "return routed;" ).NewLine()
-             .CloseBlock();
-        }
+        bool isRoutedPartyCommand = typeof( ICommandTargetParty ).IsAssignableFrom( e.CrisPocoType.Type )
+                                    && !typeof( ICommandEndpointOnly ).IsAssignableFrom( e.CrisPocoType.Type );
 
         f.Append( "UserMessageCollector? v = null;" ).NewLine();
 
         // Only if async is required we add the async modifier.
-        bool isOverallAsync = isHandlerAsync || isPostHandlerAsync;
+        // A party command is always async: its routing is awaited in the try block, so that a dispatcher that
+        // throws (synchronously or through the returned task) fails closed with an ICrisResultError.
+        bool isOverallAsync = isHandlerAsync || isPostHandlerAsync || isRoutedPartyCommand;
 
         f.Append( "try" )
          .OpenBlock();
+
+        if( isRoutedPartyCommand )
+        {
+            f.GeneratedByComment( "Party command: routed by the ICrisRemoteDispatcher before any local execution." )
+             .Append( "if( s.GetService( typeof( CK.Cris.ICrisRemoteDispatcher ) ) is CK.Cris.ICrisRemoteDispatcher partyRouter" ).NewLine()
+             .Append( "    && partyRouter.RoutePartyCommand( s, this ) is { } routed )" )
+             .OpenBlock()
+             .Append( "return await routed;" ).NewLine()
+             .CloseBlock();
+        }
 
         var cachedServices = new VariableCachedServices( engineMap, f, false );
 

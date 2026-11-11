@@ -121,4 +121,56 @@ public class PartyCommandRoutingTests
         (await receiver.IncomingValidateAsync( TestHelper.Monitor, services, poco.Create<IHandledPartyCommand>( c => c.TargetPartyFullName = "D/$P" ) ))
             .Success.ShouldBeTrue();
     }
+
+    public interface IUnhandledCommand : ICommand<int>
+    {
+    }
+
+    // A dispatcher that breaks its contract: it throws (synchronously or through the returned task).
+    public sealed class ThrowingRouter : ICrisRemoteDispatcher
+    {
+        public static bool Synchronous;
+
+        Task<RawCrisExecutor.RawResult> Fail()
+        {
+            var ex = new InvalidOperationException( "Dispatcher failure." );
+            if( Synchronous ) throw ex;
+            return Task.FromException<RawCrisExecutor.RawResult>( ex );
+        }
+
+        public Task<RawCrisExecutor.RawResult> DispatchAsync( IServiceProvider services, IAbstractCommand command ) => Fail();
+
+        public Task<RawCrisExecutor.RawResult>? RoutePartyCommand( IServiceProvider services, IAbstractCommand command ) => Fail();
+    }
+
+    [TestCase( true )]
+    [TestCase( false )]
+    public async Task a_throwing_dispatcher_ends_as_an_error_result_Async( bool synchronous )
+    {
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( RawCrisExecutor ),
+                                              typeof( IHandledPartyCommand ),
+                                              typeof( IAsyncHandledPartyCommand ),
+                                              typeof( IUnhandledPartyCommand ),
+                                              typeof( IUnhandledCommand ),
+                                              typeof( Handler ),
+                                              typeof( ThrowingRouter ) );
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        using var scope = auto.Services.CreateScope();
+        var services = scope.ServiceProvider;
+        var executor = services.GetRequiredService<RawCrisExecutor>();
+        var poco = services.GetRequiredService<PocoDirectory>();
+        ThrowingRouter.Synchronous = synchronous;
+        Handler.Count = 0;
+
+        (await executor.RawExecuteAsync( services, poco.Create<IHandledPartyCommand>( c => c.TargetPartyFullName = "Remote" ) )).Result
+            .ShouldBeAssignableTo<ICrisResultError>();
+        (await executor.RawExecuteAsync( services, poco.Create<IAsyncHandledPartyCommand>( c => c.TargetPartyFullName = "Remote" ) )).Result
+            .ShouldBeAssignableTo<ICrisResultError>();
+        (await executor.RawExecuteAsync( services, poco.Create<IUnhandledPartyCommand>( c => c.TargetPartyFullName = "Remote" ) )).Result
+            .ShouldBeAssignableTo<ICrisResultError>();
+        (await executor.RawExecuteAsync( services, poco.Create<IUnhandledCommand>() )).Result
+            .ShouldBeAssignableTo<ICrisResultError>();
+        Handler.Count.ShouldBe( 0 );
+    }
 }

@@ -20,7 +20,8 @@ public abstract class RawCrisExecutor : ISingletonAutoService
 {
     /// <summary>
     /// Restores the ambient services hub by calling the [RestoreAmbientService] methods for the command, event or its parts.
-    /// This does nothing if <see cref="ICrisPocoModel.BackgroundMustRestoreServices"/> is false (null error and null hub are returned).
+    /// When <see cref="ICrisPocoModel.BackgroundMustRestoreServices"/> is false (no [RestoreAmbientServices] method), a new default
+    /// hub is returned (and a null error): the hub is never null on success.
     /// <para>
     /// This must be called before executing the command or handling the event in a background context.
     /// </para>
