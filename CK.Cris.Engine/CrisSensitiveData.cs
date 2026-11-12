@@ -12,15 +12,16 @@ namespace CK.Setup.Cris;
 /// <list type="bullet">
 ///     <item>The own sensitive fields of a type: [Sensitive] string properties with a setter (anything else is an error).</item>
 ///     <item>
-///     Its nested Cris fields, that are traversed: properties typed as a Cris Poco (concrete or abstract), and lists, sets
-///     and arrays of Cris Pocos (like the <c>Events</c> of an executed command).
+///     Its nested Cris fields, that are traversed: properties typed as a Cris Poco (concrete or abstract), and properties
+///     that reach Cris Pocos only through lists, sets, arrays, dictionary values and anonymous records (like the
+///     <c>Events</c> of an executed command, or a list of <c>(IAbstractCommand Command, string? Description)</c>).
 ///     </item>
 ///     <item>
 ///     Whether it may hold sensitive data: own sensitive fields, or a nested Cris field that may hold a type that may
 ///     (for an abstract type: any Cris type of the application that implements it). This is a fixed point.
 ///     </item>
 ///     <item>
-///     Any other field (a dictionary, a collection of plain IPocos, a plain IPoco, a record, a union type) that may hold a [Sensitive] value is an error:
+///     Any other field (a collection of plain IPocos, a plain IPoco, a named record, a union type) that may hold a [Sensitive] value is an error:
 ///     these values are not handled (they would be logged, and would cross a party boundary unprotected). A field typed
 ///     as <c>object</c> or as an abstract plain IPoco is not analyzed.
 ///     </item>
@@ -34,8 +35,9 @@ sealed class CrisSensitiveData
     {
         public readonly List<Field> Sensitive = new();
         public readonly List<(Field F, Type FieldType)> Nested = new();
-        // The lists, sets and arrays of Cris Pocos: their items are traversed (FieldType is the item type).
-        public readonly List<(Field F, Type FieldType)> NestedCollections = new();
+        // The fields that reach Cris Pocos through lists, sets, arrays, dictionary values and anonymous records:
+        // they are traversed at runtime (CrisTypes are the reachable Cris Poco types).
+        public readonly List<(Field F, List<Type> CrisTypes)> NestedCollections = new();
         // The fields that are neither sensitive nor nested Cris Pocos: they must not hold sensitive values.
         public readonly List<IPocoField> Others = new();
         public bool HasSensitiveData;
@@ -55,6 +57,7 @@ sealed class CrisSensitiveData
     {
         bool success = true;
         var infos = new Dictionary<CrisType, Info>();
+        List<Type> reachable;
         foreach( var e in crisTypes )
         {
             var info = new Info();
@@ -83,11 +86,9 @@ sealed class CrisSensitiveData
                 {
                     info.Nested.Add( (new Field( f.Name, getter, null ), f.Type.Type) );
                 }
-                else if( f.Type.NonNullable is ICollectionPocoType coll
-                         && coll.Kind is PocoTypeKind.List or PocoTypeKind.HashSet or PocoTypeKind.Array
-                         && typeof( ICrisPoco ).IsAssignableFrom( coll.ItemTypes[0].Type ) )
+                else if( IsTraversable( f.Type, reachable = new List<Type>() ) )
                 {
-                    info.NestedCollections.Add( (new Field( f.Name, getter, null ), coll.ItemTypes[0].Type) );
+                    info.NestedCollections.Add( (new Field( f.Name, getter, null ), reachable) );
                 }
                 else
                 {
@@ -106,8 +107,8 @@ sealed class CrisSensitiveData
             foreach( var (e, info) in infos )
             {
                 if( info.HasSensitiveData ) continue;
-                if( info.Nested.Concat( info.NestedCollections ).Any( n => infos.Any( c => c.Value.HasSensitiveData
-                                                          && c.Key.CrisPocoType.FamilyInfo.Interfaces.Any( i => n.FieldType.IsAssignableFrom( i.PocoInterface ) ) ) ) )
+                if( info.Nested.Select( n => n.FieldType ).Concat( info.NestedCollections.SelectMany( n => n.CrisTypes ) )
+                        .Any( t => CrisTypeMayHold( infos, t ) ) )
                 {
                     info.HasSensitiveData = changed = true;
                 }
@@ -130,6 +131,36 @@ sealed class CrisSensitiveData
         return success ? new CrisSensitiveData( infos ) : null;
     }
 
+    // A field that reaches Cris Pocos only through lists, sets, arrays, dictionary values (keys that reach nothing)
+    // and anonymous records (value tuples: their other fields reach nothing); its Cris Poco types are collected.
+    static bool IsTraversable( IPocoType t, List<Type> reachable )
+    {
+        t = t.NonNullable;
+        if( typeof( ICrisPoco ).IsAssignableFrom( t.Type ) )
+        {
+            reachable.Add( t.Type );
+            return true;
+        }
+        switch( t )
+        {
+            case ICollectionPocoType c when c.Kind is PocoTypeKind.List or PocoTypeKind.HashSet or PocoTypeKind.Array:
+                return IsTraversable( c.ItemTypes[0], reachable );
+            case ICollectionPocoType c when c.Kind is PocoTypeKind.Dictionary:
+                return !MayHoldUnhandledSensitive( null, c.ItemTypes[0], new HashSet<IPocoType>() )
+                       && IsTraversable( c.ItemTypes[1], reachable );
+            case IRecordPocoType r when t.Kind is PocoTypeKind.AnonymousRecord:
+                bool any = false;
+                foreach( var f in r.Fields )
+                {
+                    if( f.Originator is System.Reflection.MemberInfo m && m.IsDefined( typeof( SensitiveAttribute ), true ) ) return false;
+                    if( IsTraversable( f.Type, reachable ) ) any = true;
+                    else if( MayHoldUnhandledSensitive( null, f.Type, new HashSet<IPocoType>() ) ) return false;
+                }
+                return any;
+        }
+        return false;
+    }
+
     static bool CrisTypeMayHold( Dictionary<CrisType, Info> infos, Type t )
     {
         return infos.Any( c => c.Value.HasSensitiveData
@@ -137,10 +168,11 @@ sealed class CrisSensitiveData
     }
 
     // A reachability: true if a reachable type declares a [Sensitive] member (each type is visited once).
-    static bool MayHoldUnhandledSensitive( Dictionary<CrisType, Info> infos, IPocoType t, HashSet<IPocoType> visited )
+    // Without infos (before the fixed point), any Cris Poco counts.
+    static bool MayHoldUnhandledSensitive( Dictionary<CrisType, Info>? infos, IPocoType t, HashSet<IPocoType> visited )
     {
         t = t.NonNullable;
-        if( typeof( ICrisPoco ).IsAssignableFrom( t.Type ) ) return CrisTypeMayHold( infos, t.Type );
+        if( typeof( ICrisPoco ).IsAssignableFrom( t.Type ) ) return infos == null || CrisTypeMayHold( infos, t.Type );
         if( !visited.Add( t ) ) return false;
         return t switch
         {
@@ -193,14 +225,25 @@ sealed class CrisSensitiveData
         }
         foreach( var (f, _) in info.NestedCollections )
         {
-            var v = $"c{i++}";
-            classScope.Append( "if( ((" ).AppendGlobalTypeName( f.Getter ).Append( ")poco)." ).Append( f.Name )
-                      .Append( " is System.Collections.IEnumerable " ).Append( v ).Append( "s )" ).NewLine()
-                      .Append( "foreach( var o in " ).Append( v ).Append( "s )" ).NewLine()
-                      .Append( "if( o is CK.Cris.ICrisPoco " ).Append( v )
-                      .Append( " && !" ).Append( v ).Append( ".CrisPocoModel.TransformSensitiveStrings( " ).Append( v ).Append( ", transformer ) ) return false;" ).NewLine();
+            classScope.Append( "if( !TransformNested( ((" ).AppendGlobalTypeName( f.Getter ).Append( ")poco)." ).Append( f.Name )
+                      .Append( ", transformer ) ) return false;" ).NewLine();
         }
         classScope.Append( "return true;" )
                   .CloseBlock();
+        if( info.NestedCollections.Count > 0 )
+        {
+            // The values of a traversable field (see IsTraversable): Cris Pocos, collections, dictionaries and value tuples.
+            classScope.Append( "static bool TransformNested( object? o, CK.Cris.SensitiveStringTransformer transformer )" )
+                      .OpenBlock()
+                      .Append( "switch( o )" ).OpenBlock()
+                      .Append( "case null: case string: return true;" ).NewLine()
+                      .Append( "case CK.Cris.ICrisPoco c: return c.CrisPocoModel.TransformSensitiveStrings( c, transformer );" ).NewLine()
+                      .Append( "case System.Collections.IDictionary d: foreach( var v in d.Values ) if( !TransformNested( v, transformer ) ) return false; return true;" ).NewLine()
+                      .Append( "case System.Runtime.CompilerServices.ITuple t: for( int i = 0; i < t.Length; ++i ) if( !TransformNested( t[i], transformer ) ) return false; return true;" ).NewLine()
+                      .Append( "case System.Collections.IEnumerable e: foreach( var v in e ) if( !TransformNested( v, transformer ) ) return false; return true;" ).NewLine()
+                      .Append( "default: return true;" ).NewLine()
+                      .CloseBlock()
+                      .CloseBlock();
+        }
     }
 }

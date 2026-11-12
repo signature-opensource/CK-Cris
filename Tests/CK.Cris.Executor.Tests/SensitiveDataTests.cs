@@ -189,6 +189,41 @@ public class SensitiveDataTests
         list.TransformSensitiveStrings( ( owner, name, value ) => null ).ShouldBeFalse( "The item's secret is transformed." );
     }
 
+    // Like a batch of commands: Cris Pocos in value tuples and dictionary values are traversed.
+    public interface IBatchCommand : ICommand
+    {
+        IList<(IAbstractCommand Command, string? Description)> Commands { get; }
+
+        IDictionary<string, IAbstractCommand> Named { get; }
+    }
+
+    [Test]
+    public async Task value_tuples_and_dictionary_values_are_traversed_Async()
+    {
+        var configuration = TestHelper.CreateDefaultEngineConfiguration();
+        configuration.FirstBinPath.Types.Add( typeof( CrisDirectory ), typeof( CommonPocoJsonSupport ), typeof( ISecretCommand ), typeof( IBatchCommand ) );
+        await using var auto = (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices();
+        var poco = auto.Services.GetRequiredService<PocoDirectory>();
+        var inTuple = poco.Create<ISecretCommand>( c => { c.Secret = "password1"; c.Public = "visible"; } );
+        var inDictionary = poco.Create<ISecretCommand>( c => c.Secret = "password2" );
+        var batch = poco.Create<IBatchCommand>( c =>
+        {
+            c.Commands.Add( (inTuple, "The description.") );
+            c.Named.Add( "N", inDictionary );
+        } );
+        batch.CrisPocoModel.HasSensitiveData.ShouldBeTrue();
+
+        var log = batch.ToLogString();
+        log.ShouldContain( "visible" );
+        log.ShouldContain( "The description." );
+        log.ShouldNotContain( "password1" );
+        log.ShouldNotContain( "password2" );
+
+        var seen = new List<string>();
+        batch.TransformSensitiveStrings( ( owner, name, value ) => { seen.Add( value ); return value; } ).ShouldBeTrue();
+        seen.ShouldBe( ["password1", "password2"], ignoreOrder: true );
+    }
+
     [Test]
     public async Task unhandled_Sensitive_values_are_errors_Async()
     {
