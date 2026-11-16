@@ -4,4 +4,4 @@ the HTTP front, the clients): `AddFakeAuthCenter()` adds to a BinPath the `FakeA
 `FakeTokenReader`; `AddFakeLoginProviders()` adds the fake login providers (Basic, Weak, Oidc, Passkey) of a real
 authentication center that a test runs without a database.
 
-See the [README](https://github.com/signature-opensource/CK-Cris/blob/stable/CK.Testing.Cris.Authentication/README.md).
+See the [README](https://github.com/signature-opensource/CK-Cris/blob/stable/CK.Testing.Engine.Cris.Authentication/README.md).

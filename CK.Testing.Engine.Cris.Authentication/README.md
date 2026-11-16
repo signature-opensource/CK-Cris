@@ -1,4 +1,4 @@
-# CK.Testing.Cris.Authentication
+# CK.Testing.Engine.Cris.Authentication
 
 The authentication fakes of the tests, on one actor database (`FakeActorDatabase`):
 
@@ -14,7 +14,7 @@ and of the clients (CK.Cris.HttpSender, the Angular packages). The session comma
 authentication center, that handles their `[Internal]` operations, is a fake.
 
 A test that can run the real authentication center (a repository downstream of CK-AppIdentity-Transport) uses it
-instead: see CK.Testing.AppIdentity.AuthCenter.
+instead: see CK.Testing.Engine.AppIdentity.AuthCenter.
 
 ### The engine configuration
 

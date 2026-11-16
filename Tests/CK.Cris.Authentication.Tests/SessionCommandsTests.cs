@@ -20,7 +20,7 @@ namespace CK.Cris.Authentication.Tests;
 /// <summary>
 /// First engine check of the CK.IO.Authentication types (they cannot be tested in CK-Cris-Abstractions) and of the
 /// endpoint side of the session commands: the real handlers (CK.Cris.Authentication, .Basic, .Weak, .Passkey) execute
-/// the internal operations, handled here (single host) by the fake authentication center of CK.Testing.Cris.Authentication.
+/// the internal operations, handled here (single host) by the fake authentication center of CK.Testing.Engine.Cris.Authentication.
 /// </summary>
 [TestFixture]
 public class SessionCommandsTests
@@ -126,7 +126,7 @@ public class SessionCommandsTests
     {
         var configuration = TestHelper.CreateDefaultEngineConfiguration();
         configuration.FirstBinPath.Types.Add( _sessionTypes );
-        // The authentication center side: the handlers of the internal operations (CK.Testing.Cris.Authentication).
+        // The authentication center side: the handlers of the internal operations (CK.Testing.Engine.Cris.Authentication).
         if( withAuthenticationCenter ) configuration.FirstBinPath.AddFakeAuthCenter();
         var session = AuthenticationInfo.Create( _albert, DateTime.UtcNow.AddDays( 1 ), null, "D", DateTime.UtcNow );
         return (await configuration.RunSuccessfullyAsync()).CreateAutomaticServices( configureServices: services =>
