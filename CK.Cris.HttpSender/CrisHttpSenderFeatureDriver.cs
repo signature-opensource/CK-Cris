@@ -14,7 +14,7 @@ namespace CK.Cris.HttpSender;
 /// configuration. This configuration can be a "true" value (that uses a default configuration).
 /// </summary>
 [AlsoRegisterType<ICrisCallResult>]
-[PartyFeature( IsOptional = false )]
+[PartyFeature( "CrisHttpSender", TypeActivation.ByDefault )]
 public sealed class CrisHttpSenderFeatureDriver : ApplicationIdentityFeatureDriver
 {
     readonly PocoDirectory _pocoDirectory;
