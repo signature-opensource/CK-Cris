@@ -5,10 +5,10 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CK.AuthenticationInfo.Passkey" Version="15.0.0-0.uc.0.ci.23" />
-    <PackageReference Include="CK.IO.Authentication.Basic" Version="3.0.0-0.uc.0.ci.76" />
-    <PackageReference Include="CK.IO.Authentication.Weak" Version="3.0.0-0.uc.0.ci.76" />
-    <PackageReference Include="CK.IO.Authentication.Passkey" Version="3.0.0-0.uc.0.ci.76" />
-    <PackageReference Include="CK.Testing.Engine" Version="37.0.0-0.uc.0.ci.1" />
+    <PackageReference Include="CK.IO.Authentication.Basic" Version="3.0.0-0.uc.0.ci.77" />
+    <PackageReference Include="CK.IO.Authentication.Weak" Version="3.0.0-0.uc.0.ci.77" />
+    <PackageReference Include="CK.IO.Authentication.Passkey" Version="3.0.0-0.uc.0.ci.77" />
+    <PackageReference Include="CK.Testing.Engine" Version="37.0.0-0.uc.0.ci.2" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris.Authentication\CK.Cris.Authentication.csproj" />
