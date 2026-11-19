@@ -76,7 +76,7 @@ public class FakeWeakLoginProvider : ILoginProvider
 /// The payload of the <see cref="FakeOidcLoginProvider"/> (like the IUserOidcInfo of CK.DB.User.UserOidc): the
 /// OpenID Connect scheme family sets its <see cref="SchemeSuffix"/>, <see cref="Sub"/> and <see cref="Claims"/>.
 /// </summary>
-public sealed class FakeOidcPayload
+public sealed class FakeOidcPayload : IOidcLoginPayload
 {
     /// <summary>
     /// Gets or sets the suffix of the scheme ("Test" for "Oidc.Test").
