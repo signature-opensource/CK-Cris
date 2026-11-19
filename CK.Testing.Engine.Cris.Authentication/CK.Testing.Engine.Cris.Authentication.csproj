@@ -5,9 +5,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CK.AuthenticationInfo.Passkey" Version="15.0.0-0.uc.0.ci.27" />
-    <PackageReference Include="CK.IO.Authentication.Basic" Version="3.0.0-0.uc.0.ci.90" />
-    <PackageReference Include="CK.IO.Authentication.Weak" Version="3.0.0-0.uc.0.ci.90" />
-    <PackageReference Include="CK.IO.Authentication.Passkey" Version="3.0.0-0.uc.0.ci.90" />
+    <PackageReference Include="CK.IO.Authentication.Basic" Version="3.0.0-0.uc.0.ci.91" />
+    <PackageReference Include="CK.IO.Authentication.Weak" Version="3.0.0-0.uc.0.ci.91" />
+    <PackageReference Include="CK.IO.Authentication.Passkey" Version="3.0.0-0.uc.0.ci.91" />
     <PackageReference Include="CK.Testing.Engine" Version="37.0.0-0.uc.0.ci.21" />
   </ItemGroup>
   <ItemGroup>

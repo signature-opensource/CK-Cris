@@ -5,7 +5,7 @@
     <Description>The dynamic configuration of an application: the values that its code can change while it runs (the [ConfigurationLevel( Run )] properties of its singletons) are initialized from the configuration, changed by a command (CK.IO.DynamicConfiguration) and kept (IDynamicConfigurationStore).</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.IO.DynamicConfiguration" Version="3.0.0-0.uc.0.ci.90" />
+    <PackageReference Include="CK.IO.DynamicConfiguration" Version="3.0.0-0.uc.0.ci.91" />
     <PackageReference Include="CK.AuthenticationInfo" Version="15.0.0-0.uc.0.ci.27" />
   </ItemGroup>
 </Project>
