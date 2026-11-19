@@ -6,5 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CK.IO.DynamicConfiguration" Version="3.0.0-0.uc.0.ci.89" />
+    <PackageReference Include="CK.AuthenticationInfo" Version="15.0.0-0.uc.0.ci.27" />
   </ItemGroup>
 </Project>
