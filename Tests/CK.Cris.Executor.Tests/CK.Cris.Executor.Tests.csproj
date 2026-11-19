@@ -13,6 +13,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\CK.Cris.Executor.Engine\CK.Cris.Executor.Engine.csproj" />
+    <ProjectReference Include="..\..\CK.Cris.DynamicConfiguration.Engine\CK.Cris.DynamicConfiguration.Engine.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="%24StObjGen\" />

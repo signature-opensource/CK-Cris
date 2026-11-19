@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>CK.Setup</RootNamespace>
+    <Description>The engine of CK.Cris.DynamicConfiguration: generates the accessors of the [Run] properties of the App singletons (no reflection at run time).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CK.Cris.DynamicConfiguration\CK.Cris.DynamicConfiguration.csproj" />
+    <ProjectReference Include="..\CK.Cris.Engine\CK.Cris.Engine.csproj" />
+  </ItemGroup>
+</Project>

@@ -15,8 +15,13 @@ namespace CK.Cris;
 /// This is a <see cref="ISingletonAutoService"/>: the default instance is available in all the DI containers
 /// (but nothing prevents other host to be instantiated and used independently).
 /// </para>
+/// <para>
+/// Its <see cref="ParallelRunnerCount"/> is a value of the "CrisExecutionHost" section of the App's configuration that can
+/// change while the application runs (see CK.Cris.DynamicConfiguration): <c>"CrisExecutionHost": { "ParallelRunnerCount": 4 }</c>.
+/// </para>
 /// </summary>
 [AlsoRegisterType<RawCrisReceiver, RawCrisExecutor, DarkSideCrisEventHub>]
+[ConfigurationSection( "CrisExecutionHost" )]
 public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAutoService
 {
     readonly IPocoFactory<ICrisResultError> _errorResultFactory;
@@ -72,6 +77,7 @@ public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAu
     }
 
     /// <inheritdoc />
+    [ConfigurationLevel( ConfigurationLevel.Run )]
     public int ParallelRunnerCount
     {
         get => _runnerCount;

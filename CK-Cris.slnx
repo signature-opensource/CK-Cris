@@ -20,6 +20,8 @@
   <Project Path="CK.Cris.Authentication/CK.Cris.Authentication.csproj" />
   <Project Path="CK.Cris.BackgroundExecutor/CK.Cris.BackgroundExecutor.csproj" />
   <Project Path="CK.Cris.DelayedCommand/CK.Cris.DelayedCommand.csproj" />
+  <Project Path="CK.Cris.DynamicConfiguration.Engine/CK.Cris.DynamicConfiguration.Engine.csproj" />
+  <Project Path="CK.Cris.DynamicConfiguration/CK.Cris.DynamicConfiguration.csproj" />
   <Project Path="CK.Cris.Engine/CK.Cris.Engine.csproj" />
   <Project Path="CK.Cris.Executor.Engine/CK.Cris.Executor.Engine.csproj" />
   <Project Path="CK.Cris.Executor/CK.Cris.Executor.csproj" />
