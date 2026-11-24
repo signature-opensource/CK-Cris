@@ -2,7 +2,6 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>CK.Auth</RootNamespace>
-    <Description>Validates and restores the CK.IO.Auth parts of the Cris commands with the CK.AuthenticationInfo model. Replaces CK.Cris.Auth: both cannot be installed together.</Description>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CK.AuthenticationInfo" Version="15.0.0-0.uc.2" />
