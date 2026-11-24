@@ -6,4 +6,4 @@ authentication from them when it is executed later or elsewhere.
 The endpoint and authentication center contracts are `IAuthenticationSessionEndpoint`, `IAuthenticationSessionOpener`,
 `IAuthenticationTokenReader`, the endpoint session service (`AuthenticationSessionEndpointService`, the single
 `IAuthenticationSessionOpener`) and the handlers of the session commands shared by all the schemes. It also keeps the
-caller party of the deferred commands. An application uses it or CK.Cris.Auth, never both.
+caller party of the deferred commands.
