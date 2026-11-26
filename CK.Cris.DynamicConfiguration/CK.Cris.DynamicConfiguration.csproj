@@ -4,7 +4,7 @@
     <RootNamespace>CK.Cris.DynamicConfiguration</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.IO.DynamicConfiguration" Version="3.0.0-0.uc.4.ci.129" />
-    <PackageReference Include="CK.AuthenticationInfo" Version="15.0.0-0.uc.4.ci.45" />
+    <PackageReference Include="CK.IO.DynamicConfiguration" Version="3.0.0-0.uc.4.ci.130" />
+    <PackageReference Include="CK.AuthenticationInfo" Version="15.0.0-0.uc.4.ci.46" />
   </ItemGroup>
 </Project>
