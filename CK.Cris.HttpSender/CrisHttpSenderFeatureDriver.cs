@@ -2,7 +2,6 @@ using CK.AppIdentity;
 using CK.Core;
 using CK.Setup;
 using System;
-using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -10,11 +9,13 @@ namespace CK.Cris.HttpSender;
 
 /// <summary>
 /// This feature applies only to <see cref="IRemoteParty"/> that may be <see cref="IRemoteParty.IsExternalParty"/>
-/// or not. The <see cref="CrisHttpSender"/> feature is added only if a "CrisHttpSender" key appears in the remote's
-/// configuration. This configuration can be a "true" value (that uses a default configuration).
+/// or not. It is optional: the <see cref="CrisHttpSender"/> feature is added to a remote that declares it,
+/// <c>"CrisHttpSender": true</c> (the defaults) or its section (its model: <see cref="CrisHttpSenderConfiguration"/>,
+/// its "Retry" option: <see cref="CrisHttpSenderRetryOption"/>).
 /// </summary>
 [AlsoRegisterType<ICrisCallResult>]
-[PartyFeature( "CrisHttpSender", TypeActivation.ByDefault )]
+[PartyFeature( "CrisHttpSender", TypeActivation.Optional )]
+[Configuration<CrisHttpSenderConfiguration>]
 public sealed class CrisHttpSenderFeatureDriver : ApplicationIdentityFeatureDriver
 {
     readonly PocoDirectory _pocoDirectory;
@@ -96,10 +97,9 @@ public sealed class CrisHttpSenderFeatureDriver : ApplicationIdentityFeatureDriv
 
     bool PlugFeature( IActivityMonitor monitor, IRemoteParty r )
     {
-        // Allow "CrisHttpSender" = "false" or "true".
-        // This supports default, empty, configuration.
-        if( r.Configuration.Configuration.ShouldApplyConfiguration( "CrisHttpSender", optOut: false, out var config ) )
+        // The remote declares the feature (the caller checks IsAllowedFeature): its model and its options are read.
         {
+            var config = GetModel<CrisHttpSenderConfiguration>( r );
             if( r.Address is null
                 || !Uri.TryCreate( r.Address, UriKind.Absolute, out var uri )
                 || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) )
@@ -112,31 +112,10 @@ public sealed class CrisHttpSenderFeatureDriver : ApplicationIdentityFeatureDriv
                 monitor.Error( $"Unable to setup feature 'CrisHttpSender' on '{r.FullName}': Address '{r.Address}' url must not have a path and/or a query part." );
                 return false;
             }
-            HttpRetryStrategyOptions? retryStrategy = null;
-            if( config.ShouldApplyConfiguration( "Retry", optOut: false, out var retryConfig ) )
-            {
-                retryStrategy = CrisHttpSender.CreateRetryStrategy( monitor, retryConfig );
-            }
-            bool disableServerCertificateValidation = false;
-            TimeSpan? timeout = null;
-            if( config != null )
-            {
-                var s = config["Timeout"];
-                if( s != null )
-                {
-                    if( TimeSpan.TryParse( s, CultureInfo.InvariantCulture, out var tOut ) )
-                    {
-                        timeout = tOut;
-                    }
-                    else
-                    {
-                        monitor.Warn( $"Unable to parse CrisHttpSender Timout '{s}' for remote '{r}'. Using default value of 100 seconds." );
-                    }
-                }
-                disableServerCertificateValidation = config.TryGetBooleanValue( monitor, "DisableServerCertificateValidation" ) ?? false;
-            }
+            var retry = GetOption<CrisHttpSenderRetryOption>( r );
+            var retryStrategy = retry != null ? CrisHttpSender.CreateRetryStrategy( retry.Configuration ) : null;
             monitor.Info( $"Enabling 'CrisHttpSender' on '{r}' with address '{uri}'." );
-            r.AddFeature( new CrisHttpSender( r, new( uri, ".cris/net" ), disableServerCertificateValidation, _pocoDirectory, _resultReader, timeout, retryStrategy ) );
+            r.AddFeature( new CrisHttpSender( r, new( uri, ".cris/net" ), config.DisableServerCertificateValidation, _pocoDirectory, _resultReader, config.Timeout, retryStrategy ) );
         }
         return true;
     }

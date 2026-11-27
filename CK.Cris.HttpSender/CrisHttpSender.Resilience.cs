@@ -29,30 +29,16 @@ public sealed partial class CrisHttpSender
         return default;
     }
 
-    internal static HttpRetryStrategyOptions CreateRetryStrategy( IActivityMonitor monitor, ImmutableConfigurationSection? section )
+    internal static HttpRetryStrategyOptions CreateRetryStrategy( CrisHttpSenderRetryConfiguration c )
     {
-        return section == null
-                    ? new HttpRetryStrategyOptions() { OnRetry = OnRetryAsync }
-                    : CreateRetryStrategy(
-                        section.TryGetIntValue( monitor, nameof( HttpRetryStrategyOptions.MaxRetryAttempts ), 1, int.MaxValue ),
-                        section.TryGetEnumValue<DelayBackoffType>( monitor, nameof( HttpRetryStrategyOptions.BackoffType ) ),
-                        section.TryGetBooleanValue( monitor, nameof( HttpRetryStrategyOptions.UseJitter ) ),
-                        section.TryGetTimeSpanValue( monitor, nameof( HttpRetryStrategyOptions.Delay ), TimeSpan.Zero, TimeSpan.FromDays( 1 ) ),
-                        section.TryGetTimeSpanValue( monitor, nameof( HttpRetryStrategyOptions.MaxDelay ), TimeSpan.Zero, TimeSpan.FromDays( 1 ) ),
-                        section.TryGetBooleanValue( monitor, nameof( HttpRetryStrategyOptions.ShouldRetryAfterHeader ) ) );
-
-        static HttpRetryStrategyOptions CreateRetryStrategy( int? maxRetryAttempts, DelayBackoffType? backoffType, bool? useJitter, TimeSpan? delay, TimeSpan? maxDelay, bool? shouldRetryAfterHeader )
-        {
-            var retry = new HttpRetryStrategyOptions() { OnRetry = OnRetryAsync };
-            if( maxRetryAttempts.HasValue ) retry.MaxRetryAttempts = maxRetryAttempts.Value;
-            if( backoffType.HasValue ) retry.BackoffType = backoffType.Value;
-            if( useJitter.HasValue ) retry.UseJitter = useJitter.Value;
-            if( delay.HasValue ) retry.Delay = delay.Value;
-            if( maxDelay.HasValue ) retry.MaxDelay = maxDelay.Value;
-            if( shouldRetryAfterHeader.HasValue ) retry.ShouldRetryAfterHeader = shouldRetryAfterHeader.Value;
-            return retry;
-        }
-
+        var retry = new HttpRetryStrategyOptions() { OnRetry = OnRetryAsync };
+        if( c.MaxRetryAttempts.HasValue ) retry.MaxRetryAttempts = c.MaxRetryAttempts.Value;
+        if( c.BackoffType.HasValue ) retry.BackoffType = c.BackoffType.Value;
+        if( c.UseJitter.HasValue ) retry.UseJitter = c.UseJitter.Value;
+        if( c.Delay.HasValue ) retry.Delay = c.Delay.Value;
+        if( c.MaxDelay.HasValue ) retry.MaxDelay = c.MaxDelay.Value;
+        if( c.ShouldRetryAfterHeader.HasValue ) retry.ShouldRetryAfterHeader = c.ShouldRetryAfterHeader.Value;
+        return retry;
     }
 
 }

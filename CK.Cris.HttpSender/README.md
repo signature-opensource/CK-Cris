@@ -6,9 +6,11 @@ commands to. Configuration adds it; a resolved feature is the API.
 ## It is a feature on a remote, not a service you register.
 
 [`CrisHttpSenderFeatureDriver`](CrisHttpSenderFeatureDriver.cs) walks every remote party at startup
-and adds a [`CrisHttpSender`](CrisHttpSender.cs) to those whose configuration has a `"CrisHttpSender"`
-section. The section may be the bare value `true` - the driver uses `ShouldApplyConfiguration`, so an
-empty configuration is a valid one.
+and adds a [`CrisHttpSender`](CrisHttpSender.cs) to those that declare the optional `"CrisHttpSender"`
+feature: the bare value `true` (the defaults) or its section. The section is its model,
+[`CrisHttpSenderConfiguration`](CrisHttpSenderConfiguration.cs) (`Timeout`, `DisableServerCertificateValidation`), and
+its `"Retry"` option (`CrisHttpSenderRetryOption`, its model `CrisHttpSenderRetryConfiguration`); any other key is an
+error.
 
 ```jsonc
 "Remotes": [
@@ -49,7 +51,7 @@ var executed = await sender.SendAsync( monitor, command );
 if( executed.Result is ICrisResultError error ) { /* error.Errors, error.LogKey */ }
 ```
 
-`GetFeature<T>()` returns null when the remote has no `"CrisHttpSender"` section;
+`GetFeature<T>()` returns null when the remote doesn't declare `"CrisHttpSender"`;
 `GetRequiredFeature<T>()` throws instead, which is what you want when the configuration is supposed to
 guarantee it. Both come from `IParty`.
 
