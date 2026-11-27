@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CK.AuthenticationInfo" Version="15.0.0-0.uc.4.ci.47" />
-    <PackageReference Include="CK.IO.Authentication" Version="3.0.0-0.uc.4.ci.131" />
+    <PackageReference Include="CK.IO.Authentication" Version="3.0.0-0.uc.4.ci.132" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris.Executor\CK.Cris.Executor.csproj" />
