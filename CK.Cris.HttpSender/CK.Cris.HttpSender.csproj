@@ -4,7 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CK.IO.Authentication" Version="3.0.0-0.uc.4.ci.131" />
-    <PackageReference Include="CK.AppIdentity" Version="3.0.0-0.uc.4.ci.203" />
+    <PackageReference Include="CK.AppIdentity" Version="3.0.0-0.uc.4.ci.206" />
     <PackageReference Include="CK.Poco.Exc.Json" Version="37.0.0-0.uc.4.ci.76" />
     <PackageReference Include="Polly.Core" Version="8.9.0" />
   </ItemGroup>
