@@ -4,8 +4,8 @@
     <RootNamespace>CK.Auth</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.AuthenticationInfo" Version="15.0.0-0.uc.4.ci.48" />
-    <PackageReference Include="CK.IO.Authentication" Version="3.0.0-0.uc.4.ci.137" />
+    <PackageReference Include="CK.AuthenticationInfo" Version="15.0.0-0.uc.4.ci.49" />
+    <PackageReference Include="CK.IO.Authentication" Version="3.0.0-0.uc.4.ci.138" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris.Executor\CK.Cris.Executor.csproj" />

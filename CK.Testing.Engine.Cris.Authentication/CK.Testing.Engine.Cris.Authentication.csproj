@@ -3,12 +3,12 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.AuthenticationInfo.Oidc" Version="15.0.0-0.uc.4.ci.48" />
-    <PackageReference Include="CK.AuthenticationInfo.Passkey" Version="15.0.0-0.uc.4.ci.48" />
-    <PackageReference Include="CK.IO.Authentication.Basic" Version="3.0.0-0.uc.4.ci.137" />
-    <PackageReference Include="CK.IO.Authentication.Weak" Version="3.0.0-0.uc.4.ci.137" />
-    <PackageReference Include="CK.IO.Authentication.Passkey" Version="3.0.0-0.uc.4.ci.137" />
-    <PackageReference Include="CK.Testing.Engine" Version="37.0.0-0.uc.4.ci.89" />
+    <PackageReference Include="CK.AuthenticationInfo.Oidc" Version="15.0.0-0.uc.4.ci.49" />
+    <PackageReference Include="CK.AuthenticationInfo.Passkey" Version="15.0.0-0.uc.4.ci.49" />
+    <PackageReference Include="CK.IO.Authentication.Basic" Version="3.0.0-0.uc.4.ci.138" />
+    <PackageReference Include="CK.IO.Authentication.Weak" Version="3.0.0-0.uc.4.ci.138" />
+    <PackageReference Include="CK.IO.Authentication.Passkey" Version="3.0.0-0.uc.4.ci.138" />
+    <PackageReference Include="CK.Testing.Engine" Version="37.0.0-0.uc.4.ci.90" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CK.Cris.Authentication\CK.Cris.Authentication.csproj" />
